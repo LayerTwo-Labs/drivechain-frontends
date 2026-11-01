@@ -68,6 +68,12 @@ class _FakeState extends ChangeNotifier implements BackendStateProvider {
   int watches = 0;
 
   @override
+  bool orchestratorAnswered = false;
+
+  @override
+  bool orchestratorReachable = false;
+
+  @override
   void startWatching() => watches++;
 
   @override
@@ -185,6 +191,29 @@ void main() {
       async.flushMicrotasks();
 
       expect(orchestrator.wallet.mode, wmpb.NodeMode.NODE_MODE_FULL);
+    });
+  });
+
+  test('a backend that answers after the readiness wait still gets its boot', () {
+    fakeAsync((async) {
+      orchestrator.wallet.failures = 0;
+      startBackendsForMode(orchestrator: orchestrator, backendState: state, orchestratorReady: false, log: log);
+      async.flushMicrotasks();
+      expect(GetIt.I.get<NodeModeProvider>().loaded, isFalse);
+      expect(state.watches, 1);
+
+      state
+        ..orchestratorAnswered = true
+        ..orchestratorReachable = true
+        ..notifyListeners();
+      async.flushMicrotasks();
+
+      expect(GetIt.I.get<NodeModeProvider>().isLight, isTrue);
+      expect(orchestrator.wallet.writes, 1);
+
+      state.notifyListeners();
+      async.flushMicrotasks();
+      expect(orchestrator.wallet.writes, 1, reason: 'the late boot runs once');
     });
   });
 }
