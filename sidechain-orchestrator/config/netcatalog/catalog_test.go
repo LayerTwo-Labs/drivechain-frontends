@@ -60,6 +60,9 @@ func TestEmbeddedECashPublishesEndpoints(t *testing.T) {
 	if got := n.ExplorerHost(); got == "" {
 		t.Error("embedded eCash entry must publish an explorer host")
 	}
+	if got := n.Services.CoinNews.URL; got != "https://seed.ecash.eu.com" {
+		t.Errorf("embedded eCash CoinNews URL = %q, want https://seed.ecash.eu.com", got)
+	}
 }
 
 func TestECashIDEmptyWithoutECash(t *testing.T) {
