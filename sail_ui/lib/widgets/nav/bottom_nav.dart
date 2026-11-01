@@ -280,14 +280,15 @@ class BottomNav extends StatelessWidget {
                         remoteBadge: true,
                         navigateToLogs: model.navigateToLogs,
                       ),
-                      DaemonConnectionCard(
-                        connection: model.enforcer,
-                        syncInfo: null,
-                        infoMessage: null,
-                        remote: true,
-                        remoteBadge: true,
-                        navigateToLogs: model.navigateToLogs,
-                      ),
+                      if (model.needsEnforcer)
+                        DaemonConnectionCard(
+                          connection: model.enforcer,
+                          syncInfo: null,
+                          infoMessage: null,
+                          remote: true,
+                          remoteBadge: true,
+                          navigateToLogs: model.navigateToLogs,
+                        ),
                     ],
                     if (!lightRemote &&
                         showMainchain &&
