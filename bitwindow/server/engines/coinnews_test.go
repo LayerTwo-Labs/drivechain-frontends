@@ -429,6 +429,22 @@ func TestPurgeAtOrAbove_NamesTheFailedStatement(t *testing.T) {
 	}
 }
 
+func TestConnectRemoteECashMainnetSkipsCatalog(t *testing.T) {
+	var fetches atomic.Int32
+	catalog := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fetches.Add(1)
+		_, err := w.Write([]byte(`{"schema_version":1,"networks":[{"id":"ecash","family":"ecash","services":{"coinnews":{"url":null}}}]}`))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(catalog.Close)
+	r := &connectRemote{network: "ecash", ecashID: ecashMainnetID, catalogURL: catalog.URL}
+
+	first := r.resolve(t.Context())
+	assert.NotNil(t, first)
+	assert.Same(t, first, r.resolve(t.Context()))
+	assert.Equal(t, int32(0), fetches.Load())
+}
+
 // A failed catalog fetch must not keep the miss of the embedded catalog: the
 // embedded catalog has no gammanet entry.
 func TestConnectRemoteResolve(t *testing.T) {
