@@ -4462,6 +4462,7 @@ class ValidateDescriptorResponse extends $pb.GeneratedMessage {
     $core.int? m,
     $core.int? n,
     $core.Iterable<ParsedCosigner>? keys,
+    $core.String? descriptor,
   }) {
     final $result = create();
     if (multisig != null) {
@@ -4479,6 +4480,9 @@ class ValidateDescriptorResponse extends $pb.GeneratedMessage {
     if (keys != null) {
       $result.keys.addAll(keys);
     }
+    if (descriptor != null) {
+      $result.descriptor = descriptor;
+    }
     return $result;
   }
   ValidateDescriptorResponse._() : super();
@@ -4491,6 +4495,7 @@ class ValidateDescriptorResponse extends $pb.GeneratedMessage {
     ..a<$core.int>(3, _omitFieldNames ? '' : 'm', $pb.PbFieldType.OU3)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'n', $pb.PbFieldType.OU3)
     ..pc<ParsedCosigner>(5, _omitFieldNames ? '' : 'keys', $pb.PbFieldType.PM, subBuilder: ParsedCosigner.create)
+    ..aOS(6, _omitFieldNames ? '' : 'descriptor')
     ..hasRequiredFields = false
   ;
 
@@ -4554,6 +4559,16 @@ class ValidateDescriptorResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(5)
   $core.List<ParsedCosigner> get keys => $_getList(4);
+
+  /// The one descriptor to import. A receive and change pair joins into it.
+  @$pb.TagNumber(6)
+  $core.String get descriptor => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set descriptor($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasDescriptor() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDescriptor() => clearField(6);
 }
 
 class CreateBitcoinCoreWalletRequest extends $pb.GeneratedMessage {

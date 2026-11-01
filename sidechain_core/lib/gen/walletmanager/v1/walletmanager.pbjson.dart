@@ -1058,6 +1058,7 @@ const ValidateDescriptorResponse$json = {
     {'1': 'm', '3': 3, '4': 1, '5': 13, '10': 'm'},
     {'1': 'n', '3': 4, '4': 1, '5': 13, '10': 'n'},
     {'1': 'keys', '3': 5, '4': 3, '5': 11, '6': '.walletmanager.v1.ParsedCosigner', '10': 'keys'},
+    {'1': 'descriptor', '3': 6, '4': 1, '5': 9, '10': 'descriptor'},
   ],
 };
 
@@ -1066,7 +1067,7 @@ final $typed_data.Uint8List validateDescriptorResponseDescriptor = $convert.base
     'ChpWYWxpZGF0ZURlc2NyaXB0b3JSZXNwb25zZRIaCghtdWx0aXNpZxgBIAEoCFIIbXVsdGlzaW'
     'cSHwoLc2NyaXB0X3R5cGUYAiABKAlSCnNjcmlwdFR5cGUSDAoBbRgDIAEoDVIBbRIMCgFuGAQg'
     'ASgNUgFuEjQKBGtleXMYBSADKAsyIC53YWxsZXRtYW5hZ2VyLnYxLlBhcnNlZENvc2lnbmVyUg'
-    'RrZXlz');
+    'RrZXlzEh4KCmRlc2NyaXB0b3IYBiABKAlSCmRlc2NyaXB0b3I=');
 
 @$core.Deprecated('Use createBitcoinCoreWalletRequestDescriptor instead')
 const CreateBitcoinCoreWalletRequest$json = {
