@@ -53,6 +53,16 @@ class CosignerKeystore {
 
   CosignerKeystore({required this.owner});
 
+  /// Puts [key] in place of the public key. The old private key belongs to the
+  /// old public key, so it goes.
+  void replaceKey(({String xpub, String? fingerprint, String? originPath}) key) {
+    xpub = key.xpub;
+    xprv = null;
+    fingerprint = key.fingerprint;
+    originPath = key.originPath;
+    derivationPath = key.originPath == null ? '' : 'm/${key.originPath}';
+  }
+
   bool get isFilled => xpub.isNotEmpty;
   bool get held => mnemonic != null && mnemonic!.isNotEmpty;
   bool get isHardware => hardwareDeviceType != null && hardwareDeviceType!.isNotEmpty;
@@ -692,11 +702,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
 
     _update(() {
       _error = null;
-      _keystores[index]
-        ..xpub = parsed.xpub
-        ..fingerprint = parsed.fingerprint
-        ..originPath = parsed.originPath
-        ..derivationPath = parsed.originPath == null ? '' : 'm/${parsed.originPath}';
+      _keystores[index].replaceKey(parsed);
     });
   }
 
