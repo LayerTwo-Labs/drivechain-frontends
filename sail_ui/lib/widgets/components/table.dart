@@ -100,7 +100,7 @@ class _SailTableState extends State<SailTable> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final scaler = MediaQuery.of(context).textScaler;
-    final fontFamily = SailTheme.of(context).chrome.fontFamily ?? 'Inter';
+    final fontFamily = SailTheme.of(context).chrome.fontFamily ?? SailFonts.inter;
     if (_lastScaler != null &&
         (_lastScaler != scaler || _lastFontFamily != fontFamily) &&
         _currentConstraints != null) {
@@ -487,13 +487,13 @@ class _SailTableState extends State<SailTable> {
       }
       text = widget.value;
       textStyle = SailStyleValues.thirteen.copyWith(
-        fontFamily: SailTheme.of(context).chrome.fontFamily ?? (widget.monospace ? 'IBMPlexMono' : 'Inter'),
+        fontFamily: SailTheme.of(context).chrome.fontFamily ?? (widget.monospace ? SailFonts.mono : SailFonts.inter),
       );
       return _calculateTextWidth(text, textStyle, widget.padding.horizontal);
     } else if (widget is SailTableHeaderCell) {
       text = widget.name;
       textStyle = SailStyleValues.thirteen.copyWith(
-        fontFamily: SailTheme.of(context).chrome.fontFamily ?? 'Inter',
+        fontFamily: SailTheme.of(context).chrome.fontFamily ?? SailFonts.inter,
         fontWeight: SailStyleValues.boldWeight,
       );
       return _calculateTextWidth(text, textStyle, widget.padding.horizontal);

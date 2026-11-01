@@ -148,7 +148,7 @@ void showArticleDetails(
                               ),
                               code: SailStyleValues.thirteen.copyWith(
                                 color: SailColorScheme.white,
-                                fontFamily: 'IBMPlexMono',
+                                fontFamily: SailFonts.mono,
                               ),
                               codeblockPadding: const EdgeInsets.all(16),
                             ),

@@ -1138,7 +1138,7 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
                                   ),
                                   code: SailStyleValues.thirteen.copyWith(
                                     color: theme.colors.text,
-                                    fontFamily: 'IBMPlexMono',
+                                    fontFamily: SailFonts.mono,
                                   ),
                                   codeblockPadding: const EdgeInsets.all(12),
                                 ),

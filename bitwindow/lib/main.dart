@@ -606,7 +606,7 @@ class _BitwindowAppContent extends StatelessWidget {
       title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
       theme: ThemeData(
         visualDensity: VisualDensity.compact,
-        fontFamily: theme.chrome.fontFamily ?? (font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter'),
+        fontFamily: theme.chrome.fontFamily ?? (font == SailFontValues.ibmMono ? SailFonts.mono : SailFonts.inter),
         scaffoldBackgroundColor: theme.colors.background,
       ),
       builder: (context, child) {

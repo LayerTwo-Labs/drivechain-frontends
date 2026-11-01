@@ -98,7 +98,7 @@ class SailTextField extends StatelessWidget {
         style: SailStyleValues.thirteen.copyWith(
           color: SailTheme.of(context).colors.text,
           fontSize: textSize,
-          fontFamily: theme.chrome.fontFamily ?? (monospace ? 'IBMPlexMono' : null),
+          fontFamily: theme.chrome.fontFamily ?? (monospace ? SailFonts.mono : null),
         ),
         inputFormatters: [
           if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),

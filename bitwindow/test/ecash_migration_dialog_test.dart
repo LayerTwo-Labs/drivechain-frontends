@@ -175,8 +175,8 @@ void main() {
   late List<bool?> results;
 
   setUpAll(() async {
-    for (final family in ['Inter', 'IBMPlexMono']) {
-      await (FontLoader(family)..addFont(rootBundle.load('assets/fonts/$family-Regular.ttf'))).load();
+    for (final (family, file) in [(SailFonts.inter, 'Inter'), (SailFonts.mono, 'IBMPlexMono')]) {
+      await (FontLoader(family)..addFont(rootBundle.load('packages/sail_ui/assets/fonts/$file-Regular.ttf'))).load();
     }
   });
 
