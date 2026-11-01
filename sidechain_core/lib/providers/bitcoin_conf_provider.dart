@@ -19,6 +19,13 @@ class NetworkChangeDeclined implements Exception {
   String toString() => 'network change to $network declined';
 }
 
+/// True when full mode must get a data directory first: a mainnet or eCash
+/// install with no private conf and no directory for its network.
+bool fullModeNeedsDataDir(BitcoinConfProvider conf) =>
+    !conf.hasPrivateBitcoinConf &&
+    (conf.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || conf.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) &&
+    !conf.hasDataDirFor(conf.network);
+
 /// Bitcoin Core configuration provider backed by orchestrator's BitcoinConfService.
 /// All reads/writes go through the backend — no local file access.
 class BitcoinConfProvider extends ChangeNotifier {

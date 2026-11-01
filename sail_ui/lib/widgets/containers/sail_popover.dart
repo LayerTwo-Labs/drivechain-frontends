@@ -47,6 +47,9 @@ class SailPopover extends StatefulWidget {
   /// Tap outside dismisses the popover.
   final bool barrierDismissible;
 
+  /// The popover's corner radius. Null keeps the theme's popover radius.
+  final BorderRadius? borderRadius;
+
   const SailPopover({
     super.key,
     required this.child,
@@ -56,6 +59,7 @@ class SailPopover extends StatefulWidget {
     this.alignment = SailPopoverAlignment.start,
     this.offset = 4,
     this.barrierDismissible = true,
+    this.borderRadius,
   });
 
   @override
@@ -246,9 +250,8 @@ class _SailPopoverState extends State<SailPopover> {
                       color: theme.colors.popoverBackground,
                       borderRadius: theme.chrome.beveled
                           ? BorderRadius.zero
-                          : theme.chrome.terminalStyle
-                          ? theme.chrome.radius
-                          : BorderRadius.circular(6),
+                          : widget.borderRadius ??
+                                (theme.chrome.terminalStyle ? theme.chrome.radius : BorderRadius.circular(6)),
                       border: theme.chrome.beveled
                           ? theme.chrome.bevel!.raised
                           : Border.all(color: theme.colors.border),

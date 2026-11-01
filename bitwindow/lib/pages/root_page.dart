@@ -26,6 +26,7 @@ import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/widgets/import_descriptor_dialog.dart';
 import 'package:bitwindow/widgets/no_wallet_card.dart';
+import 'package:bitwindow/widgets/node_mode_chip.dart';
 import 'package:bitwindow/widgets/datadir_network_notice.dart';
 import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:bitwindow/widgets/edit_wallet_flow.dart';
@@ -120,6 +121,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final tab = _routerKey.currentState?.controller?.current.name;
       GetIt.I.get<Logger>().i('STARTUP: root page opened on $tab');
+      if (GetIt.I.get<NodeModeProvider>().isFull && fullModeNeedsDataDir(_confProvider)) {
+        NodeModeChip.open(dataDir: true);
+      }
     });
   }
 
@@ -1310,6 +1314,8 @@ class _StatusBarState extends State<StatusBar> {
         rpc: bitwindow,
         name: 'BitWindow',
       ),
+      modeChip: const NodeModeChip(),
+      onRunLocally: NodeModeChip.open,
       navigateToLogs: openLogWindow,
       onOpenConfConfigurator: () {
         GetIt.I.get<AppRouter>().push(const BitcoinConfEditorRoute());
