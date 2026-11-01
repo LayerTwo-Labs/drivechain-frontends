@@ -1,4 +1,6 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/main.dart';
+import 'package:bitwindow/routing/router.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
@@ -88,6 +90,19 @@ class _FakeReader extends ChangeNotifier implements WalletReaderProvider {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _FakeRouter implements AppRouter {
+  final List<String> pushed = [];
+
+  @override
+  Future<T?> push<T extends Object?>(PageRouteInfo route, {OnNavigationFailure? onFailure}) async {
+    pushed.add(route.routeName);
+    return null;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _FakeNotifications extends ChangeNotifier implements NotificationProvider {
   final List<String> titles = [];
 
@@ -112,6 +127,7 @@ void main() {
   late _FakeOrchestrator orchestrator;
   late _FakeState state;
   late _FakeNotifications notifications;
+  late _FakeRouter router;
   late Logger log;
 
   setUp(() async {
@@ -124,6 +140,8 @@ void main() {
     GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
     GetIt.I.registerSingleton<NodeModeProvider>(NodeModeProvider()..localBuildsAvailable = true);
     GetIt.I.registerSingleton<WalletReaderProvider>(_FakeReader());
+    router = _FakeRouter();
+    GetIt.I.registerSingleton<AppRouter>(router);
     notifications = _FakeNotifications();
     GetIt.I.registerSingleton<NotificationProvider>(notifications);
     state = _FakeState();
@@ -214,6 +232,24 @@ void main() {
       state.notifyListeners();
       async.flushMicrotasks();
       expect(orchestrator.wallet.writes, 1, reason: 'the late boot runs once');
+    });
+  });
+
+  test('a late backend asks for the password of an encrypted wallet', () {
+    fakeAsync((async) {
+      orchestrator.wallet.failures = 0;
+      orchestrator.wallet.state = wmpb.WalletState.WALLET_STATE_LOCKED;
+      startBackendsForMode(orchestrator: orchestrator, backendState: state, orchestratorReady: false, log: log);
+      async.flushMicrotasks();
+      expect(router.pushed, isEmpty);
+
+      state
+        ..orchestratorAnswered = true
+        ..orchestratorReachable = true
+        ..notifyListeners();
+      async.flushMicrotasks();
+
+      expect(router.pushed, ['UnlockWalletRoute']);
     });
   });
 }
