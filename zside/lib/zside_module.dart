@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -58,6 +60,15 @@ class ZSideModule extends SidechainModule {
         dispose: (provider) => provider.dispose(),
       );
     }
+  }
+
+  @override
+  VoidCallback watchChainEvents(GetIt getIt, void Function(ChainEvent event) notify) {
+    final formatter = getIt.get<FormatterProvider>();
+    final subscription = getIt.get<ZSideProvider>().meltsCompleted.listen(
+      (melt) => notify(meltEvent(melt, formatter.formatBTC)),
+    );
+    return () => unawaited(subscription.cancel());
   }
 
   @override
@@ -128,4 +139,16 @@ class ZSideModule extends SidechainModule {
   List<AutoRoute> get pageRoutes => [
     AutoRoute(page: ZSideBillRoute.page),
   ];
+}
+
+/// The notification of a completed melt.
+ChainEvent meltEvent(CompletedMelt melt, String Function(double btc) formatBTC) {
+  final coins = melt.shielded == 1 ? '1 UTXO' : '${melt.shielded} UTXOs';
+  final failed = melt.failed == 0 ? '' : ' ${melt.failed} failed.';
+  return ChainEvent(
+    id: 'zside-melt-${melt.startedAt.microsecondsSinceEpoch}',
+    title: 'Melt complete on ZSide',
+    content: 'ZSide shielded $coins, ${formatBTC(melt.amount)} in all.$failed',
+    tab: const ZSideMeltCastTabRoute(),
+  );
 }
