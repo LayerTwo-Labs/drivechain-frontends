@@ -274,6 +274,10 @@ void main() {
     await tester.pump();
     expect(find.text('Configure Data Directory'), findsOneWidget, reason: 'the save holds the popover open');
 
+    await tester.tap(find.text('Full node').first, warnIfMissed: false);
+    await tester.pump();
+    expect(find.text('Configure Data Directory'), findsOneWidget, reason: 'the chip does not close it either');
+
     conf.saveGate!.complete();
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
