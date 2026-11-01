@@ -929,6 +929,14 @@ Future<void> startBackendsForMode({
   onBackendState();
 }
 
+/// Reads the node mode again and records it like a cold boot when none is
+/// recorded, then starts the backends that mode needs.
+Future<void> reconcileNodeMode({
+  required OrchestratorRPC orchestrator,
+  required Logger log,
+  Duration retryEvery = firstBootModeRetry,
+}) => _bootForMode(orchestrator: orchestrator, orchestratorReady: true, log: log, retryEvery: retryEvery);
+
 // The password guard ran while drivechaind was down, and read no encryption.
 Future<void> _unlockIfLocked(OrchestratorRPC orchestrator, Logger log) async {
   final wmpb.GetWalletStatusResponse status;

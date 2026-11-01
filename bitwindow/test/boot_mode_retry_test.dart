@@ -252,4 +252,21 @@ void main() {
       expect(router.pushed, ['UnlockWalletRoute']);
     });
   });
+
+  test('a reset that deletes the node mode records it again like a cold boot', () {
+    fakeAsync((async) {
+      orchestrator.wallet.failures = 0;
+      final mode = GetIt.I.get<NodeModeProvider>()
+        ..mode = wmpb.NodeMode.NODE_MODE_LIGHT
+        ..loaded = true;
+      orchestrator.wallet.mode = wmpb.NodeMode.NODE_MODE_UNSPECIFIED;
+
+      reconcileNodeMode(orchestrator: orchestrator, log: log);
+      async.flushMicrotasks();
+
+      expect(orchestrator.wallet.writes, 1);
+      expect(orchestrator.wallet.mode, wmpb.NodeMode.NODE_MODE_LIGHT);
+      expect(mode.isLight, isTrue);
+    });
+  });
 }
