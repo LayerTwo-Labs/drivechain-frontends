@@ -468,17 +468,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   /// connection's RPC type.
   SyncInfo? get additionalSyncInfo {
     final binary = additionalConnection.rpc.binary;
-    return switch (binary) {
-      BitWindow() => syncProvider.bitwindowdSyncInfo,
-      Thunder() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_THUNDER],
-      ZSide() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_ZSIDE],
-      BitNames() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_BITNAMES],
-      BitAssets() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_BITASSETS],
-      Truthcoin() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_TRUTHCOIN],
-      Photon() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_PHOTON],
-      CoinShift() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_COINSHIFT],
-      _ => null,
-    };
+    return binary is BitWindow ? syncProvider.bitwindowdSyncInfo : syncProvider.sidechainSyncInfo(binary);
   }
 
   void _onChange() {

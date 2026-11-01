@@ -164,6 +164,21 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   Map<orch_pb.SidechainType, SyncInfo> sidechains = const {};
   Map<orch_pb.SidechainType, String?> sidechainErrors = const {};
 
+  /// The sync state of [chain], or null for a binary that is not a sidechain.
+  SyncInfo? sidechainSyncInfo(Binary chain) {
+    final type = switch (chain) {
+      Thunder() => orch_pb.SidechainType.SIDECHAIN_TYPE_THUNDER,
+      ZSide() => orch_pb.SidechainType.SIDECHAIN_TYPE_ZSIDE,
+      BitNames() => orch_pb.SidechainType.SIDECHAIN_TYPE_BITNAMES,
+      BitAssets() => orch_pb.SidechainType.SIDECHAIN_TYPE_BITASSETS,
+      Truthcoin() => orch_pb.SidechainType.SIDECHAIN_TYPE_TRUTHCOIN,
+      Photon() => orch_pb.SidechainType.SIDECHAIN_TYPE_PHOTON,
+      CoinShift() => orch_pb.SidechainType.SIDECHAIN_TYPE_COINSHIFT,
+      _ => null,
+    };
+    return type == null ? null : sidechains[type];
+  }
+
   /// bitwindow's own daemon state, populated by polling bitwindowd
   /// directly each tick. Stays null when no [BitwindowRPC] is registered
   /// (every non-bitwindow app).
