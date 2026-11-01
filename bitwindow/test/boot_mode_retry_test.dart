@@ -12,10 +12,27 @@ class _FakeWallet implements OrchestratorWalletRPC {
   wmpb.NodeMode mode = wmpb.NodeMode.NODE_MODE_UNSPECIFIED;
   int writes = 0;
   int failures = 1;
+  int readFailures = 0;
+  int statusFailures = 0;
+  wmpb.WalletState state = wmpb.WalletState.WALLET_STATE_NO_WALLET;
 
   @override
-  Future<wmpb.GetNodeModeResponse> getNodeMode() async =>
-      wmpb.GetNodeModeResponse(mode: mode, lightModeAvailable: true);
+  Future<wmpb.GetNodeModeResponse> getNodeMode() async {
+    if (readFailures > 0) {
+      readFailures--;
+      throw Exception('connection refused');
+    }
+    return wmpb.GetNodeModeResponse(mode: mode, lightModeAvailable: true);
+  }
+
+  @override
+  Future<wmpb.GetWalletStatusResponse> getWalletStatus() async {
+    if (statusFailures > 0) {
+      statusFailures--;
+      throw Exception('connection refused');
+    }
+    return wmpb.GetWalletStatusResponse(state: state);
+  }
 
   @override
   Future<void> setNodeMode(wmpb.NodeMode next) async {
@@ -135,6 +152,39 @@ void main() {
       expect(orchestrator.wallet.writes, 2);
       expect(GetIt.I.get<NodeModeProvider>().isLight, isTrue);
       expect(state.watches, 1);
+    });
+  });
+
+  test('a failed first mode read is tried again', () {
+    fakeAsync((async) {
+      orchestrator.wallet
+        ..failures = 0
+        ..readFailures = 1;
+      startBackendsForMode(orchestrator: orchestrator, backendState: state, orchestratorReady: true, log: log);
+      async.flushMicrotasks();
+      expect(GetIt.I.get<NodeModeProvider>().loaded, isFalse);
+
+      async.elapse(firstBootModeRetry);
+      async.flushMicrotasks();
+
+      expect(GetIt.I.get<NodeModeProvider>().isLight, isTrue);
+    });
+  });
+
+  test('an unread wallet status never records light for an existing install', () {
+    fakeAsync((async) {
+      orchestrator.wallet
+        ..failures = 0
+        ..statusFailures = 1
+        ..state = wmpb.WalletState.WALLET_STATE_UNLOCKED;
+      startBackendsForMode(orchestrator: orchestrator, backendState: state, orchestratorReady: true, log: log);
+      async.flushMicrotasks();
+      expect(orchestrator.wallet.writes, 0);
+
+      async.elapse(firstBootModeRetry);
+      async.flushMicrotasks();
+
+      expect(orchestrator.wallet.mode, wmpb.NodeMode.NODE_MODE_FULL);
     });
   });
 }

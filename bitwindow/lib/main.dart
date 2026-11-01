@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/shell/chain_events.dart';
 import 'package:bitwindow/sidechains/hosted_modules.dart';
 import 'package:bitwindow/sidechains/truthcoin_links.dart';
@@ -924,8 +925,13 @@ Future<void> _bootForMode({
   try {
     boot = await readBackendBoot(
       orchestratorReady: orchestratorReady,
-      hasWallet: () => GetIt.I.get<WalletReaderProvider>().hasWallet(),
+      // A status that does not arrive must not read as an empty install.
+      hasWallet: () async =>
+          (await orchestrator.wallet.getWalletStatus()).state != wmpb.WalletState.WALLET_STATE_NO_WALLET,
     );
+    if (orchestratorReady && !GetIt.I.get<NodeModeProvider>().loaded) {
+      throw StateError('the backend did not answer the node mode read');
+    }
   } catch (e) {
     log.e('STARTUP: could not record the node mode, trying again in ${retryEvery.inSeconds}s: $e');
     GetIt.I.get<NotificationProvider>().add(
