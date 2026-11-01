@@ -57,7 +57,14 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
 
   /// Returns to the page that opened this one.
   Future<void> _leaveSetup() async {
-    await GetIt.I.get<AppRouter>().maybePop();
+    // A finished restore must release the pop lock first, or the pop is refused.
+    if (_restoringBackup) {
+      setState(() => _restoringBackup = false);
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    if (mounted) {
+      await Navigator.of(context).maybePop();
+    }
   }
 
   Future<void> _createWallet(WalletSetupResult result) async {
