@@ -143,7 +143,7 @@ func (w *WalletData) IsWatchOnly() bool {
 		}
 		return true
 	}
-	return len(w.WatchOnly) > 0
+	return len(w.WatchOnly) > 0 && !w.descriptorHoldsKey()
 }
 
 // watchOnlyField reads a key from the watch-only payload, or "" if absent.

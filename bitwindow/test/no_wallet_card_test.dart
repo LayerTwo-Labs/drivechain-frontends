@@ -14,6 +14,7 @@ class _FakeWriter extends WalletWriterProvider {
 
   final List<String> calls = [];
   String? descriptor;
+  String? privateDescriptor;
   int? m;
   int? n;
   List<wmpb.MultisigCosignerInput> cosigners = [];
@@ -30,9 +31,11 @@ class _FakeWriter extends WalletWriterProvider {
     String? derivationPath,
     String? hardwareDeviceType,
     String? hardwareFingerprint,
+    String? privateDescriptor,
   }) async {
     calls.add('electrum');
     descriptor = xpubOrDescriptor;
+    this.privateDescriptor = privateDescriptor;
   }
 
   @override
@@ -153,6 +156,22 @@ void main() {
 
     expect(writer.calls, ['electrum']);
     expect(writer.descriptor, descriptor);
+  });
+
+  testWidgets('a single-sig descriptor with a private key keeps the key', (tester) async {
+    rpc.policy = wmpb.ValidateDescriptorResponse(
+      scriptType: 'wpkh',
+      m: 1,
+      n: 1,
+      keys: [wmpb.ParsedCosigner(xpub: 'xpub6CUGRUo', xprv: 'xprv9s21ZrQH')],
+    );
+    const descriptor = "wpkh([d34db33f/84'/0'/0']xprv9s21ZrQH/0/*)";
+
+    await importDescriptor(tester, descriptor);
+
+    expect(writer.calls, ['electrum']);
+    expect(writer.privateDescriptor, descriptor);
+    expect(writer.descriptor, isNull, reason: 'the watch-only path refuses a private key');
   });
 
   testWidgets('a multisig descriptor makes a multisig wallet', (tester) async {

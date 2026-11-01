@@ -847,6 +847,43 @@ func TestServiceCreateElectrumWatchOnlyRejectsPrivateKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "private key")
 }
 
+// A single-sig descriptor that holds an account xprv makes a wallet that keeps
+// the key and signs the addresses the matching seed would.
+func TestServiceCreateElectrumDescriptorWalletSigns(t *testing.T) {
+	svc := newTestService(t)
+	net := &chaincfg.MainNetParams
+
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	acct, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+
+	w, err := svc.CreateElectrumDescriptorWallet("Spender", nil, "wpkh("+acct.String()+"/0/*)")
+	require.NoError(t, err)
+	assert.False(t, w.IsWatchOnly())
+	assert.Equal(t, WalletTypeElectrum, w.WalletType)
+	assert.Equal(t, []ScriptKind{ScriptNativeSegwit}, ReceiveKinds(w))
+
+	d, err := DescriptorFor(w, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	key, err := SigningKey(w, net, ds.address.EncodeAddress(), 1)
+	require.NoError(t, err)
+	assert.NotNil(t, key)
+
+	stored := svc.GetWalletByID(w.ID)
+	require.NotNil(t, stored)
+	assert.False(t, stored.IsWatchOnly(), "the key survives the wallet file")
+}
+
+func TestServiceCreateElectrumDescriptorWalletNeedsAPrivateKey(t *testing.T) {
+	svc := newTestService(t)
+	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+
+	_, err := svc.CreateElectrumDescriptorWallet("Watcher", nil, "wpkh("+xpub+"/0/*)")
+	require.ErrorContains(t, err, "private key")
+}
+
 func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
 	svc := newTestService(t)
 

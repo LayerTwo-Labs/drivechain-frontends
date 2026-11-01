@@ -533,6 +533,9 @@ message CreateElectrumWalletRequest {
   // Optional BIP39 passphrase applied to custom_mnemonic. Ignored for
   // watch-only imports.
   string passphrase = 11;
+  // Optional single-sig output descriptor that holds an account xprv. The
+  // wallet keeps the key and can sign. Mutually exclusive with the other keys.
+  string private_descriptor = 12;
 }
 
 message CreateElectrumWalletResponse {

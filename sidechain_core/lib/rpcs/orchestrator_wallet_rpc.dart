@@ -196,6 +196,7 @@ class OrchestratorWalletRPC {
     String? derivationPath,
     String? hardwareDeviceType,
     String? hardwareFingerprint,
+    String? privateDescriptor,
   }) {
     return _unaryClient.createElectrumWallet(
       wmpb.CreateElectrumWalletRequest(
@@ -210,6 +211,7 @@ class OrchestratorWalletRPC {
         derivationPath: derivationPath ?? '',
         hardwareDeviceType: hardwareDeviceType ?? '',
         hardwareFingerprint: hardwareFingerprint ?? '',
+        privateDescriptor: privateDescriptor ?? '',
       ),
     );
   }

@@ -106,6 +106,7 @@ class WalletWriterProvider extends ChangeNotifier {
     String? derivationPath,
     String? hardwareDeviceType,
     String? hardwareFingerprint,
+    String? privateDescriptor,
   }) async {
     try {
       final resp = await _client.createElectrumWallet(
@@ -119,6 +120,7 @@ class WalletWriterProvider extends ChangeNotifier {
         derivationPath: derivationPath,
         hardwareDeviceType: hardwareDeviceType,
         hardwareFingerprint: hardwareFingerprint,
+        privateDescriptor: privateDescriptor,
       );
 
       _logger.i('createElectrumWallet: created via backend, id=${resp.walletId}');

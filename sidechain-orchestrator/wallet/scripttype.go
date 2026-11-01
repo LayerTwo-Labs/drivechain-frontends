@@ -297,7 +297,7 @@ func ReceiveKinds(w *WalletData) []ScriptKind {
 		return nil
 	}
 	primary := w.scriptKind()
-	if w.Multisig != nil || w.IsWatchOnly() || w.pinsOneKind() {
+	if w.Multisig != nil || len(w.WatchOnly) > 0 || w.pinsOneKind() {
 		return []ScriptKind{primary}
 	}
 	switch primary {
