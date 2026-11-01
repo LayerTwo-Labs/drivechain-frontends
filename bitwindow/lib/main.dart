@@ -878,7 +878,10 @@ Future<void> bootBitwindowBackend(Logger log) async {
     await GetIt.I.get<WalletReaderProvider>().init();
   }
 
-  final boot = await readBackendBoot(orchestratorReady: orchestratorReady);
+  final boot = await readBackendBoot(
+    orchestratorReady: orchestratorReady,
+    hasWallet: () => GetIt.I.get<WalletReaderProvider>().hasWallet(),
+  );
 
   // 4. Stream binary logs and start watching state.
   streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);

@@ -35,7 +35,11 @@ enum _Stage { collect, backup, reenter, import }
 class WalletBackupPage extends StatefulWidget {
   final SeedEntryMode mode;
 
-  const WalletBackupPage({super.key, this.mode = SeedEntryMode.generate});
+  /// Creates the wallet from the confirmed seed before the page closes. Null
+  /// hands the seed back to the caller.
+  final Future<void> Function(SeedBackup seed)? onCreate;
+
+  const WalletBackupPage({super.key, this.mode = SeedEntryMode.generate, this.onCreate});
 
   @override
   State<WalletBackupPage> createState() => _WalletBackupPageState();
@@ -324,13 +328,35 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     _spread(0, text);
   }
 
-  void _finishImport() {
-    Navigator.of(context).pop(
-      SeedBackup(
-        _importedWords.join(' '),
-        _wantPassphrase ? _passphrase.text : '',
-      ),
-    );
+  Future<void> _finishImport() => _complete(
+    SeedBackup(
+      _importedWords.join(' '),
+      _wantPassphrase ? _passphrase.text : '',
+    ),
+  );
+
+  Future<void> _complete(SeedBackup seed) async {
+    final create = widget.onCreate;
+    if (create != null) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+      try {
+        await create(seed);
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _error = 'Failed to create wallet: $e';
+          });
+        }
+        return;
+      }
+    }
+    if (mounted) {
+      Navigator.of(context).pop(seed);
+    }
   }
 
   Future<void> _enableParanoid(BuildContext context) async {
@@ -399,11 +425,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         (i) => _reentered[i].text.trim().toLowerCase() == _words[i].toLowerCase(),
       );
 
-  void _finish() {
-    Navigator.of(context).pop(
-      SeedBackup(_words.join(' '), _wantPassphrase ? _passphrase.text : ''),
-    );
-  }
+  Future<void> _finish() => _complete(SeedBackup(_words.join(' '), _wantPassphrase ? _passphrase.text : ''));
 
   void _back() {
     if (_stage == _Stage.reenter) {
@@ -939,6 +961,10 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
             ],
           ),
         ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          SailText.secondary12(_error!, color: theme.colors.error),
+        ],
       ],
     );
   }
@@ -979,9 +1005,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                     case _Stage.backup:
                       await _startReenter(context);
                     case _Stage.reenter:
-                      _finish();
+                      await _finish();
                     case _Stage.import:
-                      _finishImport();
+                      await _finishImport();
                   }
                 },
               ),

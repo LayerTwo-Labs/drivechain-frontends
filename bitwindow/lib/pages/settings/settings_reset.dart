@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -209,12 +208,9 @@ class _SettingsResetState extends State<SettingsReset> {
     }
 
     if (confirmed == true) {
-      final needsWalletCreation = _deleteWalletFiles || _obliterateEverything;
-
-      // Clear in-memory wallet state so the create wallet page sees a fresh
-      // state. The orchestrator already cleared its own state server-side and
-      // moved the wallet files to wallet_backups/.
-      if (needsWalletCreation) {
+      // The orchestrator already cleared its own state server-side and moved
+      // the wallet files to wallet_backups/.
+      if (_deleteWalletFiles || _obliterateEverything) {
         GetIt.I.get<WalletReaderProvider>().clearState();
       }
 
@@ -228,11 +224,6 @@ class _SettingsResetState extends State<SettingsReset> {
         _alsoResetSidechains = false;
         _obliterateEverything = false;
       });
-
-      if (needsWalletCreation) {
-        final router = GetIt.I.get<AppRouter>();
-        await router.replaceAll([CreateAnotherWalletRoute()]);
-      }
     }
   }
 }

@@ -18,6 +18,7 @@ import 'package:bitwindow/pages/wallet/wallet_send.dart';
 import 'package:bitwindow/pages/wallet/wallet_utxos.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fork_mode_banner.dart';
+import 'package:bitwindow/widgets/no_wallet_card.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:dio/dio.dart';
@@ -160,35 +161,37 @@ class WalletPage extends StatelessWidget {
               final List<TabItem> allTabs = [
                 const SingleTabItem(
                   label: 'Overview',
-                  child: OverviewTab(),
+                  child: NoWalletGate(child: OverviewTab()),
                 ),
                 const SingleTabItem(
                   label: 'Send',
-                  child: SendTab(),
+                  child: NoWalletGate(child: SendTab()),
                 ),
                 const SingleTabItem(
                   label: 'Receive',
-                  child: ReceiveTab(),
+                  child: NoWalletGate(child: ReceiveTab()),
                 ),
                 const SingleTabItem(
                   label: 'UTXOs',
-                  child: UTXOsTab(),
+                  child: NoWalletGate(child: UTXOsTab()),
                 ),
                 const SingleTabItem(
                   label: 'Checks',
-                  child: ChecksTab(),
+                  child: NoWalletGate(child: ChecksTab()),
                 ),
                 const SingleTabItem(
                   label: 'Timestamps',
-                  child: TimestampsTab(),
+                  child: NoWalletGate(child: TimestampsTab()),
                 ),
                 MultiSelectTabItem(
                   title: 'Tools',
                   items: [
                     TabItem(
                       label: 'Deniability',
-                      child: DeniabilityTab(
-                        newWindowButton: SubWindowTypes.deniability,
+                      child: NoWalletGate(
+                        child: DeniabilityTab(
+                          newWindowButton: SubWindowTypes.deniability,
+                        ),
                       ),
                       onTap: () {
                         transactionProvider.fetch();
@@ -196,34 +199,34 @@ class WalletPage extends StatelessWidget {
                     ),
                     TabItem(
                       label: consolidateSubtabLabel,
-                      child: const ConsolidateTab(),
+                      child: const NoWalletGate(child: ConsolidateTab()),
                       onTap: () {
                         transactionProvider.fetch();
                       },
                     ),
                     TabItem(
                       label: 'HD Wallet Explorer',
-                      child: HDWalletTab(),
+                      child: NoWalletGate(child: HDWalletTab()),
                     ),
                     TabItem(
                       label: 'BitDrive',
-                      child: BitDriveTab(),
+                      child: NoWalletGate(child: BitDriveTab()),
                     ),
                     TabItem(
                       label: 'Multisig Lounge',
-                      child: MultisigLoungeTab(),
+                      child: NoWalletGate(child: MultisigLoungeTab()),
                     ),
                     TabItem(
                       label: 'Decode Transaction',
-                      child: const LoadTransactionDialog(),
+                      child: const NoWalletGate(child: LoadTransactionDialog()),
                     ),
                     TabItem(
                       label: 'PSBT Signer',
-                      child: const PsbtSignerTab(),
+                      child: const NoWalletGate(child: PsbtSignerTab()),
                     ),
                     TabItem(
                       label: 'Block Explorer',
-                      child: const BlockExplorerDialog(),
+                      child: const NoWalletGate(child: BlockExplorerDialog()),
                     ),
                   ],
                 ),

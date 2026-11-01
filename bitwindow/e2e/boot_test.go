@@ -62,5 +62,17 @@ func TestJustRunBootsDaemons(t *testing.T) {
 		t.Fatal("drivechaind exited after boot")
 	}
 
+	// 6. A cold boot asks nothing: it opens on Overview in light mode, with
+	//    no wallet, no node mode prompt and no data directory page.
+	waitUntil(t, rpcDeadline, pollInterval, "frontend did not record light mode", func() bool {
+		return nodeMode(t, run.dataDir) == "NODE_MODE_LIGHT"
+	})
+	waitUntil(t, rpcDeadline, pollInterval, "frontend did not open on the Overview tab", func() bool {
+		return run.stdout.contains(overviewOpenedLine) || run.stderr.contains(overviewOpenedLine)
+	})
+	if hasWallet, _ := walletStatus(t, run.dataDir); hasWallet {
+		t.Fatal("a cold boot created a wallet")
+	}
+
 	t.Log("boot test passed: bitwindowd and drivechaind running + responsive")
 }
