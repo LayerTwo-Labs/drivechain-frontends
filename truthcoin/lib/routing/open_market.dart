@@ -9,7 +9,7 @@ Future<void> openHomeTab(PageRouteInfo tab) {
 }
 
 /// Opens a page of the Markets tab, inside the home shell. The shell owns the
-/// SailScaffold and the top navigation.
-Future<void> openMarketsRoute(PageRouteInfo route) {
-  return openHomeTab(MarketsTabRoute(children: [route]));
+/// SailScaffold and the top navigation. [navigator] defaults to the one of the open chain.
+Future<void> openMarketsRoute(PageRouteInfo route, {ChainNavigator? navigator}) {
+  return (navigator ?? GetIt.I.get<ChainNavigator>()).openTab(MarketsTabRoute(children: [route]));
 }
