@@ -300,6 +300,7 @@ String embeddedAssetName(String canonical, {required bool isMacOS, required Stri
 Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
   final fileDir = binDir(appDir.path);
   await fileDir.create(recursive: true);
+  await removeAsideBinaries(fileDir);
 
   for (final binary in allBinaries) {
     await _copyEmbeddedBinary(log, fileDir, binary.binary, label: binary.name);
@@ -313,8 +314,26 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
   log.d('Finished copying all available binaries to assets/bin');
 }
 
+const _asideSuffix = '.old';
+
+/// Deletes the binaries [stageBinary] moved aside. A binary that still runs
+/// stays until a later start.
+Future<void> removeAsideBinaries(Directory dir) async {
+  await for (final entry in dir.list()) {
+    if (entry is! File || !entry.path.endsWith(_asideSuffix)) {
+      continue;
+    }
+    try {
+      await entry.delete();
+    } on FileSystemException {
+      continue;
+    }
+  }
+}
+
 /// Writes [bytes] to [dest] as an executable, through a temp file and a rename.
-Future<void> stageBinary(File dest, List<int> bytes) async {
+/// With [moveAside], the old file moves to a `.old` name first.
+Future<void> stageBinary(File dest, List<int> bytes, {bool? moveAside}) async {
   // A shared temp name lets one writer rename a file another still writes,
   // which stages a torn binary. Two app instances share no pid, and two
   // sub-window engines of one instance share no token.
@@ -328,9 +347,20 @@ Future<void> stageBinary(File dest, List<int> bytes) async {
       await Process.run('chmod', ['+x', staged.path]);
     }
 
+    // Windows refuses a rename over a running .exe, but it permits a rename of it.
+    File? aside;
+    if ((moveAside ?? Platform.isWindows) && await dest.exists()) {
+      aside = await dest.rename('${dest.path}.$pid-$token$_asideSuffix');
+    }
+
     // A second app instance stages binaries that the first one still runs. An
     // in-place overwrite makes macOS kill the running daemon with SIGKILL.
-    await staged.rename(dest.path);
+    try {
+      await staged.rename(dest.path);
+    } catch (_) {
+      await aside?.rename(dest.path);
+      rethrow;
+    }
   } catch (_) {
     if (await staged.exists()) {
       await staged.delete();

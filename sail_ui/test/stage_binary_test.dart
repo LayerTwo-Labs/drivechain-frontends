@@ -70,6 +70,22 @@ void main() {
       expect(tempFiles(dir), isEmpty);
     });
 
+    test('moves the old binary aside, and a later start deletes it', () async {
+      final dest = File('${dir.path}/drivechaind.exe');
+      await dest.writeAsBytes([9, 9]);
+
+      await stageBinary(dest, [1, 2, 3], moveAside: true);
+
+      expect(await dest.readAsBytes(), [1, 2, 3]);
+      final aside = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.old')).toList();
+      expect(aside, hasLength(1));
+      expect(await aside.single.readAsBytes(), [9, 9]);
+
+      await removeAsideBinaries(dir);
+
+      expect(dir.listSync().map((e) => e.path), [dest.path]);
+    });
+
     test('leaves no temp file behind after a failed rename', () async {
       final dest = Directory('${dir.path}/hwi-daemon');
       await dest.create();
