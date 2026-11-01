@@ -351,12 +351,18 @@ type DescriptorPolicy struct {
 	M          int    // signatures required
 	N          int    // total keys
 	Cosigners  []MultisigCosigner
+	Descriptor string // the one descriptor to import
 }
 
 // ValidateDescriptor parses any supported output descriptor — single-sig or
-// sortedmulti — into the policy it encodes.
-func ValidateDescriptor(descriptor string) (*DescriptorPolicy, error) {
-	d, err := ParseDescriptor(strings.TrimSpace(descriptor))
+// sortedmulti — into the policy it encodes. It also takes a receive and change
+// descriptor pair.
+func ValidateDescriptor(text string) (*DescriptorPolicy, error) {
+	descriptor, err := JoinDescriptorPair(text)
+	if err != nil {
+		return nil, err
+	}
+	d, err := ParseDescriptor(descriptor)
 	if err != nil {
 		return nil, err
 	}
@@ -382,6 +388,7 @@ func ValidateDescriptor(descriptor string) (*DescriptorPolicy, error) {
 		M:          d.Threshold,
 		N:          len(d.Keys),
 		Cosigners:  cosigners,
+		Descriptor: descriptor,
 	}, nil
 }
 
