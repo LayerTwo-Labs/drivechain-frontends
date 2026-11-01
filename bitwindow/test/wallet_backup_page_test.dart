@@ -212,6 +212,45 @@ void main() {
     expect(find.text('2 samples'), findsOneWidget);
   });
 
+  testWidgets('Copy waits for the newest derive', (tester) async {
+    await _pumpPage(tester);
+    SailButton copy() =>
+        tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Copy Mnemonic for backup')).first;
+    expect(copy().disabled, isFalse);
+
+    writer.gate = Completer<void>();
+    await tester.enterText(_field, 'pending entropy');
+    await tester.pump();
+    expect(copy().disabled, isTrue, reason: 'the words on screen are from the old text');
+
+    writer.gate!.complete();
+    writer.gate = null;
+    await tester.pump();
+    await tester.pump();
+    expect(copy().disabled, isFalse);
+  });
+
+  testWidgets('a word count change before the OS entropy lands keeps it', (tester) async {
+    writer.gate = Completer<void>();
+    await tester.binding.setSurfaceSize(const Size(1440, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_app(SeedEntryMode.generate, null));
+    await tester.pump();
+
+    await tester.tap(find.text('Use 12 Words').first);
+    await tester.pump();
+    await tester.tap(find.text('Use 24 Words').last);
+    await tester.pump();
+
+    writer.gate!.complete();
+    writer.gate = null;
+    await tester.pumpAndSettle();
+
+    expect(_fieldText(tester), _osHex);
+    expect(find.text(_wordsFor(_osHex, 24).last), findsOneWidget);
+    expect(tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Continue')).first.disabled, isFalse);
+  });
+
   testWidgets('the same text gives the same words', (tester) async {
     await _pumpPage(tester);
 

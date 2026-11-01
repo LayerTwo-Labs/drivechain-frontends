@@ -182,8 +182,12 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       return;
     }
     setState(() => _wordCount = count);
-    await _derive(_entropy.text);
+    // A derive now would drop the OS entropy that is still on its way.
+    await (_osPending ? _randomEntropy() : _derive(_entropy.text));
   }
+
+  /// True when the words on screen come from the current field text.
+  bool get _wordsCurrent => _words.isNotEmpty && _landedId == _deriveId && !_osPending;
 
   /// Grows or shrinks the input grid, keeping whatever is already typed.
   /// Call inside setState.
@@ -612,7 +616,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                   SailButton(
                     label: 'Copy Mnemonic for backup',
                     variant: ButtonVariant.secondary,
-                    disabled: _words.isEmpty,
+                    disabled: !_wordsCurrent,
                     onPressed: () async => copySecretToClipboard(_words.join(' ')),
                   ),
                 ],
@@ -810,7 +814,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   Widget _bottomBar(BuildContext context) {
     final theme = SailTheme.of(context);
     final ready = switch (_stage) {
-      _Stage.entropy => _words.isNotEmpty && _landedId == _deriveId && !_osPending,
+      _Stage.entropy => _wordsCurrent,
       _Stage.reenter => true,
       _Stage.import => _importValid,
     };
