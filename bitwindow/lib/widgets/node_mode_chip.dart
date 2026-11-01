@@ -28,11 +28,14 @@ class _NodeModeChipState extends State<NodeModeChip> {
   void initState() {
     super.initState();
     _nodeMode.addListener(_onChange);
+    // A rebuild on open hands the popover the page [NodeModeChip.open] asked for.
+    NodeModeChip._controller.addListener(_onPopover);
   }
 
   @override
   void dispose() {
     _nodeMode.removeListener(_onChange);
+    NodeModeChip._controller.removeListener(_onPopover);
     super.dispose();
   }
 
@@ -40,6 +43,13 @@ class _NodeModeChipState extends State<NodeModeChip> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _onPopover() {
+    if (!NodeModeChip._controller.isOpen) {
+      NodeModeChip._openOnDataDir = false;
+    }
+    _onChange();
   }
 
   @override
@@ -51,6 +61,7 @@ class _NodeModeChipState extends State<NodeModeChip> {
       offset: 8,
       borderRadius: theme.chrome.radiusLarge,
       popover: NodeModePopover(
+        key: ValueKey(NodeModeChip._openOnDataDir),
         dataDirFirst: NodeModeChip._openOnDataDir,
         onDone: NodeModeChip._controller.hide,
       ),
