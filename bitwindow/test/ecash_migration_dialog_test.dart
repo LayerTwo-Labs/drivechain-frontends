@@ -613,6 +613,27 @@ void main() {
     await closeDialog(tester);
   });
 
+  testWidgets('a failed download ends the job and permits another start', (tester) async {
+    await openDialog(tester);
+    await tapButton(tester, _button('Start migration'));
+    await _flush(tester);
+    expect(rpc.starts, hasLength(1));
+    rpc.saved = _status(phase: 'prepare', error: 'prepare: download returned HTTP 404');
+
+    await tester.pump(const Duration(seconds: 2));
+    await _flush(tester);
+
+    expect(find.textContaining('download returned HTTP 404'), findsOneWidget);
+    expect(find.textContaining('The migration job changed.'), findsNothing);
+    expect(_button('Resume migration'), findsNothing);
+    await tapButton(tester, _button('Start migration'));
+    await _flush(tester);
+
+    expect(rpc.starts, hasLength(2));
+    expect(conf.selections, isEmpty);
+    await closeDialog(tester);
+  });
+
   testWidgets('a changed job ID cannot complete the open migration', (tester) async {
     rpc.saved = _status(jobId: 'job-1', phase: 'convert', active: true, recordsDone: 25);
     await openDialog(tester);

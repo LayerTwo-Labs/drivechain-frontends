@@ -163,11 +163,13 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
     if (status.fromId != widget.fromId || status.toId != widget.toId) {
       throw StateError('The status belongs to another migration.');
     }
-    if (saved && status.jobId.isEmpty) {
+    // A job that fails before it changes a file ends, and its status keeps the error and no job id.
+    final failedStart = status.jobId.isEmpty && status.error.isNotEmpty;
+    if (saved && status.jobId.isEmpty && !failedStart) {
       throw StateError('The saved migration is unavailable.');
     }
     final jobId = _status?.jobId ?? widget.initialStatus?.jobId ?? '';
-    if (jobId.isNotEmpty && status.jobId != jobId) {
+    if (jobId.isNotEmpty && !failedStart && status.jobId != jobId) {
       throw StateError('The migration job changed. Close this dialog and open the current migration.');
     }
   }
