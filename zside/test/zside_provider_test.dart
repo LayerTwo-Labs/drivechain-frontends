@@ -5,6 +5,8 @@ import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:sidechain_core/rpcs/bitcoind_connection.dart';
 import 'package:sidechain_core/rpcs/zside_rpc.dart';
 import 'package:zside/providers/zside_provider.dart';
+import 'package:zside/routing/router.dart';
+import 'package:zside/zside_module.dart';
 
 import 'mocks/rpc_mock_zside.dart';
 
@@ -12,6 +14,13 @@ class _WalletRPC extends MockZSideRPC {
   List<String> owned = ['a1'];
   int newAddresses = 0;
   Object? fault;
+  final Set<String> failShield = {};
+
+  @override
+  Future<String> shield(UnshieldedUTXO utxo, double amount) async {
+    if (failShield.contains(utxo.txid)) throw Exception('shield failed');
+    return 'opid';
+  }
 
   @override
   Future<List<String>> getShieldedWalletAddresses() async {
@@ -72,5 +81,38 @@ void main() {
     rpc.fault = null;
     await provider.fetch();
     expect(provider.error, isNull);
+  });
+
+  test('a melt reports one event after its last UTXO, with the failed count', () async {
+    final provider = ZSideProvider();
+    await pumpEventQueue();
+    UnshieldedUTXO utxo(String txid) =>
+        UnshieldedUTXO(txid: txid, address: 'addr', amount: 0.5, confirmations: 3, generated: false, raw: '');
+    rpc.failShield.add('t2');
+    final events = <CompletedMelt>[];
+    provider.meltsCompleted.listen(events.add);
+
+    await provider.melt([utxo('t1'), utxo('t2')], 1 / 60);
+    expect(provider.utxosToMelt, hasLength(2));
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+
+    expect(provider.utxosToMelt, isEmpty);
+    expect(events, hasLength(1));
+    expect(events.single.shielded, 1);
+    expect(events.single.failed, 1);
+    expect(events.single.amount, closeTo(0.5 - provider.sideFee, 1e-12));
+    provider.dispose();
+  });
+
+  test('the melt notification opens the Melt/Cast tab', () {
+    final event = meltEvent(
+      CompletedMelt(startedAt: DateTime.utc(2026, 11, 1), shielded: 3, failed: 1, amount: 1.5),
+      (btc) => '$btc BTC',
+    );
+
+    expect(event.title, 'Melt complete on ZSide');
+    expect(event.content, 'ZSide shielded 3 UTXOs, 1.5 BTC in all. 1 failed.');
+    expect(event.tab.routeName, ZSideMeltCastTabRoute.name);
+    expect(event.id, 'zside-melt-${DateTime.utc(2026, 11, 1).microsecondsSinceEpoch}');
   });
 }

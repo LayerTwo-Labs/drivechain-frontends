@@ -1,3 +1,4 @@
+export 'chain_events.dart';
 export 'chain_navigator.dart';
 export 'messaging_view.dart';
 export 'run_sidechain_app.dart';

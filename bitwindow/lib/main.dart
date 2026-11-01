@@ -3,6 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
+import 'package:sail_ui/shell/chain_events.dart';
+import 'package:bitwindow/sidechains/hosted_modules.dart';
+import 'package:bitwindow/sidechains/truthcoin_links.dart';
+import 'package:bitwindow/sidechains/hosted_chains.dart';
+import 'package:bitwindow/pages/sidechain_host_page.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/log_window.dart';
 import 'package:bitwindow/gen/version.dart';
@@ -170,12 +175,16 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
   GetIt.I.registerLazySingleton<NotificationActions>(
-    () => const NotificationActions(
+    () => NotificationActions(
       {
         ecashUpgradeAction: openECashUpgrade,
         datadirNetworkAction: openDatadirNetworkSwitch,
+        sidechainTabAction: sidechainTabHandler(
+          moduleFor: hostedModuleByKey,
+          navigatorFor: (module) => HostChainNavigator(module.chain),
+        ),
       },
-      ownDialogs: {datadirNetworkAction},
+      ownDialogs: const {datadirNetworkAction},
     ),
   );
 
@@ -405,6 +414,21 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
       backendReady.value = true;
     }
   }());
+
+  GetIt.I.registerSingleton<HostedChains>(
+    HostedChains(
+      binaries: GetIt.I.get<BinaryProvider>(),
+      modules: hostedModules,
+      applicationDir: applicationDir,
+      log: log,
+      navigatorFor: (module) => HostChainNavigator(module.chain),
+    ),
+  );
+
+  final claimsTruthcoinLinks = !GetIt.I.get<SettingsProvider>().bitwindowSettings.openSidechainsInWindow;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    startTruthcoinLinks(log, claimScheme: claimsTruthcoinLinks);
+  });
 
   return runApp(BitwindowApp(log: log, backendReady: backendReady));
 }

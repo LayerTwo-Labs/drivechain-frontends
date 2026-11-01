@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:truthcoin/deeplink/truthcoin_link.dart';
 import 'package:truthcoin/routing/open_market.dart';
 import 'package:truthcoin/routing/router.dart';
@@ -25,9 +26,10 @@ class DeepLinkService {
     required this.links,
   });
 
-  factory DeepLinkService.live({required Logger log}) {
+  /// [navigator] opens the market, and defaults to the one of the open chain.
+  factory DeepLinkService.live({required Logger log, ChainNavigator? navigator}) {
     return DeepLinkService(
-      open: openMarketsRoute,
+      open: (route) => openMarketsRoute(route, navigator: navigator),
       log: log,
       links: AppLinks().uriLinkStream,
     );

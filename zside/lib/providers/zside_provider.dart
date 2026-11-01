@@ -131,19 +131,44 @@ class ZSideProvider extends ChangeNotifier {
   // the user wants all utxos shielded by
   final List<Timer> _timers = [];
 
+  final StreamController<CompletedMelt> _meltsCompleted = StreamController<CompletedMelt>.broadcast();
+
+  /// One event per call of [melt], after its last UTXO is shielded or failed.
+  Stream<CompletedMelt> get meltsCompleted => _meltsCompleted.stream;
+
   Future<List<int>> melt(List<UnshieldedUTXO> utxos, double completedInMinutes) async {
     final List<int> meltsWillHappenAt = [];
+    final startedAt = DateTime.now();
+    var remaining = utxos.length;
+    var shielded = 0;
+    var shieldedAmount = 0.0;
 
     for (final utxo in utxos) {
       final pending = PendingShield(
         utxo: utxo,
         maxMinutes: completedInMinutes,
         executeAction: () async {
-          // shield, fetch, notify listeners, then delete from array
-          await rpc.shield(utxo, utxo.amount - sideFee);
+          try {
+            await rpc.shield(utxo, utxo.amount - sideFee);
+            shielded++;
+            shieldedAmount += utxo.amount - sideFee;
+          } catch (err) {
+            log.e('could not shield utxo ${utxo.txid}: $err');
+          }
           await fetch();
           utxosToMelt.removeWhere((u) => u.utxo.txid == utxo.txid && u.utxo.address == utxo.address);
           notifyListeners();
+          remaining--;
+          if (remaining == 0 && !_meltsCompleted.isClosed) {
+            _meltsCompleted.add(
+              CompletedMelt(
+                startedAt: startedAt,
+                shielded: shielded,
+                failed: utxos.length - shielded,
+                amount: shieldedAmount,
+              ),
+            );
+          }
         },
       );
 
@@ -164,8 +189,21 @@ class ZSideProvider extends ChangeNotifier {
     for (final timer in _timers) {
       timer.cancel();
     }
+    unawaited(_meltsCompleted.close());
     super.dispose();
   }
+}
+
+/// The result of one call of [ZSideProvider.melt].
+class CompletedMelt {
+  final DateTime startedAt;
+  final int shielded;
+  final int failed;
+
+  /// The BTC that the shielded UTXOs moved into the shielded pool.
+  final double amount;
+
+  const CompletedMelt({required this.startedAt, required this.shielded, required this.failed, required this.amount});
 }
 
 class PendingShield {

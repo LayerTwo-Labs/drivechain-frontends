@@ -104,8 +104,37 @@ class _NotificationRow extends StatelessWidget {
 
   const _NotificationRow({required this.item, required this.provider});
 
+  NotificationActionHandler? get _handler => item.action.isNotEmpty && GetIt.I.isRegistered<NotificationActions>()
+      ? GetIt.I.get<NotificationActions>()[item.action]
+      : null;
+
+  /// Closes the panel and runs the action of the item.
+  Future<void> _runAction(BuildContext context, NotificationActionHandler handler) async {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    if (await handler(navigator.context, item)) {
+      await provider.markRead(item.id);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final handler = _handler;
+    final row = _row(context);
+    if (handler == null) {
+      return row;
+    }
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _runAction(context, handler),
+        child: row,
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context) {
     final theme = SailTheme.of(context);
 
     return Padding(

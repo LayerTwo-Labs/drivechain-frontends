@@ -1845,6 +1845,9 @@ class MockSyncProvider implements SyncProvider {
   Map<SidechainType, SyncInfo> sidechains = const {};
 
   @override
+  SyncInfo? sidechainSyncInfo(Binary chain) => null;
+
+  @override
   Map<SidechainType, String?> sidechainErrors = const {};
 
   @override

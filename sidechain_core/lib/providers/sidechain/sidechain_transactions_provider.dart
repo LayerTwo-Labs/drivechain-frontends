@@ -13,6 +13,9 @@ class SidechainTransactionsProvider extends ChangeNotifier {
   List<SidechainUTXO> utxos = [];
   bool initialized = false;
 
+  /// True once the node listed the UTXOs one time. [utxos] stays empty before that.
+  bool utxosLoaded = false;
+
   SidechainTransactionsProvider() {
     rpc.addListener(fetch);
     fetch();
@@ -36,16 +39,19 @@ class SidechainTransactionsProvider extends ChangeNotifier {
       log.e('could not fetch sidechain transactions: $e');
     }
 
+    var newUTXOsLoaded = utxosLoaded;
     try {
       newUTXOs = await rpc.listUTXOs();
+      newUTXOsLoaded = true;
     } catch (e) {
       log.e('could not fetch UTXOs: $e');
     }
 
-    if (_dataHasChanged(newSidechainTransactions, newUTXOs, newInitialized)) {
+    if (_dataHasChanged(newSidechainTransactions, newUTXOs, newInitialized) || newUTXOsLoaded != utxosLoaded) {
       sidechainTransactions = newSidechainTransactions;
       utxos = newUTXOs;
       initialized = newInitialized;
+      utxosLoaded = newUTXOsLoaded;
       notifyListeners();
     }
 

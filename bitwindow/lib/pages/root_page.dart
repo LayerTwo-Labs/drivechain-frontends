@@ -2,6 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:collection/collection.dart';
+import 'package:sail_ui/shell/shell.dart';
+import 'package:bitwindow/sidechains/hosted_modules.dart';
+import 'package:bitwindow/pages/sidechain_host_page.dart';
+import 'package:bitwindow/sidechains/hosted_chains.dart';
 import 'package:bitwindow/pages/settings/settings_network.dart';
 import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
@@ -357,6 +362,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         onSelected: openLogs,
       ),
 
+      for (final module in hostedModules)
+        for (final (n, tab) in shellTabRoutes(module).indexed)
+          CommandItem(
+            label: shellTabLabels(module)[n],
+            category: module.appName,
+            onSelected: () => HostChainNavigator(module.chain).openTab(tab),
+          ),
+
       // Help
       CommandItem(
         label: 'Documentation',
@@ -483,15 +496,20 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Quit bitwindow',
                       shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
-                      onSelected: () => GetIt.I.get<BinaryProvider>().onShutdown(
-                        shutdownOptions: ShutdownOptions(
-                          router: GetIt.I.get<AppRouter>(),
-                          onComplete: () async {
-                            exit(0);
-                          },
-                          showShutdownPage: false,
-                        ),
-                      ),
+                      onSelected: () async {
+                        if (GetIt.I.isRegistered<HostedChains>()) {
+                          await GetIt.I.get<HostedChains>().closeAll();
+                        }
+                        await GetIt.I.get<BinaryProvider>().onShutdown(
+                          shutdownOptions: ShutdownOptions(
+                            router: GetIt.I.get<AppRouter>(),
+                            onComplete: () async {
+                              exit(0);
+                            },
+                            showShutdownPage: false,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -1174,6 +1192,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     // daemon that is on its way out.
     if (GetIt.I.isRegistered<DatadirNetworkWatcher>()) {
       GetIt.I.get<DatadirNetworkWatcher>().dispose();
+    }
+    if (GetIt.I.isRegistered<HostedChains>()) {
+      await GetIt.I.get<HostedChains>().closeAll();
     }
     // BinaryProvider.onShutdown relays to bitwindowd.Stop, which acks fast.
     // drivechaind is detached and finishes its ~90s bitcoind drain in the
