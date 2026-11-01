@@ -115,6 +115,10 @@ void main() {
 
     expect(find.text('Node mode'), findsOneWidget);
     expect(find.byType(NodeModeCard), findsNWidgets(2));
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.text('Node mode'), findsNothing);
   });
 
   testWidgets('full mode with no data directory asks for one first', (tester) async {
@@ -160,5 +164,25 @@ void main() {
     await pump(tester, NodeModePopover(onDone: () {}, dataDirFirst: true));
 
     expect(find.text('Configure Data Directory'), findsOneWidget);
+  });
+
+  testWidgets('a boot request opens the mounted chip on the data directory page', (tester) async {
+    nodeMode.mode = wmpb.NodeMode.NODE_MODE_FULL;
+    await pump(tester, const NodeModeChip());
+
+    NodeModeChip.open(dataDir: true);
+    await tester.pumpAndSettle();
+    expect(find.text('Configure Data Directory'), findsOneWidget);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.text('Configure Data Directory'), findsNothing);
+
+    await tester.tap(find.text('Full node'));
+    await tester.pumpAndSettle();
+    expect(find.text('Node mode'), findsOneWidget, reason: 'a plain click opens the mode cards');
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
   });
 }
