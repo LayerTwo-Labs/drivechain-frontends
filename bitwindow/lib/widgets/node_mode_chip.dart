@@ -124,6 +124,43 @@ class _NodeModeChipState extends State<NodeModeChip> {
   }
 }
 
+/// Opens the node mode popover on its data directory page while full mode has
+/// no data directory. It checks again each time the mode or the config changes.
+class FullModeDataDirWatch {
+  final NodeModeProvider _mode;
+  final BitcoinConfProvider _conf;
+  final VoidCallback _open;
+  bool _asked = false;
+
+  FullModeDataDirWatch({NodeModeProvider? mode, BitcoinConfProvider? conf, VoidCallback? open})
+    : _mode = mode ?? GetIt.I.get<NodeModeProvider>(),
+      _conf = conf ?? GetIt.I.get<BitcoinConfProvider>(),
+      _open = open ?? (() => NodeModeChip.open(dataDir: true));
+
+  void start() {
+    _mode.addListener(_check);
+    _conf.addListener(_check);
+    _check();
+  }
+
+  void dispose() {
+    _mode.removeListener(_check);
+    _conf.removeListener(_check);
+  }
+
+  void _check() {
+    if (!_mode.isFull || !fullModeNeedsDataDir(_conf)) {
+      _asked = false;
+      return;
+    }
+    if (_asked) {
+      return;
+    }
+    _asked = true;
+    _open();
+  }
+}
+
 /// Picks the node mode, and the data directory full mode needs first.
 class NodeModePopover extends StatefulWidget {
   /// Opens on the data directory page, for a full mode install with none.
