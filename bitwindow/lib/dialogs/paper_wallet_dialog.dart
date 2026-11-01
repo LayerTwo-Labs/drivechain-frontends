@@ -469,7 +469,7 @@ class _AddressPanel extends StatelessWidget {
           SailSelectableText(
             keypair.publicAddress,
             style: TextStyle(
-              fontFamily: 'IBMPlexMono',
+              fontFamily: SailFonts.mono,
               fontSize: 11,
               color: theme.colors.text,
             ),
@@ -583,7 +583,7 @@ class _PrivateKeyPanel extends StatelessWidget {
             SailSelectableText(
               keypair.privateKeyWIF,
               style: TextStyle(
-                fontFamily: 'IBMPlexMono',
+                fontFamily: SailFonts.mono,
                 fontSize: 11,
                 color: theme.colors.text,
               ),

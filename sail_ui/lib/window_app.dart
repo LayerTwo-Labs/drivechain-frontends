@@ -14,7 +14,7 @@ SailApp buildSailWindowApp(
     builder: (context) => MaterialApp(
       theme: ThemeData(
         visualDensity: VisualDensity.compact,
-        fontFamily: 'Inter',
+        fontFamily: SailFonts.inter,
       ),
       home: Scaffold(
         backgroundColor: SailTheme.of(context).colors.background,

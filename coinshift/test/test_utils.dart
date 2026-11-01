@@ -17,8 +17,8 @@ Future<void> _setDeviceSize() async {
 }
 
 Future<void> loadFonts() async {
-  final inter = rootBundle.load('./assets/fonts/Inter-Regular.ttf');
-  final fontLoader = FontLoader('Inter')..addFont(inter);
+  final inter = rootBundle.load('packages/sail_ui/assets/fonts/Inter-Regular.ttf');
+  final fontLoader = FontLoader(SailFonts.inter)..addFont(inter);
   await fontLoader.load();
 }
 

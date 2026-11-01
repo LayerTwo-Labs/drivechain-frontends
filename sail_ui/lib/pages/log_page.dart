@@ -144,7 +144,7 @@ class _FileLogsTabState extends State<_FileLogsTab> {
                             _parseAnsiCodes(logMsg),
                             softWrap: false,
                             style: const TextStyle(
-                              fontFamily: 'IBMPlexMono',
+                              fontFamily: SailFonts.mono,
                               fontSize: 10,
                               color: SailColorScheme.whiteDark,
                             ),
@@ -279,7 +279,7 @@ class _FileLogsTabState extends State<_FileLogsTab> {
             style: SailStyleValues.twelve.copyWith(
               color: currentColor,
               fontWeight: currentBold ? SailStyleValues.boldWeight : null,
-              fontFamily: 'IBMPlexMono',
+              fontFamily: SailFonts.mono,
             ),
           ),
         );
@@ -323,7 +323,7 @@ class _FileLogsTabState extends State<_FileLogsTab> {
           style: SailStyleValues.twelve.copyWith(
             color: currentColor,
             fontWeight: currentBold ? SailStyleValues.boldWeight : null,
-            fontFamily: 'IBMPlexMono',
+            fontFamily: SailFonts.mono,
           ),
         ),
       );

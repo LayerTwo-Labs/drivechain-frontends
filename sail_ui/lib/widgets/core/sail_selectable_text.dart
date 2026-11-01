@@ -33,7 +33,7 @@ class SailSelectableText extends StatelessWidget {
         style ??
         SailStyleValues.thirteen.copyWith(
           color: theme.colors.text,
-          fontFamily: monospace ? 'IBMPlexMono' : 'Inter',
+          fontFamily: monospace ? SailFonts.mono : SailFonts.inter,
         );
 
     if (span != null) {

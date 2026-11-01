@@ -422,7 +422,7 @@ class CheckDetailPage extends StatelessWidget {
                                         child: SailSelectableText(
                                           check.privateKeyWif,
                                           style: TextStyle(
-                                            fontFamily: 'IBMPlexMono',
+                                            fontFamily: SailFonts.mono,
                                             fontSize: 12,
                                             color: context.sailTheme.colors.text,
                                           ),

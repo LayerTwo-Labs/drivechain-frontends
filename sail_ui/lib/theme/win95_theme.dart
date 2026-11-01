@@ -80,7 +80,7 @@ final SailChrome win95Chrome = SailChrome(
   radiusSmall: BorderRadius.zero,
   radiusLarge: BorderRadius.zero,
   bevel: _win95Bevel,
-  fontFamily: 'packages/sail_ui/VT323',
+  fontFamily: SailFonts.vt323,
   buttonsRaised: true,
   fieldsSunken: true,
   panel: _win95Panel,

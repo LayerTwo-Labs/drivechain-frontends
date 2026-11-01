@@ -1236,7 +1236,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
                   ? SailEditableText(
                       value: k.xpub,
                       style: SailStyleValues.thirteen.copyWith(
-                        fontFamily: 'IBMPlexMono',
+                        fontFamily: SailFonts.mono,
                         color: theme.colors.textSecondary,
                       ),
                       tooltip: 'Edit the xpub',

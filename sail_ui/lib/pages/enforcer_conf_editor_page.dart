@@ -283,7 +283,7 @@ class _CliPreview extends StatelessWidget {
             child: SelectableText(
               displayArgs.isEmpty ? '(no args)' : 'bip300301-enforcer ${displayArgs.join(' ')}',
               style: TextStyle(
-                fontFamily: 'IBMPlexMono',
+                fontFamily: SailFonts.mono,
                 fontSize: 12,
                 color: theme.colors.text,
               ),
