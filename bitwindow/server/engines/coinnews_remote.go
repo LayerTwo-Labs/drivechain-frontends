@@ -59,6 +59,12 @@ type connectRemote struct {
 // A failed fetch can take the whole fetch timeout, so it is not tried again on each call.
 const catalogRetryAfter = time.Minute
 
+// eCash mainnet reads CoinNews from our own server, whatever the catalog says.
+const (
+	ecashMainnetID   = "ecash"
+	ecashCoinNewsURL = "https://seed.ecash.eu.com"
+)
+
 // NewRemoteCoinNews returns a reader for the network's published CoinNews
 // indexer. On eCash, ecashID selects the catalog entry. It reads the document
 // on the first call, not here: the API handlers this runs from must not wait
@@ -73,6 +79,11 @@ func (r *connectRemote) resolve(ctx context.Context) coinnewsv1connect.CoinNewsS
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.resolved {
+		return r.client
+	}
+	if r.network == string(config.NetworkECash) && r.ecashID == ecashMainnetID {
+		r.client = newCoinNewsClient(ecashCoinNewsURL)
+		r.resolved = true
 		return r.client
 	}
 	if !r.failedAt.IsZero() && time.Since(r.failedAt) < catalogRetryAfter {
@@ -101,9 +112,13 @@ func (r *connectRemote) clientFor(catalog netcatalog.Catalog) coinnewsv1connect.
 	if !ok || net.Services.CoinNews.URL == "" {
 		return nil
 	}
+	return newCoinNewsClient(net.Services.CoinNews.URL)
+}
+
+func newCoinNewsClient(url string) coinnewsv1connect.CoinNewsServiceClient {
 	return coinnewsv1connect.NewCoinNewsServiceClient(connect.NewClient(connecthttp.NewTransport(
 		&http.Client{Timeout: 30 * time.Second},
-		net.Services.CoinNews.URL,
+		url,
 		connecthttp.WithReadMaxBytes(0),
 	)))
 }
