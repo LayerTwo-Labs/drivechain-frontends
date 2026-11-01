@@ -162,6 +162,9 @@ type Orchestrator struct {
 	migrationMu    sync.Mutex
 	migrationBusy  bool
 	migrationState *ecashMigration
+	// failedStart is the status of a job that failed before it changed a file.
+	// Guarded by migrationMu.
+	failedStart *ECashMigrationStatus
 
 	// releases reports whether a newer build of each binary is published.
 	releases *ReleaseChecker

@@ -121,6 +121,10 @@ func runECashMigrate(cctx *cli.Context, client rpc.OrchestratorServiceClient, in
 		if err := checkECashMigrationTarget(status, fromID, toID); err != nil {
 			return err
 		}
+		// A job that fails before it changes a file ends, and its status keeps no job id.
+		if status.JobId == "" && status.Error != "" {
+			return errors.New(status.Error)
+		}
 		if status.JobId != jobID {
 			return errors.New("the daemon returned a different migration job")
 		}

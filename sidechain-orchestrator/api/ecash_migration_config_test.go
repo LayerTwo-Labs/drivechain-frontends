@@ -98,13 +98,7 @@ func TestECashMigrationBlocksConfigEdits(t *testing.T) {
 				status, err := o.ECashMigrationStatus()
 				return err == nil && !status.Running
 			}, 10*time.Second, 10*time.Millisecond)
-			if name == "network selection" {
-				err := edit()
-				require.ErrorContains(t, err, "resume ECX migration")
-				require.NotEqual(t, root, o.BitcoinConf.RootDataDir())
-			} else {
-				require.NoError(t, edit())
-			}
+			require.NoError(t, edit(), "a failed download ends the job")
 		})
 	}
 }
