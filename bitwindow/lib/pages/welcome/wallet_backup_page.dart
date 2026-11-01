@@ -327,7 +327,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         (i) => _reentered[i].text.trim().toLowerCase() == _words[i].toLowerCase(),
       );
 
-  Future<void> _finish() => _complete(SeedBackup(_words.join(' '), _wantPassphrase ? _passphrase.text : ''));
+  Future<void> _finish() => _complete(SeedBackup(_words.join(' '), ''));
 
   void _back() {
     if (_stage == _Stage.reenter) {
@@ -577,19 +577,6 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
               ),
               const SizedBox(height: 16),
               SailMnemonicGrid(words: _words),
-              const SizedBox(height: 16),
-              _passphraseLink(context),
-              if (_wantPassphrase) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: 300,
-                  child: SailTextField(
-                    controller: _passphrase,
-                    hintText: 'Passphrase',
-                    size: TextFieldSize.small,
-                  ),
-                ),
-              ],
               const SizedBox(height: 16),
               Row(
                 children: [
