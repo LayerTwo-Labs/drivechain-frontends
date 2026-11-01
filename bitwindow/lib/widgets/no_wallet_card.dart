@@ -2,14 +2,14 @@ import 'package:bitwindow/pages/welcome/wallet_backup_page.dart';
 import 'package:bitwindow/pages/welcome/wallet_creation.dart';
 import 'package:bitwindow/widgets/import_descriptor_dialog.dart';
 import 'package:bitwindow/widgets/setup_action_button.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Opens the create wallet flow. It closes when the wallet exists.
 Future<void> openGenerateWallet(BuildContext context) async {
   await Navigator.of(context).push<SeedBackup>(
-    MaterialPageRoute(builder: (_) => const WalletBackupPage(onCreate: createWalletFromSeed)),
+    sailRoute(builder: (_) => const WalletBackupPage(onCreate: createWalletFromSeed)),
   );
 }
 
