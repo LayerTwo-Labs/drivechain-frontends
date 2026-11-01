@@ -543,6 +543,8 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('mainchainSyncInfo', syncProvider.mainchainSyncInfo);
     track('enforcerSyncInfo', syncProvider.enforcerSyncInfo);
     track('additionalSyncInfo', additionalSyncInfo);
+    track('chainSourceSyncInfo', syncProvider.chainSourceSyncInfo);
+    track('chainSourceError', syncProvider.chainSourceError);
     notifyIfChanged(); // Use change tracking for normal updates
   }
 
