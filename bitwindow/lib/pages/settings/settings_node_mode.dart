@@ -63,12 +63,7 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
       if (next == wmpb.NodeMode.NODE_MODE_FULL) {
         final conf = GetIt.I.get<BitcoinConfProvider>();
         await conf.loadConfig();
-        final selectDataDir =
-            !conf.hasPrivateBitcoinConf &&
-            (conf.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-                conf.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) &&
-            !conf.hasDataDirFor(conf.network);
-        if (selectDataDir) {
+        if (fullModeNeedsDataDir(conf)) {
           final selected = await router.push<bool>(DataDirSetupRoute(network: conf.network));
           await conf.loadConfig();
           if (selected != true || !conf.hasDataDirFor(conf.network)) {

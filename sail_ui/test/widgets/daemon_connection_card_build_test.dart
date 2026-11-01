@@ -146,4 +146,36 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(tester.getSize(find.byType(DaemonConnectionCard)).height, quiet.height);
   });
+
+  testWidgets('a remote badge replaces the logs, the stop and the progress row', (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        DaemonConnectionCard(
+          connection: connection,
+          syncInfo: null,
+          infoMessage: null,
+          remote: true,
+          remoteBadge: true,
+          restartDaemon: () async {},
+          stopDaemon: () async {},
+          navigateToLogs: (_, _, _) {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.widgetWithText(SailBadge, 'remote'), findsOneWidget);
+    expect(find.text('View logs'), findsNothing);
+    expect(find.text('Start'), findsNothing);
+    expect(find.text('Stop'), findsNothing);
+    expect(find.byType(BlockStatus), findsNothing);
+  });
+
+  testWidgets('a local daemon carries no remote badge', (tester) async {
+    await tester.pumpWidget(wrap(card()));
+    await tester.pump();
+
+    expect(find.byType(SailBadge), findsNothing);
+    expect(find.text('View logs'), findsWidgets);
+  });
 }

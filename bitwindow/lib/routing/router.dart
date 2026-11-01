@@ -26,7 +26,6 @@ import 'package:bitwindow/pages/wallet/verify_timestamp_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/sidechains/hosted_modules.dart';
 import 'package:bitwindow/pages/welcome/create_another_wallet_page.dart';
-import 'package:bitwindow/pages/welcome/node_mode_page.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/router.gr.dart';
@@ -114,12 +113,6 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/create-another-wallet',
       page: CreateAnotherWalletRoute.page,
-    ),
-    // NodeModeGuard redirects here, so BitWindow's own router has to carry the
-    // page. A route registered only in sail_ui throws on navigation.
-    AutoRoute(
-      path: '/node-mode',
-      page: NodeModeRoute.page,
     ),
     AutoRoute(
       path: '/unlock-wallet',

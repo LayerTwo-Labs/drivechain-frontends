@@ -72,6 +72,13 @@ class BottomNav extends StatelessWidget {
   final VoidCallback? onOpenAdditionalConfConfigurator;
   final BottomNavStatusOverride? statusOverride;
 
+  /// Shown before the connection status. Null shows nothing there.
+  final Widget? modeChip;
+
+  /// Set to show light mode's Bitcoin Core and enforcer as remote cards in the
+  /// daemon status dialog, with a button that calls this.
+  final VoidCallback? onRunLocally;
+
   const BottomNav({
     super.key,
     required this.endWidgets,
@@ -84,6 +91,8 @@ class BottomNav extends StatelessWidget {
     this.onOpenEnforcerConfConfigurator,
     this.onOpenAdditionalConfConfigurator,
     this.statusOverride,
+    this.modeChip,
+    this.onRunLocally,
   });
 
   @override
@@ -130,6 +139,7 @@ class BottomNav extends StatelessWidget {
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    ?modeChip,
                     InkWell(
                       onTap: () {
                         final override = statusOverride;
@@ -232,6 +242,8 @@ class BottomNav extends StatelessWidget {
         builder: ((context, model, child) {
           final binaryProvider = GetIt.I.get<BinaryProvider>();
           final walletNeedsBackends = NodeModeProvider.runsLocalBackends;
+          final runLocally = onRunLocally;
+          final lightRemote = runLocally != null && (model.nodeMode?.isLight ?? false);
           final showMainchain = showDaemonCard(
             walletNeedsBackends: walletNeedsBackends,
             connected: model.mainchain.connected,
@@ -259,7 +271,26 @@ class BottomNav extends StatelessWidget {
                 SailColumn(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (showMainchain &&
+                    if (lightRemote) ...[
+                      DaemonConnectionCard(
+                        connection: model.mainchain,
+                        syncInfo: null,
+                        infoMessage: null,
+                        remote: true,
+                        remoteBadge: true,
+                        navigateToLogs: model.navigateToLogs,
+                      ),
+                      DaemonConnectionCard(
+                        connection: model.enforcer,
+                        syncInfo: null,
+                        infoMessage: null,
+                        remote: true,
+                        remoteBadge: true,
+                        navigateToLogs: model.navigateToLogs,
+                      ),
+                    ],
+                    if (!lightRemote &&
+                        showMainchain &&
                         (!model.mainchain.connected ||
                             !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
                             !onlyShowAdditional))
@@ -280,7 +311,8 @@ class BottomNav extends StatelessWidget {
                         navigateToLogs: model.navigateToLogs,
                         onOpenConfConfigurator: onOpenConfConfigurator,
                       ),
-                    if (showEnforcer &&
+                    if (!lightRemote &&
+                        showEnforcer &&
                         (!model.enforcer.connected ||
                             !(model.syncProvider.enforcerSyncInfo?.allSyncsComplete ?? false) ||
                             !onlyShowAdditional))
@@ -356,6 +388,15 @@ class BottomNav extends StatelessWidget {
                       ),
                   ],
                 ),
+                if (lightRemote)
+                  SailButton(
+                    label: 'Run everything locally',
+                    variant: ButtonVariant.secondary,
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      runLocally();
+                    },
+                  ),
               ],
             ),
           );

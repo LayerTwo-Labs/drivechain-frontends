@@ -18,89 +18,99 @@ class DataDirSetupPage extends StatefulWidget {
   State<DataDirSetupPage> createState() => _DataDirSetupPageState();
 }
 
-class _DataDirSetupPageState extends State<DataDirSetupPage> {
-  String? _selectedPath;
-  bool _isSelecting = false;
-  String? _errorMessage;
+/// Picks and saves a Bitcoin data directory for one network.
+class DataDirSelection extends ChangeNotifier {
+  String? selectedPath;
+  bool selecting = false;
+  String? error;
 
-  BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
+  BitcoinConfProvider get _conf => GetIt.I.get<BitcoinConfProvider>();
 
-  BitcoinNetwork get _targetNetwork => widget.network;
-
-  Future<void> _selectDirectory() async {
-    setState(() {
-      _isSelecting = true;
-      _errorMessage = null;
-    });
-
+  /// Asks for a directory and keeps it when it is writable.
+  Future<void> browse() async {
+    selecting = true;
+    error = null;
+    notifyListeners();
     try {
       final result = await FilePicker.getDirectoryPath();
-
       if (result != null) {
-        // Validate directory is writable
         final testFile = File(path.join(result, '.bitwindow_test'));
         try {
           await testFile.writeAsString('test');
           await testFile.delete();
-          setState(() {
-            _selectedPath = result;
-          });
+          selectedPath = result;
         } catch (e) {
-          setState(() {
-            _errorMessage = 'Selected directory is not writable';
-          });
+          error = 'Selected directory is not writable';
         }
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error selecting directory: $e';
-      });
+      error = 'Error selecting directory: $e';
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSelecting = false;
-        });
-      }
+      selecting = false;
+      notifyListeners();
     }
   }
 
-  Future<void> _handleContinue() async {
-    if (_selectedPath == null) {
-      setState(() {
-        _errorMessage = 'Please select a directory';
-      });
-      return;
+  /// Saves the chosen directory for [network]. Returns false and sets [error]
+  /// when it did not persist.
+  Future<bool> save(BitcoinNetwork network) async {
+    final chosen = selectedPath;
+    if (chosen == null) {
+      error = 'Please select a directory';
+      notifyListeners();
+      return false;
     }
-
     try {
-      // Save the datadir for the target network
-      await _confProvider.updateDataDir(
-        _selectedPath,
-        forNetwork: _targetNetwork,
-      );
+      await _conf.updateDataDir(chosen, forNetwork: network);
 
       // A pick that didn't persist would send the user through this page again
       // on the next boot, with no sign anything went wrong.
-      if (!_confProvider.hasDataDirFor(_targetNetwork)) {
-        setState(() {
-          _errorMessage = 'Could not save the data directory — check the BitWindow log';
-        });
-        return;
+      if (!_conf.hasDataDirFor(network)) {
+        error = 'Could not save the data directory — check the BitWindow log';
+        notifyListeners();
+        return false;
       }
 
       // sleep for 500 millis because windows file stuff sucks, and we cant await
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Commit the network change now that datadir is configured
-      await _confProvider.commitNetworkChange(widget.network);
-
-      if (mounted) {
-        context.router.pop(true);
-      }
+      await _conf.commitNetworkChange(network);
+      return true;
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error saving configuration: $e';
-      });
+      error = 'Error saving configuration: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+}
+
+class _DataDirSetupPageState extends State<DataDirSetupPage> {
+  final DataDirSelection _selection = DataDirSelection();
+
+  BitcoinNetwork get _targetNetwork => widget.network;
+
+  @override
+  void initState() {
+    super.initState();
+    _selection.addListener(_onChange);
+  }
+
+  @override
+  void dispose() {
+    _selection.removeListener(_onChange);
+    _selection.dispose();
+    super.dispose();
+  }
+
+  void _onChange() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _handleContinue() async {
+    if (await _selection.save(_targetNetwork) && mounted) {
+      context.router.pop(true);
     }
   }
 
@@ -159,22 +169,22 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
                             children: [
                               Expanded(
                                 child: SailText.secondary13(
-                                  _selectedPath ?? 'No directory selected',
+                                  _selection.selectedPath ?? 'No directory selected',
                                 ),
                               ),
                               const SizedBox(width: 16),
                               SailButton(
                                 label: 'Browse',
-                                loading: _isSelecting,
-                                onPressed: () async => await _selectDirectory(),
+                                loading: _selection.selecting,
+                                onPressed: _selection.browse,
                               ),
                             ],
                           ),
                         ),
-                        if (_errorMessage != null) ...[
+                        if (_selection.error != null) ...[
                           const SizedBox(height: 8),
                           SailText.secondary12(
-                            _errorMessage!,
+                            _selection.error!,
                             color: theme.colors.error,
                           ),
                         ],
@@ -191,7 +201,7 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
                       SailButton(
                         label: 'Continue',
                         variant: ButtonVariant.primary,
-                        disabled: _selectedPath == null,
+                        disabled: _selection.selectedPath == null,
                         onPressed: _handleContinue,
                       ),
                     ],

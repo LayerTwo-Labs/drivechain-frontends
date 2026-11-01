@@ -380,6 +380,62 @@ void main() {
     });
   }
 
+  for (final light in [true, false]) {
+    testWidgets(
+      '${light ? 'light' : 'full'} mode with a run-locally action ${light ? 'marks' : 'keeps'} the L1 cards',
+      (
+        tester,
+      ) async {
+        GetIt.I.get<NodeModeProvider>().mode = light ? wmpb.NodeMode.NODE_MODE_LIGHT : wmpb.NodeMode.NODE_MODE_FULL;
+        var runs = 0;
+        final nav = BottomNav(
+          endWidgets: const [],
+          additionalConnection: model.additionalConnection,
+          mainchainInfo: true,
+          navigateToLogs: (_, _, _) {},
+          onRunLocally: () => runs++,
+        );
+        tester.view.physicalSize = const Size(1600, 1400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: SailTheme(
+              data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+              child: Scaffold(
+                body: Builder(
+                  builder: (context) => TextButton(
+                    onPressed: () => nav.displayConnectionStatusDialog(context, model.additionalConnection, false),
+                    child: const Text('Status'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Status'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+
+        final cards = tester.widgetList<DaemonConnectionCard>(find.byType(DaemonConnectionCard));
+        final remote = cards.where((card) => card.remoteBadge).map((card) => card.connection.binary.name);
+        expect(remote, light ? [BitcoinCore().name, Enforcer().name] : isEmpty);
+        expect(find.widgetWithText(SailBadge, 'remote'), light ? findsNWidgets(2) : findsNothing);
+
+        final button = find.widgetWithText(SailButton, 'Run everything locally');
+        expect(button, light ? findsWidgets : findsNothing);
+        if (light) {
+          await tester.tap(button.first);
+          await tester.pumpAndSettle();
+          expect(runs, 1);
+          expect(find.byType(DaemonConnectionCard), findsNothing);
+        }
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+
   for (final mainchainInfo in [true, false]) {
     testWidgets('${mainchainInfo ? 'mainchain' : 'sidechain'} bar shows only active wallet balances', (tester) async {
       final balance = _Balance();

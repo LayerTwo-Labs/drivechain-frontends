@@ -28,12 +28,17 @@ class DaemonConnectionCard extends StatelessWidget {
   /// then a wait, because nothing here starts or fixes that host.
   final bool remote;
 
+  /// Marks a daemon that light mode reads from a remote host. The card then
+  /// offers no logs, no start or stop and no progress row.
+  final bool remoteBadge;
+
   const DaemonConnectionCard({
     super.key,
     required this.connection,
     required this.syncInfo,
     required this.infoMessage,
     this.remote = false,
+    this.remoteBadge = false,
     this.restartDaemon,
     this.stopDaemon,
     this.deleteFunction,
@@ -96,6 +101,7 @@ class DaemonConnectionCard extends StatelessWidget {
                 SailSVGAsset.iconConnectionStatus,
                 color: _getConnectionColor(theme, isDownloading: isDownloading),
               ),
+              if (remoteBadge) const SailBadge('remote'),
               Expanded(child: Container()),
               if (providerBinary != null && providerBinary.updateAvailable)
                 SailButton(
@@ -108,31 +114,32 @@ class DaemonConnectionCard extends StatelessWidget {
                     }
                   },
                 ),
-              Builder(
-                builder: (context) {
-                  final hasLogFile = File(
-                    connection.binary.logPath(),
-                  ).existsSync();
-                  final hasProcessLogs = _logProvider.hasLogsForBinary(
-                    connection.binary.type,
-                  );
-                  final hasLogs = hasLogFile || hasProcessLogs;
-                  return Tooltip(
-                    message: hasLogs ? 'View logs' : 'No logs available yet',
-                    child: SailButton(
-                      variant: ButtonVariant.ghost,
-                      onPressed: () async => navigateToLogs!(
-                        connection.binary.binary,
-                        connection.binary.logPath(),
-                        connection.binary.type,
+              if (!remoteBadge)
+                Builder(
+                  builder: (context) {
+                    final hasLogFile = File(
+                      connection.binary.logPath(),
+                    ).existsSync();
+                    final hasProcessLogs = _logProvider.hasLogsForBinary(
+                      connection.binary.type,
+                    );
+                    final hasLogs = hasLogFile || hasProcessLogs;
+                    return Tooltip(
+                      message: hasLogs ? 'View logs' : 'No logs available yet',
+                      child: SailButton(
+                        variant: ButtonVariant.ghost,
+                        onPressed: () async => navigateToLogs!(
+                          connection.binary.binary,
+                          connection.binary.logPath(),
+                          connection.binary.type,
+                        ),
+                        disabled: !hasLogs,
+                        label: 'View logs',
                       ),
-                      disabled: !hasLogs,
-                      label: 'View logs',
-                    ),
-                  );
-                },
-              ),
-              if (restartDaemon case final start?)
+                    );
+                  },
+                ),
+              if (restartDaemon case final start? when !remoteBadge)
                 if (stopDaemon case final stop?)
                   _StartStopButton(
                     binaryName: connection.binary.name,
@@ -168,25 +175,26 @@ class DaemonConnectionCard extends StatelessWidget {
           ),
           // The row stays even with nothing to report, so a card that gains
           // sync info or a download does not grow.
-          SizedBox(
-            width: progressBlockWidth(
-              downloadProgress != null ? 1 : syncRowCount(syncInfo),
+          if (!remoteBadge)
+            SizedBox(
+              width: progressBlockWidth(
+                downloadProgress != null ? 1 : syncRowCount(syncInfo),
+              ),
+              height: downloadProgress == null && (syncInfo?.mainchainSyncing ?? false)
+                  ? null
+                  : progressBlockHeight(
+                      context,
+                      downloadProgress != null ? 1 : syncRowCount(syncInfo),
+                    ),
+              child: downloadProgress != null
+                  ? DownloadStatusRow(
+                      name: connection.binary.name,
+                      download: downloadProgress,
+                    )
+                  : syncInfo != null
+                  ? BlockStatus(name: connection.binary.name, syncInfo: syncInfo!)
+                  : null,
             ),
-            height: downloadProgress == null && (syncInfo?.mainchainSyncing ?? false)
-                ? null
-                : progressBlockHeight(
-                    context,
-                    downloadProgress != null ? 1 : syncRowCount(syncInfo),
-                  ),
-            child: downloadProgress != null
-                ? DownloadStatusRow(
-                    name: connection.binary.name,
-                    download: downloadProgress,
-                  )
-                : syncInfo != null
-                ? BlockStatus(name: connection.binary.name, syncInfo: syncInfo!)
-                : null,
-          ),
           Padding(
             padding: const EdgeInsets.only(top: SailStyleValues.padding04),
             child: DaemonStatusBlock(
