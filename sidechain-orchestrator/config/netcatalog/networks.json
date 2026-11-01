@@ -328,7 +328,7 @@
           "cooldown_seconds": null
         },
         "coinnews": {
-          "url": null
+          "url": "https://seed.ecash.eu.com"
         },
         "enforcer": [
           { "url": "https://seed.ecash.eu.com/enforcer" }
