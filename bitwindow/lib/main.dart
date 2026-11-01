@@ -878,26 +878,77 @@ Future<void> bootBitwindowBackend(Logger log) async {
     await GetIt.I.get<WalletReaderProvider>().init();
   }
 
-  final boot = await readBackendBoot(
+  await startBackendsForMode(
+    orchestrator: orchestrator,
+    backendState: backendState,
     orchestratorReady: orchestratorReady,
-    hasWallet: () => GetIt.I.get<WalletReaderProvider>().hasWallet(),
+    log: log,
   );
 
-  // 4. Stream binary logs and start watching state.
+  log.i('STARTUP: BitWindow backend boot task initialized');
+}
+
+/// How long a failed first boot mode write waits before the next try.
+const firstBootModeRetry = Duration(seconds: 5);
+
+/// Starts the log streams and the state watch, then reads the node mode and
+/// starts the backends it needs. The watch runs even when the mode read fails.
+Future<void> startBackendsForMode({
+  required OrchestratorRPC orchestrator,
+  required BackendStateProvider backendState,
+  required bool orchestratorReady,
+  required Logger log,
+  Duration retryEvery = firstBootModeRetry,
+}) async {
   streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);
   streamBinaryLogs(orchestrator, 'enforcer', BinaryType.BINARY_TYPE_ENFORCER, log);
 
   log.i('STARTUP: starting backend state watch');
   backendState.startWatching();
 
-  // 5. Kick off the L1 stack (bitcoind → wallet → IBD → enforcer). StartWithL1
-  //    is fire-and-forget on the server now — boot runs on a background
-  //    goroutine and survives any transport blip. If a previous bitwindowd's
-  //    drivechaind is still draining, StartWithL1 server-side adopts it
-  //    (cancels its pending exit + awaits the in-flight stops) before
-  //    starting the fresh stack — caller-side glue not needed. Download
-  //    bytes come via SyncProvider's polled GetSyncStatus; connection state
-  //    via BackendStateProvider's polled ListBinaries.
+  await _bootForMode(
+    orchestrator: orchestrator,
+    orchestratorReady: orchestratorReady,
+    log: log,
+    retryEvery: retryEvery,
+  );
+}
+
+Future<void> _bootForMode({
+  required OrchestratorRPC orchestrator,
+  required bool orchestratorReady,
+  required Logger log,
+  required Duration retryEvery,
+}) async {
+  final BackendBoot boot;
+  try {
+    boot = await readBackendBoot(
+      orchestratorReady: orchestratorReady,
+      hasWallet: () => GetIt.I.get<WalletReaderProvider>().hasWallet(),
+    );
+  } catch (e) {
+    log.e('STARTUP: could not record the node mode, trying again in ${retryEvery.inSeconds}s: $e');
+    GetIt.I.get<NotificationProvider>().add(
+      id: 'first-boot-node-mode',
+      title: 'Could not switch',
+      content: '$e',
+      dialogType: DialogType.error,
+    );
+    unawaited(
+      Future.delayed(
+        retryEvery,
+        () => _bootForMode(
+          orchestrator: orchestrator,
+          orchestratorReady: orchestratorReady,
+          log: log,
+          retryEvery: retryEvery,
+        ),
+      ),
+    );
+    return;
+  }
+
+  // StartWithL1 returns at once and adopts a draining drivechaind of an earlier bitwindowd.
   if (orchestratorReady && boot.startsBackends) {
     unawaited(() async {
       try {
@@ -909,8 +960,6 @@ Future<void> bootBitwindowBackend(Logger log) async {
   } else if (orchestratorReady) {
     log.i('STARTUP: ${boot.reason}');
   }
-
-  log.i('STARTUP: BitWindow backend boot task initialized');
 }
 
 /// The binaries whose log stream runs. A second boot must not add a second
