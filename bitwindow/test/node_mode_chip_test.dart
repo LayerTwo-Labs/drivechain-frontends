@@ -285,4 +285,25 @@ void main() {
     expect(orchestrator.wallet.selections, [wmpb.NodeMode.NODE_MODE_FULL]);
     expect(find.text('Configure Data Directory'), findsNothing);
   });
+
+  for (final alignment in [Alignment.bottomLeft, Alignment.bottomCenter, Alignment.bottomRight]) {
+    testWidgets('a narrow window keeps the popover inside both edges at $alignment', (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(_host(Align(alignment: alignment, child: const NodeModeChip())));
+      await tester.pump();
+
+      await tester.tap(find.text('Light'));
+      await tester.pumpAndSettle();
+
+      final popover = tester.getRect(find.byType(NodeModePopover));
+      expect(popover.left, greaterThanOrEqualTo(0));
+      expect(popover.right, lessThanOrEqualTo(360));
+
+      await tester.tapAt(const Offset(180, 5));
+      await tester.pumpAndSettle();
+    });
+  }
 }

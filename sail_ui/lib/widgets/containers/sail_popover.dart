@@ -50,6 +50,9 @@ class SailPopover extends StatefulWidget {
   /// The popover's corner radius. Null keeps the theme's popover radius.
   final BorderRadius? borderRadius;
 
+  /// Moves the popover along its side, in pixels. Positive moves right or down.
+  final double crossOffset;
+
   const SailPopover({
     super.key,
     required this.child,
@@ -60,6 +63,7 @@ class SailPopover extends StatefulWidget {
     this.offset = 4,
     this.barrierDismissible = true,
     this.borderRadius,
+    this.crossOffset = 0,
   });
 
   @override
@@ -209,13 +213,13 @@ class _SailPopoverState extends State<SailPopover> {
   Offset _offset() {
     switch (widget.side) {
       case SailPopoverSide.bottom:
-        return Offset(0, widget.offset);
+        return Offset(widget.crossOffset, widget.offset);
       case SailPopoverSide.top:
-        return Offset(0, -widget.offset);
+        return Offset(widget.crossOffset, -widget.offset);
       case SailPopoverSide.left:
-        return Offset(-widget.offset, 0);
+        return Offset(-widget.offset, widget.crossOffset);
       case SailPopoverSide.right:
-        return Offset(widget.offset, 0);
+        return Offset(widget.offset, widget.crossOffset);
     }
   }
 
