@@ -149,8 +149,8 @@ void main() {
   }
 
   testWidgets('a single-sig descriptor makes an electrum wallet', (tester) async {
-    rpc.policy = wmpb.ValidateDescriptorResponse(scriptType: 'wpkh', m: 1, n: 1);
     const descriptor = "wpkh([d34db33f/84'/0'/0']xpub6CUGRUo/0/*)";
+    rpc.policy = wmpb.ValidateDescriptorResponse(scriptType: 'wpkh', m: 1, n: 1, descriptor: descriptor);
 
     await importDescriptor(tester, descriptor);
 
@@ -159,19 +159,30 @@ void main() {
   });
 
   testWidgets('a single-sig descriptor with a private key keeps the key', (tester) async {
+    const descriptor = "wpkh([d34db33f/84'/0'/0']xprv9s21ZrQH/0/*)";
     rpc.policy = wmpb.ValidateDescriptorResponse(
       scriptType: 'wpkh',
       m: 1,
       n: 1,
       keys: [wmpb.ParsedCosigner(xpub: 'xpub6CUGRUo', xprv: 'xprv9s21ZrQH')],
+      descriptor: descriptor,
     );
-    const descriptor = "wpkh([d34db33f/84'/0'/0']xprv9s21ZrQH/0/*)";
 
     await importDescriptor(tester, descriptor);
 
     expect(writer.calls, ['electrum']);
     expect(writer.privateDescriptor, descriptor);
     expect(writer.descriptor, isNull, reason: 'the watch-only path refuses a private key');
+  });
+
+  testWidgets('a receive and change pair imports the joined descriptor', (tester) async {
+    const receive = "wpkh([d34db33f/84'/0'/0']xpub6CUGRUo/0/*)";
+    rpc.policy = wmpb.ValidateDescriptorResponse(scriptType: 'wpkh', m: 1, n: 1, descriptor: receive);
+
+    await importDescriptor(tester, "External: $receive\nInternal: wpkh([d34db33f/84'/0'/0']xpub6CUGRUo/1/*)");
+
+    expect(writer.calls, ['electrum']);
+    expect(writer.descriptor, receive);
   });
 
   testWidgets('a multisig descriptor makes a multisig wallet', (tester) async {

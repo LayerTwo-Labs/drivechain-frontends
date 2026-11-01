@@ -634,6 +634,8 @@ message ValidateDescriptorResponse {
   uint32 m = 3; // signatures required
   uint32 n = 4; // total keys
   repeated ParsedCosigner keys = 5;
+  // The one descriptor to import. A receive and change pair joins into it.
+  string descriptor = 6;
 }
 
 // ============================================================================

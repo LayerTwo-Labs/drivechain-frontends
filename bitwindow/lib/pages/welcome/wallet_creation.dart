@@ -94,13 +94,13 @@ Future<String> importDescriptorWallet(String descriptor) async {
     await GetIt.I.get<WalletWriterProvider>().createElectrumWallet(
       name: name,
       gradient: WalletGradient.fromWalletId(name),
-      privateDescriptor: descriptor.trim(),
+      privateDescriptor: policy.descriptor,
     );
     return name;
   }
   return createWalletFromSetup(
     WalletSetupResult.single(
-      SingleSigResult(scriptType: hotScriptType(policy.scriptType), xpubOrDescriptor: descriptor.trim()),
+      SingleSigResult(scriptType: hotScriptType(policy.scriptType), xpubOrDescriptor: policy.descriptor),
     ),
   );
 }

@@ -3963,10 +3963,12 @@ type ValidateDescriptorResponse struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Multisig bool                   `protobuf:"varint,1,opt,name=multisig,proto3" json:"multisig,omitempty"`
 	// wpkh | sh-wpkh | pkh | tr, or wsh | sh-wsh | sh | tr when multisig.
-	ScriptType    string            `protobuf:"bytes,2,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
-	M             uint32            `protobuf:"varint,3,opt,name=m,proto3" json:"m,omitempty"` // signatures required
-	N             uint32            `protobuf:"varint,4,opt,name=n,proto3" json:"n,omitempty"` // total keys
-	Keys          []*ParsedCosigner `protobuf:"bytes,5,rep,name=keys,proto3" json:"keys,omitempty"`
+	ScriptType string            `protobuf:"bytes,2,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
+	M          uint32            `protobuf:"varint,3,opt,name=m,proto3" json:"m,omitempty"` // signatures required
+	N          uint32            `protobuf:"varint,4,opt,name=n,proto3" json:"n,omitempty"` // total keys
+	Keys       []*ParsedCosigner `protobuf:"bytes,5,rep,name=keys,proto3" json:"keys,omitempty"`
+	// The one descriptor to import. A receive and change pair joins into it.
+	Descriptor_   string `protobuf:"bytes,6,opt,name=descriptor,proto3" json:"descriptor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4034,6 +4036,13 @@ func (x *ValidateDescriptorResponse) GetKeys() []*ParsedCosigner {
 		return x.Keys
 	}
 	return nil
+}
+
+func (x *ValidateDescriptorResponse) GetDescriptor_() string {
+	if x != nil {
+		return x.Descriptor_
+	}
+	return ""
 }
 
 type CreateBitcoinCoreWalletRequest struct {
@@ -11222,14 +11231,17 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x04path\x18\x02 \x01(\tR\x04path\"\x82\x01\n" +
 	"\x1bListDerivationPathsResponse\x12@\n" +
 	"\aoptions\x18\x01 \x03(\v2&.walletmanager.v1.DerivationPathOptionR\aoptions\x12!\n" +
-	"\fdefault_path\x18\x02 \x01(\tR\vdefaultPath\"\xab\x01\n" +
+	"\fdefault_path\x18\x02 \x01(\tR\vdefaultPath\"\xcb\x01\n" +
 	"\x1aValidateDescriptorResponse\x12\x1a\n" +
 	"\bmultisig\x18\x01 \x01(\bR\bmultisig\x12\x1f\n" +
 	"\vscript_type\x18\x02 \x01(\tR\n" +
 	"scriptType\x12\f\n" +
 	"\x01m\x18\x03 \x01(\rR\x01m\x12\f\n" +
 	"\x01n\x18\x04 \x01(\rR\x01n\x124\n" +
-	"\x04keys\x18\x05 \x03(\v2 .walletmanager.v1.ParsedCosignerR\x04keys\"=\n" +
+	"\x04keys\x18\x05 \x03(\v2 .walletmanager.v1.ParsedCosignerR\x04keys\x12\x1e\n" +
+	"\n" +
+	"descriptor\x18\x06 \x01(\tR\n" +
+	"descriptor\"=\n" +
 	"\x1eCreateBitcoinCoreWalletRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"K\n" +
 	"\x1fCreateBitcoinCoreWalletResponse\x12(\n" +

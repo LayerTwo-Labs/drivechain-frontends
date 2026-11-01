@@ -581,11 +581,12 @@ func (h *WalletHandler) ValidateDescriptor(ctx context.Context, req *pb.Validate
 		})
 	}
 	return &pb.ValidateDescriptorResponse{
-		Multisig:   policy.Multisig,
-		ScriptType: policy.ScriptType,
-		M:          uint32(policy.M),
-		N:          uint32(policy.N),
-		Keys:       keys,
+		Multisig:    policy.Multisig,
+		ScriptType:  policy.ScriptType,
+		M:           uint32(policy.M),
+		N:           uint32(policy.N),
+		Keys:        keys,
+		Descriptor_: policy.Descriptor,
 	}, nil
 }
 
