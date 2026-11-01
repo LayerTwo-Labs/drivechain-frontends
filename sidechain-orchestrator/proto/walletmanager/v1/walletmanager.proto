@@ -577,6 +577,9 @@ message ParsedCosigner {
   string xpub = 1;
   string fingerprint = 2;
   string origin_path = 3;
+  // Account-level private key, set only by ValidateDescriptor when the
+  // descriptor holds one.
+  string xprv = 4;
 }
 
 message ParseMultisigConfigResponse {

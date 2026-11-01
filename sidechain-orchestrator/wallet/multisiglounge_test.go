@@ -1055,6 +1055,24 @@ func TestParseColdcardAndCaravanConfig(t *testing.T) {
 	assert.Equal(t, "48'/1'/0'/4'", cos2[2].OriginPath)
 }
 
+func TestValidateDescriptorKeepsPrivateKeys(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	k := group.Keys
+	accts := loungeTestAccts(t)
+	desc := fmt.Sprintf("wsh(sortedmulti(2,[%s/%s]%s/0/*,[%s/%s]%s/0/*,[%s/%s]%s/0/*))",
+		k[0].Fingerprint, k[0].OriginPath, accts[0].String(),
+		k[1].Fingerprint, k[1].OriginPath, k[1].Xpub,
+		k[2].Fingerprint, k[2].OriginPath, k[2].Xpub)
+
+	p, err := ValidateDescriptor(desc)
+	require.NoError(t, err)
+	require.Len(t, p.Cosigners, 3)
+	assert.Equal(t, k[0].Xpub, p.Cosigners[0].Xpub)
+	assert.Equal(t, accts[0].String(), p.Cosigners[0].Xprv)
+	assert.Empty(t, p.Cosigners[1].Xprv)
+	assert.Empty(t, p.Cosigners[2].Xprv)
+}
+
 // TestValidateDescriptor reads single-sig and multisig descriptors into their
 // policies, and rejects incomplete ones.
 func TestValidateDescriptor(t *testing.T) {

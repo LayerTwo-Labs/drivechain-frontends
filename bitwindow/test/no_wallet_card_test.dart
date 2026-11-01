@@ -16,6 +16,7 @@ class _FakeWriter extends WalletWriterProvider {
   String? descriptor;
   int? m;
   int? n;
+  List<wmpb.MultisigCosignerInput> cosigners = [];
 
   @override
   Future<void> createElectrumWallet({
@@ -46,6 +47,7 @@ class _FakeWriter extends WalletWriterProvider {
     calls.add('multisig');
     this.m = m;
     this.n = n;
+    this.cosigners = cosigners;
   }
 }
 
@@ -168,6 +170,24 @@ void main() {
 
     expect(writer.calls, ['multisig']);
     expect((writer.m, writer.n), (2, 3));
+  });
+
+  testWidgets('a multisig descriptor keeps its private key so the wallet can sign', (tester) async {
+    rpc.policy = wmpb.ValidateDescriptorResponse(
+      multisig: true,
+      scriptType: 'wsh',
+      m: 2,
+      n: 2,
+      keys: [
+        wmpb.ParsedCosigner(xpub: 'xpubA', xprv: 'xprvA'),
+        wmpb.ParsedCosigner(xpub: 'xpubB'),
+      ],
+    );
+
+    await importDescriptor(tester, 'wsh(sortedmulti(2,xprvA,xpubB))');
+
+    expect(writer.calls, ['multisig']);
+    expect(writer.cosigners.map((c) => (c.xpub, c.xprv)), [('xpubA', 'xprvA'), ('xpubB', '')]);
   });
 
   testWidgets('a rejected descriptor shows the error and creates nothing', (tester) async {

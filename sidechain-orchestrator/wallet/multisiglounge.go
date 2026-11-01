@@ -364,6 +364,13 @@ func ValidateDescriptor(descriptor string) (*DescriptorPolicy, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The caller imports from this policy, so a private key must survive or
+	// the wallet silently turns watch-only.
+	for i, k := range d.Keys {
+		if k.Account.IsPrivate() {
+			cosigners[i].Xprv = k.Account.String()
+		}
+	}
 	multisig := d.Kind.isMultisig() || d.Kind.isTaprootMultisig()
 	scriptType := singleSigTypeString(d.Kind)
 	if multisig {
