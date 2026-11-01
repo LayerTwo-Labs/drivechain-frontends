@@ -283,6 +283,11 @@ func run(cctx *cli.Context) error {
 	defer walletSvc.Close()
 	orch.WalletSvc = walletSvc
 
+	// A saved job that stopped in its download changed no file, but it refuses every node start.
+	if err := orch.DropUnstartedECashMigration(); err != nil {
+		return fmt.Errorf("drop the unstarted ECX migration: %w", err)
+	}
+
 	// Adopt orphaned processes from previous session
 	if err := orch.AdoptOrphans(ctx); err != nil {
 		log.Warn().Err(err).Msg("adopt orphans")

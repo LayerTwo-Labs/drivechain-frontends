@@ -154,11 +154,57 @@ func (o *Orchestrator) ECashMigrationStatus() (ECashMigrationStatus, error) {
 		return ECashMigrationStatus{}, err
 	}
 	if state == nil {
+		if o.failedStart != nil {
+			return *o.failedStart, nil
+		}
 		return ECashMigrationStatus{}, nil
 	}
 	status := state.Status
 	status.Running = o.migrationBusy
 	return status, nil
+}
+
+// DropUnstartedECashMigration removes a saved job that stopped in its prepare
+// step. That step only downloads binaries, so the install is as it was before.
+func (o *Orchestrator) DropUnstartedECashMigration() error {
+	o.migrationMu.Lock()
+	defer o.migrationMu.Unlock()
+	state, err := o.readMigration()
+	if err != nil {
+		return err
+	}
+	if o.migrationBusy || state == nil || !unstartedMigration(state) {
+		return nil
+	}
+	return o.forgetMigration()
+}
+
+func unstartedMigration(state *ecashMigration) bool {
+	return !state.Status.Complete && state.Step == 0
+}
+
+// forgetMigration removes the saved job. Call it with migrationMu held.
+func (o *Orchestrator) forgetMigration() error {
+	if err := os.Remove(o.migrationPath()); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove ECX migration: %w", err)
+	}
+	o.migrationState = nil
+	return nil
+}
+
+// endFailedStart forgets a job that failed in its prepare step and keeps its
+// status for the next poll, with no job id, so nothing waits on it.
+func (o *Orchestrator) endFailedStart(status ECashMigrationStatus) error {
+	o.migrationMu.Lock()
+	defer o.migrationMu.Unlock()
+	if err := o.forgetMigration(); err != nil {
+		return err
+	}
+	status.JobID = ""
+	status.Running = false
+	o.failedStart = &status
+	o.migrationBusy = false
+	return nil
 }
 
 // EditBitcoinConfig applies an edit when no ECX migration is active.
@@ -491,6 +537,7 @@ func (o *Orchestrator) StartECashMigration(ctx context.Context, fromID, toID str
 	}
 	copy := state
 	o.migrationState = &copy
+	o.failedStart = nil
 	o.migrationBusy = true
 	release := func() {}
 	if o.clients != nil {
@@ -513,6 +560,14 @@ func (o *Orchestrator) runECashMigration(state ecashMigration) {
 	o.swapNetworkMu.Unlock()
 	state.Status.Running = false
 	if err != nil {
+		state.Status.Error = err.Error()
+	}
+	if err != nil && unstartedMigration(&state) {
+		dropErr := o.endFailedStart(state.Status)
+		if dropErr == nil {
+			return
+		}
+		err = errors.Join(err, dropErr)
 		state.Status.Error = err.Error()
 	}
 	if saveErr := o.saveMigration(&state); saveErr != nil {
