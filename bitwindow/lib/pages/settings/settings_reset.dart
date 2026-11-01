@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:bitwindow/main.dart' show reconcileNodeMode;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -212,6 +213,14 @@ class _SettingsResetState extends State<SettingsReset> {
       // the wallet files to wallet_backups/.
       if (_deleteWalletFiles || _obliterateEverything) {
         GetIt.I.get<WalletReaderProvider>().clearState();
+      }
+      // A settings reset deletes the recorded node mode, so the app and the
+      // backend must agree on it again.
+      if (_deleteSettings || _obliterateEverything) {
+        await reconcileNodeMode(orchestrator: GetIt.I.get<OrchestratorRPC>(), log: log);
+        if (!mounted) {
+          return;
+        }
       }
 
       // Reset the checkbox selection so the form returns to its default state.
