@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -5,6 +6,7 @@ import 'package:bitassets/bitassets_module.dart';
 import 'package:bitwindow/pages/sidechain_host_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/sidechains/hosted_chains.dart';
 import 'package:bitwindow/sidechains/hosted_modules.dart';
 import 'package:flutter/material.dart' show MaterialApp;
 import 'package:flutter/widgets.dart';
@@ -45,7 +47,7 @@ class _Window extends ChangeNotifier implements WindowProvider {
 }
 
 /// The host route of BitWindow, with a text in place of each tab page.
-class _HostRouter extends RootStackRouter {
+class _HostRouter extends AppRouter {
   @override
   List<AutoRoute> get routes => [
     AutoRoute(
@@ -220,6 +222,18 @@ void main() {
         BalanceProvider(connections: [GetIt.I.get<ThunderRPC>(), GetIt.I.get<BitAssetsRPC>()]),
       );
       await registerTestDependencies();
+      if (!GetIt.I.isRegistered<NotificationProvider>()) {
+        GetIt.I.registerSingleton<NotificationProvider>(NotificationProvider());
+      }
+      GetIt.I.registerSingleton<HostedChains>(
+        HostedChains(
+          binaries: GetIt.I.get<BinaryProvider>(),
+          modules: hostedModules,
+          applicationDir: appDir,
+          log: GetIt.I.get<Logger>(),
+          navigatorFor: (module) => HostChainNavigator(module.chain),
+        ),
+      );
     });
 
     tearDown(() async {
@@ -236,10 +250,11 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('a chain opens with its tabs, and a switch swaps the chain scope', (tester) async {
+    Future<_HostRouter> pumpHost(WidgetTester tester) async {
       addTearDown(() => tester.pumpWidget(const SizedBox()));
       await tester.binding.setSurfaceSize(const Size(1440, 1024));
       final router = _HostRouter();
+      GetIt.I.registerSingleton<AppRouter>(router);
       await tester.pumpWidget(
         SailApp(
           dense: false,
@@ -250,6 +265,42 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      return router;
+    }
+
+    testWidgets('a click on a chain notification opens the chain at its tab', (tester) async {
+      await pumpHost(tester);
+      expect(find.text('slot table'), findsOneWidget);
+
+      final handler = sidechainTabHandler(
+        moduleFor: hostedModuleByKey,
+        navigatorFor: (module) => HostChainNavigator(module.chain),
+      );
+      final item = NotificationItem(
+        id: 'deposit-thunder-a:0',
+        title: 'Deposit received on Thunder',
+        content: '1 BTC',
+        dialogType: DialogType.success,
+        timestamp: DateTime.utc(2026, 11, 1),
+        action: sidechainTabAction,
+        data: const {'chain': 'thunder', 'tab': 'ConsoleTabRoute'},
+      );
+      var opened = false;
+      unawaited(handler(tester.element(find.text('slot table')), item).then((value) => opened = value));
+      // The navigation and the session read files, which a fake clock never runs.
+      for (var i = 0; i < 100 && find.text('page ${ConsoleTabRoute.name}').evaluate().isEmpty; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+        await tester.pump();
+      }
+      await settle(tester);
+
+      expect(opened, isTrue);
+      expect(GetIt.I.get<SidechainModule>(), isA<ThunderModule>());
+      expect(find.text('page ${ConsoleTabRoute.name}'), findsOneWidget);
+    });
+
+    testWidgets('a chain opens with its tabs, and a switch swaps the chain scope', (tester) async {
+      final router = await pumpHost(tester);
       expect(find.text('slot table'), findsOneWidget);
 
       await router.navigate(SidechainsRoute(children: [SidechainHostRoute(chain: 'thunder')]));
