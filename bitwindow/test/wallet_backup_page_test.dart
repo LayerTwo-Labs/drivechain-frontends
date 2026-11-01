@@ -190,6 +190,28 @@ void main() {
     expect(find.text(_wordsFor('pending entropy', 12).first), findsOneWidget);
   });
 
+  testWidgets('keys typed before the OS entropy lands follow it', (tester) async {
+    writer.gate = Completer<void>();
+    await tester.binding.setSurfaceSize(const Size(1440, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_app(SeedEntryMode.generate, null));
+    await tester.pump();
+
+    await _typeOnPad(tester, 2);
+    expect(writer.calls, 1, reason: 'no derive runs on samples without the OS prefix');
+    expect(tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Continue')).first.disabled, isTrue);
+
+    writer.gate!.complete();
+    writer.gate = null;
+    await tester.pumpAndSettle();
+
+    final text = _fieldText(tester);
+    expect(text, startsWith(_osHex));
+    expect(text, hasLength(34));
+    expect(writer.lastSourceText, text);
+    expect(find.text('2 samples'), findsOneWidget);
+  });
+
   testWidgets('the same text gives the same words', (tester) async {
     await _pumpPage(tester);
 

@@ -67,6 +67,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
 
   /// The number of characters the keyboard typed into the field.
   int _samples = 0;
+
+  /// True while the OS entropy is on its way. Keys typed then wait in
+  /// [_earlySamples], so the field never derives without the OS prefix.
+  bool _osPending = true;
+  final StringBuffer _earlySamples = StringBuffer();
   static const int _sampleTarget = 256;
 
   @override
@@ -95,6 +100,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   // words agree.
   Future<void> _randomEntropy() async {
     final id = ++_deriveId;
+    setState(() => _osPending = true);
     try {
       final wallet = await _writer.generateWalletFromEntropy(
         const [],
@@ -106,9 +112,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       }
       final hex = (wallet['entropy_hex'] as String?) ?? '';
       _entropy.osEntropy = hex;
-      _entropy.text = hex;
-      _samples = 0;
-      await _derive(hex);
+      _entropy.text = '$hex$_earlySamples';
+      _samples = _earlySamples.length;
+      _earlySamples.clear();
+      _osPending = false;
+      await _derive(_entropy.text);
     } catch (e) {
       if (mounted) {
         setState(() => _error = 'Error generating entropy: $e');
@@ -158,6 +166,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
 
   /// _type appends one character the keyboard produced and derives at once.
   void _type(String char) {
+    if (_osPending) {
+      _earlySamples.write(char);
+      setState(() => _samples++);
+      return;
+    }
     _entropy.text += char;
     setState(() => _samples++);
     unawaited(_derive(_entropy.text));
@@ -534,7 +547,10 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                       size: TextFieldSize.small,
                       monospace: true,
                       onChanged: (v) {
-                        setState(() {});
+                        setState(() {
+                          _osPending = false;
+                          _earlySamples.clear();
+                        });
                         unawaited(_derive(v));
                       },
                     ),
@@ -794,7 +810,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   Widget _bottomBar(BuildContext context) {
     final theme = SailTheme.of(context);
     final ready = switch (_stage) {
-      _Stage.entropy => _words.isNotEmpty && _landedId == _deriveId,
+      _Stage.entropy => _words.isNotEmpty && _landedId == _deriveId && !_osPending,
       _Stage.reenter => true,
       _Stage.import => _importValid,
     };
