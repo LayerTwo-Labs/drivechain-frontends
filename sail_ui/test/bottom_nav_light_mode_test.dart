@@ -387,6 +387,7 @@ void main() {
         tester,
       ) async {
         GetIt.I.get<NodeModeProvider>().mode = light ? wmpb.NodeMode.NODE_MODE_LIGHT : wmpb.NodeMode.NODE_MODE_FULL;
+        sync.chainSourceSyncInfo = SyncInfo(progressCurrent: 900, progressGoal: 900, lastBlockAt: null);
         var runs = 0;
         final nav = BottomNav(
           endWidgets: const [],
@@ -422,6 +423,13 @@ void main() {
         final remote = cards.where((card) => card.remoteBadge).map((card) => card.connection.binary.name);
         expect(remote, light ? [BitcoinCore().name, Enforcer().name] : isEmpty);
         expect(find.widgetWithText(SailBadge, 'remote'), light ? findsNWidgets(2) : findsNothing);
+        if (light) {
+          // The local node is stopped in light mode; the remote card reads the chain source.
+          final core = cards.singleWhere((card) => card.remoteBadge && card.connection.binary is BitcoinCore);
+          expect(GetIt.I.get<BitcoindConnection>().connected, isFalse);
+          expect(core.connection.connected, isTrue);
+          expect(core.connection.connectionError, isNull);
+        }
 
         final button = find.widgetWithText(SailButton, 'Run everything locally');
         expect(button, light ? findsWidgets : findsNothing);
