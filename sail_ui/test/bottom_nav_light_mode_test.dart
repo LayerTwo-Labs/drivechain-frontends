@@ -429,6 +429,19 @@ void main() {
           expect(GetIt.I.get<BitcoindConnection>().connected, isFalse);
           expect(core.connection.connected, isTrue);
           expect(core.connection.connectionError, isNull);
+
+          // The first notify only seeds the change tracker.
+          sync.notifyListeners();
+          await tester.pump();
+          sync.chainSourceError = 'the chain server went away';
+          sync.notifyListeners();
+          await tester.pump();
+          expect(
+            find.textContaining('the chain server went away'),
+            findsWidgets,
+            reason: 'an open dialog follows the chain source',
+          );
+          sync.chainSourceError = null;
         }
 
         final button = find.widgetWithText(SailButton, 'Run everything locally');
