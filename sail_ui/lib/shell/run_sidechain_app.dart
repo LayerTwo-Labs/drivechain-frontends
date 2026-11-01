@@ -13,6 +13,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/config/sidechain_main.dart' show getLogFile;
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_events.dart';
 import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:sail_ui/shell/sidechain_homepage_provider.dart';
 import 'package:sail_ui/shell/sidechain_module.dart';
@@ -214,6 +215,24 @@ Future<void> _runMainWindow(SidechainModule module, Logger log, Directory applic
   log.i('starting ${module.chain.registryKey}');
   final rpc = GetIt.I.get<SidechainRPC>();
   final router = GetIt.I.get<RootStackRouter>();
+
+  final navigator = GetIt.I.get<ChainNavigator>();
+  if (!GetIt.I.isRegistered<NotificationActions>()) {
+    GetIt.I.registerSingleton<NotificationActions>(
+      NotificationActions({
+        sidechainTabAction: sidechainTabHandler(
+          moduleFor: (registryKey) => registryKey == module.chain.registryKey ? module : null,
+          navigatorFor: (_) => navigator,
+        ),
+      }),
+    );
+  }
+  startChainEvents(
+    module: module,
+    navigator: navigator,
+    notifications: GetIt.I.get<NotificationProvider>(),
+    transactions: GetIt.I.get<SidechainTransactionsProvider>(),
+  );
 
   runApp(
     SailApp(

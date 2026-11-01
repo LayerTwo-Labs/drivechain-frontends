@@ -6,7 +6,7 @@ import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
 
 class AddressProvider extends ChangeNotifier {
-  final SidechainRPC rpc = GetIt.I.get<SidechainRPC>();
+  final SidechainRPC rpc;
 
   String? receiveAddress;
   String? depositAddress;
@@ -20,11 +20,12 @@ class AddressProvider extends ChangeNotifier {
   bool _isFetching = false;
   Timer? _retryTimer;
 
-  AddressProvider() {
+  /// [rpc] defaults to the sidechain RPC in GetIt.
+  AddressProvider({SidechainRPC? rpc}) : rpc = rpc ?? GetIt.I.get<SidechainRPC>() {
     // fetching on each rpc update makes sure
     // we fetch an address immediately after the rpc
     // is connected
-    rpc.addListener(fetch);
+    this.rpc.addListener(fetch);
     // fetch immediately in case rpc is connected
     fetch();
     _startRetryTimer();
