@@ -444,6 +444,46 @@ void main() {
     );
   }
 
+  testWidgets('a wallet-only light network shows no remote enforcer card', (tester) async {
+    GetIt.I.get<NodeModeProvider>()
+      ..mode = wmpb.NodeMode.NODE_MODE_LIGHT
+      ..remoteEnforcerAvailable = false;
+    daemon.binary = BitWindow();
+    final nav = BottomNav(
+      endWidgets: const [],
+      additionalConnection: model.additionalConnection,
+      mainchainInfo: true,
+      navigateToLogs: (_, _, _) {},
+      onRunLocally: () {},
+    );
+    tester.view.physicalSize = const Size(1600, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SailTheme(
+          data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+          child: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => nav.displayConnectionStatusDialog(context, model.additionalConnection, false),
+                child: const Text('Status'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Status'));
+    await tester.pumpAndSettle();
+
+    final cards = tester.widgetList<DaemonConnectionCard>(find.byType(DaemonConnectionCard));
+    expect(cards.where((card) => card.remoteBadge).map((card) => card.connection.binary.name), [BitcoinCore().name]);
+    expect(cards.any((card) => card.connection.binary is Enforcer), isFalse);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   for (final mainchainInfo in [true, false]) {
     testWidgets('${mainchainInfo ? 'mainchain' : 'sidechain'} bar shows only active wallet balances', (tester) async {
       final balance = _Balance();
