@@ -81,6 +81,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   bool? _cachedMenuListHasWallet;
   DateTime? _lastShiftPress;
   final CodeSearchService _codeSearchService = CodeSearchService();
+  final FullModeDataDirWatch _dataDirWatch = FullModeDataDirWatch();
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -121,9 +122,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final tab = _routerKey.currentState?.controller?.current.name;
       GetIt.I.get<Logger>().i('STARTUP: root page opened on $tab');
-      if (GetIt.I.get<NodeModeProvider>().isFull && fullModeNeedsDataDir(_confProvider)) {
-        NodeModeChip.open(dataDir: true);
-      }
+      _dataDirWatch.start();
     });
   }
 
@@ -1192,6 +1191,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _walletReader.removeListener(_onProviderChanged);
     _bitnamesRPC.removeListener(_onProviderChanged);
     _confProvider.removeListener(_onNetworkChange);
+    _dataDirWatch.dispose();
     // dispose() must NOT shut the app down. It runs on any unmount — a rebuild
     // that replaces RootPage, an inline widget-error swap, a route change — and
     // tearing down the backend here is what turned a single component failure

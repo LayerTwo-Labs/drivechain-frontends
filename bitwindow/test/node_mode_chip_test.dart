@@ -306,4 +306,24 @@ void main() {
       await tester.pumpAndSettle();
     });
   }
+
+  test('a full mode that loads late still asks for its data directory once', () {
+    var opens = 0;
+    final watch = FullModeDataDirWatch(mode: nodeMode, conf: conf, open: () => opens++)..start();
+    addTearDown(watch.dispose);
+    expect(opens, 0, reason: 'light mode needs no directory');
+
+    nodeMode.mode = wmpb.NodeMode.NODE_MODE_FULL;
+    nodeMode.notifyListeners();
+    expect(opens, 1);
+
+    nodeMode.notifyListeners();
+    expect(opens, 1, reason: 'one prompt for one missing directory');
+
+    conf.dataDir = true;
+    conf.notifyListeners();
+    conf.dataDir = false;
+    conf.notifyListeners();
+    expect(opens, 2, reason: 'a directory that goes away asks again');
+  });
 }
