@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/shell/chain_events.dart';
 
 /// Build facts of one app, from its generated `lib/gen/version.dart`.
 class SidechainAppVersion {
@@ -59,6 +61,10 @@ abstract class SidechainModule {
 
   /// Registers the services that only the app of this chain runs, never BitWindow.
   Future<void> registerAppProviders(GetIt getIt, Logger log) async {}
+
+  /// Starts the watchers that report the events of this chain, other than deposits.
+  /// The returned function stops them.
+  VoidCallback watchChainEvents(GetIt getIt, void Function(ChainEvent event) notify) => () {};
 
   /// Runs after the first frame of the main window.
   void onFirstFrame() {}

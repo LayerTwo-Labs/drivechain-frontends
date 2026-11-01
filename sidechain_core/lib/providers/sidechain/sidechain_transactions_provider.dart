@@ -6,15 +6,19 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 class SidechainTransactionsProvider extends ChangeNotifier {
-  final SidechainRPC rpc = GetIt.I.get<SidechainRPC>();
+  final SidechainRPC rpc;
   Logger get log => GetIt.I.get<Logger>();
 
   List<CoreTransaction> sidechainTransactions = [];
   List<SidechainUTXO> utxos = [];
   bool initialized = false;
 
-  SidechainTransactionsProvider() {
-    rpc.addListener(fetch);
+  /// True once the node listed the UTXOs one time. [utxos] stays empty before that.
+  bool utxosLoaded = false;
+
+  /// [rpc] defaults to the sidechain RPC in GetIt.
+  SidechainTransactionsProvider({SidechainRPC? rpc}) : rpc = rpc ?? GetIt.I.get<SidechainRPC>() {
+    this.rpc.addListener(fetch);
     fetch();
   }
 
@@ -36,16 +40,19 @@ class SidechainTransactionsProvider extends ChangeNotifier {
       log.e('could not fetch sidechain transactions: $e');
     }
 
+    var newUTXOsLoaded = utxosLoaded;
     try {
       newUTXOs = await rpc.listUTXOs();
+      newUTXOsLoaded = true;
     } catch (e) {
       log.e('could not fetch UTXOs: $e');
     }
 
-    if (_dataHasChanged(newSidechainTransactions, newUTXOs, newInitialized)) {
+    if (_dataHasChanged(newSidechainTransactions, newUTXOs, newInitialized) || newUTXOsLoaded != utxosLoaded) {
       sidechainTransactions = newSidechainTransactions;
       utxos = newUTXOs;
       initialized = newInitialized;
+      utxosLoaded = newUTXOsLoaded;
       notifyListeners();
     }
 
