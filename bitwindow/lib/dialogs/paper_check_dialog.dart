@@ -459,7 +459,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                                   SailSelectableText(
                                     _txid!,
                                     style: TextStyle(
-                                      fontFamily: 'IBMPlexMono',
+                                      fontFamily: SailFonts.mono,
                                       fontSize: 11,
                                       color: theme.colors.text,
                                     ),
@@ -680,7 +680,7 @@ class _RecipientPanel extends StatelessWidget {
           SailSelectableText(
             keypair.publicAddress,
             style: TextStyle(
-              fontFamily: 'IBMPlexMono',
+              fontFamily: SailFonts.mono,
               fontSize: 11,
               color: theme.colors.text,
             ),
@@ -794,7 +794,7 @@ class _RedemptionPanel extends StatelessWidget {
             SailSelectableText(
               keypair.privateKeyWIF,
               style: TextStyle(
-                fontFamily: 'IBMPlexMono',
+                fontFamily: SailFonts.mono,
                 fontSize: 11,
                 color: theme.colors.text,
               ),

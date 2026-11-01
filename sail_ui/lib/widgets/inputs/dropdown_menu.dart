@@ -273,7 +273,7 @@ class SailDropdownItem<T> extends StatelessWidget {
               displayLabel,
               style: SailStyleValues.thirteen.copyWith(
                 color: SailTheme.of(context).colors.text,
-                fontFamily: SailTheme.of(context).chrome.fontFamily ?? (monospace ? 'IBMPlexMono' : 'Inter'),
+                fontFamily: SailTheme.of(context).chrome.fontFamily ?? (monospace ? SailFonts.mono : SailFonts.inter),
               ),
             ),
       ),

@@ -82,7 +82,7 @@ final SailThemeBundle _ecashBundle = SailThemeBundle(
     radiusSmall: const BorderRadius.all(Radius.circular(3)),
     radiusLarge: const BorderRadius.all(Radius.circular(8)),
     bevel: null,
-    fontFamily: 'IBMPlexMono',
+    fontFamily: SailFonts.mono,
     buttonsRaised: false,
     fieldsSunken: false,
     panel: ecashPanel,

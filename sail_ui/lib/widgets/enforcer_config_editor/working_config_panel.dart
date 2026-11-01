@@ -94,7 +94,7 @@ class _EnforcerWorkingConfigPanelContentState extends State<_EnforcerWorkingConf
                       expands: true,
                       textAlignVertical: TextAlignVertical.top,
                       style: TextStyle(
-                        fontFamily: 'IBMPlexMono',
+                        fontFamily: SailFonts.mono,
                         fontSize: 12,
                         color: theme.colors.text,
                         height: 1.4,
@@ -106,7 +106,7 @@ class _EnforcerWorkingConfigPanelContentState extends State<_EnforcerWorkingConf
                         contentPadding: EdgeInsets.zero,
                         hintText: 'Edit your Enforcer configuration here...',
                         hintStyle: TextStyle(
-                          fontFamily: 'IBMPlexMono',
+                          fontFamily: SailFonts.mono,
                           fontSize: 12,
                           color: theme.colors.textTertiary,
                           height: 1.4,

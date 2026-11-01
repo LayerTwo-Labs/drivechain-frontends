@@ -72,7 +72,6 @@ flutter:
 
   assets:
     - assets/bin/
-    - assets/thunder.png
     # Source files for code search
     - lib/
     - packages/sail_ui/shell/run_sidechain_app.dart
@@ -81,54 +80,6 @@ flutter:
     - packages/sail_ui/shell/sidechain_home_page.dart
     - packages/sail_ui/shell/sidechain_homepage.dart
     - packages/sail_ui/shell/sidechain_settings_page.dart
-
-  fonts:
-    - family: Inter
-      fonts:
-        - asset: ./assets/fonts/Inter-ExtraLight.ttf
-          weight: 200
-        - asset: ./assets/fonts/Inter-Light.ttf
-          weight: 300
-        - asset: ./assets/fonts/Inter-Regular.ttf
-          weight: 400
-        - asset: ./assets/fonts/Inter-Medium.ttf
-          weight: 500
-        - asset: ./assets/fonts/Inter-Bold.ttf
-          weight: 600
-        - asset: ./assets/fonts/Inter-Black.ttf
-          weight: 700
-
-    - family: IBMPlexMono
-      fonts:
-        - asset: ./assets/fonts/IBMPlexMono-ExtraLight.ttf
-          weight: 200
-        - asset: ./assets/fonts/IBMPlexMono-Light.ttf
-          weight: 300
-        - asset: ./assets/fonts/IBMPlexMono-Regular.ttf
-          weight: 400
-        - asset: ./assets/fonts/IBMPlexMono-Medium.ttf
-          weight: 500
-        - asset: ./assets/fonts/IBMPlexMono-Bold.ttf
-          weight: 600
-
-        - asset: ./assets/fonts/IBMPlexMono-ExtraLightItalic.ttf
-          style: italic
-          weight: 200
-        - asset: ./assets/fonts/IBMPlexMono-LightItalic.ttf
-          style: italic
-          weight: 300
-        - asset: ./assets/fonts/IBMPlexMono-Italic.ttf
-          style: italic
-          weight: 400
-        - asset: ./assets/fonts/IBMPlexMono-MediumItalic.ttf
-          style: italic
-          weight: 500
-        - asset: ./assets/fonts/IBMPlexMono-BoldItalic.ttf
-          style: italic
-          weight: 600
-        - asset: ./assets/fonts/IBMPlexMono-BoldItalic.ttf
-          style: italic
-          weight: 600
 
 # Windows release stuff.
 # CI has a certificate.pfx we use to sign the build with

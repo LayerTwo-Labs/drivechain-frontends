@@ -79,7 +79,7 @@ class EnforcerActualConfigPanel extends ViewModelWidget<EnforcerConfigEditorView
       child: Text(
         line.content,
         style: TextStyle(
-          fontFamily: 'IBMPlexMono',
+          fontFamily: SailFonts.mono,
           fontSize: 12,
           color: textColor,
           height: 1.4,

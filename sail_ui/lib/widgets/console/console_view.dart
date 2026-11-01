@@ -434,7 +434,7 @@ class _ConsoleViewState extends State<ConsoleView> {
                   focusNode: _inputFocus,
                   style: TextStyle(
                     color: theme.colors.text,
-                    fontFamily: 'IBMPlexMono',
+                    fontFamily: SailFonts.mono,
                   ),
                   decoration: InputDecoration(
                     prefixIcon: Container(
@@ -607,7 +607,7 @@ class ConsoleEntryWidget extends StatelessWidget {
               entry.content,
               style: TextStyle(
                 color: getColor(),
-                fontFamily: 'IBMPlexMono',
+                fontFamily: SailFonts.mono,
                 fontSize: 13,
               ),
             ),

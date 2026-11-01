@@ -362,7 +362,7 @@ class _TreeTab extends StatelessWidget {
                         SailSelectableText(
                           tree!.last.first,
                           style: TextStyle(
-                            fontFamily: 'IBMPlexMono',
+                            fontFamily: SailFonts.mono,
                             fontSize: 13,
                             color: theme.colors.success,
                             fontWeight: FontWeight.bold,
@@ -415,7 +415,7 @@ class _TreeTab extends StatelessWidget {
                                 SailSelectableText(
                                   expectedRoot!,
                                   style: TextStyle(
-                                    fontFamily: 'IBMPlexMono',
+                                    fontFamily: SailFonts.mono,
                                     fontSize: 12,
                                     color: theme.colors.text,
                                   ),
@@ -426,7 +426,7 @@ class _TreeTab extends StatelessWidget {
                                 SailSelectableText(
                                   calculatedRoot,
                                   style: TextStyle(
-                                    fontFamily: 'IBMPlexMono',
+                                    fontFamily: SailFonts.mono,
                                     fontSize: 12,
                                     color: theme.colors.text,
                                   ),
@@ -452,7 +452,7 @@ class _TreeTab extends StatelessWidget {
                       child: SailSelectableText(
                         formattedText ?? '',
                         style: TextStyle(
-                          fontFamily: 'IBMPlexMono',
+                          fontFamily: SailFonts.mono,
                           fontSize: 11,
                           color: theme.colors.text,
                           height: 1.5,
@@ -521,7 +521,7 @@ class _HelpTab extends StatelessWidget {
               'Use the Hash Calculator to check that the Sha256D hash of the first two TxIDs '
               'is the value one level above it. And so on ad infinitum.',
               style: TextStyle(
-                fontFamily: 'IBMPlexMono',
+                fontFamily: SailFonts.mono,
                 fontSize: 13,
                 color: theme.colors.textSecondary,
                 height: 1.5,
@@ -544,7 +544,7 @@ class _HelpTab extends StatelessWidget {
               '"flip hex" button and do the same to the second TxID. Concatenate the reversed hashes and then '
               'paste that into the Sha256D section of the hash calculator to calculate one hash for the next level of the tree.',
               style: TextStyle(
-                fontFamily: 'IBMPlexMono',
+                fontFamily: SailFonts.mono,
                 fontSize: 13,
                 color: theme.colors.textSecondary,
                 height: 1.5,
@@ -559,7 +559,7 @@ class _HelpTab extends StatelessWidget {
               '• https://www.investopedia.com/terms/m/merkle-tree.asp\n'
               '• https://www.geeksforgeeks.org/introduction-to-merkle-tree/',
               style: TextStyle(
-                fontFamily: 'IBMPlexMono',
+                fontFamily: SailFonts.mono,
                 fontSize: 13,
                 color: theme.colors.textSecondary,
                 height: 1.5,

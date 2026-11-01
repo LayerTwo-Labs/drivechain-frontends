@@ -535,7 +535,7 @@ class _BackupSuccessScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     color: theme.colors.textSecondary,
-                    fontFamily: 'IBMPlexMono',
+                    fontFamily: SailFonts.mono,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1407,7 +1407,7 @@ class _RestoreProgressCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.colors.textSecondary,
-                          fontFamily: 'IBMPlexMono',
+                          fontFamily: SailFonts.mono,
                         ),
                       ),
                     ],

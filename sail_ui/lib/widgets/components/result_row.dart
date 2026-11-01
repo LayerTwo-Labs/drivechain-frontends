@@ -54,7 +54,7 @@ class ResultRow extends StatelessWidget {
                   child: SelectableText(
                     value,
                     style: TextStyle(
-                      fontFamily: monospace ? 'IBMPlexMono' : 'Inter',
+                      fontFamily: monospace ? SailFonts.mono : SailFonts.inter,
                       fontSize: 13,
                       color: color ?? theme.colors.text,
                     ),

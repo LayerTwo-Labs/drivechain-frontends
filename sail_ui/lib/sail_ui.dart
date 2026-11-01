@@ -51,6 +51,7 @@ export 'pages/settings_info.dart';
 export 'pages/settings_reset.dart';
 export 'widgets/buttons/reset_button.dart';
 export 'style/color.dart';
+export 'style/fonts.dart';
 export 'style/shadows.dart';
 export 'style/style.dart';
 export 'style/style_values.dart';
