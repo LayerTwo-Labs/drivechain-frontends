@@ -12,6 +12,10 @@ class WalletDropdown extends StatelessWidget {
   /// Wallets that hold something the user still has to act on.
   final Set<String> walletsNeedingAttention;
 
+  /// Replaces the menu while no wallet exists, and reads "No wallet". Null
+  /// keeps "Create new wallet".
+  final ({VoidCallback onGenerate, VoidCallback onImportDescriptor})? noWalletActions;
+
   const WalletDropdown({
     super.key,
     required this.currentWallet,
@@ -20,11 +24,13 @@ class WalletDropdown extends StatelessWidget {
     required this.onCreateWallet,
     this.onEditWallet,
     this.walletsNeedingAttention = const {},
+    this.noWalletActions,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final empty = availableWallets.isEmpty ? noWalletActions : null;
 
     return SizedBox(
       width: 200,
@@ -33,6 +39,8 @@ class WalletDropdown extends StatelessWidget {
           'wallet_dropdown_${currentWallet?.id}_${currentWallet?.gradient.backgroundSvg}',
         ),
         value: currentWallet?.id,
+        hint: empty == null ? null : 'No wallet',
+        neutralHint: empty != null,
         hideCurrentlySelectedFromList: true,
         items: availableWallets
             .map(
@@ -101,26 +109,43 @@ class WalletDropdown extends StatelessWidget {
                 ],
               ),
             ),
-          SailMenuItem(
-            onSelected: () async {
-              onCreateWallet();
-            },
-            child: Row(
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.colors.border, width: 2),
-                  ),
-                  child: Icon(Icons.add, size: 14, color: theme.colors.text),
-                ),
-                const SizedBox(width: 12),
-                SailText.primary13('Create new wallet'),
-              ],
+          if (empty == null)
+            _MenuAction(icon: Icons.add, label: 'Create new wallet', onSelected: onCreateWallet)
+          else ...[
+            _MenuAction(icon: Icons.add, label: 'Generate wallet', onSelected: empty.onGenerate),
+            _MenuAction(icon: Icons.download, label: 'Import descriptor', onSelected: empty.onImportDescriptor),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onSelected;
+
+  const _MenuAction({required this.icon, required this.label, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    return SailMenuItem(
+      onSelected: () async => onSelected(),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: theme.colors.border, width: 2),
             ),
+            child: Icon(icon, size: 14, color: theme.colors.text),
           ),
+          const SizedBox(width: 12),
+          SailText.primary13(label),
         ],
       ),
     );

@@ -87,7 +87,10 @@ class _Store implements KeyValueStore {
   }
 }
 
-class _Wallet implements WalletReaderProvider {
+class _Wallet extends ChangeNotifier implements WalletReaderProvider {
+  @override
+  bool get hasNoWallet => false;
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

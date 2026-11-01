@@ -103,21 +103,7 @@ class BottomNav extends StatelessWidget {
           trailingSpacing: true,
           children: [
             const SailSpacing(SailStyleValues.padding04),
-            ViewModelBuilder.reactive(
-              viewModelBuilder: () => BalanceDisplayViewModel(),
-              builder: (context, model, child) {
-                return BalanceDisplay(
-                  balance: model.balance,
-                  pendingBalance: model.pendingBalance,
-                  maturingBalance: model.maturingBalance,
-                  balanceSyncing: model.balanceSyncing,
-                  showUnconfirmed: model.showUnconfirmed,
-                  onToggleUnconfirmed: model.toggleUnconfirmed,
-                  usdBalance: model.usdBalance,
-                );
-              },
-            ),
-            const _BalanceRefreshButton(),
+            const BottomNavBalance(),
             if (balanceEndWidgets.isNotEmpty) ...[
               const SailSpacing(SailStyleValues.padding08),
               ...balanceEndWidgets,
@@ -375,6 +361,39 @@ class BottomNav extends StatelessWidget {
           );
         }),
       ),
+    );
+  }
+}
+
+/// The wallet balance in the bottom bar, or "No wallet" while none exists.
+class BottomNavBalance extends StatelessWidget {
+  const BottomNavBalance({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => BalanceDisplayViewModel(),
+      builder: (context, model, child) {
+        if (model.noWallet) {
+          return SailText.secondary12('No wallet');
+        }
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BalanceDisplay(
+              balance: model.balance,
+              pendingBalance: model.pendingBalance,
+              maturingBalance: model.maturingBalance,
+              balanceSyncing: model.balanceSyncing,
+              showUnconfirmed: model.showUnconfirmed,
+              onToggleUnconfirmed: model.toggleUnconfirmed,
+              usdBalance: model.usdBalance,
+            ),
+            const SailSpacing(SailStyleValues.padding04),
+            const _BalanceRefreshButton(),
+          ],
+        );
+      },
     );
   }
 }
@@ -891,13 +910,19 @@ class BalanceDisplay extends StatelessWidget {
 class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   PriceProvider get _priceProvider => GetIt.I.get<PriceProvider>();
+  WalletReaderProvider? get _walletReader =>
+      GetIt.I.isRegistered<WalletReaderProvider>() ? GetIt.I.get<WalletReaderProvider>() : null;
   bool _showUnconfirmed = false;
 
   BalanceDisplayViewModel() {
     initChangeTracker();
     _balanceProvider.addListener(_onChange);
     _priceProvider.addListener(_onChange);
+    _walletReader?.addListener(_onChange);
   }
+
+  /// True when the backend reports no wallet, so no balance can arrive.
+  bool get noWallet => _walletReader?.hasNoWallet ?? false;
 
   void _onChange() {
     track('balance', balance);
@@ -906,6 +931,7 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('maturingBalance', maturingBalance);
     track('balanceSyncing', balanceSyncing);
     track('showUnconfirmed', showUnconfirmed);
+    track('noWallet', noWallet);
     notifyIfChanged();
   }
 
@@ -925,6 +951,7 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   void dispose() {
     _balanceProvider.removeListener(_onChange);
     _priceProvider.removeListener(_onChange);
+    _walletReader?.removeListener(_onChange);
     super.dispose();
   }
 }

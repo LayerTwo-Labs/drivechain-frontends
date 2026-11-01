@@ -8,6 +8,7 @@ import 'package:bitwindow/utils/ur_key.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/hardware_device_picker.dart';
 import 'package:bitwindow/widgets/key_qr_scanner.dart';
+import 'package:bitwindow/widgets/setup_action_button.dart';
 import 'package:bitwindow/widgets/ur_qr_scanner.dart' show urCameraScanSupported;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
@@ -73,20 +74,7 @@ class MultisigWalletSpec {
     required this.changeDescriptor,
   });
 
-  List<wmpb.MultisigCosignerInput> toCosignerInputs() {
-    return cosigners
-        .map(
-          (c) => wmpb.MultisigCosignerInput(
-            xpub: c.xpub,
-            originPath: c.originPath ?? '',
-            fingerprint: c.fingerprint ?? '',
-            mnemonic: c.mnemonic ?? '',
-            passphrase: c.passphrase ?? '',
-            hardwareDeviceType: c.hardwareDeviceType ?? '',
-          ),
-        )
-        .toList();
-  }
+  List<wmpb.MultisigCosignerInput> toCosignerInputs() => cosignerInputs(cosigners);
 
   /// The Coldcard multisig setup file, imported on the device once before
   /// spending. Null for taproot multisig, which has no Coldcard format.
@@ -126,6 +114,63 @@ class MultisigWalletSpec {
     }
     return b.toString();
   }
+}
+
+/// The backend inputs for [cosigners], seeds included for the held ones.
+List<wmpb.MultisigCosignerInput> cosignerInputs(List<CosignerKeystore> cosigners) {
+  return cosigners
+      .map(
+        (c) => wmpb.MultisigCosignerInput(
+          xpub: c.xpub,
+          originPath: c.originPath ?? '',
+          fingerprint: c.fingerprint ?? '',
+          mnemonic: c.mnemonic ?? '',
+          passphrase: c.passphrase ?? '',
+          hardwareDeviceType: c.hardwareDeviceType ?? '',
+        ),
+      )
+      .toList();
+}
+
+/// Maps a single-sig descriptor script type to the backend's hot-wallet string.
+String hotScriptType(String scriptType) => switch (scriptType) {
+  'pkh' => 'legacy',
+  'sh-wpkh' => 'nested-segwit',
+  'tr' => 'taproot',
+  _ => 'native-segwit',
+};
+
+/// The watch-only keystores a validated descriptor names. A key in [previous]
+/// with the same xpub is kept as it is.
+List<CosignerKeystore> keystoresFromPolicy(
+  wmpb.ValidateDescriptorResponse policy, {
+  List<CosignerKeystore> previous = const [],
+}) {
+  return policy.keys.asMap().entries.map((e) {
+    final kept = previous.where((k) => k.xpub == e.value.xpub);
+    if (kept.isNotEmpty) {
+      return kept.first;
+    }
+    return CosignerKeystore(owner: 'Key ${e.key + 1}')
+      ..xpub = e.value.xpub
+      ..fingerprint = e.value.fingerprint.isEmpty ? null : e.value.fingerprint
+      ..originPath = e.value.originPath.isEmpty ? null : e.value.originPath
+      ..derivationPath = e.value.originPath.isEmpty ? '' : 'm/${e.value.originPath}'
+      ..source = CosignerSource.xpub;
+  }).toList();
+}
+
+/// The watch-only keystores a parsed multisig config file names.
+List<CosignerKeystore> keystoresFromConfig(wmpb.ParseMultisigConfigResponse config) {
+  return config.cosigners.asMap().entries.map((e) {
+    final c = e.value;
+    return CosignerKeystore(owner: 'Key ${e.key + 1}')
+      ..xpub = c.xpub
+      ..fingerprint = c.fingerprint.isEmpty ? null : c.fingerprint
+      ..originPath = c.originPath.isEmpty ? null : c.originPath
+      ..derivationPath = c.originPath.isEmpty ? '' : 'm/${c.originPath}'
+      ..source = CosignerSource.xpub;
+  }).toList();
 }
 
 bool isPlausibleXpub(String input) {
@@ -467,19 +512,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       _scriptType = policy.scriptType;
       _threshold = policy.m;
       _total = policy.n;
-      final previous = List.of(_keystores);
-      _keystores = policy.keys.asMap().entries.map((e) {
-        final kept = previous.where((k) => k.xpub == e.value.xpub);
-        if (kept.isNotEmpty) {
-          return kept.first;
-        }
-        return CosignerKeystore(owner: 'Key ${e.key + 1}')
-          ..xpub = e.value.xpub
-          ..fingerprint = e.value.fingerprint.isEmpty ? null : e.value.fingerprint
-          ..originPath = e.value.originPath.isEmpty ? null : e.value.originPath
-          ..derivationPath = e.value.originPath.isEmpty ? '' : 'm/${e.value.originPath}'
-          ..source = CosignerSource.xpub;
-      }).toList();
+      _keystores = keystoresFromPolicy(policy, previous: List.of(_keystores));
       if (_selectedTab >= _total) {
         _selectedTab = _total - 1;
       }
@@ -630,13 +663,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     }
   }
 
-  // Maps the single-sig script dropdown value to the backend's hot-wallet string.
-  String _singleHotScriptType() => switch (_scriptType) {
-    'pkh' => 'legacy',
-    'sh-wpkh' => 'nested-segwit',
-    'tr' => 'taproot',
-    _ => 'native-segwit',
-  };
+  String _singleHotScriptType() => hotScriptType(_scriptType);
 
   void _setKeystore(int index, CosignerKeystore k) {
     _update(() {
@@ -1029,15 +1056,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         if (resp.scriptType.isNotEmpty) {
           _scriptType = resp.scriptType;
         }
-        _keystores = resp.cosigners.asMap().entries.map((e) {
-          final c = e.value;
-          return CosignerKeystore(owner: 'Key ${e.key + 1}')
-            ..xpub = c.xpub
-            ..fingerprint = c.fingerprint.isEmpty ? null : c.fingerprint
-            ..originPath = c.originPath.isEmpty ? null : c.originPath
-            ..derivationPath = c.originPath.isEmpty ? '' : 'm/${c.originPath}'
-            ..source = CosignerSource.xpub;
-        }).toList();
+        _keystores = keystoresFromConfig(resp);
         if (_selectedTab >= _total) {
           _selectedTab = _total - 1;
         }
@@ -1383,65 +1402,6 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     return theme.colors.orange;
   }
 
-  // The one call to action on an empty wallet, so it is deliberately oversized
-  // and carries a lit edge rather than reading as another secondary button.
-  Widget _generateKeyButton(BuildContext context, int index) {
-    final theme = SailTheme.of(context);
-    final enabled = _pathError == null && !_restoringBackup;
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: SailTappable(
-        onTap: enabled ? () async => _addSoftwareKeystore(context, index) : null,
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 18),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [theme.colors.orange, theme.colors.orange.withValues(alpha: 0.88)],
-            ),
-            border: Border.all(color: theme.colors.orange.withValues(alpha: 0.55)),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colors.orange.withValues(alpha: 0.35),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: SailText.primary16('Generate new seed', bold: true, color: SailColorScheme.white),
-        ),
-      ),
-    );
-  }
-
-  // Equal weight to generating: a user who already has a seed has nowhere else
-  // to put it, and the ghost row below reads as fine print.
-  Widget _pasteSeedButton(BuildContext context, int index) {
-    final theme = SailTheme.of(context);
-    final enabled = _pathError == null && !_restoringBackup;
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: SailTappable(
-        onTap: enabled ? () async => _addSoftwareKeystore(context, index, mode: SeedEntryMode.importExisting) : null,
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 18),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: theme.colors.backgroundSecondary,
-            border: Border.all(color: theme.colors.border),
-          ),
-          child: SailText.primary16('Paste seed phrase', bold: true),
-        ),
-      ),
-    );
-  }
-
   Widget _sourcePicker(BuildContext context, int index) {
     final theme = SailTheme.of(context);
     final links = <(String, bool, Future<void> Function())>[
@@ -1460,8 +1420,19 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
           spacing: 16,
           runSpacing: 12,
           children: [
-            _generateKeyButton(context, index),
-            _pasteSeedButton(context, index),
+            SetupActionButton(
+              label: 'Generate new seed',
+              primary: true,
+              enabled: _pathError == null && !_restoringBackup,
+              onPressed: () async => _addSoftwareKeystore(context, index),
+            ),
+            // Equal weight to generating: a user who already has a seed has
+            // nowhere else to put it.
+            SetupActionButton(
+              label: 'Paste seed phrase',
+              enabled: _pathError == null && !_restoringBackup,
+              onPressed: () async => _addSoftwareKeystore(context, index, mode: SeedEntryMode.importExisting),
+            ),
           ],
         ),
         const SizedBox(height: 28),

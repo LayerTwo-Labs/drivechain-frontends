@@ -16,6 +16,10 @@ class SailDropdownButton<T> extends StatefulWidget {
   // trailing chevron, matching that button style exactly.
   final ButtonVariant? variant;
 
+  /// Shows the [hint] as a placeholder in the secondary text color, with no
+  /// primary fill behind it.
+  final bool neutralHint;
+
   const SailDropdownButton({
     required this.items,
     required this.onChanged,
@@ -28,6 +32,7 @@ class SailDropdownButton<T> extends StatefulWidget {
     this.menuChildren,
     this.hideCurrentlySelectedFromList = false,
     this.variant,
+    this.neutralHint = false,
     super.key,
   });
 
@@ -76,6 +81,10 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
         )
         .toList();
 
+    final hintColor = widget.neutralHint
+        ? theme.colors.textSecondary
+        : (terminal ? theme.colors.textHint : Colors.white);
+    final primaryFill = widget.value == null && !widget.neutralHint;
     Widget currentDisplay;
     if (widget.value != null) {
       var currentIndex = widget.items.indexWhere(
@@ -84,14 +93,10 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       if (currentIndex >= 0) {
         currentDisplay = widget.items[currentIndex].trigger;
       } else {
-        currentDisplay = widget.hint != null
-            ? SailText.primary12(widget.hint!, color: terminal ? theme.colors.textHint : Colors.white)
-            : const SizedBox();
+        currentDisplay = widget.hint != null ? SailText.primary12(widget.hint!, color: hintColor) : const SizedBox();
       }
     } else {
-      currentDisplay = widget.hint != null
-          ? SailText.primary12(widget.hint!, color: terminal ? theme.colors.textHint : Colors.white)
-          : const SizedBox();
+      currentDisplay = widget.hint != null ? SailText.primary12(widget.hint!, color: hintColor) : const SizedBox();
     }
 
     void toggleMenu() {
@@ -124,9 +129,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
                 width: 1,
               ),
               borderRadius: terminal ? theme.chrome.radiusSmall : theme.chrome.radius,
-              color: terminal
-                  ? theme.colors.background
-                  : (widget.value == null ? theme.colors.primary : Colors.transparent),
+              color: terminal ? theme.colors.background : (primaryFill ? theme.colors.primary : Colors.transparent),
             ),
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -142,7 +145,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
                     _open ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
                     color: terminal
                         ? (_open ? theme.colors.primary : theme.colors.text)
-                        : (widget.value == null ? Colors.white : theme.colors.text),
+                        : (primaryFill ? Colors.white : theme.colors.text),
                     width: 13,
                   ),
                 ],

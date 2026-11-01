@@ -36,6 +36,12 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   /// with an empty `wallets` list.
   bool hasWalletOnDisk = false;
 
+  /// True once the backend reported the wallet state.
+  bool walletStateKnown = false;
+
+  /// True when the backend reports no wallet on disk.
+  bool get hasNoWallet => walletStateKnown && !hasWalletOnDisk;
+
   WalletData? get activeWallet => wallets.where((w) => w.id == activeWalletId).firstOrNull;
 
   /// The wallet whose seed derives the L1 and sidechain starters. Each wallet
@@ -124,6 +130,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     activeWalletId = effectiveActiveId;
 
     final previousHasWallet = hasWalletOnDisk;
+    walletStateKnown = true;
     hasWalletOnDisk = state != wmpb.WalletState.WALLET_STATE_NO_WALLET;
     if (previousHasWallet != hasWalletOnDisk) {
       _logger.i(
@@ -267,9 +274,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     // Stream may have delivered while we awaited — let it win.
     final list = results[0] as dynamic;
     final status = results[1] as dynamic;
-    if (list.wallets.isEmpty) {
-      return false;
-    }
     _applyState(
       protoWallets: list.wallets,
       newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,

@@ -42,11 +42,15 @@ void registerNodeMode() {
 }
 
 /// Reads the saved mode and returns what this install boots. A read that never
-/// reaches the orchestrator leaves the mode unset, which boots nothing.
-Future<BackendBoot> readBackendBoot({required bool orchestratorReady}) async {
+/// reaches the orchestrator leaves the mode unset, which boots nothing. A
+/// non-null [hasWallet] records the first boot mode when no mode is recorded.
+Future<BackendBoot> readBackendBoot({required bool orchestratorReady, Future<bool> Function()? hasWallet}) async {
   final mode = GetIt.I.get<NodeModeProvider>();
   if (orchestratorReady) {
     await mode.load();
+    if (hasWallet != null && mode.loaded && mode.needsChoice) {
+      await mode.recordFirstBootMode(hasWallet: await hasWallet());
+    }
   }
   if (mode.needsChoice) {
     return BackendBoot.awaitChoice;

@@ -76,12 +76,28 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
     }
   }
 
-  /// Records the mode and starts its enforcer when necessary.
-  Future<void> select(wmpb.NodeMode next) async {
+  /// Records light mode on a first boot, or full mode where light is not
+  /// served. An install with a wallet and no recorded mode predates the
+  /// modes, so it ran full. Starts nothing.
+  Future<void> recordFirstBootMode({required bool hasWallet}) async {
+    if (!loaded || !needsChoice) {
+      return;
+    }
+    await _record(
+      forcedMode ?? (lightModeAvailable && !hasWallet ? wmpb.NodeMode.NODE_MODE_LIGHT : wmpb.NodeMode.NODE_MODE_FULL),
+    );
+  }
+
+  Future<void> _record(wmpb.NodeMode next) async {
     await _client.setNodeMode(next);
     mode = next;
     loaded = true;
     notifyListeners();
+  }
+
+  /// Records the mode and starts its enforcer when necessary.
+  Future<void> select(wmpb.NodeMode next) async {
+    await _record(next);
 
     if (!usesEnforcer) {
       return;

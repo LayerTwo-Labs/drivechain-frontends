@@ -512,6 +512,27 @@ func walletStatus(t *testing.T, cookieDir string) (hasWallet bool, activeID stri
 	return resp.HasWallet, resp.ActiveWalletID
 }
 
+// overviewOpenedLine is what the frontend logs when its first screen is Overview.
+const overviewOpenedLine = "STARTUP: root page opened on OverviewRoute"
+
+// nodeMode returns the node mode drivechaind reports, such as NODE_MODE_LIGHT.
+func nodeMode(t *testing.T, cookieDir string) string {
+	t.Helper()
+	raw, err := connectCall(drivechaindPort,
+		"walletmanager.v1.WalletManagerService/GetNodeMode",
+		map[string]any{}, cookieDir)
+	if err != nil {
+		t.Fatalf("GetNodeMode: %v", err)
+	}
+	var resp struct {
+		Mode string `json:"mode"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		t.Fatalf("unmarshal GetNodeMode: %v (body: %s)", err, string(raw))
+	}
+	return resp.Mode
+}
+
 // listWalletIDs returns the wallet_ids stored on drivechaind. Pure state,
 // doesn't depend on bitcoind.
 func listWalletIDs(t *testing.T, cookieDir string) []string {

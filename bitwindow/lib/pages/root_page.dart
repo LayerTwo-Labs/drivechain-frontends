@@ -24,6 +24,8 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
+import 'package:bitwindow/widgets/import_descriptor_dialog.dart';
+import 'package:bitwindow/widgets/no_wallet_card.dart';
 import 'package:bitwindow/widgets/datadir_network_notice.dart';
 import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:bitwindow/widgets/edit_wallet_flow.dart';
@@ -75,6 +77,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   bool _isWalletEncrypted = false;
   List<PlatformMenuItem>? _cachedMenuList;
   bool? _cachedMenuListEncrypted;
+  bool? _cachedMenuListHasWallet;
   DateTime? _lastShiftPress;
   final CodeSearchService _codeSearchService = CodeSearchService();
 
@@ -114,6 +117,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _checkEncryptionStatus();
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
     _codeSearchService.loadFiles();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final tab = _routerKey.currentState?.controller?.current.name;
+      GetIt.I.get<Logger>().i('STARTUP: root page opened on $tab');
+    });
   }
 
   void _onNetworkChange() {
@@ -439,9 +446,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     // pushes the menus to the native NSMenu on every fresh list — that close
     // animation is what users see as "toolbar resets every 5s" (the
     // 5s BlockchainProvider tick triggers a RootPage rebuild via
-    // _onProviderChanged). The list only varies on encryption status.
-    if (_cachedMenuListEncrypted != _isWalletEncrypted) {
+    // _onProviderChanged). The list only varies on the wallet state.
+    final hasWallet = !_walletReader.hasNoWallet;
+    if (_cachedMenuListEncrypted != _isWalletEncrypted || _cachedMenuListHasWallet != hasWallet) {
       _cachedMenuListEncrypted = _isWalletEncrypted;
+      _cachedMenuListHasWallet = hasWallet;
       _cachedMenuList = null;
     }
 
@@ -565,7 +574,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 ),
                 PlatformMenuItemGroup(
                   members: [
-                    if (!_isWalletEncrypted)
+                    if (!_isWalletEncrypted && hasWallet)
                       PlatformMenuItem(
                         label: 'Encrypt Wallet',
                         onSelected: () {
@@ -1106,6 +1115,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                   await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
                                 },
                                 onEditWallet: (wallet) async => editWallet(context, wallet),
+                                noWalletActions: (
+                                  onGenerate: () => unawaited(openGenerateWallet(context)),
+                                  onImportDescriptor: () => unawaited(showImportDescriptorDialog(context)),
+                                ),
                               ),
                             ),
                       routes: [for (final t in _navTabs) t.nav],
