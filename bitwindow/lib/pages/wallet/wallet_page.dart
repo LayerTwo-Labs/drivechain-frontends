@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
@@ -21,10 +23,10 @@ import 'package:bitwindow/widgets/fork_mode_banner.dart';
 import 'package:bitwindow/widgets/no_wallet_card.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -306,21 +308,22 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
     });
 
     try {
-      final dio = Dio();
       final network = (GetIt.I.get<BitcoinConfProvider>().network).toReadableNet();
-      final response = await dio.post(
-        'https://node.$network.drivechain.info/api/faucet.v1.FaucetService/DispenseCoins',
-        data: {
+      final response = await http.post(
+        Uri.parse('https://node.$network.drivechain.info/api/faucet.v1.FaucetService/DispenseCoins'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
           'destination': _transactionProvider.address,
           'amount': 2.1,
-        },
-        options: Options(
-          headers: {'Content-Type': 'application/json'},
-        ),
+        }),
       );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw _FaucetHttpError(response.statusCode, response.body);
+      }
 
-      if (response.data != null && response.data['txid'] != null) {
-        final txid = response.data['txid'];
+      final data = jsonDecode(response.body);
+      if (data is Map && data['txid'] != null) {
+        final txid = data['txid'];
         if (!mounted) {
           return;
         }
@@ -337,17 +340,13 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
     } catch (error, stackTrace) {
       final log = GetIt.I.get<Logger>();
       String userMessage = error.toString();
-      if (error is DioException) {
+      if (error is _FaucetHttpError) {
         log.e(
-          'faucet claim failed: status=${error.response?.statusCode} '
-          'body=${error.response?.data} type=${error.type} message=${error.message}',
+          'faucet claim failed: status=${error.statusCode} body=${error.body}',
           error: error,
           stackTrace: stackTrace,
         );
-        final body = error.response?.data;
-        if (body is Map && body['message'] is String) {
-          userMessage = body['message'] as String;
-        }
+        userMessage = error.serverMessage ?? userMessage;
       } else {
         log.e('faucet claim failed', error: error, stackTrace: stackTrace);
       }
@@ -455,4 +454,23 @@ WalletTabLocation? walletTabIndexForLabel(List<TabItem> tabs, String label) {
     }
   }
   return null;
+}
+
+class _FaucetHttpError implements Exception {
+  _FaucetHttpError(this.statusCode, this.body);
+
+  final int statusCode;
+  final String body;
+
+  String? get serverMessage {
+    try {
+      final data = jsonDecode(body);
+      return data is Map && data['message'] is String ? data['message'] as String : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  @override
+  String toString() => 'HTTP $statusCode';
 }
