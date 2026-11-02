@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tyler-smith/go-bip32"
@@ -398,4 +400,36 @@ func TestGenerateFullWalletFailsOnBadStarterSlot(t *testing.T) {
 	wallet, err := GenerateFullWallet("Bad Slot", "", "", slots, WalletTypeBitcoinCore)
 	require.ErrorContains(t, err, "derive starter for slot -1")
 	assert.Nil(t, wallet)
+}
+
+// The BIP39 vectors and BIP32 master keys that the frontend test pinned.
+func TestMnemonicToSeedVectors(t *testing.T) {
+	for _, v := range []struct{ mnemonic, passphrase, seed, master string }{
+		{testMnemonic, "",
+			"5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4",
+			"1837c1be8e2995ec11cda2b066151be2cfb48adf9e47b151d46adab3a21cdf67"},
+		{"legal winner thank year wave sausage worth useful legal winner thank yellow", "",
+			"878386efb78845b3355bd15ea4d39ef97d179cb712b77d5c12b6be415fffeffe5f377ba02bf3f8544ab800b955e51fbff09828f682052a20faa6addbbddfb096",
+			"7e56ecf5943d79e1f5f87e11c768253d7f3fcf30ae71335611e366c578b4564e"},
+		{strings.Repeat("abandon ", 23) + "art", "",
+			"408b285c123836004f4b8842c89324c1f01382450c0d439af345ba7fc49acf705489c6fc77dbd4e3dc1dd8cc6bc9f043db8ada1e243c4a0eafb290d399480840",
+			"235b34cd7c9f6d7e4595ffe9ae4b1cb5606df8aca2b527d20a07c8f56b2342f4"},
+		{strings.Repeat("zoo ", 23) + "vote", "",
+			"e28a37058c7f5112ec9e16a3437cf363a2572d70b6ceb3b6965447623d620f14d06bb321a26b33ec15fcd84a3b5ddfd5520e230c924c87aaa0d559749e044fef",
+			"8472fc35dbe9f8ccf7ed306295e84902c0e606e576e5cb3f6c32d98537a21282"},
+		{testMnemonic, "TREZOR",
+			"c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04",
+			""},
+	} {
+		seed := MnemonicToSeed(v.mnemonic, v.passphrase)
+		assert.Equal(t, v.seed, hex.EncodeToString(seed), v.mnemonic)
+		if v.master == "" {
+			continue
+		}
+		master, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
+		require.NoError(t, err)
+		priv, err := master.ECPrivKey()
+		require.NoError(t, err)
+		assert.Equal(t, v.master, hex.EncodeToString(priv.Serialize()), v.mnemonic)
+	}
 }

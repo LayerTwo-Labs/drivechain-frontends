@@ -1162,6 +1162,24 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// ValidateMnemonic says whether a phrase is a BIP39 mnemonic, an Electrum seed, or neither.
+  Future<walletmanagerv1walletmanager.ValidateMnemonicResponse> validateMnemonic(
+    walletmanagerv1walletmanager.ValidateMnemonicRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.validateMnemonic,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
   /// show the words while the user is still choosing their entropy.
   Future<walletmanagerv1walletmanager.PreviewWalletFromEntropyResponse> previewWalletFromEntropy(

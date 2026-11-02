@@ -1,25 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:bip39_mnemonic/bip39_mnemonic.dart';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
 /// A seed the user has seen and typed back, with an optional BIP39 passphrase.
 class SeedBackup {
   final String mnemonic;
   final String passphrase;
   const SeedBackup(this.mnemonic, this.passphrase);
-}
-
-/// Whether a phrase is a seed of the Electrum app, whose words hash to a
-/// version prefix. A BIP39 wallet cannot restore it.
-bool _isElectrumSeed(String phrase) {
-  final version = Hmac(sha512, utf8.encode('Seed version')).convert(utf8.encode(phrase)).toString();
-  return const ['01', '100', '101', '102'].any(version.startsWith);
 }
 
 /// Where the seed comes from: minted here, or one the user already has.
@@ -39,7 +30,11 @@ class WalletBackupPage extends StatefulWidget {
   /// hands the seed back to the caller.
   final Future<void> Function(SeedBackup seed)? onCreate;
 
-  const WalletBackupPage({super.key, this.mode = SeedEntryMode.generate, this.onCreate});
+  const WalletBackupPage({
+    super.key,
+    this.mode = SeedEntryMode.generate,
+    this.onCreate,
+  });
 
   @override
   State<WalletBackupPage> createState() => _WalletBackupPageState();
@@ -58,6 +53,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   int _wordCount = 12;
   bool _wantPassphrase = false;
   bool _busy = false;
+  String? _checkedPhrase;
+  wmpb.MnemonicKind? _phraseKind;
+  // A failed check is retried after the next edit, not on every rebuild.
+  String? _failedPhrase;
+  String? _checkError;
   int _deriveId = 0;
 
   /// The id of the last derive that answered. The words match the field only
@@ -212,19 +212,56 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
 
   int get _importedCount => _importedWords.length;
 
-  /// Valid only when every box is filled and the words form a real BIP39
-  /// sentence — a typo in one word changes the wallet silently, so the
-  /// checksum is what the Create button waits for.
-  bool get _importValid {
+  /// The kind of the full phrase, or null while a box is empty or the
+  /// orchestrator has not answered yet. A typo in one word changes the wallet
+  /// silently, so the checksum is what the Create button waits for.
+  wmpb.MnemonicKind? get _importKind {
     if (_importedCount != _imported.length) {
-      return false;
+      return null;
     }
-    try {
-      Mnemonic.fromSentence(_importedWords.join(' '), Language.english);
-      return true;
-    } catch (_) {
-      return false;
+    final phrase = _importedWords.join(' ');
+    if (phrase == _failedPhrase) {
+      return null;
     }
+    if (phrase != _checkedPhrase) {
+      _checkPhrase(phrase);
+      return null;
+    }
+    return _phraseKind;
+  }
+
+  bool get _importValid => _importKind == wmpb.MnemonicKind.MNEMONIC_KIND_BIP39;
+
+  void _checkPhrase(String phrase) {
+    _checkedPhrase = phrase;
+    _phraseKind = null;
+    GetIt.I
+        .get<OrchestratorRPC>()
+        .wallet
+        .validateMnemonic(phrase)
+        .then(
+          (kind) {
+            if (mounted && _checkedPhrase == phrase) {
+              setState(() {
+                _phraseKind = kind;
+                if (_checkError != null && _error == _checkError) {
+                  _error = null;
+                }
+                _checkError = null;
+              });
+            }
+          },
+          onError: (Object e) {
+            if (mounted && _checkedPhrase == phrase) {
+              setState(() {
+                _checkedPhrase = null;
+                _failedPhrase = phrase;
+                _checkError = 'Could not check the phrase: ${extractConnectException(e)}';
+                _error = _checkError;
+              });
+            }
+          },
+        );
   }
 
   List<String> _split(String value) =>
@@ -244,6 +281,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   /// is the whole phrase however it arrived, so it fills the grid from the
   /// start and resizes it to fit; anything shorter fills forward from [index].
   void _spread(int index, String value) {
+    _failedPhrase = null;
     final words = _split(value);
     if (words.length < 2) {
       setState(() {});
@@ -537,7 +575,12 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
             children: [
               Row(
                 children: [
-                  Expanded(child: SailText.primary16('Mnemonic Words (BIP39)', bold: true)),
+                  Expanded(
+                    child: SailText.primary16(
+                      'Mnemonic Words (BIP39)',
+                      bold: true,
+                    ),
+                  ),
                   SizedBox(width: 210, child: _wordCountDropdown()),
                 ],
               ),
@@ -568,11 +611,17 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 ],
               ),
               const SizedBox(height: 6),
-              SailText.secondary12(count == 1 ? '1 character' : '$count characters'),
+              SailText.secondary12(
+                count == 1 ? '1 character' : '$count characters',
+              ),
               const SizedBox(height: 6),
               Row(
                 children: [
-                  SailSVG.icon(SailSVGAsset.iconInfo, width: 12, color: theme.colors.text),
+                  SailSVG.icon(
+                    SailSVGAsset.iconInfo,
+                    width: 12,
+                    color: theme.colors.text,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: SailText.primary12(
@@ -592,7 +641,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 children: [
                   Expanded(child: _progressBar(context)),
                   const SizedBox(width: 12),
-                  SailText.secondary12(_samples == 1 ? '1 sample' : '$_samples samples'),
+                  SailText.secondary12(
+                    _samples == 1 ? '1 sample' : '$_samples samples',
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -746,12 +797,14 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                             ],
                           )
                         : SailText.secondary13(
-                            !complete
-                                ? '$_importedCount of ${_imported.length} words entered'
-                                : _isElectrumSeed(_importedWords.join(' '))
-                                ? 'These words are an Electrum seed, not a BIP39 phrase — restore them in Electrum'
-                                : 'These words are not a valid BIP39 phrase — check for a typo',
-                            color: complete ? theme.colors.error : theme.colors.textSecondary,
+                            switch (_importKind) {
+                              _ when !complete => '$_importedCount of ${_imported.length} words entered',
+                              null => '$_importedCount of ${_imported.length} words entered',
+                              wmpb.MnemonicKind.MNEMONIC_KIND_ELECTRUM =>
+                                'These words are an Electrum seed, not a BIP39 phrase — restore them in Electrum',
+                              _ => 'These words are not a valid BIP39 phrase — check for a typo',
+                            },
+                            color: complete && _importKind != null ? theme.colors.error : theme.colors.textSecondary,
                           ),
                   ),
                   const SizedBox(width: 12),
@@ -873,7 +926,11 @@ class _EntropyController extends TextEditingController {
   String osEntropy = '';
 
   @override
-  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
     final colors = SailTheme.of(context).colors;
     final os = osEntropy.isNotEmpty && text.startsWith(osEntropy) ? osEntropy : '';
     return TextSpan(

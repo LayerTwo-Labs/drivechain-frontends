@@ -106,6 +106,25 @@ class AddressType extends $pb.ProtobufEnum {
   const AddressType._($core.int v, $core.String n) : super(v, n);
 }
 
+class MnemonicKind extends $pb.ProtobufEnum {
+  static const MnemonicKind MNEMONIC_KIND_UNSPECIFIED = MnemonicKind._(0, _omitEnumNames ? '' : 'MNEMONIC_KIND_UNSPECIFIED');
+  static const MnemonicKind MNEMONIC_KIND_BIP39 = MnemonicKind._(1, _omitEnumNames ? '' : 'MNEMONIC_KIND_BIP39');
+  static const MnemonicKind MNEMONIC_KIND_ELECTRUM = MnemonicKind._(2, _omitEnumNames ? '' : 'MNEMONIC_KIND_ELECTRUM');
+  static const MnemonicKind MNEMONIC_KIND_INVALID = MnemonicKind._(3, _omitEnumNames ? '' : 'MNEMONIC_KIND_INVALID');
+
+  static const $core.List<MnemonicKind> values = <MnemonicKind> [
+    MNEMONIC_KIND_UNSPECIFIED,
+    MNEMONIC_KIND_BIP39,
+    MNEMONIC_KIND_ELECTRUM,
+    MNEMONIC_KIND_INVALID,
+  ];
+
+  static final $core.Map<$core.int, MnemonicKind> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static MnemonicKind? valueOf($core.int value) => _byValue[value];
+
+  const MnemonicKind._($core.int v, $core.String n) : super(v, n);
+}
+
 /// DecodedForm reports which artifact the input was recognized as.
 class DecodedForm extends $pb.ProtobufEnum {
   static const DecodedForm DECODED_FORM_UNSPECIFIED = DecodedForm._(0, _omitEnumNames ? '' : 'DECODED_FORM_UNSPECIFIED');

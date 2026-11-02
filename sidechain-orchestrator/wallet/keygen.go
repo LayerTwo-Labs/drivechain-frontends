@@ -55,6 +55,16 @@ func ParseMnemonic(mnemonic string) (string, error) {
 // isElectrumSeed reports whether a phrase in normal form is a seed of the
 // Electrum app, whose words hash to a version prefix. The normal form is the
 // Electrum form for a phrase with no accents and no CJK characters.
+// IsBIP39Mnemonic reports whether mnemonic is a valid BIP39 phrase.
+func IsBIP39Mnemonic(mnemonic string) bool {
+	return bip39.IsMnemonicValid(NormalizeMnemonic(mnemonic))
+}
+
+// IsElectrumSeed reports whether mnemonic is a seed of the Electrum app.
+func IsElectrumSeed(mnemonic string) bool {
+	return isElectrumSeed(NormalizeMnemonic(mnemonic))
+}
+
 func isElectrumSeed(normal string) bool {
 	mac := hmac.New(sha512.New, []byte("Seed version"))
 	mac.Write([]byte(normal))

@@ -104,3 +104,18 @@ func TestSeedRPCsOverTheWire(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, strings.Fields(generated.Mnemonic), 12)
 }
+
+func TestValidateMnemonicNamesTheKind(t *testing.T) {
+	h := newSeedHandler(t, &chaincfg.MainNetParams)
+	for phrase, want := range map[string]pb.MnemonicKind{
+		seedHandlerMnemonic: pb.MnemonicKind_MNEMONIC_KIND_BIP39,
+		"  Abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon ABOUT ": pb.MnemonicKind_MNEMONIC_KIND_BIP39,
+		strings.Replace(seedHandlerMnemonic, "about", "zebra", 1):                                          pb.MnemonicKind_MNEMONIC_KIND_INVALID,
+		"bitter grass shiver impose acquire brush forget axis eager alone wine silver":                     pb.MnemonicKind_MNEMONIC_KIND_ELECTRUM,
+		"": pb.MnemonicKind_MNEMONIC_KIND_INVALID,
+	} {
+		got, err := h.ValidateMnemonic(context.Background(), &pb.ValidateMnemonicRequest{Mnemonic: phrase})
+		require.NoError(t, err)
+		require.Equal(t, want, got.Kind, phrase)
+	}
+}

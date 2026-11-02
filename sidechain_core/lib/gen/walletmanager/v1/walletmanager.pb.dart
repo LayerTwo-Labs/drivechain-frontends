@@ -8654,6 +8654,106 @@ class GenerateMnemonicResponse extends $pb.GeneratedMessage {
   void clearMnemonic() => clearField(1);
 }
 
+class ValidateMnemonicRequest extends $pb.GeneratedMessage {
+  factory ValidateMnemonicRequest({
+    $core.String? mnemonic,
+  }) {
+    final $result = create();
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
+    }
+    return $result;
+  }
+  ValidateMnemonicRequest._() : super();
+  factory ValidateMnemonicRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ValidateMnemonicRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidateMnemonicRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'mnemonic')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ValidateMnemonicRequest clone() => ValidateMnemonicRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ValidateMnemonicRequest copyWith(void Function(ValidateMnemonicRequest) updates) => super.copyWith((message) => updates(message as ValidateMnemonicRequest)) as ValidateMnemonicRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ValidateMnemonicRequest create() => ValidateMnemonicRequest._();
+  ValidateMnemonicRequest createEmptyInstance() => create();
+  static $pb.PbList<ValidateMnemonicRequest> createRepeated() => $pb.PbList<ValidateMnemonicRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ValidateMnemonicRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidateMnemonicRequest>(create);
+  static ValidateMnemonicRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get mnemonic => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set mnemonic($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMnemonic() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMnemonic() => clearField(1);
+}
+
+class ValidateMnemonicResponse extends $pb.GeneratedMessage {
+  factory ValidateMnemonicResponse({
+    MnemonicKind? kind,
+  }) {
+    final $result = create();
+    if (kind != null) {
+      $result.kind = kind;
+    }
+    return $result;
+  }
+  ValidateMnemonicResponse._() : super();
+  factory ValidateMnemonicResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ValidateMnemonicResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidateMnemonicResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..e<MnemonicKind>(1, _omitFieldNames ? '' : 'kind', $pb.PbFieldType.OE, defaultOrMaker: MnemonicKind.MNEMONIC_KIND_UNSPECIFIED, valueOf: MnemonicKind.valueOf, enumValues: MnemonicKind.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ValidateMnemonicResponse clone() => ValidateMnemonicResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ValidateMnemonicResponse copyWith(void Function(ValidateMnemonicResponse) updates) => super.copyWith((message) => updates(message as ValidateMnemonicResponse)) as ValidateMnemonicResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ValidateMnemonicResponse create() => ValidateMnemonicResponse._();
+  ValidateMnemonicResponse createEmptyInstance() => create();
+  static $pb.PbList<ValidateMnemonicResponse> createRepeated() => $pb.PbList<ValidateMnemonicResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ValidateMnemonicResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidateMnemonicResponse>(create);
+  static ValidateMnemonicResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  MnemonicKind get kind => $_getN(0);
+  @$pb.TagNumber(1)
+  set kind(MnemonicKind v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasKind() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearKind() => clearField(1);
+}
+
 class ListTransactionsRequest extends $pb.GeneratedMessage {
   factory ListTransactionsRequest({
     $core.String? walletId,
@@ -14022,6 +14122,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<GenerateMnemonicResponse> generateMnemonic($pb.ClientContext? ctx, GenerateMnemonicRequest request) =>
     _client.invoke<GenerateMnemonicResponse>(ctx, 'WalletManagerService', 'GenerateMnemonic', request, GenerateMnemonicResponse())
+  ;
+  $async.Future<ValidateMnemonicResponse> validateMnemonic($pb.ClientContext? ctx, ValidateMnemonicRequest request) =>
+    _client.invoke<ValidateMnemonicResponse>(ctx, 'WalletManagerService', 'ValidateMnemonic', request, ValidateMnemonicResponse())
   ;
   $async.Future<PreviewWalletFromEntropyResponse> previewWalletFromEntropy($pb.ClientContext? ctx, PreviewWalletFromEntropyRequest request) =>
     _client.invoke<PreviewWalletFromEntropyResponse>(ctx, 'WalletManagerService', 'PreviewWalletFromEntropy', request, PreviewWalletFromEntropyResponse())

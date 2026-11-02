@@ -87,6 +87,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$22.DeriveKeystoreResponse> deriveKeystore($pb.ServerContext ctx, $22.DeriveKeystoreRequest request);
   $async.Future<$22.ExploreSeedResponse> exploreSeed($pb.ServerContext ctx, $22.ExploreSeedRequest request);
   $async.Future<$22.GenerateMnemonicResponse> generateMnemonic($pb.ServerContext ctx, $22.GenerateMnemonicRequest request);
+  $async.Future<$22.ValidateMnemonicResponse> validateMnemonic($pb.ServerContext ctx, $22.ValidateMnemonicRequest request);
   $async.Future<$22.PreviewWalletFromEntropyResponse> previewWalletFromEntropy($pb.ServerContext ctx, $22.PreviewWalletFromEntropyRequest request);
   $async.Future<$22.GetWalletSeedResponse> getWalletSeed($pb.ServerContext ctx, $22.GetWalletSeedRequest request);
   $async.Future<$22.ListCoreVariantsResponse> listCoreVariants($pb.ServerContext ctx, $22.ListCoreVariantsRequest request);
@@ -165,6 +166,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'DeriveKeystore': return $22.DeriveKeystoreRequest();
       case 'ExploreSeed': return $22.ExploreSeedRequest();
       case 'GenerateMnemonic': return $22.GenerateMnemonicRequest();
+      case 'ValidateMnemonic': return $22.ValidateMnemonicRequest();
       case 'PreviewWalletFromEntropy': return $22.PreviewWalletFromEntropyRequest();
       case 'GetWalletSeed': return $22.GetWalletSeedRequest();
       case 'ListCoreVariants': return $22.ListCoreVariantsRequest();
@@ -246,6 +248,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'DeriveKeystore': return this.deriveKeystore(ctx, request as $22.DeriveKeystoreRequest);
       case 'ExploreSeed': return this.exploreSeed(ctx, request as $22.ExploreSeedRequest);
       case 'GenerateMnemonic': return this.generateMnemonic(ctx, request as $22.GenerateMnemonicRequest);
+      case 'ValidateMnemonic': return this.validateMnemonic(ctx, request as $22.ValidateMnemonicRequest);
       case 'PreviewWalletFromEntropy': return this.previewWalletFromEntropy(ctx, request as $22.PreviewWalletFromEntropyRequest);
       case 'GetWalletSeed': return this.getWalletSeed(ctx, request as $22.GetWalletSeedRequest);
       case 'ListCoreVariants': return this.listCoreVariants(ctx, request as $22.ListCoreVariantsRequest);
