@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:blockchain_utils/bech32/bech32.dart';
-import 'package:blockchain_utils/bip/ecc/keys/ed25519_keys.dart';
-import 'package:blockchain_utils/exception/exceptions.dart';
+import 'package:bitwindow/utils/bech32.dart';
+import 'package:bitwindow/utils/ed25519_point.dart';
 import 'package:bs58/bs58.dart';
 import 'package:connectrpc/connect.dart';
 import 'package:sidechain_core/rpcs/bitnames_rpc.dart';
@@ -78,13 +77,11 @@ class BitnamesMessage {
   static String addressForKey(String key) {
     final List<int> bytes;
     try {
-      bytes = Bech32Decoder.decode('bn-svk', key, encoding: Bech32Encodings.bech32m);
-    } on BlockchainUtilsException {
+      bytes = bech32ToBytes('bn-svk', key, Bech32Variant.bech32m);
+    } on FormatException {
       throw const FormatException('Invalid BitNames owner key');
     }
-    if (bytes.length != 32 ||
-        !Ed25519PublicKey.isValidBytes(bytes) ||
-        key != Bech32Encoder.encode('bn-svk', bytes, encoding: Bech32Encodings.bech32m)) {
+    if (bytes.length != 32 || !isEd25519Point(bytes) || key != bytesToBech32('bn-svk', bytes, Bech32Variant.bech32m)) {
       throw const FormatException('Invalid BitNames owner key');
     }
     return base58.encode(Uint8List.fromList(blake3(bytes).sublist(0, 20)));

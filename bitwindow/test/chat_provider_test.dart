@@ -1,17 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/chat_page.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
 import 'package:bitwindow/services/bitnames_message.dart';
 import 'package:bitwindow/services/bitnames_secure_store.dart';
+import 'package:bitwindow/utils/bech32.dart';
+import 'package:bitwindow/utils/ed25519_point.dart';
 import 'package:flutter/foundation.dart';
-import 'package:blockchain_utils/bech32/bech32.dart';
-import 'package:blockchain_utils/bip/ecc/keys/ed25519_keys.dart';
-import 'package:blockchain_utils/signer/ed25519/ed25519.dart';
 import 'package:convert/convert.dart';
+import 'package:crypto/crypto.dart';
 import 'package:connectrpc/connect.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -31,6 +32,8 @@ class _ChatRPC extends MockBitnamesRPC {
   final Map<String, String> owners = {};
   final Map<String, ConnectException> ownerErrors = {};
   final Map<String, List<int>> keys = {};
+  // The fake node accepts only the signatures it gave out, as a real node accepts only real ones.
+  final Set<String> issued = {};
   final Map<String, (String, String)> ciphertexts = {};
   final List<({String address, int value, int fee, String? memo})> transfers = [];
   final List<List<dynamic>> checks = [];
@@ -55,13 +58,16 @@ class _ChatRPC extends MockBitnamesRPC {
 
   BitnameEntry addIdentity(String name, int seed, {String? encryptionKey}) {
     final hash = BitnamesMessage.nameHash(name);
-    final bytes = List<int>.filled(32, seed);
-    final publicKey = Ed25519PrivateKey.fromBytes(bytes).publicKey.compressed.sublist(1);
-    final key = Bech32Encoder.encode('bn-svk', publicKey, encoding: Bech32Encodings.bech32m);
+    final random = Random(seed);
+    var publicKey = <int>[];
+    do {
+      publicKey = List<int>.generate(32, (_) => random.nextInt(256));
+    } while (!isEd25519Point(publicKey));
+    final key = bytesToBech32('bn-svk', publicKey, Bech32Variant.bech32m);
     final address = BitnamesMessage.addressForKey(key);
     names[hash] = BitNameData(encryptionPubkey: encryptionKey ?? 'encryption-$name', paymailFeeSats: 1500);
     owners[hash] = address;
-    keys[address] = bytes;
+    keys[address] = publicKey;
     return BitnameEntry(
       hash: hash,
       plaintextName: name,
@@ -90,12 +96,10 @@ class _ChatRPC extends MockBitnamesRPC {
 
   @override
   Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
-    final seed = keys[address]!;
-    final key = Ed25519PrivateKey.fromBytes(seed).publicKey.compressed.sublist(1);
-    return {
-      'verifying_key': Bech32Encoder.encode('bn-svk', key, encoding: Bech32Encodings.bech32m),
-      'signature': hex.encode(Ed25519Signer.fromKeyBytes(seed).sign([255, ...utf8.encode(msg)])),
-    };
+    final key = bytesToBech32('bn-svk', keys[address]!, Bech32Variant.bech32m);
+    final signature = hex.encode(sha512.convert(utf8.encode('$key|$msg')).bytes);
+    issued.add('$key|$msg|$signature');
+    return {'verifying_key': key, 'signature': signature};
   }
 
   @override
@@ -104,11 +108,7 @@ class _ChatRPC extends MockBitnamesRPC {
     final values = params as List<dynamic>;
     checks.add(values);
     expect(values[2], 'arbitrary');
-    final bytes = Bech32Decoder.decode('bn-svk', values[1] as String, encoding: Bech32Encodings.bech32m);
-    return Ed25519Verifier.fromKeyBytes(bytes).verify(
-      [255, ...utf8.encode(values[3] as String)],
-      hex.decode(values[0] as String),
-    );
+    return issued.contains('${values[1]}|${values[3]}|${values[0]}');
   }
 
   @override
@@ -1128,9 +1128,9 @@ void main() {
 
   test('the owner key uses Bech32m and BLAKE3', () {
     final bytes = hex.decode('d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a');
-    final key = Bech32Encoder.encode('bn-svk', bytes, encoding: Bech32Encodings.bech32m);
+    final key = bytesToBech32('bn-svk', bytes, Bech32Variant.bech32m);
     expect(BitnamesMessage.addressForKey(key), '2WRXAwiHCW7rvEpkN1nPmFY5hiUC');
-    final oldKey = Bech32Encoder.encode('bn-svk', bytes);
+    final oldKey = bytesToBech32('bn-svk', bytes, Bech32Variant.bech32);
     expect(() => BitnamesMessage.addressForKey(oldKey), throwsA(anything));
   });
 
@@ -1428,10 +1428,10 @@ void main() {
   test('a key without an Ed25519 point does not hide valid mail', () async {
     final memo = await signed();
     final data = jsonDecode(memo.encode().substring(BitnamesMessage.prefix.length)) as Map<String, dynamic>;
-    data['key'] = Bech32Encoder.encode(
+    data['key'] = bytesToBech32(
       'bn-svk',
       hex.decode('0200000000000000000000000000000000000000000000000000000000000000'),
-      encoding: Bech32Encodings.bech32m,
+      Bech32Variant.bech32m,
     );
     rpc.pending = {
       'bad:0': await rpc.output('${BitnamesMessage.prefix}${jsonEncode(data)}', bob),
