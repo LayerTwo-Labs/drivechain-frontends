@@ -22,6 +22,73 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ConvertFormat int32
+
+const (
+	ConvertFormat_CONVERT_FORMAT_AUTO        ConvertFormat = 0
+	ConvertFormat_CONVERT_FORMAT_HEX         ConvertFormat = 1
+	ConvertFormat_CONVERT_FORMAT_BASE64      ConvertFormat = 2
+	ConvertFormat_CONVERT_FORMAT_BASE58      ConvertFormat = 3
+	ConvertFormat_CONVERT_FORMAT_BASE58CHECK ConvertFormat = 4
+	ConvertFormat_CONVERT_FORMAT_BECH32      ConvertFormat = 5
+	ConvertFormat_CONVERT_FORMAT_ASCII       ConvertFormat = 6
+	ConvertFormat_CONVERT_FORMAT_WIF         ConvertFormat = 7
+	ConvertFormat_CONVERT_FORMAT_PASSPHRASE  ConvertFormat = 8
+)
+
+// Enum value maps for ConvertFormat.
+var (
+	ConvertFormat_name = map[int32]string{
+		0: "CONVERT_FORMAT_AUTO",
+		1: "CONVERT_FORMAT_HEX",
+		2: "CONVERT_FORMAT_BASE64",
+		3: "CONVERT_FORMAT_BASE58",
+		4: "CONVERT_FORMAT_BASE58CHECK",
+		5: "CONVERT_FORMAT_BECH32",
+		6: "CONVERT_FORMAT_ASCII",
+		7: "CONVERT_FORMAT_WIF",
+		8: "CONVERT_FORMAT_PASSPHRASE",
+	}
+	ConvertFormat_value = map[string]int32{
+		"CONVERT_FORMAT_AUTO":        0,
+		"CONVERT_FORMAT_HEX":         1,
+		"CONVERT_FORMAT_BASE64":      2,
+		"CONVERT_FORMAT_BASE58":      3,
+		"CONVERT_FORMAT_BASE58CHECK": 4,
+		"CONVERT_FORMAT_BECH32":      5,
+		"CONVERT_FORMAT_ASCII":       6,
+		"CONVERT_FORMAT_WIF":         7,
+		"CONVERT_FORMAT_PASSPHRASE":  8,
+	}
+)
+
+func (x ConvertFormat) Enum() *ConvertFormat {
+	p := new(ConvertFormat)
+	*p = x
+	return p
+}
+
+func (x ConvertFormat) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConvertFormat) Descriptor() protoreflect.EnumDescriptor {
+	return file_utils_v1_utils_proto_enumTypes[0].Descriptor()
+}
+
+func (ConvertFormat) Type() protoreflect.EnumType {
+	return &file_utils_v1_utils_proto_enumTypes[0]
+}
+
+func (x ConvertFormat) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ConvertFormat.Descriptor instead.
+func (ConvertFormat) EnumDescriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{0}
+}
+
 // Bitcoin URI (BIP-0021)
 type ParseBitcoinURIRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -898,6 +965,187 @@ func (x *WIFToAddressResponse) GetError() string {
 	return ""
 }
 
+type ConvertRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Input         string                 `protobuf:"bytes,1,opt,name=input,proto3" json:"input,omitempty"`
+	Format        ConvertFormat          `protobuf:"varint,2,opt,name=format,proto3,enum=utils.v1.ConvertFormat" json:"format,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConvertRequest) Reset() {
+	*x = ConvertRequest{}
+	mi := &file_utils_v1_utils_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConvertRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConvertRequest) ProtoMessage() {}
+
+func (x *ConvertRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_utils_v1_utils_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConvertRequest.ProtoReflect.Descriptor instead.
+func (*ConvertRequest) Descriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ConvertRequest) GetInput() string {
+	if x != nil {
+		return x.Input
+	}
+	return ""
+}
+
+func (x *ConvertRequest) GetFormat() ConvertFormat {
+	if x != nil {
+		return x.Format
+	}
+	return ConvertFormat_CONVERT_FORMAT_AUTO
+}
+
+type ConvertRow struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConvertRow) Reset() {
+	*x = ConvertRow{}
+	mi := &file_utils_v1_utils_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConvertRow) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConvertRow) ProtoMessage() {}
+
+func (x *ConvertRow) ProtoReflect() protoreflect.Message {
+	mi := &file_utils_v1_utils_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConvertRow.ProtoReflect.Descriptor instead.
+func (*ConvertRow) Descriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ConvertRow) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *ConvertRow) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+type ConvertResponse struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Detected ConvertFormat          `protobuf:"varint,1,opt,name=detected,proto3,enum=utils.v1.ConvertFormat" json:"detected,omitempty"`
+	// Why the input could not be read; empty on success.
+	Error         string        `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	Encodings     []*ConvertRow `protobuf:"bytes,3,rep,name=encodings,proto3" json:"encodings,omitempty"`
+	Hashes        []*ConvertRow `protobuf:"bytes,4,rep,name=hashes,proto3" json:"hashes,omitempty"`
+	Keys          []*ConvertRow `protobuf:"bytes,5,rep,name=keys,proto3" json:"keys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConvertResponse) Reset() {
+	*x = ConvertResponse{}
+	mi := &file_utils_v1_utils_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConvertResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConvertResponse) ProtoMessage() {}
+
+func (x *ConvertResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_utils_v1_utils_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConvertResponse.ProtoReflect.Descriptor instead.
+func (*ConvertResponse) Descriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ConvertResponse) GetDetected() ConvertFormat {
+	if x != nil {
+		return x.Detected
+	}
+	return ConvertFormat_CONVERT_FORMAT_AUTO
+}
+
+func (x *ConvertResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *ConvertResponse) GetEncodings() []*ConvertRow {
+	if x != nil {
+		return x.Encodings
+	}
+	return nil
+}
+
+func (x *ConvertResponse) GetHashes() []*ConvertRow {
+	if x != nil {
+		return x.Hashes
+	}
+	return nil
+}
+
+func (x *ConvertResponse) GetKeys() []*ConvertRow {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
 var File_utils_v1_utils_proto protoreflect.FileDescriptor
 
 const file_utils_v1_utils_proto_rawDesc = "" +
@@ -959,7 +1207,30 @@ const file_utils_v1_utils_proto_rawDesc = "" +
 	"\x03wif\x18\x01 \x01(\tR\x03wif\"F\n" +
 	"\x14WIFToAddressResponse\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error2\xd8\x05\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"W\n" +
+	"\x0eConvertRequest\x12\x14\n" +
+	"\x05input\x18\x01 \x01(\tR\x05input\x12/\n" +
+	"\x06format\x18\x02 \x01(\x0e2\x17.utils.v1.ConvertFormatR\x06format\"8\n" +
+	"\n" +
+	"ConvertRow\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xe8\x01\n" +
+	"\x0fConvertResponse\x123\n" +
+	"\bdetected\x18\x01 \x01(\x0e2\x17.utils.v1.ConvertFormatR\bdetected\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\x122\n" +
+	"\tencodings\x18\x03 \x03(\v2\x14.utils.v1.ConvertRowR\tencodings\x12,\n" +
+	"\x06hashes\x18\x04 \x03(\v2\x14.utils.v1.ConvertRowR\x06hashes\x12(\n" +
+	"\x04keys\x18\x05 \x03(\v2\x14.utils.v1.ConvertRowR\x04keys*\x82\x02\n" +
+	"\rConvertFormat\x12\x17\n" +
+	"\x13CONVERT_FORMAT_AUTO\x10\x00\x12\x16\n" +
+	"\x12CONVERT_FORMAT_HEX\x10\x01\x12\x19\n" +
+	"\x15CONVERT_FORMAT_BASE64\x10\x02\x12\x19\n" +
+	"\x15CONVERT_FORMAT_BASE58\x10\x03\x12\x1e\n" +
+	"\x1aCONVERT_FORMAT_BASE58CHECK\x10\x04\x12\x19\n" +
+	"\x15CONVERT_FORMAT_BECH32\x10\x05\x12\x18\n" +
+	"\x14CONVERT_FORMAT_ASCII\x10\x06\x12\x16\n" +
+	"\x12CONVERT_FORMAT_WIF\x10\a\x12\x1d\n" +
+	"\x19CONVERT_FORMAT_PASSPHRASE\x10\b2\x98\x06\n" +
 	"\fUtilsService\x12V\n" +
 	"\x0fParseBitcoinURI\x12 .utils.v1.ParseBitcoinURIRequest\x1a!.utils.v1.ParseBitcoinURIResponse\x12_\n" +
 	"\x12ValidateBitcoinURI\x12#.utils.v1.ValidateBitcoinURIRequest\x1a$.utils.v1.ValidateBitcoinURIResponse\x12\\\n" +
@@ -968,7 +1239,8 @@ const file_utils_v1_utils_proto_rawDesc = "" +
 	"\x13CalculateMerkleTree\x12$.utils.v1.CalculateMerkleTreeRequest\x1a%.utils.v1.CalculateMerkleTreeResponse\x12T\n" +
 	"\x13GeneratePaperWallet\x12\x16.google.protobuf.Empty\x1a%.utils.v1.GeneratePaperWalletResponse\x12J\n" +
 	"\vValidateWIF\x12\x1c.utils.v1.ValidateWIFRequest\x1a\x1d.utils.v1.ValidateWIFResponse\x12M\n" +
-	"\fWIFToAddress\x12\x1d.utils.v1.WIFToAddressRequest\x1a\x1e.utils.v1.WIFToAddressResponseB\xa4\x01\n" +
+	"\fWIFToAddress\x12\x1d.utils.v1.WIFToAddressRequest\x1a\x1e.utils.v1.WIFToAddressResponse\x12>\n" +
+	"\aConvert\x12\x18.utils.v1.ConvertRequest\x1a\x19.utils.v1.ConvertResponseB\xa4\x01\n" +
 	"\fcom.utils.v1B\n" +
 	"UtilsProtoP\x01ZGgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1;utilsv1\xa2\x02\x03UXX\xaa\x02\bUtils.V1\xca\x02\bUtils\\V1\xe2\x02\x14Utils\\V1\\GPBMetadata\xea\x02\tUtils::V1b\x06proto3"
 
@@ -984,51 +1256,63 @@ func file_utils_v1_utils_proto_rawDescGZIP() []byte {
 	return file_utils_v1_utils_proto_rawDescData
 }
 
-var file_utils_v1_utils_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_utils_v1_utils_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_utils_v1_utils_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_utils_v1_utils_proto_goTypes = []any{
-	(*ParseBitcoinURIRequest)(nil),      // 0: utils.v1.ParseBitcoinURIRequest
-	(*ParseBitcoinURIResponse)(nil),     // 1: utils.v1.ParseBitcoinURIResponse
-	(*ValidateBitcoinURIRequest)(nil),   // 2: utils.v1.ValidateBitcoinURIRequest
-	(*ValidateBitcoinURIResponse)(nil),  // 3: utils.v1.ValidateBitcoinURIResponse
-	(*DecodeBase58CheckRequest)(nil),    // 4: utils.v1.DecodeBase58CheckRequest
-	(*DecodeBase58CheckResponse)(nil),   // 5: utils.v1.DecodeBase58CheckResponse
-	(*EncodeBase58CheckRequest)(nil),    // 6: utils.v1.EncodeBase58CheckRequest
-	(*EncodeBase58CheckResponse)(nil),   // 7: utils.v1.EncodeBase58CheckResponse
-	(*CalculateMerkleTreeRequest)(nil),  // 8: utils.v1.CalculateMerkleTreeRequest
-	(*CalculateMerkleTreeResponse)(nil), // 9: utils.v1.CalculateMerkleTreeResponse
-	(*MerkleTreeLevel)(nil),             // 10: utils.v1.MerkleTreeLevel
-	(*GeneratePaperWalletResponse)(nil), // 11: utils.v1.GeneratePaperWalletResponse
-	(*ValidateWIFRequest)(nil),          // 12: utils.v1.ValidateWIFRequest
-	(*ValidateWIFResponse)(nil),         // 13: utils.v1.ValidateWIFResponse
-	(*WIFToAddressRequest)(nil),         // 14: utils.v1.WIFToAddressRequest
-	(*WIFToAddressResponse)(nil),        // 15: utils.v1.WIFToAddressResponse
-	nil,                                 // 16: utils.v1.ParseBitcoinURIResponse.ExtraParamsEntry
-	(*emptypb.Empty)(nil),               // 17: google.protobuf.Empty
+	(ConvertFormat)(0),                  // 0: utils.v1.ConvertFormat
+	(*ParseBitcoinURIRequest)(nil),      // 1: utils.v1.ParseBitcoinURIRequest
+	(*ParseBitcoinURIResponse)(nil),     // 2: utils.v1.ParseBitcoinURIResponse
+	(*ValidateBitcoinURIRequest)(nil),   // 3: utils.v1.ValidateBitcoinURIRequest
+	(*ValidateBitcoinURIResponse)(nil),  // 4: utils.v1.ValidateBitcoinURIResponse
+	(*DecodeBase58CheckRequest)(nil),    // 5: utils.v1.DecodeBase58CheckRequest
+	(*DecodeBase58CheckResponse)(nil),   // 6: utils.v1.DecodeBase58CheckResponse
+	(*EncodeBase58CheckRequest)(nil),    // 7: utils.v1.EncodeBase58CheckRequest
+	(*EncodeBase58CheckResponse)(nil),   // 8: utils.v1.EncodeBase58CheckResponse
+	(*CalculateMerkleTreeRequest)(nil),  // 9: utils.v1.CalculateMerkleTreeRequest
+	(*CalculateMerkleTreeResponse)(nil), // 10: utils.v1.CalculateMerkleTreeResponse
+	(*MerkleTreeLevel)(nil),             // 11: utils.v1.MerkleTreeLevel
+	(*GeneratePaperWalletResponse)(nil), // 12: utils.v1.GeneratePaperWalletResponse
+	(*ValidateWIFRequest)(nil),          // 13: utils.v1.ValidateWIFRequest
+	(*ValidateWIFResponse)(nil),         // 14: utils.v1.ValidateWIFResponse
+	(*WIFToAddressRequest)(nil),         // 15: utils.v1.WIFToAddressRequest
+	(*WIFToAddressResponse)(nil),        // 16: utils.v1.WIFToAddressResponse
+	(*ConvertRequest)(nil),              // 17: utils.v1.ConvertRequest
+	(*ConvertRow)(nil),                  // 18: utils.v1.ConvertRow
+	(*ConvertResponse)(nil),             // 19: utils.v1.ConvertResponse
+	nil,                                 // 20: utils.v1.ParseBitcoinURIResponse.ExtraParamsEntry
+	(*emptypb.Empty)(nil),               // 21: google.protobuf.Empty
 }
 var file_utils_v1_utils_proto_depIdxs = []int32{
-	16, // 0: utils.v1.ParseBitcoinURIResponse.extra_params:type_name -> utils.v1.ParseBitcoinURIResponse.ExtraParamsEntry
-	10, // 1: utils.v1.CalculateMerkleTreeResponse.levels:type_name -> utils.v1.MerkleTreeLevel
-	0,  // 2: utils.v1.UtilsService.ParseBitcoinURI:input_type -> utils.v1.ParseBitcoinURIRequest
-	2,  // 3: utils.v1.UtilsService.ValidateBitcoinURI:input_type -> utils.v1.ValidateBitcoinURIRequest
-	4,  // 4: utils.v1.UtilsService.DecodeBase58Check:input_type -> utils.v1.DecodeBase58CheckRequest
-	6,  // 5: utils.v1.UtilsService.EncodeBase58Check:input_type -> utils.v1.EncodeBase58CheckRequest
-	8,  // 6: utils.v1.UtilsService.CalculateMerkleTree:input_type -> utils.v1.CalculateMerkleTreeRequest
-	17, // 7: utils.v1.UtilsService.GeneratePaperWallet:input_type -> google.protobuf.Empty
-	12, // 8: utils.v1.UtilsService.ValidateWIF:input_type -> utils.v1.ValidateWIFRequest
-	14, // 9: utils.v1.UtilsService.WIFToAddress:input_type -> utils.v1.WIFToAddressRequest
-	1,  // 10: utils.v1.UtilsService.ParseBitcoinURI:output_type -> utils.v1.ParseBitcoinURIResponse
-	3,  // 11: utils.v1.UtilsService.ValidateBitcoinURI:output_type -> utils.v1.ValidateBitcoinURIResponse
-	5,  // 12: utils.v1.UtilsService.DecodeBase58Check:output_type -> utils.v1.DecodeBase58CheckResponse
-	7,  // 13: utils.v1.UtilsService.EncodeBase58Check:output_type -> utils.v1.EncodeBase58CheckResponse
-	9,  // 14: utils.v1.UtilsService.CalculateMerkleTree:output_type -> utils.v1.CalculateMerkleTreeResponse
-	11, // 15: utils.v1.UtilsService.GeneratePaperWallet:output_type -> utils.v1.GeneratePaperWalletResponse
-	13, // 16: utils.v1.UtilsService.ValidateWIF:output_type -> utils.v1.ValidateWIFResponse
-	15, // 17: utils.v1.UtilsService.WIFToAddress:output_type -> utils.v1.WIFToAddressResponse
-	10, // [10:18] is the sub-list for method output_type
-	2,  // [2:10] is the sub-list for method input_type
-	2,  // [2:2] is the sub-list for extension type_name
-	2,  // [2:2] is the sub-list for extension extendee
-	0,  // [0:2] is the sub-list for field type_name
+	20, // 0: utils.v1.ParseBitcoinURIResponse.extra_params:type_name -> utils.v1.ParseBitcoinURIResponse.ExtraParamsEntry
+	11, // 1: utils.v1.CalculateMerkleTreeResponse.levels:type_name -> utils.v1.MerkleTreeLevel
+	0,  // 2: utils.v1.ConvertRequest.format:type_name -> utils.v1.ConvertFormat
+	0,  // 3: utils.v1.ConvertResponse.detected:type_name -> utils.v1.ConvertFormat
+	18, // 4: utils.v1.ConvertResponse.encodings:type_name -> utils.v1.ConvertRow
+	18, // 5: utils.v1.ConvertResponse.hashes:type_name -> utils.v1.ConvertRow
+	18, // 6: utils.v1.ConvertResponse.keys:type_name -> utils.v1.ConvertRow
+	1,  // 7: utils.v1.UtilsService.ParseBitcoinURI:input_type -> utils.v1.ParseBitcoinURIRequest
+	3,  // 8: utils.v1.UtilsService.ValidateBitcoinURI:input_type -> utils.v1.ValidateBitcoinURIRequest
+	5,  // 9: utils.v1.UtilsService.DecodeBase58Check:input_type -> utils.v1.DecodeBase58CheckRequest
+	7,  // 10: utils.v1.UtilsService.EncodeBase58Check:input_type -> utils.v1.EncodeBase58CheckRequest
+	9,  // 11: utils.v1.UtilsService.CalculateMerkleTree:input_type -> utils.v1.CalculateMerkleTreeRequest
+	21, // 12: utils.v1.UtilsService.GeneratePaperWallet:input_type -> google.protobuf.Empty
+	13, // 13: utils.v1.UtilsService.ValidateWIF:input_type -> utils.v1.ValidateWIFRequest
+	15, // 14: utils.v1.UtilsService.WIFToAddress:input_type -> utils.v1.WIFToAddressRequest
+	17, // 15: utils.v1.UtilsService.Convert:input_type -> utils.v1.ConvertRequest
+	2,  // 16: utils.v1.UtilsService.ParseBitcoinURI:output_type -> utils.v1.ParseBitcoinURIResponse
+	4,  // 17: utils.v1.UtilsService.ValidateBitcoinURI:output_type -> utils.v1.ValidateBitcoinURIResponse
+	6,  // 18: utils.v1.UtilsService.DecodeBase58Check:output_type -> utils.v1.DecodeBase58CheckResponse
+	8,  // 19: utils.v1.UtilsService.EncodeBase58Check:output_type -> utils.v1.EncodeBase58CheckResponse
+	10, // 20: utils.v1.UtilsService.CalculateMerkleTree:output_type -> utils.v1.CalculateMerkleTreeResponse
+	12, // 21: utils.v1.UtilsService.GeneratePaperWallet:output_type -> utils.v1.GeneratePaperWalletResponse
+	14, // 22: utils.v1.UtilsService.ValidateWIF:output_type -> utils.v1.ValidateWIFResponse
+	16, // 23: utils.v1.UtilsService.WIFToAddress:output_type -> utils.v1.WIFToAddressResponse
+	19, // 24: utils.v1.UtilsService.Convert:output_type -> utils.v1.ConvertResponse
+	16, // [16:25] is the sub-list for method output_type
+	7,  // [7:16] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_utils_v1_utils_proto_init() }
@@ -1041,13 +1325,14 @@ func file_utils_v1_utils_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_utils_v1_utils_proto_rawDesc), len(file_utils_v1_utils_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   17,
+			NumEnums:      1,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_utils_v1_utils_proto_goTypes,
 		DependencyIndexes: file_utils_v1_utils_proto_depIdxs,
+		EnumInfos:         file_utils_v1_utils_proto_enumTypes,
 		MessageInfos:      file_utils_v1_utils_proto_msgTypes,
 	}.Build()
 	File_utils_v1_utils_proto = out.File

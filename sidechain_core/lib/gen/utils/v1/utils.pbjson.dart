@@ -15,6 +15,30 @@ import 'dart:typed_data' as $typed_data;
 
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 
+@$core.Deprecated('Use convertFormatDescriptor instead')
+const ConvertFormat$json = {
+  '1': 'ConvertFormat',
+  '2': [
+    {'1': 'CONVERT_FORMAT_AUTO', '2': 0},
+    {'1': 'CONVERT_FORMAT_HEX', '2': 1},
+    {'1': 'CONVERT_FORMAT_BASE64', '2': 2},
+    {'1': 'CONVERT_FORMAT_BASE58', '2': 3},
+    {'1': 'CONVERT_FORMAT_BASE58CHECK', '2': 4},
+    {'1': 'CONVERT_FORMAT_BECH32', '2': 5},
+    {'1': 'CONVERT_FORMAT_ASCII', '2': 6},
+    {'1': 'CONVERT_FORMAT_WIF', '2': 7},
+    {'1': 'CONVERT_FORMAT_PASSPHRASE', '2': 8},
+  ],
+};
+
+/// Descriptor for `ConvertFormat`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List convertFormatDescriptor = $convert.base64Decode(
+    'Cg1Db252ZXJ0Rm9ybWF0EhcKE0NPTlZFUlRfRk9STUFUX0FVVE8QABIWChJDT05WRVJUX0ZPUk'
+    '1BVF9IRVgQARIZChVDT05WRVJUX0ZPUk1BVF9CQVNFNjQQAhIZChVDT05WRVJUX0ZPUk1BVF9C'
+    'QVNFNTgQAxIeChpDT05WRVJUX0ZPUk1BVF9CQVNFNThDSEVDSxAEEhkKFUNPTlZFUlRfRk9STU'
+    'FUX0JFQ0gzMhAFEhgKFENPTlZFUlRfRk9STUFUX0FTQ0lJEAYSFgoSQ09OVkVSVF9GT1JNQVRf'
+    'V0lGEAcSHQoZQ09OVkVSVF9GT1JNQVRfUEFTU1BIUkFTRRAI');
+
 @$core.Deprecated('Use parseBitcoinURIRequestDescriptor instead')
 const ParseBitcoinURIRequest$json = {
   '1': 'ParseBitcoinURIRequest',
@@ -257,6 +281,54 @@ final $typed_data.Uint8List wIFToAddressResponseDescriptor = $convert.base64Deco
     'ChRXSUZUb0FkZHJlc3NSZXNwb25zZRIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhQKBWVycm'
     '9yGAIgASgJUgVlcnJvcg==');
 
+@$core.Deprecated('Use convertRequestDescriptor instead')
+const ConvertRequest$json = {
+  '1': 'ConvertRequest',
+  '2': [
+    {'1': 'input', '3': 1, '4': 1, '5': 9, '10': 'input'},
+    {'1': 'format', '3': 2, '4': 1, '5': 14, '6': '.utils.v1.ConvertFormat', '10': 'format'},
+  ],
+};
+
+/// Descriptor for `ConvertRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List convertRequestDescriptor = $convert.base64Decode(
+    'Cg5Db252ZXJ0UmVxdWVzdBIUCgVpbnB1dBgBIAEoCVIFaW5wdXQSLwoGZm9ybWF0GAIgASgOMh'
+    'cudXRpbHMudjEuQ29udmVydEZvcm1hdFIGZm9ybWF0');
+
+@$core.Deprecated('Use convertRowDescriptor instead')
+const ConvertRow$json = {
+  '1': 'ConvertRow',
+  '2': [
+    {'1': 'label', '3': 1, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'value', '3': 2, '4': 1, '5': 9, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `ConvertRow`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List convertRowDescriptor = $convert.base64Decode(
+    'CgpDb252ZXJ0Um93EhQKBWxhYmVsGAEgASgJUgVsYWJlbBIUCgV2YWx1ZRgCIAEoCVIFdmFsdW'
+    'U=');
+
+@$core.Deprecated('Use convertResponseDescriptor instead')
+const ConvertResponse$json = {
+  '1': 'ConvertResponse',
+  '2': [
+    {'1': 'detected', '3': 1, '4': 1, '5': 14, '6': '.utils.v1.ConvertFormat', '10': 'detected'},
+    {'1': 'error', '3': 2, '4': 1, '5': 9, '10': 'error'},
+    {'1': 'encodings', '3': 3, '4': 3, '5': 11, '6': '.utils.v1.ConvertRow', '10': 'encodings'},
+    {'1': 'hashes', '3': 4, '4': 3, '5': 11, '6': '.utils.v1.ConvertRow', '10': 'hashes'},
+    {'1': 'keys', '3': 5, '4': 3, '5': 11, '6': '.utils.v1.ConvertRow', '10': 'keys'},
+  ],
+};
+
+/// Descriptor for `ConvertResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List convertResponseDescriptor = $convert.base64Decode(
+    'Cg9Db252ZXJ0UmVzcG9uc2USMwoIZGV0ZWN0ZWQYASABKA4yFy51dGlscy52MS5Db252ZXJ0Rm'
+    '9ybWF0UghkZXRlY3RlZBIUCgVlcnJvchgCIAEoCVIFZXJyb3ISMgoJZW5jb2RpbmdzGAMgAygL'
+    'MhQudXRpbHMudjEuQ29udmVydFJvd1IJZW5jb2RpbmdzEiwKBmhhc2hlcxgEIAMoCzIULnV0aW'
+    'xzLnYxLkNvbnZlcnRSb3dSBmhhc2hlcxIoCgRrZXlzGAUgAygLMhQudXRpbHMudjEuQ29udmVy'
+    'dFJvd1IEa2V5cw==');
+
 const $core.Map<$core.String, $core.dynamic> UtilsServiceBase$json = {
   '1': 'UtilsService',
   '2': [
@@ -268,6 +340,7 @@ const $core.Map<$core.String, $core.dynamic> UtilsServiceBase$json = {
     {'1': 'GeneratePaperWallet', '2': '.google.protobuf.Empty', '3': '.utils.v1.GeneratePaperWalletResponse'},
     {'1': 'ValidateWIF', '2': '.utils.v1.ValidateWIFRequest', '3': '.utils.v1.ValidateWIFResponse'},
     {'1': 'WIFToAddress', '2': '.utils.v1.WIFToAddressRequest', '3': '.utils.v1.WIFToAddressResponse'},
+    {'1': 'Convert', '2': '.utils.v1.ConvertRequest', '3': '.utils.v1.ConvertResponse'},
   ],
 };
 
@@ -291,6 +364,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> UtilsServi
   '.utils.v1.ValidateWIFResponse': ValidateWIFResponse$json,
   '.utils.v1.WIFToAddressRequest': WIFToAddressRequest$json,
   '.utils.v1.WIFToAddressResponse': WIFToAddressResponse$json,
+  '.utils.v1.ConvertRequest': ConvertRequest$json,
+  '.utils.v1.ConvertResponse': ConvertResponse$json,
+  '.utils.v1.ConvertRow': ConvertRow$json,
 };
 
 /// Descriptor for `UtilsService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -308,5 +384,6 @@ final $typed_data.Uint8List utilsServiceDescriptor = $convert.base64Decode(
     'YXBlcldhbGxldFJlc3BvbnNlEkoKC1ZhbGlkYXRlV0lGEhwudXRpbHMudjEuVmFsaWRhdGVXSU'
     'ZSZXF1ZXN0Gh0udXRpbHMudjEuVmFsaWRhdGVXSUZSZXNwb25zZRJNCgxXSUZUb0FkZHJlc3MS'
     'HS51dGlscy52MS5XSUZUb0FkZHJlc3NSZXF1ZXN0Gh4udXRpbHMudjEuV0lGVG9BZGRyZXNzUm'
-    'VzcG9uc2U=');
+    'VzcG9uc2USPgoHQ29udmVydBIYLnV0aWxzLnYxLkNvbnZlcnRSZXF1ZXN0GhkudXRpbHMudjEu'
+    'Q29udmVydFJlc3BvbnNl');
 

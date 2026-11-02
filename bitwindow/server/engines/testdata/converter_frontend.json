@@ -1,0 +1,6506 @@
+[
+ {
+  "input": "deadbeef",
+  "format": "hex",
+  "network": "mainnet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "deadbeef"
+   ],
+   [
+    "Base64",
+    "3q2+7w=="
+   ],
+   [
+    "Base58",
+    "6h8cQN"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "Base58Check version",
+    "0x49"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+   ],
+   [
+    "SHA-256d",
+    "281dd50f6f56bc6e867fe73dd614a73c55a647a479704f64804b574cafb0f5c5"
+   ],
+   [
+    "RIPEMD-160",
+    "226821c2f5423e11fe9af68bd285c249db2e4b5a"
+   ],
+   [
+    "HASH160",
+    "f04df4c4b30d2b7ac6e1ed2445aeb12a9cb4d2ec"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "deadbeef",
+  "format": "hex",
+  "network": "signet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "deadbeef"
+   ],
+   [
+    "Base64",
+    "3q2+7w=="
+   ],
+   [
+    "Base58",
+    "6h8cQN"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "Base58Check version",
+    "0x49"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+   ],
+   [
+    "SHA-256d",
+    "281dd50f6f56bc6e867fe73dd614a73c55a647a479704f64804b574cafb0f5c5"
+   ],
+   [
+    "RIPEMD-160",
+    "226821c2f5423e11fe9af68bd285c249db2e4b5a"
+   ],
+   [
+    "HASH160",
+    "f04df4c4b30d2b7ac6e1ed2445aeb12a9cb4d2ec"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "deadbeef",
+  "format": "hex",
+  "network": "regtest",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "deadbeef"
+   ],
+   [
+    "Base64",
+    "3q2+7w=="
+   ],
+   [
+    "Base58",
+    "6h8cQN"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "Base58Check version",
+    "0x49"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+   ],
+   [
+    "SHA-256d",
+    "281dd50f6f56bc6e867fe73dd614a73c55a647a479704f64804b574cafb0f5c5"
+   ],
+   [
+    "RIPEMD-160",
+    "226821c2f5423e11fe9af68bd285c249db2e4b5a"
+   ],
+   [
+    "HASH160",
+    "f04df4c4b30d2b7ac6e1ed2445aeb12a9cb4d2ec"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "deadbeef",
+  "format": "hex",
+  "network": "ecash",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "deadbeef"
+   ],
+   [
+    "Base64",
+    "3q2+7w=="
+   ],
+   [
+    "Base58",
+    "6h8cQN"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "Base58Check version",
+    "0x49"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+   ],
+   [
+    "SHA-256d",
+    "281dd50f6f56bc6e867fe73dd614a73c55a647a479704f64804b574cafb0f5c5"
+   ],
+   [
+    "RIPEMD-160",
+    "226821c2f5423e11fe9af68bd285c249db2e4b5a"
+   ],
+   [
+    "HASH160",
+    "f04df4c4b30d2b7ac6e1ed2445aeb12a9cb4d2ec"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "deadbeef",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "deadbeef"
+   ],
+   [
+    "Base64",
+    "3q2+7w=="
+   ],
+   [
+    "Base58",
+    "6h8cQN"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "Base58Check version",
+    "0x49"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+   ],
+   [
+    "SHA-256d",
+    "281dd50f6f56bc6e867fe73dd614a73c55a647a479704f64804b574cafb0f5c5"
+   ],
+   [
+    "RIPEMD-160",
+    "226821c2f5423e11fe9af68bd285c249db2e4b5a"
+   ],
+   [
+    "HASH160",
+    "f04df4c4b30d2b7ac6e1ed2445aeb12a9cb4d2ec"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "deadbeef",
+  "format": "auto",
+  "network": "signet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "deadbeef"
+   ],
+   [
+    "Base64",
+    "3q2+7w=="
+   ],
+   [
+    "Base58",
+    "6h8cQN"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "Base58Check version",
+    "0x49"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+   ],
+   [
+    "SHA-256d",
+    "281dd50f6f56bc6e867fe73dd614a73c55a647a479704f64804b574cafb0f5c5"
+   ],
+   [
+    "RIPEMD-160",
+    "226821c2f5423e11fe9af68bd285c249db2e4b5a"
+   ],
+   [
+    "HASH160",
+    "f04df4c4b30d2b7ac6e1ed2445aeb12a9cb4d2ec"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "deadbeef",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "deadbeef"
+   ],
+   [
+    "Base64",
+    "3q2+7w=="
+   ],
+   [
+    "Base58",
+    "6h8cQN"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "Base58Check version",
+    "0x49"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+   ],
+   [
+    "SHA-256d",
+    "281dd50f6f56bc6e867fe73dd614a73c55a647a479704f64804b574cafb0f5c5"
+   ],
+   [
+    "RIPEMD-160",
+    "226821c2f5423e11fe9af68bd285c249db2e4b5a"
+   ],
+   [
+    "HASH160",
+    "f04df4c4b30d2b7ac6e1ed2445aeb12a9cb4d2ec"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "deadbeef",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "deadbeef"
+   ],
+   [
+    "Base64",
+    "3q2+7w=="
+   ],
+   [
+    "Base58",
+    "6h8cQN"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "Base58Check version",
+    "0x49"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+   ],
+   [
+    "SHA-256d",
+    "281dd50f6f56bc6e867fe73dd614a73c55a647a479704f64804b574cafb0f5c5"
+   ],
+   [
+    "RIPEMD-160",
+    "226821c2f5423e11fe9af68bd285c249db2e4b5a"
+   ],
+   [
+    "HASH160",
+    "f04df4c4b30d2b7ac6e1ed2445aeb12a9cb4d2ec"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "abc",
+  "format": "hex",
+  "network": "mainnet",
+  "detected": "hex",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "abc",
+  "format": "hex",
+  "network": "signet",
+  "detected": "hex",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "abc",
+  "format": "hex",
+  "network": "regtest",
+  "detected": "hex",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "abc",
+  "format": "hex",
+  "network": "ecash",
+  "detected": "hex",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "   ",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "   ",
+  "format": "auto",
+  "network": "signet",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "   ",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "   ",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000001",
+  "format": "hex",
+  "network": "mainnet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000001",
+  "format": "hex",
+  "network": "signet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+   ],
+   [
+    "P2TR address",
+    "tb1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssk79hv2"
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000001",
+  "format": "hex",
+  "network": "regtest",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080"
+   ],
+   [
+    "P2TR address",
+    "bcrt1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssm803es"
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000001",
+  "format": "hex",
+  "network": "ecash",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000001",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000001",
+  "format": "auto",
+  "network": "signet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+   ],
+   [
+    "P2TR address",
+    "tb1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssk79hv2"
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000001",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080"
+   ],
+   [
+    "P2TR address",
+    "bcrt1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssm803es"
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000001",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+  "format": "hex",
+  "network": "mainnet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+   ],
+   [
+    "Base64",
+    "/////////////////////rqu3OavSKA7v9JejNA2QUE="
+   ],
+   [
+    "Base58",
+    "JEKNVnkbo3jma5nREBBJCD7MJVUPAg5THBwPPejEsG9v"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "3717939056ee94b1054210ce2b27284d9a8ac5e2880e326d53feb8d4cbb89907"
+   ],
+   [
+    "SHA-256d",
+    "85f5b91b407e774a55480a2b01e4fa26f05045088fe5e3c596e4a7416fa0862b"
+   ],
+   [
+    "RIPEMD-160",
+    "705821ed0517165ae01f081a13462c16f53fe36e"
+   ],
+   [
+    "HASH160",
+    "f36f8fcfa57fb8c22d1e88aa012a9121314a1b70"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+   ],
+   [
+    "WIF (compressed)",
+    "L5oLkpV3aqBjhki6LmvChTCV6odsp4SXM6FfU2Gppt5kFqRzExJJ"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5Km2kuu7vtFDPpxywn4u3NLpbr5jKpTB3jsuDU2KYEqetwr388P"
+   ],
+   [
+    "Public key",
+    "not derivable: Invalid scalarFromBytes arguments. reason: Invalid scalar bytes."
+   ]
+  ]
+ },
+ {
+  "input": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+  "format": "hex",
+  "network": "signet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+   ],
+   [
+    "Base64",
+    "/////////////////////rqu3OavSKA7v9JejNA2QUE="
+   ],
+   [
+    "Base58",
+    "JEKNVnkbo3jma5nREBBJCD7MJVUPAg5THBwPPejEsG9v"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "3717939056ee94b1054210ce2b27284d9a8ac5e2880e326d53feb8d4cbb89907"
+   ],
+   [
+    "SHA-256d",
+    "85f5b91b407e774a55480a2b01e4fa26f05045088fe5e3c596e4a7416fa0862b"
+   ],
+   [
+    "RIPEMD-160",
+    "705821ed0517165ae01f081a13462c16f53fe36e"
+   ],
+   [
+    "HASH160",
+    "f36f8fcfa57fb8c22d1e88aa012a9121314a1b70"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+   ],
+   [
+    "WIF (compressed)",
+    "cWALDjUu1tszsCBMjBjL4mhYj2wHUWYDR8Q8aSjLKzjkWaXMLRaY"
+   ],
+   [
+    "WIF (uncompressed)",
+    "93XfLeifX7KMMtUGa7xouxtnFWSSUyzNPgjrJ6Npsyahfwcd8gd"
+   ],
+   [
+    "Public key",
+    "not derivable: Invalid scalarFromBytes arguments. reason: Invalid scalar bytes."
+   ]
+  ]
+ },
+ {
+  "input": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+  "format": "hex",
+  "network": "regtest",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+   ],
+   [
+    "Base64",
+    "/////////////////////rqu3OavSKA7v9JejNA2QUE="
+   ],
+   [
+    "Base58",
+    "JEKNVnkbo3jma5nREBBJCD7MJVUPAg5THBwPPejEsG9v"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "3717939056ee94b1054210ce2b27284d9a8ac5e2880e326d53feb8d4cbb89907"
+   ],
+   [
+    "SHA-256d",
+    "85f5b91b407e774a55480a2b01e4fa26f05045088fe5e3c596e4a7416fa0862b"
+   ],
+   [
+    "RIPEMD-160",
+    "705821ed0517165ae01f081a13462c16f53fe36e"
+   ],
+   [
+    "HASH160",
+    "f36f8fcfa57fb8c22d1e88aa012a9121314a1b70"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+   ],
+   [
+    "WIF (compressed)",
+    "cWALDjUu1tszsCBMjBjL4mhYj2wHUWYDR8Q8aSjLKzjkWaXMLRaY"
+   ],
+   [
+    "WIF (uncompressed)",
+    "93XfLeifX7KMMtUGa7xouxtnFWSSUyzNPgjrJ6Npsyahfwcd8gd"
+   ],
+   [
+    "Public key",
+    "not derivable: Invalid scalarFromBytes arguments. reason: Invalid scalar bytes."
+   ]
+  ]
+ },
+ {
+  "input": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+  "format": "hex",
+  "network": "ecash",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+   ],
+   [
+    "Base64",
+    "/////////////////////rqu3OavSKA7v9JejNA2QUE="
+   ],
+   [
+    "Base58",
+    "JEKNVnkbo3jma5nREBBJCD7MJVUPAg5THBwPPejEsG9v"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "3717939056ee94b1054210ce2b27284d9a8ac5e2880e326d53feb8d4cbb89907"
+   ],
+   [
+    "SHA-256d",
+    "85f5b91b407e774a55480a2b01e4fa26f05045088fe5e3c596e4a7416fa0862b"
+   ],
+   [
+    "RIPEMD-160",
+    "705821ed0517165ae01f081a13462c16f53fe36e"
+   ],
+   [
+    "HASH160",
+    "f36f8fcfa57fb8c22d1e88aa012a9121314a1b70"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+   ],
+   [
+    "WIF (compressed)",
+    "L5oLkpV3aqBjhki6LmvChTCV6odsp4SXM6FfU2Gppt5kFqRzExJJ"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5Km2kuu7vtFDPpxywn4u3NLpbr5jKpTB3jsuDU2KYEqetwr388P"
+   ],
+   [
+    "Public key",
+    "not derivable: Invalid scalarFromBytes arguments. reason: Invalid scalar bytes."
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000000",
+  "format": "hex",
+  "network": "mainnet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111111"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
+   ],
+   [
+    "SHA-256d",
+    "2b32db6c2c0a6235fb1397e8225ea85e0f0e6e8c7b126d0016ccbde0e667151e"
+   ],
+   [
+    "RIPEMD-160",
+    "d1a70126ff7a149ca6f9b638db084480440ff842"
+   ],
+   [
+    "HASH160",
+    "b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc6"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73Nd2Mcv1"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAbuatmU"
+   ],
+   [
+    "Public key",
+    "not derivable: Invalid scalarFromBytes arguments. reason: Invalid scalar bytes."
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000000",
+  "format": "hex",
+  "network": "signet",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111111"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
+   ],
+   [
+    "SHA-256d",
+    "2b32db6c2c0a6235fb1397e8225ea85e0f0e6e8c7b126d0016ccbde0e667151e"
+   ],
+   [
+    "RIPEMD-160",
+    "d1a70126ff7a149ca6f9b638db084480440ff842"
+   ],
+   [
+    "HASH160",
+    "b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc6"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87J7g8rY9t"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwi1C2GD"
+   ],
+   [
+    "Public key",
+    "not derivable: Invalid scalarFromBytes arguments. reason: Invalid scalar bytes."
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000000",
+  "format": "hex",
+  "network": "regtest",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111111"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
+   ],
+   [
+    "SHA-256d",
+    "2b32db6c2c0a6235fb1397e8225ea85e0f0e6e8c7b126d0016ccbde0e667151e"
+   ],
+   [
+    "RIPEMD-160",
+    "d1a70126ff7a149ca6f9b638db084480440ff842"
+   ],
+   [
+    "HASH160",
+    "b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc6"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87J7g8rY9t"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwi1C2GD"
+   ],
+   [
+    "Public key",
+    "not derivable: Invalid scalarFromBytes arguments. reason: Invalid scalar bytes."
+   ]
+  ]
+ },
+ {
+  "input": "0000000000000000000000000000000000000000000000000000000000000000",
+  "format": "hex",
+  "network": "ecash",
+  "detected": "hex",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111111"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
+   ],
+   [
+    "SHA-256d",
+    "2b32db6c2c0a6235fb1397e8225ea85e0f0e6e8c7b126d0016ccbde0e667151e"
+   ],
+   [
+    "RIPEMD-160",
+    "d1a70126ff7a149ca6f9b638db084480440ff842"
+   ],
+   [
+    "HASH160",
+    "b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc6"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73Nd2Mcv1"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAbuatmU"
+   ],
+   [
+    "Public key",
+    "not derivable: Invalid scalarFromBytes arguments. reason: Invalid scalar bytes."
+   ]
+  ]
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "000000000000000000000000000000000000000000000000000000000000000101"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEB"
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111115S"
+   ],
+   [
+    "Byte length",
+    "33"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "0f31abef92c6818b886c7c870dc537c1d548b4aa6a86ba87552dd02e2106c640"
+   ],
+   [
+    "SHA-256d",
+    "eb2e4f8e71ad30f1736dc8caf1becc9416b2960e28c6fc4b010297568e2b88d3"
+   ],
+   [
+    "RIPEMD-160",
+    "02662928af4c06ef21cbcdfb82c76c7ae5f14fdc"
+   ],
+   [
+    "HASH160",
+    "f8567d99c60333d4adfdb856abe02d93149280b9"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn",
+  "format": "auto",
+  "network": "signet",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "000000000000000000000000000000000000000000000000000000000000000101"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEB"
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111115S"
+   ],
+   [
+    "Byte length",
+    "33"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "0f31abef92c6818b886c7c870dc537c1d548b4aa6a86ba87552dd02e2106c640"
+   ],
+   [
+    "SHA-256d",
+    "eb2e4f8e71ad30f1736dc8caf1becc9416b2960e28c6fc4b010297568e2b88d3"
+   ],
+   [
+    "RIPEMD-160",
+    "02662928af4c06ef21cbcdfb82c76c7ae5f14fdc"
+   ],
+   [
+    "HASH160",
+    "f8567d99c60333d4adfdb856abe02d93149280b9"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+   ],
+   [
+    "P2TR address",
+    "tb1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssk79hv2"
+   ]
+  ]
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "000000000000000000000000000000000000000000000000000000000000000101"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEB"
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111115S"
+   ],
+   [
+    "Byte length",
+    "33"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "0f31abef92c6818b886c7c870dc537c1d548b4aa6a86ba87552dd02e2106c640"
+   ],
+   [
+    "SHA-256d",
+    "eb2e4f8e71ad30f1736dc8caf1becc9416b2960e28c6fc4b010297568e2b88d3"
+   ],
+   [
+    "RIPEMD-160",
+    "02662928af4c06ef21cbcdfb82c76c7ae5f14fdc"
+   ],
+   [
+    "HASH160",
+    "f8567d99c60333d4adfdb856abe02d93149280b9"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080"
+   ],
+   [
+    "P2TR address",
+    "bcrt1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssm803es"
+   ]
+  ]
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "000000000000000000000000000000000000000000000000000000000000000101"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEB"
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111115S"
+   ],
+   [
+    "Byte length",
+    "33"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "0f31abef92c6818b886c7c870dc537c1d548b4aa6a86ba87552dd02e2106c640"
+   ],
+   [
+    "SHA-256d",
+    "eb2e4f8e71ad30f1736dc8caf1becc9416b2960e28c6fc4b010297568e2b88d3"
+   ],
+   [
+    "RIPEMD-160",
+    "02662928af4c06ef21cbcdfb82c76c7ae5f14fdc"
+   ],
+   [
+    "HASH160",
+    "f8567d99c60333d4adfdb856abe02d93149280b9"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa",
+  "format": "wif",
+  "network": "mainnet",
+  "detected": "wif",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa",
+  "format": "wif",
+  "network": "signet",
+  "detected": "wif",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa",
+  "format": "wif",
+  "network": "regtest",
+  "detected": "wif",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa",
+  "format": "wif",
+  "network": "ecash",
+  "detected": "wif",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "4b77446942663839516747626a45684b6e68584a7548374c72636956725a693371596a6764394d3772465537337356486e6f5761"
+   ],
+   [
+    "Base64",
+    "S3dEaUJmODlRZ0diakVoS25oWEp1SDdMcmNpVnJaaTNxWWpnZDlNN3JGVTczc1ZIbm9XYQ=="
+   ],
+   [
+    "Base58",
+    "K7ebrucz5oB1VAYMa9KwcaRo8xEEKcJv1bmS2oQmqXYv8D7x1UfQKRYKJmJcaJgNk2oJKig"
+   ],
+   [
+    "Byte length",
+    "52"
+   ],
+   [
+    "ASCII",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "996a25be5977d321a776b0e38efbdf24a5e7851203022a7489cb2050fb8d20ed"
+   ],
+   [
+    "SHA-256d",
+    "9300d91ee49eac94357bc9368dd54716d2ccefed544c289d825cf967b8493bca"
+   ],
+   [
+    "RIPEMD-160",
+    "215403f9f693b7dd2f478dfee249cbc6d8055547"
+   ],
+   [
+    "HASH160",
+    "7edcd6dd77038cf6a7721863a43607580343ce37"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa",
+  "format": "auto",
+  "network": "signet",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "4b77446942663839516747626a45684b6e68584a7548374c72636956725a693371596a6764394d3772465537337356486e6f5761"
+   ],
+   [
+    "Base64",
+    "S3dEaUJmODlRZ0diakVoS25oWEp1SDdMcmNpVnJaaTNxWWpnZDlNN3JGVTczc1ZIbm9XYQ=="
+   ],
+   [
+    "Base58",
+    "K7ebrucz5oB1VAYMa9KwcaRo8xEEKcJv1bmS2oQmqXYv8D7x1UfQKRYKJmJcaJgNk2oJKig"
+   ],
+   [
+    "Byte length",
+    "52"
+   ],
+   [
+    "ASCII",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "996a25be5977d321a776b0e38efbdf24a5e7851203022a7489cb2050fb8d20ed"
+   ],
+   [
+    "SHA-256d",
+    "9300d91ee49eac94357bc9368dd54716d2ccefed544c289d825cf967b8493bca"
+   ],
+   [
+    "RIPEMD-160",
+    "215403f9f693b7dd2f478dfee249cbc6d8055547"
+   ],
+   [
+    "HASH160",
+    "7edcd6dd77038cf6a7721863a43607580343ce37"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "4b77446942663839516747626a45684b6e68584a7548374c72636956725a693371596a6764394d3772465537337356486e6f5761"
+   ],
+   [
+    "Base64",
+    "S3dEaUJmODlRZ0diakVoS25oWEp1SDdMcmNpVnJaaTNxWWpnZDlNN3JGVTczc1ZIbm9XYQ=="
+   ],
+   [
+    "Base58",
+    "K7ebrucz5oB1VAYMa9KwcaRo8xEEKcJv1bmS2oQmqXYv8D7x1UfQKRYKJmJcaJgNk2oJKig"
+   ],
+   [
+    "Byte length",
+    "52"
+   ],
+   [
+    "ASCII",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "996a25be5977d321a776b0e38efbdf24a5e7851203022a7489cb2050fb8d20ed"
+   ],
+   [
+    "SHA-256d",
+    "9300d91ee49eac94357bc9368dd54716d2ccefed544c289d825cf967b8493bca"
+   ],
+   [
+    "RIPEMD-160",
+    "215403f9f693b7dd2f478dfee249cbc6d8055547"
+   ],
+   [
+    "HASH160",
+    "7edcd6dd77038cf6a7721863a43607580343ce37"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "4b77446942663839516747626a45684b6e68584a7548374c72636956725a693371596a6764394d3772465537337356486e6f5761"
+   ],
+   [
+    "Base64",
+    "S3dEaUJmODlRZ0diakVoS25oWEp1SDdMcmNpVnJaaTNxWWpnZDlNN3JGVTczc1ZIbm9XYQ=="
+   ],
+   [
+    "Base58",
+    "K7ebrucz5oB1VAYMa9KwcaRo8xEEKcJv1bmS2oQmqXYv8D7x1UfQKRYKJmJcaJgNk2oJKig"
+   ],
+   [
+    "Byte length",
+    "52"
+   ],
+   [
+    "ASCII",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWa"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "996a25be5977d321a776b0e38efbdf24a5e7851203022a7489cb2050fb8d20ed"
+   ],
+   [
+    "SHA-256d",
+    "9300d91ee49eac94357bc9368dd54716d2ccefed544c289d825cf967b8493bca"
+   ],
+   [
+    "RIPEMD-160",
+    "215403f9f693b7dd2f478dfee249cbc6d8055547"
+   ],
+   [
+    "HASH160",
+    "7edcd6dd77038cf6a7721863a43607580343ce37"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf",
+  "format": "auto",
+  "network": "signet",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+   ],
+   [
+    "P2TR address",
+    "tb1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssk79hv2"
+   ]
+  ]
+ },
+ {
+  "input": "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080"
+   ],
+   [
+    "P2TR address",
+    "bcrt1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssm803es"
+   ]
+  ]
+ },
+ {
+  "input": "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE="
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111112"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x80"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5"
+   ],
+   [
+    "SHA-256d",
+    "32ba476771d01e37807990ead8719f08af494723de1d228f2c2c07cc0aa40bac"
+   ],
+   [
+    "RIPEMD-160",
+    "ae387fcfeb723c3f5964509af111cf5a67f30661"
+   ],
+   [
+    "HASH160",
+    "7c43548021971177f70c6805585ed7de138f34da"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "000000000000000000000000000000000000000000000000000000000000000101"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEB"
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111115S"
+   ],
+   [
+    "Byte length",
+    "33"
+   ],
+   [
+    "Base58Check version",
+    "0xEF"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "0f31abef92c6818b886c7c870dc537c1d548b4aa6a86ba87552dd02e2106c640"
+   ],
+   [
+    "SHA-256d",
+    "eb2e4f8e71ad30f1736dc8caf1becc9416b2960e28c6fc4b010297568e2b88d3"
+   ],
+   [
+    "RIPEMD-160",
+    "02662928af4c06ef21cbcdfb82c76c7ae5f14fdc"
+   ],
+   [
+    "HASH160",
+    "f8567d99c60333d4adfdb856abe02d93149280b9"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA",
+  "format": "auto",
+  "network": "signet",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "000000000000000000000000000000000000000000000000000000000000000101"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEB"
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111115S"
+   ],
+   [
+    "Byte length",
+    "33"
+   ],
+   [
+    "Base58Check version",
+    "0xEF"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "0f31abef92c6818b886c7c870dc537c1d548b4aa6a86ba87552dd02e2106c640"
+   ],
+   [
+    "SHA-256d",
+    "eb2e4f8e71ad30f1736dc8caf1becc9416b2960e28c6fc4b010297568e2b88d3"
+   ],
+   [
+    "RIPEMD-160",
+    "02662928af4c06ef21cbcdfb82c76c7ae5f14fdc"
+   ],
+   [
+    "HASH160",
+    "f8567d99c60333d4adfdb856abe02d93149280b9"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+   ],
+   [
+    "P2TR address",
+    "tb1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssk79hv2"
+   ]
+  ]
+ },
+ {
+  "input": "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "000000000000000000000000000000000000000000000000000000000000000101"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEB"
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111115S"
+   ],
+   [
+    "Byte length",
+    "33"
+   ],
+   [
+    "Base58Check version",
+    "0xEF"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "0f31abef92c6818b886c7c870dc537c1d548b4aa6a86ba87552dd02e2106c640"
+   ],
+   [
+    "SHA-256d",
+    "eb2e4f8e71ad30f1736dc8caf1becc9416b2960e28c6fc4b010297568e2b88d3"
+   ],
+   [
+    "RIPEMD-160",
+    "02662928af4c06ef21cbcdfb82c76c7ae5f14fdc"
+   ],
+   [
+    "HASH160",
+    "f8567d99c60333d4adfdb856abe02d93149280b9"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjJoQFacbgwmaKkrx"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r"
+   ],
+   [
+    "P2WPKH address",
+    "bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080"
+   ],
+   [
+    "P2TR address",
+    "bcrt1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssm803es"
+   ]
+  ]
+ },
+ {
+  "input": "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "wif",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "000000000000000000000000000000000000000000000000000000000000000101"
+   ],
+   [
+    "Base64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEB"
+   ],
+   [
+    "Base58",
+    "11111111111111111111111111111115S"
+   ],
+   [
+    "Byte length",
+    "33"
+   ],
+   [
+    "Base58Check version",
+    "0xEF"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "0f31abef92c6818b886c7c870dc537c1d548b4aa6a86ba87552dd02e2106c640"
+   ],
+   [
+    "SHA-256d",
+    "eb2e4f8e71ad30f1736dc8caf1becc9416b2960e28c6fc4b010297568e2b88d3"
+   ],
+   [
+    "RIPEMD-160",
+    "02662928af4c06ef21cbcdfb82c76c7ae5f14fdc"
+   ],
+   [
+    "HASH160",
+    "f8567d99c60333d4adfdb856abe02d93149280b9"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0000000000000000000000000000000000000000000000000000000000000001"
+   ],
+   [
+    "WIF (compressed)",
+    "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAnchuDf"
+   ],
+   [
+    "Public key (compressed)",
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Public key (uncompressed)",
+    "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+   ],
+   [
+    "HASH160 of pubkey",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "P2PKH address",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+   ],
+   [
+    "P2TR address",
+    "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+   ]
+  ]
+ },
+ {
+  "input": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+  "format": "auto",
+  "network": "signet",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4",
+  "format": "auto",
+  "network": "signet",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Base64",
+    "eb5mfvncu6xVoGKVzocLBwKb/NstzijZWfKBWxb4F5g="
+   ],
+   [
+    "Base58",
+    "9CEiuSgdHtub59syFf4Usf5eEJaEN5eQqEjJNeCatrJs"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "132f39a98c31baaddba6525f5d43f2954472097fa15265f45130bfdb70e51def"
+   ],
+   [
+    "SHA-256d",
+    "2d192ccf408c6c9df2740c77566cb001423d579d990a7f3731083d6666e70166"
+   ],
+   [
+    "RIPEMD-160",
+    "6d1fda89791b6d1db40b036e7a017c3b5ef26c11"
+   ],
+   [
+    "HASH160",
+    "f678d9b79045452c8c64e9309d0f0046056e26c5"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "WIF (compressed)",
+    "L1JN7XTaaPT38zq5zMjNEQ7BhcLJbC8tvkTrdA9PYVZ5ZjnHmnBx"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5JjuMxqcheFxmQXNyViKQRijJMhAso2LU8aj4D3MWntg6gGBGQu"
+   ],
+   [
+    "Public key (compressed)",
+    "025b75fd5f49e78191a45e1c9438644fe5d065ea98920c63e9eef86e151e99b809"
+   ],
+   [
+    "Public key (uncompressed)",
+    "045b75fd5f49e78191a45e1c9438644fe5d065ea98920c63e9eef86e151e99b8094eef2a826f1e6d13a4dde4e54800e8d282a2089a873072002e0a3a21eae5763a"
+   ],
+   [
+    "HASH160 of pubkey",
+    "c867016c093077849cd166a0aac6641c4d3a1289"
+   ],
+   [
+    "P2PKH address",
+    "1KGdYKR4aYbdGPiS22BL28VHPQwwX5o175"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qepnszmqfxpmcf8x3v6s243nyr3xn5y5flw22dp"
+   ],
+   [
+    "P2TR address",
+    "bc1ptcy0mj0syh4dc0p4nfjhv9yhgps60szxvnaydnghe309an3k4jfs78qq0q"
+   ]
+  ]
+ },
+ {
+  "input": "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+  "format": "auto",
+  "network": "signet",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Base64",
+    "eb5mfvncu6xVoGKVzocLBwKb/NstzijZWfKBWxb4F5g="
+   ],
+   [
+    "Base58",
+    "9CEiuSgdHtub59syFf4Usf5eEJaEN5eQqEjJNeCatrJs"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "132f39a98c31baaddba6525f5d43f2954472097fa15265f45130bfdb70e51def"
+   ],
+   [
+    "SHA-256d",
+    "2d192ccf408c6c9df2740c77566cb001423d579d990a7f3731083d6666e70166"
+   ],
+   [
+    "RIPEMD-160",
+    "6d1fda89791b6d1db40b036e7a017c3b5ef26c11"
+   ],
+   [
+    "HASH160",
+    "f678d9b79045452c8c64e9309d0f0046056e26c5"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "WIF (compressed)",
+    "cRfMaSTS1T9JJSJMNmYVbicFKqdiFeEazncKjabu3cD5pUsy41fe"
+   ],
+   [
+    "WIF (uncompressed)",
+    "92WXwhfAHsL6jU2fbqcEH2Ggx23t2xZXp5Sg8qPrrXdishK8RT7"
+   ],
+   [
+    "Public key (compressed)",
+    "025b75fd5f49e78191a45e1c9438644fe5d065ea98920c63e9eef86e151e99b809"
+   ],
+   [
+    "Public key (uncompressed)",
+    "045b75fd5f49e78191a45e1c9438644fe5d065ea98920c63e9eef86e151e99b8094eef2a826f1e6d13a4dde4e54800e8d282a2089a873072002e0a3a21eae5763a"
+   ],
+   [
+    "HASH160 of pubkey",
+    "c867016c093077849cd166a0aac6641c4d3a1289"
+   ],
+   [
+    "P2PKH address",
+    "mynaqNW3Pa2t3WC3jb9hr3hcFQYeVmyQNb"
+   ],
+   [
+    "P2WPKH address",
+    "tb1qepnszmqfxpmcf8x3v6s243nyr3xn5y5f4g3ekj"
+   ],
+   [
+    "P2TR address",
+    "tb1ptcy0mj0syh4dc0p4nfjhv9yhgps60szxvnaydnghe309an3k4jfsf0k040"
+   ]
+  ]
+ },
+ {
+  "input": "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Base64",
+    "eb5mfvncu6xVoGKVzocLBwKb/NstzijZWfKBWxb4F5g="
+   ],
+   [
+    "Base58",
+    "9CEiuSgdHtub59syFf4Usf5eEJaEN5eQqEjJNeCatrJs"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "132f39a98c31baaddba6525f5d43f2954472097fa15265f45130bfdb70e51def"
+   ],
+   [
+    "SHA-256d",
+    "2d192ccf408c6c9df2740c77566cb001423d579d990a7f3731083d6666e70166"
+   ],
+   [
+    "RIPEMD-160",
+    "6d1fda89791b6d1db40b036e7a017c3b5ef26c11"
+   ],
+   [
+    "HASH160",
+    "f678d9b79045452c8c64e9309d0f0046056e26c5"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "WIF (compressed)",
+    "cRfMaSTS1T9JJSJMNmYVbicFKqdiFeEazncKjabu3cD5pUsy41fe"
+   ],
+   [
+    "WIF (uncompressed)",
+    "92WXwhfAHsL6jU2fbqcEH2Ggx23t2xZXp5Sg8qPrrXdishK8RT7"
+   ],
+   [
+    "Public key (compressed)",
+    "025b75fd5f49e78191a45e1c9438644fe5d065ea98920c63e9eef86e151e99b809"
+   ],
+   [
+    "Public key (uncompressed)",
+    "045b75fd5f49e78191a45e1c9438644fe5d065ea98920c63e9eef86e151e99b8094eef2a826f1e6d13a4dde4e54800e8d282a2089a873072002e0a3a21eae5763a"
+   ],
+   [
+    "HASH160 of pubkey",
+    "c867016c093077849cd166a0aac6641c4d3a1289"
+   ],
+   [
+    "P2PKH address",
+    "mynaqNW3Pa2t3WC3jb9hr3hcFQYeVmyQNb"
+   ],
+   [
+    "P2WPKH address",
+    "bcrt1qepnszmqfxpmcf8x3v6s243nyr3xn5y5fhpg5pm"
+   ],
+   [
+    "P2TR address",
+    "bcrt1ptcy0mj0syh4dc0p4nfjhv9yhgps60szxvnaydnghe309an3k4jfsykufq4"
+   ]
+  ]
+ },
+ {
+  "input": "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "Base64",
+    "eb5mfvncu6xVoGKVzocLBwKb/NstzijZWfKBWxb4F5g="
+   ],
+   [
+    "Base58",
+    "9CEiuSgdHtub59syFf4Usf5eEJaEN5eQqEjJNeCatrJs"
+   ],
+   [
+    "Byte length",
+    "32"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "132f39a98c31baaddba6525f5d43f2954472097fa15265f45130bfdb70e51def"
+   ],
+   [
+    "SHA-256d",
+    "2d192ccf408c6c9df2740c77566cb001423d579d990a7f3731083d6666e70166"
+   ],
+   [
+    "RIPEMD-160",
+    "6d1fda89791b6d1db40b036e7a017c3b5ef26c11"
+   ],
+   [
+    "HASH160",
+    "f678d9b79045452c8c64e9309d0f0046056e26c5"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+   ],
+   [
+    "WIF (compressed)",
+    "L1JN7XTaaPT38zq5zMjNEQ7BhcLJbC8tvkTrdA9PYVZ5ZjnHmnBx"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5JjuMxqcheFxmQXNyViKQRijJMhAso2LU8aj4D3MWntg6gGBGQu"
+   ],
+   [
+    "Public key (compressed)",
+    "025b75fd5f49e78191a45e1c9438644fe5d065ea98920c63e9eef86e151e99b809"
+   ],
+   [
+    "Public key (uncompressed)",
+    "045b75fd5f49e78191a45e1c9438644fe5d065ea98920c63e9eef86e151e99b8094eef2a826f1e6d13a4dde4e54800e8d282a2089a873072002e0a3a21eae5763a"
+   ],
+   [
+    "HASH160 of pubkey",
+    "c867016c093077849cd166a0aac6641c4d3a1289"
+   ],
+   [
+    "P2PKH address",
+    "1KGdYKR4aYbdGPiS22BL28VHPQwwX5o175"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qepnszmqfxpmcf8x3v6s243nyr3xn5y5flw22dp"
+   ],
+   [
+    "P2TR address",
+    "bc1ptcy0mj0syh4dc0p4nfjhv9yhgps60szxvnaydnghe309an3k4jfs78qq0q"
+   ]
+  ]
+ },
+ {
+  "input": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+  "format": "bech32",
+  "network": "mainnet",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+  "format": "bech32",
+  "network": "signet",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+  "format": "bech32",
+  "network": "regtest",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+  "format": "bech32",
+  "network": "ecash",
+  "detected": "bech32",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "bcrt1q6rz28mcfaxtmd6v789l9rrlrusdprr9p634wu8",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "bech32",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "bcrt1q6rz28mcfaxtmd6v789l9rrlrusdprr9p634wu8",
+  "format": "auto",
+  "network": "signet",
+  "detected": "bech32",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "bcrt1q6rz28mcfaxtmd6v789l9rrlrusdprr9p634wu8",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "bech32",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "bcrt1q6rz28mcfaxtmd6v789l9rrlrusdprr9p634wu8",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "bech32",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5",
+  "format": "bech32",
+  "network": "mainnet",
+  "detected": "bech32",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5",
+  "format": "bech32",
+  "network": "signet",
+  "detected": "bech32",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5",
+  "format": "bech32",
+  "network": "regtest",
+  "detected": "bech32",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5",
+  "format": "bech32",
+  "network": "ecash",
+  "detected": "bech32",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH",
+  "format": "auto",
+  "network": "signet",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "b472a266d0bd89c13706a4132ccfb16f7c3b9fcb"
+   ],
+   [
+    "Base64",
+    "tHKiZtC9icE3BqQTLM+xb3w7n8s="
+   ],
+   [
+    "Base58",
+    "3Wou4SXgm8Sq9fGKJAhAdn5d6uy4"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x05"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "888818dde438bbaa6877c967d7597fa9c859f9311dd43ea2086a2965acbd3759"
+   ],
+   [
+    "SHA-256d",
+    "2687ff5749507f4fe15dbcd1e0b04716aa2d33cdd22a39561e1d2e503bf2c397"
+   ],
+   [
+    "RIPEMD-160",
+    "9f23033a51c1af32378c612ca3fa26baefa23bef"
+   ],
+   [
+    "HASH160",
+    "2842f899a4cfcae5c0127440c83d68871f782512"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+  "format": "auto",
+  "network": "signet",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "b472a266d0bd89c13706a4132ccfb16f7c3b9fcb"
+   ],
+   [
+    "Base64",
+    "tHKiZtC9icE3BqQTLM+xb3w7n8s="
+   ],
+   [
+    "Base58",
+    "3Wou4SXgm8Sq9fGKJAhAdn5d6uy4"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x05"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "888818dde438bbaa6877c967d7597fa9c859f9311dd43ea2086a2965acbd3759"
+   ],
+   [
+    "SHA-256d",
+    "2687ff5749507f4fe15dbcd1e0b04716aa2d33cdd22a39561e1d2e503bf2c397"
+   ],
+   [
+    "RIPEMD-160",
+    "9f23033a51c1af32378c612ca3fa26baefa23bef"
+   ],
+   [
+    "HASH160",
+    "2842f899a4cfcae5c0127440c83d68871f782512"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "b472a266d0bd89c13706a4132ccfb16f7c3b9fcb"
+   ],
+   [
+    "Base64",
+    "tHKiZtC9icE3BqQTLM+xb3w7n8s="
+   ],
+   [
+    "Base58",
+    "3Wou4SXgm8Sq9fGKJAhAdn5d6uy4"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x05"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "888818dde438bbaa6877c967d7597fa9c859f9311dd43ea2086a2965acbd3759"
+   ],
+   [
+    "SHA-256d",
+    "2687ff5749507f4fe15dbcd1e0b04716aa2d33cdd22a39561e1d2e503bf2c397"
+   ],
+   [
+    "RIPEMD-160",
+    "9f23033a51c1af32378c612ca3fa26baefa23bef"
+   ],
+   [
+    "HASH160",
+    "2842f899a4cfcae5c0127440c83d68871f782512"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "b472a266d0bd89c13706a4132ccfb16f7c3b9fcb"
+   ],
+   [
+    "Base64",
+    "tHKiZtC9icE3BqQTLM+xb3w7n8s="
+   ],
+   [
+    "Base58",
+    "3Wou4SXgm8Sq9fGKJAhAdn5d6uy4"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x05"
+   ],
+   [
+    "Base58Check valid",
+    "yes"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "888818dde438bbaa6877c967d7597fa9c859f9311dd43ea2086a2965acbd3759"
+   ],
+   [
+    "SHA-256d",
+    "2687ff5749507f4fe15dbcd1e0b04716aa2d33cdd22a39561e1d2e503bf2c397"
+   ],
+   [
+    "RIPEMD-160",
+    "9f23033a51c1af32378c612ca3fa26baefa23bef"
+   ],
+   [
+    "HASH160",
+    "2842f899a4cfcae5c0127440c83d68871f782512"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx",
+  "format": "base58check",
+  "network": "mainnet",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx",
+  "format": "base58check",
+  "network": "signet",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx",
+  "format": "base58check",
+  "network": "regtest",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx",
+  "format": "base58check",
+  "network": "ecash",
+  "detected": "base58check",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "751e76e8199196d454941c45d1b3a323f1433bd6"
+   ],
+   [
+    "Base64",
+    "dR526BmRltRUlBxF0bOjI/FDO9Y="
+   ],
+   [
+    "Base58",
+    "2ddvLKZUnFosBYkLrzayChzQUNzq"
+   ],
+   [
+    "Byte length",
+    "20"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "ffded88409d93ec2a201c95f2a71e7e09e635b3a1aa08012737a10d9503af006"
+   ],
+   [
+    "SHA-256d",
+    "4352f39810056e46e1f11afaa6b7cec736a2ce6b1e68d3edf76334eb2de25679"
+   ],
+   [
+    "RIPEMD-160",
+    "809053ad454e7ef66731f09cafc7416371473e3a"
+   ],
+   [
+    "HASH160",
+    "59abce1547c0d06c08f9e3c9ee8cb723624ebd79"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "314267475a3974634e34726d394b427a446e374b7072517a3837535a323653414d78"
+   ],
+   [
+    "Base64",
+    "MUJnR1o5dGNONHJtOUtCekRuN0twclF6ODdTWjI2U0FNeA=="
+   ],
+   [
+    "Base58",
+    "27b5CBhjU9SVQLcWPPnJ6UsQpfyuEZ29KDtpWSnGzexaSBy"
+   ],
+   [
+    "Byte length",
+    "34"
+   ],
+   [
+    "ASCII",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "24b3f1f69b235ff52ed0b7e4ea968cf18d953aae39fec360204c190bd285579e"
+   ],
+   [
+    "SHA-256d",
+    "15731dfc1d72882c243d43694b628ed292171599ae64b9e2e02972f87fc9acd1"
+   ],
+   [
+    "RIPEMD-160",
+    "5287d5b95529789de4e65479fe86f3f3245b79b1"
+   ],
+   [
+    "HASH160",
+    "f2ad929c1e301579e9ff2a3ec66563cabba2cb2a"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx",
+  "format": "auto",
+  "network": "signet",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "314267475a3974634e34726d394b427a446e374b7072517a3837535a323653414d78"
+   ],
+   [
+    "Base64",
+    "MUJnR1o5dGNONHJtOUtCekRuN0twclF6ODdTWjI2U0FNeA=="
+   ],
+   [
+    "Base58",
+    "27b5CBhjU9SVQLcWPPnJ6UsQpfyuEZ29KDtpWSnGzexaSBy"
+   ],
+   [
+    "Byte length",
+    "34"
+   ],
+   [
+    "ASCII",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "24b3f1f69b235ff52ed0b7e4ea968cf18d953aae39fec360204c190bd285579e"
+   ],
+   [
+    "SHA-256d",
+    "15731dfc1d72882c243d43694b628ed292171599ae64b9e2e02972f87fc9acd1"
+   ],
+   [
+    "RIPEMD-160",
+    "5287d5b95529789de4e65479fe86f3f3245b79b1"
+   ],
+   [
+    "HASH160",
+    "f2ad929c1e301579e9ff2a3ec66563cabba2cb2a"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "314267475a3974634e34726d394b427a446e374b7072517a3837535a323653414d78"
+   ],
+   [
+    "Base64",
+    "MUJnR1o5dGNONHJtOUtCekRuN0twclF6ODdTWjI2U0FNeA=="
+   ],
+   [
+    "Base58",
+    "27b5CBhjU9SVQLcWPPnJ6UsQpfyuEZ29KDtpWSnGzexaSBy"
+   ],
+   [
+    "Byte length",
+    "34"
+   ],
+   [
+    "ASCII",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "24b3f1f69b235ff52ed0b7e4ea968cf18d953aae39fec360204c190bd285579e"
+   ],
+   [
+    "SHA-256d",
+    "15731dfc1d72882c243d43694b628ed292171599ae64b9e2e02972f87fc9acd1"
+   ],
+   [
+    "RIPEMD-160",
+    "5287d5b95529789de4e65479fe86f3f3245b79b1"
+   ],
+   [
+    "HASH160",
+    "f2ad929c1e301579e9ff2a3ec66563cabba2cb2a"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "314267475a3974634e34726d394b427a446e374b7072517a3837535a323653414d78"
+   ],
+   [
+    "Base64",
+    "MUJnR1o5dGNONHJtOUtCekRuN0twclF6ODdTWjI2U0FNeA=="
+   ],
+   [
+    "Base58",
+    "27b5CBhjU9SVQLcWPPnJ6UsQpfyuEZ29KDtpWSnGzexaSBy"
+   ],
+   [
+    "Byte length",
+    "34"
+   ],
+   [
+    "ASCII",
+    "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMx"
+   ],
+   [
+    "Base58Check version",
+    "0x00"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "24b3f1f69b235ff52ed0b7e4ea968cf18d953aae39fec360204c190bd285579e"
+   ],
+   [
+    "SHA-256d",
+    "15731dfc1d72882c243d43694b628ed292171599ae64b9e2e02972f87fc9acd1"
+   ],
+   [
+    "RIPEMD-160",
+    "5287d5b95529789de4e65479fe86f3f3245b79b1"
+   ],
+   [
+    "HASH160",
+    "f2ad929c1e301579e9ff2a3ec66563cabba2cb2a"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "satoshi",
+  "format": "passphrase",
+  "network": "mainnet",
+  "detected": "passphrase",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "da2876b3eb31edb4436fa4650673fc6f01f90de2f1793c4ec332b2387b09726f"
+   ],
+   [
+    "Base64",
+    "2ih2s+sx7bRDb6RlBnP8bwH5DeLxeTxOwzKyOHsJcm8="
+   ],
+   [
+    "Base58",
+    "FgbfY34PGhe76a1KajBKM5xPq5NAF8iVGH6vicoWQbKk"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x01"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "d3e291220ccc90141e6ada2fc9740a0a1dcc6aadf1c47c65c9243d49b2d7a326"
+   ],
+   [
+    "SHA-256d",
+    "2f3e46db49c0fb982fc44df8eeda28529ecae66361c90ec6048accf8c3837858"
+   ],
+   [
+    "RIPEMD-160",
+    "bff918b98c6fd0b0a355fbd7fc92ade3637227e7"
+   ],
+   [
+    "HASH160",
+    "7e2ed8b052b0c5946a0d036860621aa959ee824b"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "da2876b3eb31edb4436fa4650673fc6f01f90de2f1793c4ec332b2387b09726f"
+   ],
+   [
+    "WIF (compressed)",
+    "L4XnHhvLC1b4ag9L2PM9kRicQxUoYT1Q36PQ21YtLNkrAdWZNos6"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5KUN8s42BCTkQVMTy3oFfqeXE8awVskbDi6XbDMpRnFvHJW9fgk"
+   ],
+   [
+    "Public key (compressed)",
+    "03c4f00a8aa87f595b60b1e390f17fc64d12c1a1f505354a7eea5f2ee353e427b7"
+   ],
+   [
+    "Public key (uncompressed)",
+    "04c4f00a8aa87f595b60b1e390f17fc64d12c1a1f505354a7eea5f2ee353e427b7fc0ac3f520dfd4946ab28ac5fa3173050f90c6b2d186333e998d7777fdaa52d5"
+   ],
+   [
+    "HASH160 of pubkey",
+    "0a8ba9e453383d4561cbcdda36e5789c2870dd41"
+   ],
+   [
+    "P2PKH address",
+    "1xm4vFerV3pSgvBFkyzLgT1Ew3HQYrS1V"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qp296nezn8q752cwtehdrdetcns58ph2plx04f5"
+   ],
+   [
+    "P2TR address",
+    "bc1p3ve2qusuhhy2cydvxfytuagvjsx56ccftuhxu4a9ephr2ddqz5vq70fjry"
+   ]
+  ]
+ },
+ {
+  "input": "satoshi",
+  "format": "passphrase",
+  "network": "signet",
+  "detected": "passphrase",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "da2876b3eb31edb4436fa4650673fc6f01f90de2f1793c4ec332b2387b09726f"
+   ],
+   [
+    "Base64",
+    "2ih2s+sx7bRDb6RlBnP8bwH5DeLxeTxOwzKyOHsJcm8="
+   ],
+   [
+    "Base58",
+    "FgbfY34PGhe76a1KajBKM5xPq5NAF8iVGH6vicoWQbKk"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x01"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "d3e291220ccc90141e6ada2fc9740a0a1dcc6aadf1c47c65c9243d49b2d7a326"
+   ],
+   [
+    "SHA-256d",
+    "2f3e46db49c0fb982fc44df8eeda28529ecae66361c90ec6048accf8c3837858"
+   ],
+   [
+    "RIPEMD-160",
+    "bff918b98c6fd0b0a355fbd7fc92ade3637227e7"
+   ],
+   [
+    "HASH160",
+    "7e2ed8b052b0c5946a0d036860621aa959ee824b"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "da2876b3eb31edb4436fa4650673fc6f01f90de2f1793c4ec332b2387b09726f"
+   ],
+   [
+    "WIF (compressed)",
+    "cUtmkcvBd5HKk7cbQoAH7kDg3BnDCu7678Xs8S1PqVQrRNYaRDaW"
+   ],
+   [
+    "WIF (uncompressed)",
+    "93EzibsZmRXtNYrkbPhAYSCUsnwef3HnZexUfqiKmWzy4HZYL44"
+   ],
+   [
+    "Public key (compressed)",
+    "03c4f00a8aa87f595b60b1e390f17fc64d12c1a1f505354a7eea5f2ee353e427b7"
+   ],
+   [
+    "Public key (uncompressed)",
+    "04c4f00a8aa87f595b60b1e390f17fc64d12c1a1f505354a7eea5f2ee353e427b7fc0ac3f520dfd4946ab28ac5fa3173050f90c6b2d186333e998d7777fdaa52d5"
+   ],
+   [
+    "HASH160 of pubkey",
+    "0a8ba9e453383d4561cbcdda36e5789c2870dd41"
+   ],
+   [
+    "P2PKH address",
+    "mgUiMyLdfWV5DoPnyKxNAbfL6vdzLipkfB"
+   ],
+   [
+    "P2WPKH address",
+    "tb1qp296nezn8q752cwtehdrdetcns58ph2p4q5xj8"
+   ],
+   [
+    "P2TR address",
+    "tb1p3ve2qusuhhy2cydvxfytuagvjsx56ccftuhxu4a9ephr2ddqz5vqf8laet"
+   ]
+  ]
+ },
+ {
+  "input": "satoshi",
+  "format": "passphrase",
+  "network": "regtest",
+  "detected": "passphrase",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "da2876b3eb31edb4436fa4650673fc6f01f90de2f1793c4ec332b2387b09726f"
+   ],
+   [
+    "Base64",
+    "2ih2s+sx7bRDb6RlBnP8bwH5DeLxeTxOwzKyOHsJcm8="
+   ],
+   [
+    "Base58",
+    "FgbfY34PGhe76a1KajBKM5xPq5NAF8iVGH6vicoWQbKk"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x01"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "d3e291220ccc90141e6ada2fc9740a0a1dcc6aadf1c47c65c9243d49b2d7a326"
+   ],
+   [
+    "SHA-256d",
+    "2f3e46db49c0fb982fc44df8eeda28529ecae66361c90ec6048accf8c3837858"
+   ],
+   [
+    "RIPEMD-160",
+    "bff918b98c6fd0b0a355fbd7fc92ade3637227e7"
+   ],
+   [
+    "HASH160",
+    "7e2ed8b052b0c5946a0d036860621aa959ee824b"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "da2876b3eb31edb4436fa4650673fc6f01f90de2f1793c4ec332b2387b09726f"
+   ],
+   [
+    "WIF (compressed)",
+    "cUtmkcvBd5HKk7cbQoAH7kDg3BnDCu7678Xs8S1PqVQrRNYaRDaW"
+   ],
+   [
+    "WIF (uncompressed)",
+    "93EzibsZmRXtNYrkbPhAYSCUsnwef3HnZexUfqiKmWzy4HZYL44"
+   ],
+   [
+    "Public key (compressed)",
+    "03c4f00a8aa87f595b60b1e390f17fc64d12c1a1f505354a7eea5f2ee353e427b7"
+   ],
+   [
+    "Public key (uncompressed)",
+    "04c4f00a8aa87f595b60b1e390f17fc64d12c1a1f505354a7eea5f2ee353e427b7fc0ac3f520dfd4946ab28ac5fa3173050f90c6b2d186333e998d7777fdaa52d5"
+   ],
+   [
+    "HASH160 of pubkey",
+    "0a8ba9e453383d4561cbcdda36e5789c2870dd41"
+   ],
+   [
+    "P2PKH address",
+    "mgUiMyLdfWV5DoPnyKxNAbfL6vdzLipkfB"
+   ],
+   [
+    "P2WPKH address",
+    "bcrt1qp296nezn8q752cwtehdrdetcns58ph2phfdt9w"
+   ],
+   [
+    "P2TR address",
+    "bcrt1p3ve2qusuhhy2cydvxfytuagvjsx56ccftuhxu4a9ephr2ddqz5vqy74mv3"
+   ]
+  ]
+ },
+ {
+  "input": "satoshi",
+  "format": "passphrase",
+  "network": "ecash",
+  "detected": "passphrase",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "da2876b3eb31edb4436fa4650673fc6f01f90de2f1793c4ec332b2387b09726f"
+   ],
+   [
+    "Base64",
+    "2ih2s+sx7bRDb6RlBnP8bwH5DeLxeTxOwzKyOHsJcm8="
+   ],
+   [
+    "Base58",
+    "FgbfY34PGhe76a1KajBKM5xPq5NAF8iVGH6vicoWQbKk"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x01"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "d3e291220ccc90141e6ada2fc9740a0a1dcc6aadf1c47c65c9243d49b2d7a326"
+   ],
+   [
+    "SHA-256d",
+    "2f3e46db49c0fb982fc44df8eeda28529ecae66361c90ec6048accf8c3837858"
+   ],
+   [
+    "RIPEMD-160",
+    "bff918b98c6fd0b0a355fbd7fc92ade3637227e7"
+   ],
+   [
+    "HASH160",
+    "7e2ed8b052b0c5946a0d036860621aa959ee824b"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "da2876b3eb31edb4436fa4650673fc6f01f90de2f1793c4ec332b2387b09726f"
+   ],
+   [
+    "WIF (compressed)",
+    "L4XnHhvLC1b4ag9L2PM9kRicQxUoYT1Q36PQ21YtLNkrAdWZNos6"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5KUN8s42BCTkQVMTy3oFfqeXE8awVskbDi6XbDMpRnFvHJW9fgk"
+   ],
+   [
+    "Public key (compressed)",
+    "03c4f00a8aa87f595b60b1e390f17fc64d12c1a1f505354a7eea5f2ee353e427b7"
+   ],
+   [
+    "Public key (uncompressed)",
+    "04c4f00a8aa87f595b60b1e390f17fc64d12c1a1f505354a7eea5f2ee353e427b7fc0ac3f520dfd4946ab28ac5fa3173050f90c6b2d186333e998d7777fdaa52d5"
+   ],
+   [
+    "HASH160 of pubkey",
+    "0a8ba9e453383d4561cbcdda36e5789c2870dd41"
+   ],
+   [
+    "P2PKH address",
+    "1xm4vFerV3pSgvBFkyzLgT1Ew3HQYrS1V"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qp296nezn8q752cwtehdrdetcns58ph2plx04f5"
+   ],
+   [
+    "P2TR address",
+    "bc1p3ve2qusuhhy2cydvxfytuagvjsx56ccftuhxu4a9ephr2ddqz5vq70fjry"
+   ]
+  ]
+ },
+ {
+  "input": "  satoshi ",
+  "format": "passphrase",
+  "network": "mainnet",
+  "detected": "passphrase",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0731970050226d61385adee15540210cd604d5c0680829444d3c5957f9da17bf"
+   ],
+   [
+    "Base64",
+    "BzGXAFAibWE4Wt7hVUAhDNYE1cBoCClETTxZV/naF78="
+   ],
+   [
+    "Base58",
+    "V5iG9ErQHVRRntEh3QNnGrHfQGBhthfvNrCUS8dPetn"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x01"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "a23506b39a95f17b6bdf006912cb5b76e31c429a83169cccb369011bcb2f0a65"
+   ],
+   [
+    "SHA-256d",
+    "0a9a9a1ae5dffe570cdbaa1710932372b555a0fc8bc024028d228dc295d4ec58"
+   ],
+   [
+    "RIPEMD-160",
+    "410ffcf179f60cf7517daa1b997aac4637880a87"
+   ],
+   [
+    "HASH160",
+    "d361fb68797435947a06683d6ac7a3f3a8870b13"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0731970050226d61385adee15540210cd604d5c0680829444d3c5957f9da17bf"
+   ],
+   [
+    "WIF (compressed)",
+    "KwThEbhgtxUviba7Xi8i17XYGx8MW7qHvJ1SEJp4LJAZUqGxGmXJ"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HsTLPpHHkqU8AC8NTYCZCSx7nZw34pC5pomgiePxaLqbWHU6BM"
+   ],
+   [
+    "Public key (compressed)",
+    "03b0039518a84d4bc004d4769499a23cbaccf49cb498adb7bd259fe03b66ae53ed"
+   ],
+   [
+    "Public key (uncompressed)",
+    "04b0039518a84d4bc004d4769499a23cbaccf49cb498adb7bd259fe03b66ae53eda0d417a5aae0ba9cc3e7878078f04b6338426f17730c7e725c6afd018816de55"
+   ],
+   [
+    "HASH160 of pubkey",
+    "95a6c9c078c05d9b8d0b3f2aeba1e0a2ff81f886"
+   ],
+   [
+    "P2PKH address",
+    "1EeHVDur7MJZH6qGRUvo2XUy3KWKB8mZkR"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qjknvnsrccpwehrgt8u4whg0q5tlcr7yxxffwf4"
+   ],
+   [
+    "P2TR address",
+    "bc1papupnrxdgqg4wfnfy9h9zharwgkgaxjcp7cx8lmx5szzz6zsgvfqn5qk6k"
+   ]
+  ]
+ },
+ {
+  "input": "  satoshi ",
+  "format": "passphrase",
+  "network": "signet",
+  "detected": "passphrase",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0731970050226d61385adee15540210cd604d5c0680829444d3c5957f9da17bf"
+   ],
+   [
+    "Base64",
+    "BzGXAFAibWE4Wt7hVUAhDNYE1cBoCClETTxZV/naF78="
+   ],
+   [
+    "Base58",
+    "V5iG9ErQHVRRntEh3QNnGrHfQGBhthfvNrCUS8dPetn"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x01"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "a23506b39a95f17b6bdf006912cb5b76e31c429a83169cccb369011bcb2f0a65"
+   ],
+   [
+    "SHA-256d",
+    "0a9a9a1ae5dffe570cdbaa1710932372b555a0fc8bc024028d228dc295d4ec58"
+   ],
+   [
+    "RIPEMD-160",
+    "410ffcf179f60cf7517daa1b997aac4637880a87"
+   ],
+   [
+    "HASH160",
+    "d361fb68797435947a06683d6ac7a3f3a8870b13"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0731970050226d61385adee15540210cd604d5c0680829444d3c5957f9da17bf"
+   ],
+   [
+    "WIF (compressed)",
+    "cMpghWhYL2BBt33Nv7wqNS2buBRmAZvyzL9uLjGZqQpZjaLZ6Sg9"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91e5v8dpsyuc6DhQzoS7RnzumSveCEMPRmfimLzuJK5tNRprMdT"
+   ],
+   [
+    "Public key (compressed)",
+    "03b0039518a84d4bc004d4769499a23cbaccf49cb498adb7bd259fe03b66ae53ed"
+   ],
+   [
+    "Public key (uncompressed)",
+    "04b0039518a84d4bc004d4769499a23cbaccf49cb498adb7bd259fe03b66ae53eda0d417a5aae0ba9cc3e7878078f04b6338426f17730c7e725c6afd018816de55"
+   ],
+   [
+    "HASH160 of pubkey",
+    "95a6c9c078c05d9b8d0b3f2aeba1e0a2ff81f886"
+   ],
+   [
+    "P2PKH address",
+    "muAEnGzpvNjp4DJt93uArShHuK721KPa8H"
+   ],
+   [
+    "P2WPKH address",
+    "tb1qjknvnsrccpwehrgt8u4whg0q5tlcr7yxv0jajx"
+   ],
+   [
+    "P2TR address",
+    "tb1papupnrxdgqg4wfnfy9h9zharwgkgaxjcp7cx8lmx5szzz6zsgvfqyukeqe"
+   ]
+  ]
+ },
+ {
+  "input": "  satoshi ",
+  "format": "passphrase",
+  "network": "regtest",
+  "detected": "passphrase",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0731970050226d61385adee15540210cd604d5c0680829444d3c5957f9da17bf"
+   ],
+   [
+    "Base64",
+    "BzGXAFAibWE4Wt7hVUAhDNYE1cBoCClETTxZV/naF78="
+   ],
+   [
+    "Base58",
+    "V5iG9ErQHVRRntEh3QNnGrHfQGBhthfvNrCUS8dPetn"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x01"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "a23506b39a95f17b6bdf006912cb5b76e31c429a83169cccb369011bcb2f0a65"
+   ],
+   [
+    "SHA-256d",
+    "0a9a9a1ae5dffe570cdbaa1710932372b555a0fc8bc024028d228dc295d4ec58"
+   ],
+   [
+    "RIPEMD-160",
+    "410ffcf179f60cf7517daa1b997aac4637880a87"
+   ],
+   [
+    "HASH160",
+    "d361fb68797435947a06683d6ac7a3f3a8870b13"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0731970050226d61385adee15540210cd604d5c0680829444d3c5957f9da17bf"
+   ],
+   [
+    "WIF (compressed)",
+    "cMpghWhYL2BBt33Nv7wqNS2buBRmAZvyzL9uLjGZqQpZjaLZ6Sg9"
+   ],
+   [
+    "WIF (uncompressed)",
+    "91e5v8dpsyuc6DhQzoS7RnzumSveCEMPRmfimLzuJK5tNRprMdT"
+   ],
+   [
+    "Public key (compressed)",
+    "03b0039518a84d4bc004d4769499a23cbaccf49cb498adb7bd259fe03b66ae53ed"
+   ],
+   [
+    "Public key (uncompressed)",
+    "04b0039518a84d4bc004d4769499a23cbaccf49cb498adb7bd259fe03b66ae53eda0d417a5aae0ba9cc3e7878078f04b6338426f17730c7e725c6afd018816de55"
+   ],
+   [
+    "HASH160 of pubkey",
+    "95a6c9c078c05d9b8d0b3f2aeba1e0a2ff81f886"
+   ],
+   [
+    "P2PKH address",
+    "muAEnGzpvNjp4DJt93uArShHuK721KPa8H"
+   ],
+   [
+    "P2WPKH address",
+    "bcrt1qjknvnsrccpwehrgt8u4whg0q5tlcr7yxwxts90"
+   ],
+   [
+    "P2TR address",
+    "bcrt1papupnrxdgqg4wfnfy9h9zharwgkgaxjcp7cx8lmx5szzz6zsgvfqf9ul4r"
+   ]
+  ]
+ },
+ {
+  "input": "  satoshi ",
+  "format": "passphrase",
+  "network": "ecash",
+  "detected": "passphrase",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0731970050226d61385adee15540210cd604d5c0680829444d3c5957f9da17bf"
+   ],
+   [
+    "Base64",
+    "BzGXAFAibWE4Wt7hVUAhDNYE1cBoCClETTxZV/naF78="
+   ],
+   [
+    "Base58",
+    "V5iG9ErQHVRRntEh3QNnGrHfQGBhthfvNrCUS8dPetn"
+   ],
+   [
+    "Byte length",
+    "32"
+   ],
+   [
+    "Base58Check version",
+    "0x01"
+   ],
+   [
+    "Base58Check valid",
+    "no"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "a23506b39a95f17b6bdf006912cb5b76e31c429a83169cccb369011bcb2f0a65"
+   ],
+   [
+    "SHA-256d",
+    "0a9a9a1ae5dffe570cdbaa1710932372b555a0fc8bc024028d228dc295d4ec58"
+   ],
+   [
+    "RIPEMD-160",
+    "410ffcf179f60cf7517daa1b997aac4637880a87"
+   ],
+   [
+    "HASH160",
+    "d361fb68797435947a06683d6ac7a3f3a8870b13"
+   ]
+  ],
+  "keys": [
+   [
+    "Private key (hex)",
+    "0731970050226d61385adee15540210cd604d5c0680829444d3c5957f9da17bf"
+   ],
+   [
+    "WIF (compressed)",
+    "KwThEbhgtxUviba7Xi8i17XYGx8MW7qHvJ1SEJp4LJAZUqGxGmXJ"
+   ],
+   [
+    "WIF (uncompressed)",
+    "5HsTLPpHHkqU8AC8NTYCZCSx7nZw34pC5pomgiePxaLqbWHU6BM"
+   ],
+   [
+    "Public key (compressed)",
+    "03b0039518a84d4bc004d4769499a23cbaccf49cb498adb7bd259fe03b66ae53ed"
+   ],
+   [
+    "Public key (uncompressed)",
+    "04b0039518a84d4bc004d4769499a23cbaccf49cb498adb7bd259fe03b66ae53eda0d417a5aae0ba9cc3e7878078f04b6338426f17730c7e725c6afd018816de55"
+   ],
+   [
+    "HASH160 of pubkey",
+    "95a6c9c078c05d9b8d0b3f2aeba1e0a2ff81f886"
+   ],
+   [
+    "P2PKH address",
+    "1EeHVDur7MJZH6qGRUvo2XUy3KWKB8mZkR"
+   ],
+   [
+    "P2WPKH address",
+    "bc1qjknvnsrccpwehrgt8u4whg0q5tlcr7yxxffwf4"
+   ],
+   [
+    "P2TR address",
+    "bc1papupnrxdgqg4wfnfy9h9zharwgkgaxjcp7cx8lmx5szzz6zsgvfqn5qk6k"
+   ]
+  ]
+ },
+ {
+  "input": "hello world",
+  "format": "auto",
+  "network": "mainnet",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "68656c6c6f20776f726c64"
+   ],
+   [
+    "Base64",
+    "aGVsbG8gd29ybGQ="
+   ],
+   [
+    "Base58",
+    "StV1DL6CwTryKyV"
+   ],
+   [
+    "Byte length",
+    "11"
+   ],
+   [
+    "ASCII",
+    "hello world"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+   ],
+   [
+    "SHA-256d",
+    "bc62d4b80d9e36da29c16c5d4d9f11731f36052c72401a76c23c0fb5a9b74423"
+   ],
+   [
+    "RIPEMD-160",
+    "98c615784ccb5fe5936fbc0cbe9dfdb408d92f0f"
+   ],
+   [
+    "HASH160",
+    "d7d5ee7824ff93f94c3055af9382c86c68b5ca92"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "hello world",
+  "format": "auto",
+  "network": "signet",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "68656c6c6f20776f726c64"
+   ],
+   [
+    "Base64",
+    "aGVsbG8gd29ybGQ="
+   ],
+   [
+    "Base58",
+    "StV1DL6CwTryKyV"
+   ],
+   [
+    "Byte length",
+    "11"
+   ],
+   [
+    "ASCII",
+    "hello world"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+   ],
+   [
+    "SHA-256d",
+    "bc62d4b80d9e36da29c16c5d4d9f11731f36052c72401a76c23c0fb5a9b74423"
+   ],
+   [
+    "RIPEMD-160",
+    "98c615784ccb5fe5936fbc0cbe9dfdb408d92f0f"
+   ],
+   [
+    "HASH160",
+    "d7d5ee7824ff93f94c3055af9382c86c68b5ca92"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "hello world",
+  "format": "auto",
+  "network": "regtest",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "68656c6c6f20776f726c64"
+   ],
+   [
+    "Base64",
+    "aGVsbG8gd29ybGQ="
+   ],
+   [
+    "Base58",
+    "StV1DL6CwTryKyV"
+   ],
+   [
+    "Byte length",
+    "11"
+   ],
+   [
+    "ASCII",
+    "hello world"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+   ],
+   [
+    "SHA-256d",
+    "bc62d4b80d9e36da29c16c5d4d9f11731f36052c72401a76c23c0fb5a9b74423"
+   ],
+   [
+    "RIPEMD-160",
+    "98c615784ccb5fe5936fbc0cbe9dfdb408d92f0f"
+   ],
+   [
+    "HASH160",
+    "d7d5ee7824ff93f94c3055af9382c86c68b5ca92"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "hello world",
+  "format": "auto",
+  "network": "ecash",
+  "detected": "ascii",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "68656c6c6f20776f726c64"
+   ],
+   [
+    "Base64",
+    "aGVsbG8gd29ybGQ="
+   ],
+   [
+    "Base58",
+    "StV1DL6CwTryKyV"
+   ],
+   [
+    "Byte length",
+    "11"
+   ],
+   [
+    "ASCII",
+    "hello world"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+   ],
+   [
+    "SHA-256d",
+    "bc62d4b80d9e36da29c16c5d4d9f11731f36052c72401a76c23c0fb5a9b74423"
+   ],
+   [
+    "RIPEMD-160",
+    "98c615784ccb5fe5936fbc0cbe9dfdb408d92f0f"
+   ],
+   [
+    "HASH160",
+    "d7d5ee7824ff93f94c3055af9382c86c68b5ca92"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "aGVsbG8=",
+  "format": "base64",
+  "network": "mainnet",
+  "detected": "base64",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "68656c6c6f"
+   ],
+   [
+    "Base64",
+    "aGVsbG8="
+   ],
+   [
+    "Base58",
+    "Cn8eVZg"
+   ],
+   [
+    "Byte length",
+    "5"
+   ],
+   [
+    "ASCII",
+    "hello"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+   ],
+   [
+    "SHA-256d",
+    "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
+   ],
+   [
+    "RIPEMD-160",
+    "108f07b8382412612c048d07d13f814118445acd"
+   ],
+   [
+    "HASH160",
+    "b6a9c8c230722b7c748331a8b450f05566dc7d0f"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "aGVsbG8=",
+  "format": "base64",
+  "network": "signet",
+  "detected": "base64",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "68656c6c6f"
+   ],
+   [
+    "Base64",
+    "aGVsbG8="
+   ],
+   [
+    "Base58",
+    "Cn8eVZg"
+   ],
+   [
+    "Byte length",
+    "5"
+   ],
+   [
+    "ASCII",
+    "hello"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+   ],
+   [
+    "SHA-256d",
+    "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
+   ],
+   [
+    "RIPEMD-160",
+    "108f07b8382412612c048d07d13f814118445acd"
+   ],
+   [
+    "HASH160",
+    "b6a9c8c230722b7c748331a8b450f05566dc7d0f"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "aGVsbG8=",
+  "format": "base64",
+  "network": "regtest",
+  "detected": "base64",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "68656c6c6f"
+   ],
+   [
+    "Base64",
+    "aGVsbG8="
+   ],
+   [
+    "Base58",
+    "Cn8eVZg"
+   ],
+   [
+    "Byte length",
+    "5"
+   ],
+   [
+    "ASCII",
+    "hello"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+   ],
+   [
+    "SHA-256d",
+    "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
+   ],
+   [
+    "RIPEMD-160",
+    "108f07b8382412612c048d07d13f814118445acd"
+   ],
+   [
+    "HASH160",
+    "b6a9c8c230722b7c748331a8b450f05566dc7d0f"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "aGVsbG8=",
+  "format": "base64",
+  "network": "ecash",
+  "detected": "base64",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "68656c6c6f"
+   ],
+   [
+    "Base64",
+    "aGVsbG8="
+   ],
+   [
+    "Base58",
+    "Cn8eVZg"
+   ],
+   [
+    "Byte length",
+    "5"
+   ],
+   [
+    "ASCII",
+    "hello"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+   ],
+   [
+    "SHA-256d",
+    "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
+   ],
+   [
+    "RIPEMD-160",
+    "108f07b8382412612c048d07d13f814118445acd"
+   ],
+   [
+    "HASH160",
+    "b6a9c8c230722b7c748331a8b450f05566dc7d0f"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "-_8=",
+  "format": "base64",
+  "network": "mainnet",
+  "detected": "base64",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "fbff"
+   ],
+   [
+    "Base64",
+    "+/8="
+   ],
+   [
+    "Base58",
+    "LBG"
+   ],
+   [
+    "Byte length",
+    "2"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "db8fed54159afe40ace5b49d702259fd88c9c4009307181824487baab5c6bdea"
+   ],
+   [
+    "SHA-256d",
+    "b2ef408a4fa6d2343b1d586ff335cc281ce42a9bb691394c3c65a8d660f85333"
+   ],
+   [
+    "RIPEMD-160",
+    "88bfba5373a813d6e9a4dfddf391daf75540faff"
+   ],
+   [
+    "HASH160",
+    "be3234df03392c99f0b2367208af74858bdc5325"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "-_8=",
+  "format": "base64",
+  "network": "signet",
+  "detected": "base64",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "fbff"
+   ],
+   [
+    "Base64",
+    "+/8="
+   ],
+   [
+    "Base58",
+    "LBG"
+   ],
+   [
+    "Byte length",
+    "2"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "db8fed54159afe40ace5b49d702259fd88c9c4009307181824487baab5c6bdea"
+   ],
+   [
+    "SHA-256d",
+    "b2ef408a4fa6d2343b1d586ff335cc281ce42a9bb691394c3c65a8d660f85333"
+   ],
+   [
+    "RIPEMD-160",
+    "88bfba5373a813d6e9a4dfddf391daf75540faff"
+   ],
+   [
+    "HASH160",
+    "be3234df03392c99f0b2367208af74858bdc5325"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "-_8=",
+  "format": "base64",
+  "network": "regtest",
+  "detected": "base64",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "fbff"
+   ],
+   [
+    "Base64",
+    "+/8="
+   ],
+   [
+    "Base58",
+    "LBG"
+   ],
+   [
+    "Byte length",
+    "2"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "db8fed54159afe40ace5b49d702259fd88c9c4009307181824487baab5c6bdea"
+   ],
+   [
+    "SHA-256d",
+    "b2ef408a4fa6d2343b1d586ff335cc281ce42a9bb691394c3c65a8d660f85333"
+   ],
+   [
+    "RIPEMD-160",
+    "88bfba5373a813d6e9a4dfddf391daf75540faff"
+   ],
+   [
+    "HASH160",
+    "be3234df03392c99f0b2367208af74858bdc5325"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "-_8=",
+  "format": "base64",
+  "network": "ecash",
+  "detected": "base64",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "fbff"
+   ],
+   [
+    "Base64",
+    "+/8="
+   ],
+   [
+    "Base58",
+    "LBG"
+   ],
+   [
+    "Byte length",
+    "2"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "db8fed54159afe40ace5b49d702259fd88c9c4009307181824487baab5c6bdea"
+   ],
+   [
+    "SHA-256d",
+    "b2ef408a4fa6d2343b1d586ff335cc281ce42a9bb691394c3c65a8d660f85333"
+   ],
+   [
+    "RIPEMD-160",
+    "88bfba5373a813d6e9a4dfddf391daf75540faff"
+   ],
+   [
+    "HASH160",
+    "be3234df03392c99f0b2367208af74858bdc5325"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "YWI",
+  "format": "base64",
+  "network": "mainnet",
+  "detected": "base64",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "YWI",
+  "format": "base64",
+  "network": "signet",
+  "detected": "base64",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "YWI",
+  "format": "base64",
+  "network": "regtest",
+  "detected": "base64",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "YWI",
+  "format": "base64",
+  "network": "ecash",
+  "detected": "base64",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "3yZe7d",
+  "format": "base58",
+  "network": "mainnet",
+  "detected": "base58",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "74657374"
+   ],
+   [
+    "Base64",
+    "dGVzdA=="
+   ],
+   [
+    "Base58",
+    "3yZe7d"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "ASCII",
+    "test"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+   ],
+   [
+    "SHA-256d",
+    "954d5a49fd70d9b8bcdb35d252267829957f7ef7fa6c74f88419bdc5e82209f4"
+   ],
+   [
+    "RIPEMD-160",
+    "5e52fee47e6b070565f74372468cdc699de89107"
+   ],
+   [
+    "HASH160",
+    "cebaa98c19807134434d107b0d3e5692a516ea66"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "3yZe7d",
+  "format": "base58",
+  "network": "signet",
+  "detected": "base58",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "74657374"
+   ],
+   [
+    "Base64",
+    "dGVzdA=="
+   ],
+   [
+    "Base58",
+    "3yZe7d"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "ASCII",
+    "test"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+   ],
+   [
+    "SHA-256d",
+    "954d5a49fd70d9b8bcdb35d252267829957f7ef7fa6c74f88419bdc5e82209f4"
+   ],
+   [
+    "RIPEMD-160",
+    "5e52fee47e6b070565f74372468cdc699de89107"
+   ],
+   [
+    "HASH160",
+    "cebaa98c19807134434d107b0d3e5692a516ea66"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "3yZe7d",
+  "format": "base58",
+  "network": "regtest",
+  "detected": "base58",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "74657374"
+   ],
+   [
+    "Base64",
+    "dGVzdA=="
+   ],
+   [
+    "Base58",
+    "3yZe7d"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "ASCII",
+    "test"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+   ],
+   [
+    "SHA-256d",
+    "954d5a49fd70d9b8bcdb35d252267829957f7ef7fa6c74f88419bdc5e82209f4"
+   ],
+   [
+    "RIPEMD-160",
+    "5e52fee47e6b070565f74372468cdc699de89107"
+   ],
+   [
+    "HASH160",
+    "cebaa98c19807134434d107b0d3e5692a516ea66"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "3yZe7d",
+  "format": "base58",
+  "network": "ecash",
+  "detected": "base58",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "74657374"
+   ],
+   [
+    "Base64",
+    "dGVzdA=="
+   ],
+   [
+    "Base58",
+    "3yZe7d"
+   ],
+   [
+    "Byte length",
+    "4"
+   ],
+   [
+    "ASCII",
+    "test"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+   ],
+   [
+    "SHA-256d",
+    "954d5a49fd70d9b8bcdb35d252267829957f7ef7fa6c74f88419bdc5e82209f4"
+   ],
+   [
+    "RIPEMD-160",
+    "5e52fee47e6b070565f74372468cdc699de89107"
+   ],
+   [
+    "HASH160",
+    "cebaa98c19807134434d107b0d3e5692a516ea66"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "11",
+  "format": "base58",
+  "network": "mainnet",
+  "detected": "base58",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000"
+   ],
+   [
+    "Base64",
+    "AAA="
+   ],
+   [
+    "Base58",
+    "11"
+   ],
+   [
+    "Byte length",
+    "2"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7"
+   ],
+   [
+    "SHA-256d",
+    "407feb4a4b8303baf4f84e29a209e0dcfd62e81f88c8edb7675c5a95d90e5c90"
+   ],
+   [
+    "RIPEMD-160",
+    "f7d50d120d655be4b88750873e00caf147f28a1b"
+   ],
+   [
+    "HASH160",
+    "e6c41bcc570872e88e58db7c940dc8d399e72aef"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "11",
+  "format": "base58",
+  "network": "signet",
+  "detected": "base58",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000"
+   ],
+   [
+    "Base64",
+    "AAA="
+   ],
+   [
+    "Base58",
+    "11"
+   ],
+   [
+    "Byte length",
+    "2"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7"
+   ],
+   [
+    "SHA-256d",
+    "407feb4a4b8303baf4f84e29a209e0dcfd62e81f88c8edb7675c5a95d90e5c90"
+   ],
+   [
+    "RIPEMD-160",
+    "f7d50d120d655be4b88750873e00caf147f28a1b"
+   ],
+   [
+    "HASH160",
+    "e6c41bcc570872e88e58db7c940dc8d399e72aef"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "11",
+  "format": "base58",
+  "network": "regtest",
+  "detected": "base58",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000"
+   ],
+   [
+    "Base64",
+    "AAA="
+   ],
+   [
+    "Base58",
+    "11"
+   ],
+   [
+    "Byte length",
+    "2"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7"
+   ],
+   [
+    "SHA-256d",
+    "407feb4a4b8303baf4f84e29a209e0dcfd62e81f88c8edb7675c5a95d90e5c90"
+   ],
+   [
+    "RIPEMD-160",
+    "f7d50d120d655be4b88750873e00caf147f28a1b"
+   ],
+   [
+    "HASH160",
+    "e6c41bcc570872e88e58db7c940dc8d399e72aef"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "11",
+  "format": "base58",
+  "network": "ecash",
+  "detected": "base58",
+  "error": false,
+  "encodings": [
+   [
+    "Hex",
+    "0000"
+   ],
+   [
+    "Base64",
+    "AAA="
+   ],
+   [
+    "Base58",
+    "11"
+   ],
+   [
+    "Byte length",
+    "2"
+   ]
+  ],
+  "hashes": [
+   [
+    "SHA-256",
+    "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7"
+   ],
+   [
+    "SHA-256d",
+    "407feb4a4b8303baf4f84e29a209e0dcfd62e81f88c8edb7675c5a95d90e5c90"
+   ],
+   [
+    "RIPEMD-160",
+    "f7d50d120d655be4b88750873e00caf147f28a1b"
+   ],
+   [
+    "HASH160",
+    "e6c41bcc570872e88e58db7c940dc8d399e72aef"
+   ]
+  ],
+  "keys": []
+ },
+ {
+  "input": "0OIl",
+  "format": "base58",
+  "network": "mainnet",
+  "detected": "base58",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "0OIl",
+  "format": "base58",
+  "network": "signet",
+  "detected": "base58",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "0OIl",
+  "format": "base58",
+  "network": "regtest",
+  "detected": "base58",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "0OIl",
+  "format": "base58",
+  "network": "ecash",
+  "detected": "base58",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "1",
+  "format": "base58check",
+  "network": "mainnet",
+  "detected": "base58check",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "1",
+  "format": "base58check",
+  "network": "signet",
+  "detected": "base58check",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "1",
+  "format": "base58check",
+  "network": "regtest",
+  "detected": "base58check",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ },
+ {
+  "input": "1",
+  "format": "base58check",
+  "network": "ecash",
+  "detected": "base58check",
+  "error": true,
+  "encodings": [],
+  "hashes": [],
+  "keys": []
+ }
+]

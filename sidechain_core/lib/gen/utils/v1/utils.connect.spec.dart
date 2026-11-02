@@ -70,4 +70,12 @@ abstract final class UtilsService {
     utilsv1utils.WIFToAddressRequest.new,
     utilsv1utils.WIFToAddressResponse.new,
   );
+
+  /// Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
+  static const convert = connect.Spec(
+    '/$name/Convert',
+    connect.StreamType.unary,
+    utilsv1utils.ConvertRequest.new,
+    utilsv1utils.ConvertResponse.new,
+  );
 }

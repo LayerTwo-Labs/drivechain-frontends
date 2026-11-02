@@ -5,8 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// One input, every representation of it, updating as you type. Conversion is
-/// pure Dart — key material never leaves the process.
+/// One input, every representation of it, updating as you type. bitwindowd
+/// does the conversion on the network of the node.
 class ConverterWindow extends StatefulWidget {
   const ConverterWindow({super.key});
 
@@ -44,11 +44,19 @@ class _ConverterWindowState extends State<ConverterWindow> {
     _debounce = Timer(const Duration(milliseconds: 120), _convert);
   }
 
-  void _convert() {
+  // An answer for an older input must not replace the answer for a newer one.
+  int _run = 0;
+
+  Future<void> _convert() async {
     if (!mounted) {
       return;
     }
-    setState(() => _result = convert(_input.text, _format, _conf.network));
+    final run = ++_run;
+    final result = await convert(_input.text, _format);
+    if (!mounted || run != _run) {
+      return;
+    }
+    setState(() => _result = result);
   }
 
   bool get _isPassphrase => _format == ConverterFormat.passphrase;
