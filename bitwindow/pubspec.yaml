@@ -79,7 +79,6 @@ dependencies:
   auto_updater: ^1.0.0
   bitcoin_base: ^7.3.0
   blockchain_utils: ^7.1.0
-  bech32: ^0.2.2
   archive: ^4.5.2
   csv: ^8.0.0
   uuid: ^4.6.0
