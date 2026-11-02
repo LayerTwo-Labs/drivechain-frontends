@@ -15,7 +15,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../bitwindowd/v1/bitwindowd.pb.dart' as $2;
+import '../../bitwindowd/v1/bitwindowd.pb.dart' as $3;
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
 import 'wallet.pbenum.dart';
@@ -710,7 +710,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $fixnum.Int64? valueSats,
     $core.bool? isChange,
     $0.Timestamp? receivedAt,
-    $2.DenialInfo? denialInfo,
+    $3.DenialInfo? denialInfo,
     $core.String? derivationPath,
     $core.bool? splittable,
     $core.int? height,
@@ -767,7 +767,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(5, _omitFieldNames ? '' : 'isChange')
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
-    ..aOM<$2.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $2.DenialInfo.create)
+    ..aOM<$3.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $3.DenialInfo.create)
     ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
     ..aOB(9, _omitFieldNames ? '' : 'splittable')
     ..a<$core.int>(10, _omitFieldNames ? '' : 'height', $pb.PbFieldType.O3)
@@ -861,15 +861,15 @@ class UnspentOutput extends $pb.GeneratedMessage {
 
   /// If set, this utxo is part of a denial chain
   @$pb.TagNumber(7)
-  $2.DenialInfo get denialInfo => $_getN(6);
+  $3.DenialInfo get denialInfo => $_getN(6);
   @$pb.TagNumber(7)
-  set denialInfo($2.DenialInfo v) { setField(7, v); }
+  set denialInfo($3.DenialInfo v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasDenialInfo() => $_has(6);
   @$pb.TagNumber(7)
   void clearDenialInfo() => clearField(7);
   @$pb.TagNumber(7)
-  $2.DenialInfo ensureDenialInfo() => $_ensure(6);
+  $3.DenialInfo ensureDenialInfo() => $_ensure(6);
 
   /// BIP32 path of the address that owns this output; empty when unknown.
   @$pb.TagNumber(8)
@@ -2035,10 +2035,14 @@ class SignMessageRequest extends $pb.GeneratedMessage {
 class SignMessageResponse extends $pb.GeneratedMessage {
   factory SignMessageResponse({
     $core.String? signature,
+    $core.String? publicKey,
   }) {
     final $result = create();
     if (signature != null) {
       $result.signature = signature;
+    }
+    if (publicKey != null) {
+      $result.publicKey = publicKey;
     }
     return $result;
   }
@@ -2048,6 +2052,7 @@ class SignMessageResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignMessageResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'signature')
+    ..aOS(2, _omitFieldNames ? '' : 'publicKey')
     ..hasRequiredFields = false
   ;
 
@@ -2080,6 +2085,16 @@ class SignMessageResponse extends $pb.GeneratedMessage {
   $core.bool hasSignature() => $_has(0);
   @$pb.TagNumber(1)
   void clearSignature() => clearField(1);
+
+  /// Compressed public key of the signing key, hex. For taproot, the tweaked key.
+  @$pb.TagNumber(2)
+  $core.String get publicKey => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set publicKey($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPublicKey() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPublicKey() => clearField(2);
 }
 
 class VerifyMessageRequest extends $pb.GeneratedMessage {
@@ -2088,6 +2103,7 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
     $core.String? message,
     $core.String? signature,
     $core.String? publicKey,
+    $core.String? signerPublicKey,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -2102,6 +2118,9 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
     if (publicKey != null) {
       $result.publicKey = publicKey;
     }
+    if (signerPublicKey != null) {
+      $result.signerPublicKey = signerPublicKey;
+    }
     return $result;
   }
   VerifyMessageRequest._() : super();
@@ -2113,6 +2132,7 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'message')
     ..aOS(3, _omitFieldNames ? '' : 'signature')
     ..aOS(4, _omitFieldNames ? '' : 'publicKey')
+    ..aOS(5, _omitFieldNames ? '' : 'signerPublicKey')
     ..hasRequiredFields = false
   ;
 
@@ -2172,6 +2192,16 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
   $core.bool hasPublicKey() => $_has(3);
   @$pb.TagNumber(4)
   void clearPublicKey() => clearField(4);
+
+  /// Optional hex public key that must own the address in public_key.
+  @$pb.TagNumber(5)
+  $core.String get signerPublicKey => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set signerPublicKey($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSignerPublicKey() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSignerPublicKey() => clearField(5);
 }
 
 class VerifyMessageResponse extends $pb.GeneratedMessage {

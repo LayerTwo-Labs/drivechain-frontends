@@ -471,13 +471,21 @@ func TestService_SignMessage(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, database.Test(t)))
 		const message = "signed by Bjørn"
-		for _, address := range []string{fixtureSegwitAddress(t, 2), fixtureTaprootAddress(t, 1)} {
+		for _, key := range []struct {
+			address string
+			pubKey  *btcec.PublicKey
+		}{
+			{fixtureSegwitAddress(t, 2), fixtureKey(t, 84, 2)},
+			{fixtureTaprootAddress(t, 1), txscript.ComputeTaprootKeyNoScript(fixtureKey(t, 86, 1))},
+		} {
+			address := key.address
 			signed, err := cli.SignMessage(t.Context(), &walletv1.SignMessageRequest{
 				WalletId: testWalletID,
 				Message:  message,
 				Address:  address,
 			})
 			require.NoError(t, err)
+			assert.Equal(t, hex.EncodeToString(key.pubKey.SerializeCompressed()), signed.PublicKey)
 
 			for _, tc := range []struct {
 				message string
@@ -490,6 +498,23 @@ func TestService_SignMessage(t *testing.T) {
 				})
 				require.NoError(t, err)
 				assert.Equal(t, tc.valid, verified.Valid)
+			}
+
+			for _, tc := range []struct {
+				signer string
+				valid  bool
+			}{
+				{signed.PublicKey, true},
+				{hex.EncodeToString(fixtureKey(t, 84, 7).SerializeCompressed()), false},
+			} {
+				verified, err := cli.VerifyMessage(t.Context(), &walletv1.VerifyMessageRequest{
+					Message:         message,
+					Signature:       signed.Signature,
+					PublicKey:       address,
+					SignerPublicKey: tc.signer,
+				})
+				require.NoError(t, err)
+				assert.Equal(t, tc.valid, verified.Valid, address)
 			}
 		}
 	})
