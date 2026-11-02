@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:bitwindow/utils/base58.dart';
+import 'package:bitwindow/utils/ripemd160.dart';
 import 'package:bitcoin_base/bitcoin_base.dart' as bb;
 import 'package:blockchain_utils/blockchain_utils.dart' as bu;
 import 'package:convert/convert.dart' as conv;
 import 'package:crypto/crypto.dart';
-import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// How the input text should be read. [auto] guesses from the text itself.
@@ -114,13 +114,7 @@ Uint8List sha256Bytes(List<int> data) => Uint8List.fromList(sha256.convert(data)
 
 Uint8List doubleSha256(List<int> data) => sha256Bytes(sha256Bytes(data));
 
-Uint8List ripemd160Bytes(List<int> data) {
-  final digest = RIPEMD160Digest();
-  final out = Uint8List(digest.digestSize);
-  digest.update(Uint8List.fromList(data), 0, data.length);
-  digest.doFinal(out, 0);
-  return out;
-}
+Uint8List ripemd160Bytes(List<int> data) => ripemd160(data);
 
 Uint8List hash160(List<int> data) => ripemd160Bytes(sha256Bytes(data));
 
