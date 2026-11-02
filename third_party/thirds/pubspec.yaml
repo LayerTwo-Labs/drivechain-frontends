@@ -1,0 +1,7 @@
+name: thirds
+description: Copy of the BLAKE3 part of thirds 0.2.0-alpha.1 from pub.dev.
+version: 0.2.0-alpha.1
+publish_to: none
+
+environment:
+  sdk: ^3.13.0

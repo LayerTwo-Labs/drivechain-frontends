@@ -53,7 +53,8 @@ dependencies:
   url_launcher: ^6.3.3
   pointycastle: ^3.9.1
   crypto: ^3.0.8
-  thirds: ^0.2.0-alpha.1
+  thirds:
+    path: ../third_party/thirds
   connectrpc: ^1.0.0
   desktop_multi_window:
     git:
