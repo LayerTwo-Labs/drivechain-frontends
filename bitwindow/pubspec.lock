@@ -585,10 +585,9 @@ packages:
   flutter_markdown:
     dependency: "direct main"
     description:
-      name: flutter_markdown
-      sha256: "08fb8315236099ff8e90cb87bb2b935e0a724a3af1623000a9cec930468e0f27"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../third_party/flutter_markdown"
+      relative: true
+    source: path
     version: "0.7.7+1"
   flutter_svg:
     dependency: transitive

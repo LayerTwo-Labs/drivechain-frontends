@@ -11,6 +11,7 @@ on:
       - "bitwindow/**"
       - "sail_ui/**"
       - "sidechain_core/**"
+      - "third_party/**"
       - "sidechain-orchestrator/**"
       - "scripts/**"
       - ".github/workflows/bitwindow-e2e.yml"
