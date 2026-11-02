@@ -148,4 +148,22 @@ extension type UtilsServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
+  Future<utilsv1utils.ConvertResponse> convert(
+    utilsv1utils.ConvertRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.UtilsService.convert,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

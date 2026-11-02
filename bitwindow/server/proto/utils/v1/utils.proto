@@ -20,6 +20,9 @@ service UtilsService {
   rpc GeneratePaperWallet(google.protobuf.Empty) returns (GeneratePaperWalletResponse);
   rpc ValidateWIF(ValidateWIFRequest) returns (ValidateWIFResponse);
   rpc WIFToAddress(WIFToAddressRequest) returns (WIFToAddressResponse);
+
+  // Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
+  rpc Convert(ConvertRequest) returns (ConvertResponse);
 }
 
 // Bitcoin URI (BIP-0021)
@@ -109,4 +112,35 @@ message WIFToAddressRequest {
 message WIFToAddressResponse {
   string address = 1;
   string error = 2;
+}
+
+enum ConvertFormat {
+  CONVERT_FORMAT_AUTO = 0;
+  CONVERT_FORMAT_HEX = 1;
+  CONVERT_FORMAT_BASE64 = 2;
+  CONVERT_FORMAT_BASE58 = 3;
+  CONVERT_FORMAT_BASE58CHECK = 4;
+  CONVERT_FORMAT_BECH32 = 5;
+  CONVERT_FORMAT_ASCII = 6;
+  CONVERT_FORMAT_WIF = 7;
+  CONVERT_FORMAT_PASSPHRASE = 8;
+}
+
+message ConvertRequest {
+  string input = 1;
+  ConvertFormat format = 2;
+}
+
+message ConvertRow {
+  string label = 1;
+  string value = 2;
+}
+
+message ConvertResponse {
+  ConvertFormat detected = 1;
+  // Why the input could not be read; empty on success.
+  string error = 2;
+  repeated ConvertRow encodings = 3;
+  repeated ConvertRow hashes = 4;
+  repeated ConvertRow keys = 5;
 }

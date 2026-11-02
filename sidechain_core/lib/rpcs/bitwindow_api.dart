@@ -2015,6 +2015,7 @@ abstract class UtilsAPI {
   Future<utilspb.GeneratePaperWalletResponse> generatePaperWallet();
   Future<utilspb.ValidateWIFResponse> validateWIF(String wif);
   Future<utilspb.WIFToAddressResponse> wifToAddress(String wif);
+  Future<utilspb.ConvertResponse> convert(String input, utilspb.ConvertFormat format);
 }
 
 class _UtilsAPILive implements UtilsAPI {
@@ -2107,6 +2108,15 @@ class _UtilsAPILive implements UtilsAPI {
     } catch (e) {
       final error = 'could not convert WIF to address: ${extractConnectException(e)}';
       throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.ConvertResponse> convert(String input, utilspb.ConvertFormat format) async {
+    try {
+      return await _client.convert(utilspb.ConvertRequest(input: input, format: format));
+    } catch (e) {
+      throw UtilsException('could not convert the input: ${extractConnectException(e)}');
     }
   }
 }

@@ -154,3 +154,22 @@ func (s *Server) WIFToAddress(_ context.Context, req *utilspb.WIFToAddressReques
 		Address: address,
 	}, nil
 }
+
+// Convert implements utilsv1connect.UtilsServiceHandler
+func (s *Server) Convert(_ context.Context, req *utilspb.ConvertRequest) (*utilspb.ConvertResponse, error) {
+	result := engines.Convert(req.Input, engines.ConverterFormat(req.Format), s.chainParams)
+	rows := func(in []engines.ConverterRow) []*utilspb.ConvertRow {
+		out := make([]*utilspb.ConvertRow, 0, len(in))
+		for _, r := range in {
+			out = append(out, &utilspb.ConvertRow{Label: r.Label, Value: r.Value})
+		}
+		return out
+	}
+	return &utilspb.ConvertResponse{
+		Detected:  utilspb.ConvertFormat(result.Detected),
+		Error:     result.Error,
+		Encodings: rows(result.Encodings),
+		Hashes:    rows(result.Hashes),
+		Keys:      rows(result.Keys),
+	}, nil
+}

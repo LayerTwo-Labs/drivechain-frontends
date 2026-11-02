@@ -651,6 +651,11 @@ class MockUtilsAPI implements UtilsAPI {
   Future<WIFToAddressResponse> wifToAddress(String wif) {
     return Future.value(WIFToAddressResponse());
   }
+
+  @override
+  Future<ConvertResponse> convert(String input, ConvertFormat format) {
+    return Future.value(ConvertResponse());
+  }
 }
 
 class MockMultisigAPI implements MultisigAPI {

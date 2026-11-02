@@ -15,6 +15,9 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
+import 'utils.pbenum.dart';
+
+export 'utils.pbenum.dart';
 
 /// Bitcoin URI (BIP-0021)
 class ParseBitcoinURIRequest extends $pb.GeneratedMessage {
@@ -1084,6 +1087,223 @@ class WIFToAddressResponse extends $pb.GeneratedMessage {
   void clearError() => clearField(2);
 }
 
+class ConvertRequest extends $pb.GeneratedMessage {
+  factory ConvertRequest({
+    $core.String? input,
+    ConvertFormat? format,
+  }) {
+    final $result = create();
+    if (input != null) {
+      $result.input = input;
+    }
+    if (format != null) {
+      $result.format = format;
+    }
+    return $result;
+  }
+  ConvertRequest._() : super();
+  factory ConvertRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ConvertRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConvertRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'input')
+    ..e<ConvertFormat>(2, _omitFieldNames ? '' : 'format', $pb.PbFieldType.OE, defaultOrMaker: ConvertFormat.CONVERT_FORMAT_AUTO, valueOf: ConvertFormat.valueOf, enumValues: ConvertFormat.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ConvertRequest clone() => ConvertRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ConvertRequest copyWith(void Function(ConvertRequest) updates) => super.copyWith((message) => updates(message as ConvertRequest)) as ConvertRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ConvertRequest create() => ConvertRequest._();
+  ConvertRequest createEmptyInstance() => create();
+  static $pb.PbList<ConvertRequest> createRepeated() => $pb.PbList<ConvertRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ConvertRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConvertRequest>(create);
+  static ConvertRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get input => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set input($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasInput() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInput() => clearField(1);
+
+  @$pb.TagNumber(2)
+  ConvertFormat get format => $_getN(1);
+  @$pb.TagNumber(2)
+  set format(ConvertFormat v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFormat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFormat() => clearField(2);
+}
+
+class ConvertRow extends $pb.GeneratedMessage {
+  factory ConvertRow({
+    $core.String? label,
+    $core.String? value,
+  }) {
+    final $result = create();
+    if (label != null) {
+      $result.label = label;
+    }
+    if (value != null) {
+      $result.value = value;
+    }
+    return $result;
+  }
+  ConvertRow._() : super();
+  factory ConvertRow.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ConvertRow.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConvertRow', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'label')
+    ..aOS(2, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ConvertRow clone() => ConvertRow()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ConvertRow copyWith(void Function(ConvertRow) updates) => super.copyWith((message) => updates(message as ConvertRow)) as ConvertRow;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ConvertRow create() => ConvertRow._();
+  ConvertRow createEmptyInstance() => create();
+  static $pb.PbList<ConvertRow> createRepeated() => $pb.PbList<ConvertRow>();
+  @$core.pragma('dart2js:noInline')
+  static ConvertRow getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConvertRow>(create);
+  static ConvertRow? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get label => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set label($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasLabel() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLabel() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get value => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set value($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasValue() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearValue() => clearField(2);
+}
+
+class ConvertResponse extends $pb.GeneratedMessage {
+  factory ConvertResponse({
+    ConvertFormat? detected,
+    $core.String? error,
+    $core.Iterable<ConvertRow>? encodings,
+    $core.Iterable<ConvertRow>? hashes,
+    $core.Iterable<ConvertRow>? keys,
+  }) {
+    final $result = create();
+    if (detected != null) {
+      $result.detected = detected;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    if (encodings != null) {
+      $result.encodings.addAll(encodings);
+    }
+    if (hashes != null) {
+      $result.hashes.addAll(hashes);
+    }
+    if (keys != null) {
+      $result.keys.addAll(keys);
+    }
+    return $result;
+  }
+  ConvertResponse._() : super();
+  factory ConvertResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ConvertResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConvertResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
+    ..e<ConvertFormat>(1, _omitFieldNames ? '' : 'detected', $pb.PbFieldType.OE, defaultOrMaker: ConvertFormat.CONVERT_FORMAT_AUTO, valueOf: ConvertFormat.valueOf, enumValues: ConvertFormat.values)
+    ..aOS(2, _omitFieldNames ? '' : 'error')
+    ..pc<ConvertRow>(3, _omitFieldNames ? '' : 'encodings', $pb.PbFieldType.PM, subBuilder: ConvertRow.create)
+    ..pc<ConvertRow>(4, _omitFieldNames ? '' : 'hashes', $pb.PbFieldType.PM, subBuilder: ConvertRow.create)
+    ..pc<ConvertRow>(5, _omitFieldNames ? '' : 'keys', $pb.PbFieldType.PM, subBuilder: ConvertRow.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ConvertResponse clone() => ConvertResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ConvertResponse copyWith(void Function(ConvertResponse) updates) => super.copyWith((message) => updates(message as ConvertResponse)) as ConvertResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ConvertResponse create() => ConvertResponse._();
+  ConvertResponse createEmptyInstance() => create();
+  static $pb.PbList<ConvertResponse> createRepeated() => $pb.PbList<ConvertResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ConvertResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConvertResponse>(create);
+  static ConvertResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ConvertFormat get detected => $_getN(0);
+  @$pb.TagNumber(1)
+  set detected(ConvertFormat v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDetected() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDetected() => clearField(1);
+
+  /// Why the input could not be read; empty on success.
+  @$pb.TagNumber(2)
+  $core.String get error => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set error($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasError() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearError() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<ConvertRow> get encodings => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $core.List<ConvertRow> get hashes => $_getList(3);
+
+  @$pb.TagNumber(5)
+  $core.List<ConvertRow> get keys => $_getList(4);
+}
+
 class UtilsServiceApi {
   $pb.RpcClient _client;
   UtilsServiceApi(this._client);
@@ -1111,6 +1331,9 @@ class UtilsServiceApi {
   ;
   $async.Future<WIFToAddressResponse> wIFToAddress($pb.ClientContext? ctx, WIFToAddressRequest request) =>
     _client.invoke<WIFToAddressResponse>(ctx, 'UtilsService', 'WIFToAddress', request, WIFToAddressResponse())
+  ;
+  $async.Future<ConvertResponse> convert($pb.ClientContext? ctx, ConvertRequest request) =>
+    _client.invoke<ConvertResponse>(ctx, 'UtilsService', 'Convert', request, ConvertResponse())
   ;
 }
 

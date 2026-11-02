@@ -47,6 +47,8 @@ const (
 	UtilsServiceValidateWIFProcedure = "/utils.v1.UtilsService/ValidateWIF"
 	// UtilsServiceWIFToAddressProcedure is the procedure name of the UtilsService's WIFToAddress RPC.
 	UtilsServiceWIFToAddressProcedure = "/utils.v1.UtilsService/WIFToAddress"
+	// UtilsServiceConvertProcedure is the procedure name of the UtilsService's Convert RPC.
+	UtilsServiceConvertProcedure = "/utils.v1.UtilsService/Convert"
 )
 
 var (
@@ -106,6 +108,13 @@ var (
 			Procedure:  UtilsServiceWIFToAddressProcedure,
 		}
 	})
+	utilsServiceConvertSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_utils_v1_utils_proto.Services().ByName("UtilsService").Methods().ByName("Convert"),
+			Procedure:  UtilsServiceConvertProcedure,
+		}
+	})
 )
 
 // UtilsServiceClient is a client for the utils.v1.UtilsService service.
@@ -122,6 +131,8 @@ type UtilsServiceClient interface {
 	GeneratePaperWallet(context.Context, *emptypb.Empty) (*v1.GeneratePaperWalletResponse, error)
 	ValidateWIF(context.Context, *v1.ValidateWIFRequest) (*v1.ValidateWIFResponse, error)
 	WIFToAddress(context.Context, *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error)
+	// Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
+	Convert(context.Context, *v1.ConvertRequest) (*v1.ConvertResponse, error)
 }
 
 // NewUtilsServiceClient constructs a client for the utils.v1.UtilsService service. Multiple service
@@ -144,6 +155,8 @@ type UtilsServiceHandler interface {
 	GeneratePaperWallet(context.Context, *emptypb.Empty) (*v1.GeneratePaperWalletResponse, error)
 	ValidateWIF(context.Context, *v1.ValidateWIFRequest) (*v1.ValidateWIFResponse, error)
 	WIFToAddress(context.Context, *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error)
+	// Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
+	Convert(context.Context, *v1.ConvertRequest) (*v1.ConvertResponse, error)
 }
 
 // RegisterUtilsServiceHandler registers svc as the utils.v1.UtilsService implementation on server.
@@ -158,6 +171,7 @@ func RegisterUtilsServiceHandler(server *connect.Server, svc UtilsServiceHandler
 		connect.Method{Spec: utilsServiceGeneratePaperWalletSpec(), Handler: adapter.generatePaperWallet},
 		connect.Method{Spec: utilsServiceValidateWIFSpec(), Handler: adapter.validateWIF},
 		connect.Method{Spec: utilsServiceWIFToAddressSpec(), Handler: adapter.wIFToAddress},
+		connect.Method{Spec: utilsServiceConvertSpec(), Handler: adapter.convert},
 	)
 }
 
@@ -194,6 +208,10 @@ func (UnimplementedUtilsServiceHandler) ValidateWIF(context.Context, *v1.Validat
 
 func (UnimplementedUtilsServiceHandler) WIFToAddress(context.Context, *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "utils.v1.UtilsService.WIFToAddress is not implemented")
+}
+
+func (UnimplementedUtilsServiceHandler) Convert(context.Context, *v1.ConvertRequest) (*v1.ConvertResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "utils.v1.UtilsService.Convert is not implemented")
 }
 
 type utilsServiceClient struct {
@@ -259,6 +277,14 @@ func (c *utilsServiceClient) ValidateWIF(ctx context.Context, req *v1.ValidateWI
 func (c *utilsServiceClient) WIFToAddress(ctx context.Context, req *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error) {
 	var res v1.WIFToAddressResponse
 	if err := c.client.CallUnary(ctx, utilsServiceWIFToAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *utilsServiceClient) Convert(ctx context.Context, req *v1.ConvertRequest) (*v1.ConvertResponse, error) {
+	var res v1.ConvertResponse
+	if err := c.client.CallUnary(ctx, utilsServiceConvertSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -356,6 +382,18 @@ func (h utilsServiceHandler) wIFToAddress(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.WIFToAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h utilsServiceHandler) convert(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ConvertRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Convert(ctx, &req)
 	if err != nil {
 		return err
 	}
