@@ -1,6 +1,6 @@
-import 'package:bitwindow/utils/paper_wallet_generator.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -19,7 +19,7 @@ class PaperWalletDialog extends StatefulWidget {
 }
 
 class _PaperWalletDialogState extends State<PaperWalletDialog> {
-  PaperWalletKeypair? _keypair;
+  GeneratePaperWalletResponse? _keypair;
   bool _isGenerating = false;
   bool _showPrivateKey = false;
 
@@ -33,16 +33,24 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
     setState(() {
       _isGenerating = true;
       _showPrivateKey = false;
+      _keypair = null;
     });
 
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    final keypair = PaperWalletGenerator.generate();
-
-    setState(() {
-      _keypair = keypair;
-      _isGenerating = false;
-    });
+    try {
+      final keypair = await GetIt.I.get<BitwindowRPC>().utils.generatePaperWallet();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _keypair = keypair);
+    } catch (e) {
+      if (mounted) {
+        showSailToast(context, 'Could not generate a key: ${extractConnectException(e)}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+      }
+    }
   }
 
   void _copyToClipboard(String text, String label, {bool secret = false}) {
@@ -176,12 +184,12 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                                 height: 200,
                                 child: pw.BarcodeWidget(
                                   barcode: pw.Barcode.qrCode(),
-                                  data: _keypair!.privateKeyWIF,
+                                  data: _keypair!.privateKeyWif,
                                 ),
                               ),
                               pw.SizedBox(height: 15),
                               pw.Text(
-                                _keypair!.privateKeyWIF,
+                                _keypair!.privateKeyWif,
                                 style: pw.TextStyle(
                                   fontSize: 10,
                                   fontWeight: pw.FontWeight.bold,
@@ -350,7 +358,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                                   _showPrivateKey = !_showPrivateKey;
                                 });
                               },
-                              onCopy: () => _copyToClipboard(_keypair!.privateKeyWIF, 'Private key', secret: true),
+                              onCopy: () => _copyToClipboard(_keypair!.privateKeyWif, 'Private key', secret: true),
                             ),
                           ),
                         ],
@@ -404,7 +412,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
 
 /// Widget for displaying the public address panel
 class _AddressPanel extends StatelessWidget {
-  final PaperWalletKeypair keypair;
+  final GeneratePaperWalletResponse keypair;
   final bool showPrivateKey;
   final VoidCallback onCopy;
 
@@ -499,7 +507,7 @@ class _AddressPanel extends StatelessWidget {
 
 /// Widget for displaying the private key panel
 class _PrivateKeyPanel extends StatelessWidget {
-  final PaperWalletKeypair keypair;
+  final GeneratePaperWalletResponse keypair;
   final bool showPrivateKey;
   final VoidCallback onToggleVisibility;
   final VoidCallback onCopy;
@@ -565,7 +573,7 @@ class _PrivateKeyPanel extends StatelessWidget {
                 borderRadius: SailStyleValues.borderRadiusSmall,
               ),
               child: QrImageView(
-                data: keypair.privateKeyWIF,
+                data: keypair.privateKeyWif,
                 version: QrVersions.auto,
                 size: 200,
                 padding: EdgeInsets.zero,
@@ -581,7 +589,7 @@ class _PrivateKeyPanel extends StatelessWidget {
 
             // Private key text
             SailSelectableText(
-              keypair.privateKeyWIF,
+              keypair.privateKeyWif,
               style: TextStyle(
                 fontFamily: SailFonts.mono,
                 fontSize: 11,
