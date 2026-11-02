@@ -125,6 +125,11 @@ service WalletManagerService {
   // DeriveKeystore turns a keystore's intent into derived account key material.
   rpc DeriveKeystore(DeriveKeystoreRequest) returns (DeriveKeystoreResponse);
 
+  // ExploreSeed derives the master keys and one page of child keys of a mnemonic.
+  rpc ExploreSeed(ExploreSeedRequest) returns (ExploreSeedResponse);
+  // GenerateMnemonic returns a new random 12-word BIP39 mnemonic.
+  rpc GenerateMnemonic(GenerateMnemonicRequest) returns (GenerateMnemonicResponse);
+
   // PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
   // show the words while the user is still choosing their entropy.
   rpc PreviewWalletFromEntropy(PreviewWalletFromEntropyRequest) returns (PreviewWalletFromEntropyResponse);
@@ -994,6 +999,36 @@ message DeriveKeystoreResponse {
   string origin_path = 3; // without leading m/
   // Single-sig watch descriptor for device/raw sources; empty for multisig.
   string descriptor = 4;
+}
+
+message ExploreSeedRequest {
+  string mnemonic = 1;
+  string passphrase = 2;
+  // Parent path of the keys, e.g. "m/84'/0'/0'/0". Its purpose picks the address type.
+  string base_path = 3;
+  uint32 start_index = 4;
+  uint32 count = 5; // at most 100
+}
+
+message ExploredKey {
+  string path = 1;
+  string address = 2;
+  string public_key = 3; // compressed, hex
+  string wif = 4; // compressed
+}
+
+message ExploreSeedResponse {
+  string seed_hex = 1;
+  string xprv = 2;
+  string xpub = 3;
+  string bip47_payment_code = 4; // BIP47 v3, from the master public key
+  repeated ExploredKey keys = 5;
+}
+
+message GenerateMnemonicRequest {}
+
+message GenerateMnemonicResponse {
+  string mnemonic = 1;
 }
 
 

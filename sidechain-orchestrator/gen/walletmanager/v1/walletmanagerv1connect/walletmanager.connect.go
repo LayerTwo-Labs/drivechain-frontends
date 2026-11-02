@@ -214,6 +214,12 @@ const (
 	// WalletManagerServiceDeriveKeystoreProcedure is the procedure name of the WalletManagerService's
 	// DeriveKeystore RPC.
 	WalletManagerServiceDeriveKeystoreProcedure = "/walletmanager.v1.WalletManagerService/DeriveKeystore"
+	// WalletManagerServiceExploreSeedProcedure is the procedure name of the WalletManagerService's
+	// ExploreSeed RPC.
+	WalletManagerServiceExploreSeedProcedure = "/walletmanager.v1.WalletManagerService/ExploreSeed"
+	// WalletManagerServiceGenerateMnemonicProcedure is the procedure name of the WalletManagerService's
+	// GenerateMnemonic RPC.
+	WalletManagerServiceGenerateMnemonicProcedure = "/walletmanager.v1.WalletManagerService/GenerateMnemonic"
 	// WalletManagerServicePreviewWalletFromEntropyProcedure is the procedure name of the
 	// WalletManagerService's PreviewWalletFromEntropy RPC.
 	WalletManagerServicePreviewWalletFromEntropyProcedure = "/walletmanager.v1.WalletManagerService/PreviewWalletFromEntropy"
@@ -688,6 +694,20 @@ var (
 			Procedure:  WalletManagerServiceDeriveKeystoreProcedure,
 		}
 	})
+	walletManagerServiceExploreSeedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ExploreSeed"),
+			Procedure:  WalletManagerServiceExploreSeedProcedure,
+		}
+	})
+	walletManagerServiceGenerateMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("GenerateMnemonic"),
+			Procedure:  WalletManagerServiceGenerateMnemonicProcedure,
+		}
+	})
 	walletManagerServicePreviewWalletFromEntropySpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -871,6 +891,10 @@ type WalletManagerServiceClient interface {
 	CloseDevice(context.Context, *v1.CloseDeviceRequest) (*v1.CloseDeviceResponse, error)
 	// DeriveKeystore turns a keystore's intent into derived account key material.
 	DeriveKeystore(context.Context, *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error)
+	// ExploreSeed derives the master keys and one page of child keys of a mnemonic.
+	ExploreSeed(context.Context, *v1.ExploreSeedRequest) (*v1.ExploreSeedResponse, error)
+	// GenerateMnemonic returns a new random 12-word BIP39 mnemonic.
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
 	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
 	// show the words while the user is still choosing their entropy.
 	PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error)
@@ -1051,6 +1075,10 @@ type WalletManagerServiceHandler interface {
 	CloseDevice(context.Context, *v1.CloseDeviceRequest) (*v1.CloseDeviceResponse, error)
 	// DeriveKeystore turns a keystore's intent into derived account key material.
 	DeriveKeystore(context.Context, *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error)
+	// ExploreSeed derives the master keys and one page of child keys of a mnemonic.
+	ExploreSeed(context.Context, *v1.ExploreSeedRequest) (*v1.ExploreSeedResponse, error)
+	// GenerateMnemonic returns a new random 12-word BIP39 mnemonic.
+	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
 	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
 	// show the words while the user is still choosing their entropy.
 	PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error)
@@ -1139,6 +1167,8 @@ func RegisterWalletManagerServiceHandler(server *connect.Server, svc WalletManag
 		connect.Method{Spec: walletManagerServiceSendDevicePinSpec(), Handler: adapter.sendDevicePin},
 		connect.Method{Spec: walletManagerServiceCloseDeviceSpec(), Handler: adapter.closeDevice},
 		connect.Method{Spec: walletManagerServiceDeriveKeystoreSpec(), Handler: adapter.deriveKeystore},
+		connect.Method{Spec: walletManagerServiceExploreSeedSpec(), Handler: adapter.exploreSeed},
+		connect.Method{Spec: walletManagerServiceGenerateMnemonicSpec(), Handler: adapter.generateMnemonic},
 		connect.Method{Spec: walletManagerServicePreviewWalletFromEntropySpec(), Handler: adapter.previewWalletFromEntropy},
 		connect.Method{Spec: walletManagerServiceGetWalletSeedSpec(), Handler: adapter.getWalletSeed},
 		connect.Method{Spec: walletManagerServiceListCoreVariantsSpec(), Handler: adapter.listCoreVariants},
@@ -1437,6 +1467,14 @@ func (UnimplementedWalletManagerServiceHandler) CloseDevice(context.Context, *v1
 
 func (UnimplementedWalletManagerServiceHandler) DeriveKeystore(context.Context, *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.DeriveKeystore is not implemented")
+}
+
+func (UnimplementedWalletManagerServiceHandler) ExploreSeed(context.Context, *v1.ExploreSeedRequest) (*v1.ExploreSeedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ExploreSeed is not implemented")
+}
+
+func (UnimplementedWalletManagerServiceHandler) GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GenerateMnemonic is not implemented")
 }
 
 func (UnimplementedWalletManagerServiceHandler) PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error) {
@@ -1982,6 +2020,22 @@ func (c *walletManagerServiceClient) CloseDevice(ctx context.Context, req *v1.Cl
 func (c *walletManagerServiceClient) DeriveKeystore(ctx context.Context, req *v1.DeriveKeystoreRequest) (*v1.DeriveKeystoreResponse, error) {
 	var res v1.DeriveKeystoreResponse
 	if err := c.client.CallUnary(ctx, walletManagerServiceDeriveKeystoreSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ExploreSeed(ctx context.Context, req *v1.ExploreSeedRequest) (*v1.ExploreSeedResponse, error) {
+	var res v1.ExploreSeedResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceExploreSeedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) GenerateMnemonic(ctx context.Context, req *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
+	var res v1.GenerateMnemonicResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceGenerateMnemonicSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -2815,6 +2869,30 @@ func (h walletManagerServiceHandler) deriveKeystore(ctx context.Context, _ conne
 		return err
 	}
 	res, err := h.svc.DeriveKeystore(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) exploreSeed(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ExploreSeedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ExploreSeed(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) generateMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GenerateMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GenerateMnemonic(ctx, &req)
 	if err != nil {
 		return err
 	}

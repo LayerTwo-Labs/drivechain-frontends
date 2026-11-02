@@ -498,6 +498,22 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.DeriveKeystoreResponse.new,
   );
 
+  /// ExploreSeed derives the master keys and one page of child keys of a mnemonic.
+  static const exploreSeed = connect.Spec(
+    '/$name/ExploreSeed',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ExploreSeedRequest.new,
+    walletmanagerv1walletmanager.ExploreSeedResponse.new,
+  );
+
+  /// GenerateMnemonic returns a new random 12-word BIP39 mnemonic.
+  static const generateMnemonic = connect.Spec(
+    '/$name/GenerateMnemonic',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GenerateMnemonicRequest.new,
+    walletmanagerv1walletmanager.GenerateMnemonicResponse.new,
+  );
+
   /// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
   /// show the words while the user is still choosing their entropy.
   static const previewWalletFromEntropy = connect.Spec(
