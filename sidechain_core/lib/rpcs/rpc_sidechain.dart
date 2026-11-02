@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/classes/rpc_config.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
@@ -69,16 +69,19 @@ abstract class SidechainRPC extends RPCConnection {
     }
 
     try {
-      final dio = Dio();
       final network = (GetIt.I.get<BitcoinConfProvider>().network).toReadableNet();
-      final response = await dio.post(
-        'https://node.$network.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips',
-        data: {},
-        options: Options(headers: {'Content-Type': 'application/json'}),
+      final response = await http.post(
+        Uri.parse('https://node.$network.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips'),
+        headers: {'Content-Type': 'application/json'},
+        body: '{}',
       );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return null;
+      }
 
-      if (response.data != null && response.data[sidechainKey] != null) {
-        final height = response.data[sidechainKey]['height'];
+      final data = jsonDecode(response.body);
+      if (data is Map && data[sidechainKey] is Map) {
+        final height = data[sidechainKey]['height'];
         if (height != null) {
           return int.tryParse(height.toString());
         }
