@@ -349,6 +349,8 @@ var (
 type WalletServiceClient interface {
 	SendTransaction(context.Context, *v1.SendTransactionRequest) (*v1.SendTransactionResponse, error)
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
+	// out unused addresses, so we risk crossing the sync gap.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error)
@@ -358,9 +360,11 @@ type WalletServiceClient interface {
 	SignMessage(context.Context, *v1.SignMessageRequest) (*v1.SignMessageResponse, error)
 	VerifyMessage(context.Context, *v1.VerifyMessageRequest) (*v1.VerifyMessageResponse, error)
 	GetStats(context.Context, *v1.GetStatsRequest) (*v1.GetStatsResponse, error)
+	// Wallet unlock/lock for cheque operations
 	UnlockWallet(context.Context, *v1.UnlockWalletRequest) (*emptypb.Empty, error)
 	LockWallet(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	IsWalletUnlocked(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	// Cheque operations
 	CreateCheque(context.Context, *v1.CreateChequeRequest) (*v1.CreateChequeResponse, error)
 	GetCheque(context.Context, *v1.GetChequeRequest) (*v1.GetChequeResponse, error)
 	GetChequePrivateKey(context.Context, *v1.GetChequePrivateKeyRequest) (*v1.GetChequePrivateKeyResponse, error)
@@ -369,14 +373,21 @@ type WalletServiceClient interface {
 	PreviewSweep(context.Context, *v1.PreviewSweepRequest) (*v1.PreviewSweepResponse, error)
 	SweepCheque(context.Context, *v1.SweepChequeRequest) (*v1.SweepChequeResponse, error)
 	DeleteCheque(context.Context, *v1.DeleteChequeRequest) (*emptypb.Empty, error)
+	// UTXO Coin Control
 	SetUTXOMetadata(context.Context, *v1.SetUTXOMetadataRequest) (*emptypb.Empty, error)
 	GetUTXOMetadata(context.Context, *v1.GetUTXOMetadataRequest) (*v1.GetUTXOMetadataResponse, error)
+	// Coin Selection Preferences
 	SetCoinSelectionStrategy(context.Context, *v1.SetCoinSelectionStrategyRequest) (*emptypb.Empty, error)
 	GetCoinSelectionStrategy(context.Context, *emptypb.Empty) (*v1.GetCoinSelectionStrategyResponse, error)
+	// Transaction Details (enriched with input values/addresses)
 	GetTransactionDetails(context.Context, *v1.GetTransactionDetailsRequest) (*v1.GetTransactionDetailsResponse, error)
+	// UTXO Distribution (for chart visualization)
 	GetUTXODistribution(context.Context, *v1.GetUTXODistributionRequest) (*v1.GetUTXODistributionResponse, error)
+	// RBF - Replace-By-Fee for unconfirmed transactions
 	BumpFee(context.Context, *v1.BumpFeeRequest) (*v1.BumpFeeResponse, error)
+	// Coin Selection - Select UTXOs for a transaction
 	SelectCoins(context.Context, *v1.SelectCoinsRequest) (*v1.SelectCoinsResponse, error)
+	// Backup / Restore
 	CreateBackup(context.Context, *emptypb.Empty) (*v1.CreateBackupResponse, error)
 	RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*emptypb.Empty, error)
 	ValidateBackup(context.Context, *v1.ValidateBackupRequest) (*v1.ValidateBackupResponse, error)
@@ -392,6 +403,8 @@ func NewWalletServiceClient(client *connect.Client) WalletServiceClient {
 type WalletServiceHandler interface {
 	SendTransaction(context.Context, *v1.SendTransactionRequest) (*v1.SendTransactionResponse, error)
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
+	// out unused addresses, so we risk crossing the sync gap.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error)
@@ -401,9 +414,11 @@ type WalletServiceHandler interface {
 	SignMessage(context.Context, *v1.SignMessageRequest) (*v1.SignMessageResponse, error)
 	VerifyMessage(context.Context, *v1.VerifyMessageRequest) (*v1.VerifyMessageResponse, error)
 	GetStats(context.Context, *v1.GetStatsRequest) (*v1.GetStatsResponse, error)
+	// Wallet unlock/lock for cheque operations
 	UnlockWallet(context.Context, *v1.UnlockWalletRequest) (*emptypb.Empty, error)
 	LockWallet(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	IsWalletUnlocked(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	// Cheque operations
 	CreateCheque(context.Context, *v1.CreateChequeRequest) (*v1.CreateChequeResponse, error)
 	GetCheque(context.Context, *v1.GetChequeRequest) (*v1.GetChequeResponse, error)
 	GetChequePrivateKey(context.Context, *v1.GetChequePrivateKeyRequest) (*v1.GetChequePrivateKeyResponse, error)
@@ -412,14 +427,21 @@ type WalletServiceHandler interface {
 	PreviewSweep(context.Context, *v1.PreviewSweepRequest) (*v1.PreviewSweepResponse, error)
 	SweepCheque(context.Context, *v1.SweepChequeRequest) (*v1.SweepChequeResponse, error)
 	DeleteCheque(context.Context, *v1.DeleteChequeRequest) (*emptypb.Empty, error)
+	// UTXO Coin Control
 	SetUTXOMetadata(context.Context, *v1.SetUTXOMetadataRequest) (*emptypb.Empty, error)
 	GetUTXOMetadata(context.Context, *v1.GetUTXOMetadataRequest) (*v1.GetUTXOMetadataResponse, error)
+	// Coin Selection Preferences
 	SetCoinSelectionStrategy(context.Context, *v1.SetCoinSelectionStrategyRequest) (*emptypb.Empty, error)
 	GetCoinSelectionStrategy(context.Context, *emptypb.Empty) (*v1.GetCoinSelectionStrategyResponse, error)
+	// Transaction Details (enriched with input values/addresses)
 	GetTransactionDetails(context.Context, *v1.GetTransactionDetailsRequest) (*v1.GetTransactionDetailsResponse, error)
+	// UTXO Distribution (for chart visualization)
 	GetUTXODistribution(context.Context, *v1.GetUTXODistributionRequest) (*v1.GetUTXODistributionResponse, error)
+	// RBF - Replace-By-Fee for unconfirmed transactions
 	BumpFee(context.Context, *v1.BumpFeeRequest) (*v1.BumpFeeResponse, error)
+	// Coin Selection - Select UTXOs for a transaction
 	SelectCoins(context.Context, *v1.SelectCoinsRequest) (*v1.SelectCoinsResponse, error)
+	// Backup / Restore
 	CreateBackup(context.Context, *emptypb.Empty) (*v1.CreateBackupResponse, error)
 	RestoreBackup(context.Context, *v1.RestoreBackupRequest) (*emptypb.Empty, error)
 	ValidateBackup(context.Context, *v1.ValidateBackupRequest) (*v1.ValidateBackupResponse, error)

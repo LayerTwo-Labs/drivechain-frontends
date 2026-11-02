@@ -129,15 +129,19 @@ var (
 
 // MultisigServiceClient is a client for the multisig.v1.MultisigService service.
 type MultisigServiceClient interface {
+	// Group CRUD
 	ListGroups(context.Context, *emptypb.Empty) (*v1.ListGroupsResponse, error)
 	SaveGroup(context.Context, *v1.SaveGroupRequest) (*v1.SaveGroupResponse, error)
 	DeleteGroup(context.Context, *v1.DeleteGroupRequest) (*emptypb.Empty, error)
+	// Transaction CRUD
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.MultisigTransaction, error)
 	GetTransactionByTxid(context.Context, *v1.GetTransactionByTxidRequest) (*v1.MultisigTransaction, error)
 	SaveTransaction(context.Context, *v1.SaveTransactionRequest) (*v1.SaveTransactionResponse, error)
+	// Solo key management
 	ListSoloKeys(context.Context, *emptypb.Empty) (*v1.ListSoloKeysResponse, error)
 	AddSoloKey(context.Context, *v1.AddSoloKeyRequest) (*emptypb.Empty, error)
+	// Account index
 	GetNextAccountIndex(context.Context, *v1.GetNextAccountIndexRequest) (*v1.GetNextAccountIndexResponse, error)
 }
 
@@ -149,15 +153,19 @@ func NewMultisigServiceClient(client *connect.Client) MultisigServiceClient {
 
 // MultisigServiceHandler is an implementation of the multisig.v1.MultisigService service.
 type MultisigServiceHandler interface {
+	// Group CRUD
 	ListGroups(context.Context, *emptypb.Empty) (*v1.ListGroupsResponse, error)
 	SaveGroup(context.Context, *v1.SaveGroupRequest) (*v1.SaveGroupResponse, error)
 	DeleteGroup(context.Context, *v1.DeleteGroupRequest) (*emptypb.Empty, error)
+	// Transaction CRUD
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.MultisigTransaction, error)
 	GetTransactionByTxid(context.Context, *v1.GetTransactionByTxidRequest) (*v1.MultisigTransaction, error)
 	SaveTransaction(context.Context, *v1.SaveTransactionRequest) (*v1.SaveTransactionResponse, error)
+	// Solo key management
 	ListSoloKeys(context.Context, *emptypb.Empty) (*v1.ListSoloKeysResponse, error)
 	AddSoloKey(context.Context, *v1.AddSoloKeyRequest) (*emptypb.Empty, error)
+	// Account index
 	GetNextAccountIndex(context.Context, *v1.GetNextAccountIndexRequest) (*v1.GetNextAccountIndexResponse, error)
 }
 

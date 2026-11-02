@@ -50,7 +50,11 @@ var (
 
 // HealthServiceClient is a client for the health.v1.HealthService service.
 type HealthServiceClient interface {
+	// Check status of requested services
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	Check(context.Context, *emptypb.Empty) (*v1.CheckResponse, error)
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	Watch(context.Context, *emptypb.Empty) (HealthServiceWatchClientStream, error)
 }
 
@@ -82,7 +86,11 @@ func (s HealthServiceWatchClientStream) Close() error {
 
 // HealthServiceHandler is an implementation of the health.v1.HealthService service.
 type HealthServiceHandler interface {
+	// Check status of requested services
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	Check(context.Context, *emptypb.Empty) (*v1.CheckResponse, error)
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	Watch(context.Context, *emptypb.Empty, HealthServiceWatchServerStream) error
 }
 

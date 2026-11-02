@@ -41,6 +41,7 @@ var (
 
 // FastWithdrawalServiceClient is a client for the fast_withdrawal.v1.FastWithdrawalService service.
 type FastWithdrawalServiceClient interface {
+	// InitiateFastWithdrawal starts a fast withdrawal and streams status updates
 	InitiateFastWithdrawal(context.Context, *v1.InitiateFastWithdrawalRequest) (FastWithdrawalServiceInitiateFastWithdrawalClientStream, error)
 }
 
@@ -75,6 +76,7 @@ func (s FastWithdrawalServiceInitiateFastWithdrawalClientStream) Close() error {
 // FastWithdrawalServiceHandler is an implementation of the fast_withdrawal.v1.FastWithdrawalService
 // service.
 type FastWithdrawalServiceHandler interface {
+	// InitiateFastWithdrawal starts a fast withdrawal and streams status updates
 	InitiateFastWithdrawal(context.Context, *v1.InitiateFastWithdrawalRequest, FastWithdrawalServiceInitiateFastWithdrawalServerStream) error
 }
 

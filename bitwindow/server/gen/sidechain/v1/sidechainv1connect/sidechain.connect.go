@@ -51,7 +51,9 @@ var (
 
 // SidechainServiceClient is a client for the sidechain.v1.SidechainService service.
 type SidechainServiceClient interface {
+	// GetDetectedWithdrawals returns all detected fast withdrawal transactions
 	GetDetectedWithdrawals(context.Context, *v1.GetDetectedWithdrawalsRequest) (*v1.GetDetectedWithdrawalsResponse, error)
+	// GetWithdrawalByTxid returns a specific withdrawal by transaction ID
 	GetWithdrawalByTxid(context.Context, *v1.GetWithdrawalByTxidRequest) (*v1.GetWithdrawalByTxidResponse, error)
 }
 
@@ -63,7 +65,9 @@ func NewSidechainServiceClient(client *connect.Client) SidechainServiceClient {
 
 // SidechainServiceHandler is an implementation of the sidechain.v1.SidechainService service.
 type SidechainServiceHandler interface {
+	// GetDetectedWithdrawals returns all detected fast withdrawal transactions
 	GetDetectedWithdrawals(context.Context, *v1.GetDetectedWithdrawalsRequest) (*v1.GetDetectedWithdrawalsResponse, error)
+	// GetWithdrawalByTxid returns a specific withdrawal by transaction ID
 	GetWithdrawalByTxid(context.Context, *v1.GetWithdrawalByTxidRequest) (*v1.GetWithdrawalByTxidResponse, error)
 }
 
