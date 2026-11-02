@@ -896,10 +896,9 @@ packages:
   qr_flutter:
     dependency: "direct main"
     description:
-      name: qr_flutter
-      sha256: "5095f0fc6e3f71d08adef8feccc8cea4f12eec18a2e31c2e8d82cb6019f4b097"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../third_party/qr_flutter"
+      relative: true
+    source: path
     version: "4.1.0"
   record_use:
     dependency: transitive

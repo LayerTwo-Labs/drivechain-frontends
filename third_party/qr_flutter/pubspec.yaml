@@ -1,0 +1,11 @@
+name: qr_flutter
+description: Copy of qr_flutter 4.1.0 from pub.dev.
+version: 4.1.0
+publish_to: none
+environment:
+  sdk: '>=2.19.6 <4.0.0'
+  flutter: '>=3.7.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  qr: ^3.0.1
