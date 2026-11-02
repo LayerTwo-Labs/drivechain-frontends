@@ -1,14 +1,7 @@
-import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
-import 'package:bitwindow/utils/converter.dart';
-import 'package:bs58/bs58.dart';
-import 'package:convert/convert.dart';
-import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:pointycastle/digests/sha256.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -276,6 +269,8 @@ class HDWalletViewModel extends BaseViewModel {
   String _xpriv = '';
   String _xpub = '';
   String _bip47PaymentCode = '';
+  // An answer from an older run, or from before Clear, must not show its keys.
+  int _exploreRun = 0;
   bool _hideMnemonic = false;
   bool _hidePrivateKeys = true;
 
@@ -301,39 +296,7 @@ class HDWalletViewModel extends BaseViewModel {
     return pathRegex.hasMatch(path);
   }
 
-  String _generateBip47v3PaymentCode(String masterPubKeyHex) {
-    try {
-      if (masterPubKeyHex.length != 66) {
-        return '';
-      }
-
-      final pubKeyBytes = hex.decode(masterPubKeyHex);
-      if (pubKeyBytes.length != 33) {
-        return '';
-      }
-
-      final binaryPayload = Uint8List(34);
-      binaryPayload[0] = 0x03;
-      binaryPayload.setRange(1, 34, pubKeyBytes);
-
-      final versionedPayload = Uint8List(35);
-      versionedPayload[0] = 0x22;
-      versionedPayload.setRange(1, 35, binaryPayload);
-
-      final sha256Digest = SHA256Digest();
-      final hash1 = sha256Digest.process(versionedPayload);
-      final hash2 = sha256Digest.process(hash1);
-      final checksum = hash2.sublist(0, 4);
-
-      final finalBytes = Uint8List(39);
-      finalBytes.setRange(0, 35, versionedPayload);
-      finalBytes.setRange(35, 39, checksum);
-
-      return base58.encode(finalBytes);
-    } catch (e) {
-      return '';
-    }
-  }
+  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
 
   HDWalletViewModel() {
     mnemonicController.addListener(notifyListeners);
@@ -363,11 +326,9 @@ class HDWalletViewModel extends BaseViewModel {
     _errorMessage = null;
 
     try {
-      final mnemonic = await _hdWalletProvider.generateRandomMnemonic();
-      mnemonicController.text = mnemonic;
-      _errorMessage = null;
+      mnemonicController.text = await _orchestratorWallet.generateMnemonic();
     } catch (e) {
-      _errorMessage = 'Error generating random mnemonic: $e';
+      _errorMessage = 'Error generating random mnemonic: ${extractConnectException(e)}';
     } finally {
       notifyListeners();
     }
@@ -382,113 +343,35 @@ class HDWalletViewModel extends BaseViewModel {
     }
 
     _errorMessage = null;
-
-    try {
-      if (!await _hdWalletProvider.validateMnemonic(mnemonic)) {
-        _errorMessage = 'Invalid mnemonic seed phrase';
-        notifyListeners();
-        return;
-      }
-
-      // Derive master keys
-      try {
-        final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
-        final seedHex = hex.encode(mnemonicObj.seed);
-        final chain = Chain.seed(seedHex);
-        final masterKey = chain.forPath('m');
-        final extendedPublicKey = (masterKey as ExtendedPrivateKey).publicKey();
-
-        _masterSeed = seedHex;
-        _xpriv = masterKey.toString();
-        _xpub = extendedPublicKey.toString();
-
-        // Generate BIP47_v3 payment code from master public key
-        final masterQ = extendedPublicKey.q;
-        if (masterQ != null) {
-          final masterPubKeyBytes = masterQ.getEncoded(true);
-          final masterPubKeyHex = hex.encode(masterPubKeyBytes);
-          _bip47PaymentCode = _generateBip47v3PaymentCode(masterPubKeyHex);
-        }
-      } catch (e) {
-        _errorMessage = 'Error deriving master keys: $e';
-        notifyListeners();
-        return;
-      }
-
-      // Derive addresses
-      await _deriveEntries(mnemonic);
-    } catch (e) {
-      _errorMessage = 'Error: $e';
-    } finally {
-      notifyListeners();
-    }
+    await _explore(mnemonic);
+    notifyListeners();
   }
 
-  Future<void> _deriveEntries(String mnemonic) async {
+  Future<void> _explore(String mnemonic) async {
+    final run = ++_exploreRun;
     try {
-      final basePath = derivationPathController.text.trim();
-      final entries = await compute(_deriveEntriesInBackground, [
-        mnemonic,
-        basePath,
-        _currentPage,
-        _entriesPerPage,
-        _conf.network,
-      ]);
-
-      _derivedEntries = entries;
-    } catch (e) {
-      _errorMessage = 'Error deriving addresses: $e';
-    }
-  }
-
-  static List<HDWalletEntry> _deriveEntriesInBackground(List<dynamic> params) {
-    final mnemonic = params[0] as String;
-    final basePath = params[1] as String;
-    final currentPage = params[2] as int;
-    final entriesPerPage = params[3] as int;
-    final network = params[4] as BitcoinNetwork;
-
-    final entries = <HDWalletEntry>[];
-
-    try {
-      final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
-      final seedHex = hex.encode(mnemonicObj.seed);
-      final chain = Chain.seed(seedHex);
-      final purpose = purposeOf(basePath);
-
-      final startIndex = currentPage * entriesPerPage;
-
-      for (var i = 0; i < entriesPerPage; i++) {
-        try {
-          final derivationIndex = startIndex + i;
-          final path = basePath.endsWith('/') ? '$basePath$derivationIndex' : '$basePath/$derivationIndex';
-          final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
-          final privateKeyHex = extendedPrivateKey.privateKeyHex();
-          final q = extendedPrivateKey.publicKey().q;
-          if (q == null) {
-            continue;
-          }
-
-          final pubKeyBytes = q.getEncoded(true);
-          final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
-
-          entries.add(
-            HDWalletEntry(
-              path: path,
-              address: addressForPurpose(pubKeyBytes, purpose, network),
-              publicKey: hex.encode(pubKeyBytes),
-              privateKey: compressedWif(hex.decode(cleanHex), network),
-            ),
-          );
-        } catch (e) {
-          continue;
-        }
+      final explored = await _orchestratorWallet.exploreSeed(
+        mnemonic: mnemonic,
+        basePath: derivationPathController.text.trim(),
+        startIndex: _currentPage * _entriesPerPage,
+        count: _entriesPerPage,
+      );
+      if (run != _exploreRun) {
+        return;
       }
+      _masterSeed = explored.seedHex;
+      _xpriv = explored.xprv;
+      _xpub = explored.xpub;
+      _bip47PaymentCode = explored.bip47PaymentCode;
+      _derivedEntries = [
+        for (final key in explored.keys)
+          HDWalletEntry(path: key.path, address: key.address, publicKey: key.publicKey, privateKey: key.wif),
+      ];
     } catch (e) {
-      // Return any entries we've generated so far
+      if (run == _exploreRun) {
+        _errorMessage = 'Error deriving keys: ${extractConnectException(e)}';
+      }
     }
-
-    return entries;
   }
 
   Future<void> changePage(bool next) async {
@@ -498,11 +381,12 @@ class HDWalletViewModel extends BaseViewModel {
       _currentPage = _currentPage > 0 ? _currentPage - 1 : 0;
     }
 
-    await _deriveEntries(mnemonicController.text.trim());
+    await _explore(mnemonicController.text.trim());
     notifyListeners();
   }
 
   void clearAll() {
+    _exploreRun++;
     mnemonicController.clear();
     _masterSeed = '';
     _xpriv = '';

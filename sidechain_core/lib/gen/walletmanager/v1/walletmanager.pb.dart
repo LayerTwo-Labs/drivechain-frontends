@@ -8273,6 +8273,387 @@ class DeriveKeystoreResponse extends $pb.GeneratedMessage {
   void clearDescriptor() => clearField(4);
 }
 
+class ExploreSeedRequest extends $pb.GeneratedMessage {
+  factory ExploreSeedRequest({
+    $core.String? mnemonic,
+    $core.String? passphrase,
+    $core.String? basePath,
+    $core.int? startIndex,
+    $core.int? count,
+  }) {
+    final $result = create();
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
+    }
+    if (passphrase != null) {
+      $result.passphrase = passphrase;
+    }
+    if (basePath != null) {
+      $result.basePath = basePath;
+    }
+    if (startIndex != null) {
+      $result.startIndex = startIndex;
+    }
+    if (count != null) {
+      $result.count = count;
+    }
+    return $result;
+  }
+  ExploreSeedRequest._() : super();
+  factory ExploreSeedRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExploreSeedRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExploreSeedRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'mnemonic')
+    ..aOS(2, _omitFieldNames ? '' : 'passphrase')
+    ..aOS(3, _omitFieldNames ? '' : 'basePath')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'startIndex', $pb.PbFieldType.OU3)
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'count', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExploreSeedRequest clone() => ExploreSeedRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExploreSeedRequest copyWith(void Function(ExploreSeedRequest) updates) => super.copyWith((message) => updates(message as ExploreSeedRequest)) as ExploreSeedRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExploreSeedRequest create() => ExploreSeedRequest._();
+  ExploreSeedRequest createEmptyInstance() => create();
+  static $pb.PbList<ExploreSeedRequest> createRepeated() => $pb.PbList<ExploreSeedRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ExploreSeedRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExploreSeedRequest>(create);
+  static ExploreSeedRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get mnemonic => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set mnemonic($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMnemonic() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMnemonic() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get passphrase => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set passphrase($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPassphrase() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPassphrase() => clearField(2);
+
+  /// Parent path of the keys, e.g. "m/84'/0'/0'/0". Its purpose picks the address type.
+  @$pb.TagNumber(3)
+  $core.String get basePath => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set basePath($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasBasePath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBasePath() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get startIndex => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set startIndex($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasStartIndex() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearStartIndex() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get count => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set count($core.int v) { $_setUnsignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasCount() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCount() => clearField(5);
+}
+
+class ExploredKey extends $pb.GeneratedMessage {
+  factory ExploredKey({
+    $core.String? path,
+    $core.String? address,
+    $core.String? publicKey,
+    $core.String? wif,
+  }) {
+    final $result = create();
+    if (path != null) {
+      $result.path = path;
+    }
+    if (address != null) {
+      $result.address = address;
+    }
+    if (publicKey != null) {
+      $result.publicKey = publicKey;
+    }
+    if (wif != null) {
+      $result.wif = wif;
+    }
+    return $result;
+  }
+  ExploredKey._() : super();
+  factory ExploredKey.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExploredKey.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExploredKey', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'path')
+    ..aOS(2, _omitFieldNames ? '' : 'address')
+    ..aOS(3, _omitFieldNames ? '' : 'publicKey')
+    ..aOS(4, _omitFieldNames ? '' : 'wif')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExploredKey clone() => ExploredKey()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExploredKey copyWith(void Function(ExploredKey) updates) => super.copyWith((message) => updates(message as ExploredKey)) as ExploredKey;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExploredKey create() => ExploredKey._();
+  ExploredKey createEmptyInstance() => create();
+  static $pb.PbList<ExploredKey> createRepeated() => $pb.PbList<ExploredKey>();
+  @$core.pragma('dart2js:noInline')
+  static ExploredKey getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExploredKey>(create);
+  static ExploredKey? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get path => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set path($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPath() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get address => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set address($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAddress() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddress() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get publicKey => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set publicKey($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasPublicKey() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPublicKey() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get wif => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set wif($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasWif() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearWif() => clearField(4);
+}
+
+class ExploreSeedResponse extends $pb.GeneratedMessage {
+  factory ExploreSeedResponse({
+    $core.String? seedHex,
+    $core.String? xprv,
+    $core.String? xpub,
+    $core.String? bip47PaymentCode,
+    $core.Iterable<ExploredKey>? keys,
+  }) {
+    final $result = create();
+    if (seedHex != null) {
+      $result.seedHex = seedHex;
+    }
+    if (xprv != null) {
+      $result.xprv = xprv;
+    }
+    if (xpub != null) {
+      $result.xpub = xpub;
+    }
+    if (bip47PaymentCode != null) {
+      $result.bip47PaymentCode = bip47PaymentCode;
+    }
+    if (keys != null) {
+      $result.keys.addAll(keys);
+    }
+    return $result;
+  }
+  ExploreSeedResponse._() : super();
+  factory ExploreSeedResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExploreSeedResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExploreSeedResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'seedHex')
+    ..aOS(2, _omitFieldNames ? '' : 'xprv')
+    ..aOS(3, _omitFieldNames ? '' : 'xpub')
+    ..aOS(4, _omitFieldNames ? '' : 'bip47PaymentCode')
+    ..pc<ExploredKey>(5, _omitFieldNames ? '' : 'keys', $pb.PbFieldType.PM, subBuilder: ExploredKey.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExploreSeedResponse clone() => ExploreSeedResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExploreSeedResponse copyWith(void Function(ExploreSeedResponse) updates) => super.copyWith((message) => updates(message as ExploreSeedResponse)) as ExploreSeedResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExploreSeedResponse create() => ExploreSeedResponse._();
+  ExploreSeedResponse createEmptyInstance() => create();
+  static $pb.PbList<ExploreSeedResponse> createRepeated() => $pb.PbList<ExploreSeedResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ExploreSeedResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExploreSeedResponse>(create);
+  static ExploreSeedResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get seedHex => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set seedHex($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSeedHex() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSeedHex() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get xprv => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set xprv($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasXprv() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearXprv() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get xpub => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set xpub($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasXpub() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearXpub() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get bip47PaymentCode => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set bip47PaymentCode($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasBip47PaymentCode() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBip47PaymentCode() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.List<ExploredKey> get keys => $_getList(4);
+}
+
+class GenerateMnemonicRequest extends $pb.GeneratedMessage {
+  factory GenerateMnemonicRequest() => create();
+  GenerateMnemonicRequest._() : super();
+  factory GenerateMnemonicRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GenerateMnemonicRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateMnemonicRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GenerateMnemonicRequest clone() => GenerateMnemonicRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GenerateMnemonicRequest copyWith(void Function(GenerateMnemonicRequest) updates) => super.copyWith((message) => updates(message as GenerateMnemonicRequest)) as GenerateMnemonicRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GenerateMnemonicRequest create() => GenerateMnemonicRequest._();
+  GenerateMnemonicRequest createEmptyInstance() => create();
+  static $pb.PbList<GenerateMnemonicRequest> createRepeated() => $pb.PbList<GenerateMnemonicRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GenerateMnemonicRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateMnemonicRequest>(create);
+  static GenerateMnemonicRequest? _defaultInstance;
+}
+
+class GenerateMnemonicResponse extends $pb.GeneratedMessage {
+  factory GenerateMnemonicResponse({
+    $core.String? mnemonic,
+  }) {
+    final $result = create();
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
+    }
+    return $result;
+  }
+  GenerateMnemonicResponse._() : super();
+  factory GenerateMnemonicResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GenerateMnemonicResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateMnemonicResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'mnemonic')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GenerateMnemonicResponse clone() => GenerateMnemonicResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GenerateMnemonicResponse copyWith(void Function(GenerateMnemonicResponse) updates) => super.copyWith((message) => updates(message as GenerateMnemonicResponse)) as GenerateMnemonicResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GenerateMnemonicResponse create() => GenerateMnemonicResponse._();
+  GenerateMnemonicResponse createEmptyInstance() => create();
+  static $pb.PbList<GenerateMnemonicResponse> createRepeated() => $pb.PbList<GenerateMnemonicResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GenerateMnemonicResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateMnemonicResponse>(create);
+  static GenerateMnemonicResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get mnemonic => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set mnemonic($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMnemonic() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMnemonic() => clearField(1);
+}
+
 class ListTransactionsRequest extends $pb.GeneratedMessage {
   factory ListTransactionsRequest({
     $core.String? walletId,
@@ -13635,6 +14016,12 @@ class WalletManagerServiceApi {
   ;
   $async.Future<DeriveKeystoreResponse> deriveKeystore($pb.ClientContext? ctx, DeriveKeystoreRequest request) =>
     _client.invoke<DeriveKeystoreResponse>(ctx, 'WalletManagerService', 'DeriveKeystore', request, DeriveKeystoreResponse())
+  ;
+  $async.Future<ExploreSeedResponse> exploreSeed($pb.ClientContext? ctx, ExploreSeedRequest request) =>
+    _client.invoke<ExploreSeedResponse>(ctx, 'WalletManagerService', 'ExploreSeed', request, ExploreSeedResponse())
+  ;
+  $async.Future<GenerateMnemonicResponse> generateMnemonic($pb.ClientContext? ctx, GenerateMnemonicRequest request) =>
+    _client.invoke<GenerateMnemonicResponse>(ctx, 'WalletManagerService', 'GenerateMnemonic', request, GenerateMnemonicResponse())
   ;
   $async.Future<PreviewWalletFromEntropyResponse> previewWalletFromEntropy($pb.ClientContext? ctx, PreviewWalletFromEntropyRequest request) =>
     _client.invoke<PreviewWalletFromEntropyResponse>(ctx, 'WalletManagerService', 'PreviewWalletFromEntropy', request, PreviewWalletFromEntropyResponse())

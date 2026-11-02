@@ -144,29 +144,6 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
     notifyListeners();
   }
 
-  Future<bool> validateMnemonic(String mnemonic) async {
-    try {
-      Mnemonic.fromSentence(mnemonic, Language.english);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<String> generateRandomMnemonic() async {
-    try {
-      final mnemonic = Mnemonic.generate(
-        Language.english,
-        length: MnemonicLength.words12,
-      );
-      return mnemonic.sentence;
-    } catch (e) {
-      _error = 'Error generating random mnemonic';
-      notifyListeners();
-      return '';
-    }
-  }
-
   Uint8List hash160(Uint8List data) {
     final sha256Digest = SHA256Digest();
     final ripemd160 = RIPEMD160Digest();

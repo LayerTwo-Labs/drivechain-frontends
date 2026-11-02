@@ -1126,6 +1126,42 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// ExploreSeed derives the master keys and one page of child keys of a mnemonic.
+  Future<walletmanagerv1walletmanager.ExploreSeedResponse> exploreSeed(
+    walletmanagerv1walletmanager.ExploreSeedRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.exploreSeed,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// GenerateMnemonic returns a new random 12-word BIP39 mnemonic.
+  Future<walletmanagerv1walletmanager.GenerateMnemonicResponse> generateMnemonic(
+    walletmanagerv1walletmanager.GenerateMnemonicRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.generateMnemonic,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
   /// show the words while the user is still choosing their entropy.
   Future<walletmanagerv1walletmanager.PreviewWalletFromEntropyResponse> previewWalletFromEntropy(

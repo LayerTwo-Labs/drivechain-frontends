@@ -388,6 +388,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) EstimateFee(arg0, arg1 any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateFee", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).EstimateFee), arg0, arg1)
 }
 
+// ExploreSeed mocks base method.
+func (m *MockWalletManagerServiceClient) ExploreSeed(arg0 context.Context, arg1 *walletmanagerv1.ExploreSeedRequest) (*walletmanagerv1.ExploreSeedResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExploreSeed", arg0, arg1)
+	ret0, _ := ret[0].(*walletmanagerv1.ExploreSeedResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExploreSeed indicates an expected call of ExploreSeed.
+func (mr *MockWalletManagerServiceClientMockRecorder) ExploreSeed(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExploreSeed", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).ExploreSeed), arg0, arg1)
+}
+
 // FinalizePsbt mocks base method.
 func (m *MockWalletManagerServiceClient) FinalizePsbt(arg0 context.Context, arg1 *walletmanagerv1.FinalizePsbtRequest) (*walletmanagerv1.FinalizePsbtResponse, error) {
 	m.ctrl.T.Helper()
@@ -401,6 +416,21 @@ func (m *MockWalletManagerServiceClient) FinalizePsbt(arg0 context.Context, arg1
 func (mr *MockWalletManagerServiceClientMockRecorder) FinalizePsbt(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizePsbt", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).FinalizePsbt), arg0, arg1)
+}
+
+// GenerateMnemonic mocks base method.
+func (m *MockWalletManagerServiceClient) GenerateMnemonic(arg0 context.Context, arg1 *walletmanagerv1.GenerateMnemonicRequest) (*walletmanagerv1.GenerateMnemonicResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateMnemonic", arg0, arg1)
+	ret0, _ := ret[0].(*walletmanagerv1.GenerateMnemonicResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateMnemonic indicates an expected call of GenerateMnemonic.
+func (mr *MockWalletManagerServiceClientMockRecorder) GenerateMnemonic(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateMnemonic", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).GenerateMnemonic), arg0, arg1)
 }
 
 // GenerateWallet mocks base method.
@@ -1507,6 +1537,21 @@ func (mr *MockWalletManagerServiceHandlerMockRecorder) EstimateFee(arg0, arg1 an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateFee", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).EstimateFee), arg0, arg1)
 }
 
+// ExploreSeed mocks base method.
+func (m *MockWalletManagerServiceHandler) ExploreSeed(arg0 context.Context, arg1 *walletmanagerv1.ExploreSeedRequest) (*walletmanagerv1.ExploreSeedResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExploreSeed", arg0, arg1)
+	ret0, _ := ret[0].(*walletmanagerv1.ExploreSeedResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExploreSeed indicates an expected call of ExploreSeed.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) ExploreSeed(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExploreSeed", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).ExploreSeed), arg0, arg1)
+}
+
 // FinalizePsbt mocks base method.
 func (m *MockWalletManagerServiceHandler) FinalizePsbt(arg0 context.Context, arg1 *walletmanagerv1.FinalizePsbtRequest) (*walletmanagerv1.FinalizePsbtResponse, error) {
 	m.ctrl.T.Helper()
@@ -1520,6 +1565,21 @@ func (m *MockWalletManagerServiceHandler) FinalizePsbt(arg0 context.Context, arg
 func (mr *MockWalletManagerServiceHandlerMockRecorder) FinalizePsbt(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizePsbt", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).FinalizePsbt), arg0, arg1)
+}
+
+// GenerateMnemonic mocks base method.
+func (m *MockWalletManagerServiceHandler) GenerateMnemonic(arg0 context.Context, arg1 *walletmanagerv1.GenerateMnemonicRequest) (*walletmanagerv1.GenerateMnemonicResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateMnemonic", arg0, arg1)
+	ret0, _ := ret[0].(*walletmanagerv1.GenerateMnemonicResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateMnemonic indicates an expected call of GenerateMnemonic.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) GenerateMnemonic(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateMnemonic", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).GenerateMnemonic), arg0, arg1)
 }
 
 // GenerateWallet mocks base method.

@@ -612,6 +612,32 @@ class OrchestratorWalletRPC {
     );
   }
 
+  /// The master keys of [mnemonic] and [count] child keys under [basePath],
+  /// from [startIndex]. Throws for an invalid mnemonic or path.
+  Future<wmpb.ExploreSeedResponse> exploreSeed({
+    required String mnemonic,
+    String passphrase = '',
+    required String basePath,
+    required int startIndex,
+    required int count,
+  }) {
+    return _unaryClient.exploreSeed(
+      wmpb.ExploreSeedRequest(
+        mnemonic: mnemonic,
+        passphrase: passphrase,
+        basePath: basePath,
+        startIndex: startIndex,
+        count: count,
+      ),
+    );
+  }
+
+  /// A new random 12-word BIP39 mnemonic.
+  Future<String> generateMnemonic() async {
+    final response = await _unaryClient.generateMnemonic(wmpb.GenerateMnemonicRequest());
+    return response.mnemonic;
+  }
+
   /// Canonicalises a derivation path and reports the script type it is the
   /// standard path for. Throws with the reason it is unusable.
   Future<wmpb.ValidateDerivationPathResponse> validateDerivationPath(
