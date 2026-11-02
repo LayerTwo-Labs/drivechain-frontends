@@ -270,30 +270,55 @@ var (
 
 // PhotonServiceClient is a client for the photon.v1.PhotonService service.
 type PhotonServiceClient interface {
+	// Get wallet balance (total and available).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the photon node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain.
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// Forget a peer.
 	ForgetPeer(context.Context, *v1.ForgetPeerRequest) (*v1.ForgetPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Remove transaction from mempool.
 	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Get wallet addresses.
 	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
 }
 
@@ -305,30 +330,55 @@ func NewPhotonServiceClient(client *connect.Client) PhotonServiceClient {
 
 // PhotonServiceHandler is an implementation of the photon.v1.PhotonService service.
 type PhotonServiceHandler interface {
+	// Get wallet balance (total and available).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the photon node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain.
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// Forget a peer.
 	ForgetPeer(context.Context, *v1.ForgetPeerRequest) (*v1.ForgetPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Remove transaction from mempool.
 	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Get wallet addresses.
 	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
 }
 

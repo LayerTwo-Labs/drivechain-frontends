@@ -819,7 +819,7 @@ type WalletManagerServiceClient interface {
 	// leaves those coins alone, and Bitcoin Core holds them locked for the
 	// length of a send so its own coin selection skips them too.
 	SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error)
-	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+	// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error)
@@ -999,7 +999,7 @@ type WalletManagerServiceHandler interface {
 	// leaves those coins alone, and Bitcoin Core holds them locked for the
 	// length of a send so its own coin selection skips them too.
 	SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error)
-	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+	// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	ListUnspent(context.Context, *v1.ListUnspentRequest) (*v1.ListUnspentResponse, error)

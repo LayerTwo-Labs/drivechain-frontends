@@ -61,8 +61,11 @@ var (
 
 // ThunderConfServiceClient is a client for the orchestrator.v1.ThunderConfService service.
 type ThunderConfServiceClient interface {
+	// Get current Thunder sidechain configuration state.
 	GetThunderConfig(context.Context, *v1.GetThunderConfigRequest) (*v1.GetThunderConfigResponse, error)
+	// Write Thunder configuration content.
 	WriteThunderConfig(context.Context, *v1.WriteThunderConfigRequest) (*v1.WriteThunderConfigResponse, error)
+	// Sync network from Bitcoin Core config.
 	SyncNetworkFromBitcoinConf(context.Context, *v1.SyncNetworkFromBitcoinConfRequest) (*v1.SyncNetworkFromBitcoinConfResponse, error)
 }
 
@@ -74,8 +77,11 @@ func NewThunderConfServiceClient(client *connect.Client) ThunderConfServiceClien
 
 // ThunderConfServiceHandler is an implementation of the orchestrator.v1.ThunderConfService service.
 type ThunderConfServiceHandler interface {
+	// Get current Thunder sidechain configuration state.
 	GetThunderConfig(context.Context, *v1.GetThunderConfigRequest) (*v1.GetThunderConfigResponse, error)
+	// Write Thunder configuration content.
 	WriteThunderConfig(context.Context, *v1.WriteThunderConfigRequest) (*v1.WriteThunderConfigResponse, error)
+	// Sync network from Bitcoin Core config.
 	SyncNetworkFromBitcoinConf(context.Context, *v1.SyncNetworkFromBitcoinConfRequest) (*v1.SyncNetworkFromBitcoinConfResponse, error)
 }
 

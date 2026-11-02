@@ -317,35 +317,65 @@ var (
 
 // ZSideServiceClient is a client for the zside.v1.ZSideService service.
 type ZSideServiceClient interface {
+	// Get wallet balance (total and available, both transparent and shielded).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the zside node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain (transparent).
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Remove transaction from mempool.
 	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Get a new shielded address.
 	GetNewShieldedAddress(context.Context, *v1.GetNewShieldedAddressRequest) (*v1.GetNewShieldedAddressResponse, error)
+	// Get a new transparent address.
 	GetNewTransparentAddress(context.Context, *v1.GetNewTransparentAddressRequest) (*v1.GetNewTransparentAddressResponse, error)
+	// Get shielded wallet addresses.
 	GetShieldedWalletAddresses(context.Context, *v1.GetShieldedWalletAddressesRequest) (*v1.GetShieldedWalletAddressesResponse, error)
+	// Get transparent wallet addresses.
 	GetTransparentWalletAddresses(context.Context, *v1.GetTransparentWalletAddressesRequest) (*v1.GetTransparentWalletAddressesResponse, error)
+	// Shield transparent funds to shielded pool.
 	Shield(context.Context, *v1.ShieldRequest) (*v1.ShieldResponse, error)
+	// Unshield (deshield) shielded funds to transparent pool.
 	Unshield(context.Context, *v1.UnshieldRequest) (*v1.UnshieldResponse, error)
+	// Send a shielded transfer.
 	ShieldedTransfer(context.Context, *v1.ShieldedTransferRequest) (*v1.ShieldedTransferResponse, error)
+	// Send a transparent transfer.
 	TransparentTransfer(context.Context, *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error)
 }
 
@@ -357,35 +387,65 @@ func NewZSideServiceClient(client *connect.Client) ZSideServiceClient {
 
 // ZSideServiceHandler is an implementation of the zside.v1.ZSideService service.
 type ZSideServiceHandler interface {
+	// Get wallet balance (total and available, both transparent and shielded).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the zside node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain (transparent).
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Remove transaction from mempool.
 	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Get a new shielded address.
 	GetNewShieldedAddress(context.Context, *v1.GetNewShieldedAddressRequest) (*v1.GetNewShieldedAddressResponse, error)
+	// Get a new transparent address.
 	GetNewTransparentAddress(context.Context, *v1.GetNewTransparentAddressRequest) (*v1.GetNewTransparentAddressResponse, error)
+	// Get shielded wallet addresses.
 	GetShieldedWalletAddresses(context.Context, *v1.GetShieldedWalletAddressesRequest) (*v1.GetShieldedWalletAddressesResponse, error)
+	// Get transparent wallet addresses.
 	GetTransparentWalletAddresses(context.Context, *v1.GetTransparentWalletAddressesRequest) (*v1.GetTransparentWalletAddressesResponse, error)
+	// Shield transparent funds to shielded pool.
 	Shield(context.Context, *v1.ShieldRequest) (*v1.ShieldResponse, error)
+	// Unshield (deshield) shielded funds to transparent pool.
 	Unshield(context.Context, *v1.UnshieldRequest) (*v1.UnshieldResponse, error)
+	// Send a shielded transfer.
 	ShieldedTransfer(context.Context, *v1.ShieldedTransferRequest) (*v1.ShieldedTransferResponse, error)
+	// Send a transparent transfer.
 	TransparentTransfer(context.Context, *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error)
 }
 

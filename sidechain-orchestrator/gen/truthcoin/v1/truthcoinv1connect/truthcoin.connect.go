@@ -595,63 +595,121 @@ var (
 
 // TruthcoinServiceClient is a client for the truthcoin.v1.TruthcoinService service.
 type TruthcoinServiceClient interface {
+	// Get wallet balance (total and available).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the truthcoin node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain.
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Remove transaction from mempool.
 	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Refresh wallet state.
 	RefreshWallet(context.Context, *v1.RefreshWalletRequest) (*v1.RefreshWalletResponse, error)
+	// Get transaction by txid.
 	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error)
+	// Get transaction info.
 	GetTransactionInfo(context.Context, *v1.GetTransactionInfoRequest) (*v1.GetTransactionInfoResponse, error)
+	// Get wallet addresses.
 	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	// Get owned UTXOs (confirmed).
 	MyUtxos(context.Context, *v1.MyUtxosRequest) (*v1.MyUtxosResponse, error)
+	// Get owned UTXOs (unconfirmed).
 	MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error)
+	// Calculate initial liquidity required for market creation.
 	CalculateInitialLiquidity(context.Context, *v1.CalculateInitialLiquidityRequest) (*v1.CalculateInitialLiquidityResponse, error)
+	// Create a new prediction market.
 	MarketCreate(context.Context, *v1.MarketCreateRequest) (*v1.MarketCreateResponse, error)
+	// List all markets.
 	MarketList(context.Context, *v1.MarketListRequest) (*v1.MarketListResponse, error)
+	// Get a specific market.
 	MarketGet(context.Context, *v1.MarketGetRequest) (*v1.MarketGetResponse, error)
+	// Buy shares in a market.
 	MarketBuy(context.Context, *v1.MarketBuyRequest) (*v1.MarketBuyResponse, error)
+	// Sell shares in a market.
 	MarketSell(context.Context, *v1.MarketSellRequest) (*v1.MarketSellResponse, error)
+	// Get positions in a market.
 	MarketPositions(context.Context, *v1.MarketPositionsRequest) (*v1.MarketPositionsResponse, error)
+	// Add liquidity to a market that a wallet address created.
 	MarketAmplifyBeta(context.Context, *v1.MarketAmplifyBetaRequest) (*v1.MarketAmplifyBetaResponse, error)
+	// Get slot system status and configuration.
 	SlotStatus(context.Context, *v1.SlotStatusRequest) (*v1.SlotStatusResponse, error)
+	// List slots with optional filtering.
 	SlotList(context.Context, *v1.SlotListRequest) (*v1.SlotListResponse, error)
+	// Get a specific slot by ID.
 	SlotGet(context.Context, *v1.SlotGetRequest) (*v1.SlotGetResponse, error)
+	// Claim a decision slot.
 	SlotClaim(context.Context, *v1.SlotClaimRequest) (*v1.SlotClaimResponse, error)
+	// Claim multiple slots as a category.
 	SlotClaimCategory(context.Context, *v1.SlotClaimCategoryRequest) (*v1.SlotClaimCategoryResponse, error)
+	// Get the voter address of the wallet.
 	GetVoterAddress(context.Context, *v1.GetVoterAddressRequest) (*v1.GetVoterAddressResponse, error)
+	// Get voter info.
 	VoteVoter(context.Context, *v1.VoteVoterRequest) (*v1.VoteVoterResponse, error)
+	// List all voters.
 	VoteVoters(context.Context, *v1.VoteVotersRequest) (*v1.VoteVotersResponse, error)
+	// Submit votes (batch).
 	VoteSubmit(context.Context, *v1.VoteSubmitRequest) (*v1.VoteSubmitResponse, error)
+	// List votes with optional filters.
 	VoteList(context.Context, *v1.VoteListRequest) (*v1.VoteListResponse, error)
+	// Get voting period information.
 	VotePeriod(context.Context, *v1.VotePeriodRequest) (*v1.VotePeriodResponse, error)
+	// Transfer votecoins.
 	VotecoinTransfer(context.Context, *v1.VotecoinTransferRequest) (*v1.VotecoinTransferResponse, error)
+	// Get votecoin balance for an address.
 	VotecoinBalance(context.Context, *v1.VotecoinBalanceRequest) (*v1.VotecoinBalanceResponse, error)
+	// Transfer votecoin (alternative method).
 	TransferVotecoin(context.Context, *v1.TransferVotecoinRequest) (*v1.TransferVotecoinResponse, error)
+	// Get a new encryption key.
 	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	// Get a new verifying key.
 	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	// Encrypt a message.
 	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	// Decrypt a message.
 	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	// Sign an arbitrary message with verifying key.
 	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	// Sign an arbitrary message as address.
 	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	// Verify a signature.
 	VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error)
 }
 
@@ -663,63 +721,121 @@ func NewTruthcoinServiceClient(client *connect.Client) TruthcoinServiceClient {
 
 // TruthcoinServiceHandler is an implementation of the truthcoin.v1.TruthcoinService service.
 type TruthcoinServiceHandler interface {
+	// Get wallet balance (total and available).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the truthcoin node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain.
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Remove transaction from mempool.
 	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Refresh wallet state.
 	RefreshWallet(context.Context, *v1.RefreshWalletRequest) (*v1.RefreshWalletResponse, error)
+	// Get transaction by txid.
 	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error)
+	// Get transaction info.
 	GetTransactionInfo(context.Context, *v1.GetTransactionInfoRequest) (*v1.GetTransactionInfoResponse, error)
+	// Get wallet addresses.
 	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	// Get owned UTXOs (confirmed).
 	MyUtxos(context.Context, *v1.MyUtxosRequest) (*v1.MyUtxosResponse, error)
+	// Get owned UTXOs (unconfirmed).
 	MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error)
+	// Calculate initial liquidity required for market creation.
 	CalculateInitialLiquidity(context.Context, *v1.CalculateInitialLiquidityRequest) (*v1.CalculateInitialLiquidityResponse, error)
+	// Create a new prediction market.
 	MarketCreate(context.Context, *v1.MarketCreateRequest) (*v1.MarketCreateResponse, error)
+	// List all markets.
 	MarketList(context.Context, *v1.MarketListRequest) (*v1.MarketListResponse, error)
+	// Get a specific market.
 	MarketGet(context.Context, *v1.MarketGetRequest) (*v1.MarketGetResponse, error)
+	// Buy shares in a market.
 	MarketBuy(context.Context, *v1.MarketBuyRequest) (*v1.MarketBuyResponse, error)
+	// Sell shares in a market.
 	MarketSell(context.Context, *v1.MarketSellRequest) (*v1.MarketSellResponse, error)
+	// Get positions in a market.
 	MarketPositions(context.Context, *v1.MarketPositionsRequest) (*v1.MarketPositionsResponse, error)
+	// Add liquidity to a market that a wallet address created.
 	MarketAmplifyBeta(context.Context, *v1.MarketAmplifyBetaRequest) (*v1.MarketAmplifyBetaResponse, error)
+	// Get slot system status and configuration.
 	SlotStatus(context.Context, *v1.SlotStatusRequest) (*v1.SlotStatusResponse, error)
+	// List slots with optional filtering.
 	SlotList(context.Context, *v1.SlotListRequest) (*v1.SlotListResponse, error)
+	// Get a specific slot by ID.
 	SlotGet(context.Context, *v1.SlotGetRequest) (*v1.SlotGetResponse, error)
+	// Claim a decision slot.
 	SlotClaim(context.Context, *v1.SlotClaimRequest) (*v1.SlotClaimResponse, error)
+	// Claim multiple slots as a category.
 	SlotClaimCategory(context.Context, *v1.SlotClaimCategoryRequest) (*v1.SlotClaimCategoryResponse, error)
+	// Get the voter address of the wallet.
 	GetVoterAddress(context.Context, *v1.GetVoterAddressRequest) (*v1.GetVoterAddressResponse, error)
+	// Get voter info.
 	VoteVoter(context.Context, *v1.VoteVoterRequest) (*v1.VoteVoterResponse, error)
+	// List all voters.
 	VoteVoters(context.Context, *v1.VoteVotersRequest) (*v1.VoteVotersResponse, error)
+	// Submit votes (batch).
 	VoteSubmit(context.Context, *v1.VoteSubmitRequest) (*v1.VoteSubmitResponse, error)
+	// List votes with optional filters.
 	VoteList(context.Context, *v1.VoteListRequest) (*v1.VoteListResponse, error)
+	// Get voting period information.
 	VotePeriod(context.Context, *v1.VotePeriodRequest) (*v1.VotePeriodResponse, error)
+	// Transfer votecoins.
 	VotecoinTransfer(context.Context, *v1.VotecoinTransferRequest) (*v1.VotecoinTransferResponse, error)
+	// Get votecoin balance for an address.
 	VotecoinBalance(context.Context, *v1.VotecoinBalanceRequest) (*v1.VotecoinBalanceResponse, error)
+	// Transfer votecoin (alternative method).
 	TransferVotecoin(context.Context, *v1.TransferVotecoinRequest) (*v1.TransferVotecoinResponse, error)
+	// Get a new encryption key.
 	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	// Get a new verifying key.
 	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	// Encrypt a message.
 	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	// Decrypt a message.
 	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	// Sign an arbitrary message with verifying key.
 	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	// Sign an arbitrary message as address.
 	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	// Verify a signature.
 	VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error)
 }
 

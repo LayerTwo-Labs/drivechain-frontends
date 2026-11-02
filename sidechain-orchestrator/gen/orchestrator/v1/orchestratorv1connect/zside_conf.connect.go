@@ -61,8 +61,11 @@ var (
 
 // ZSideConfServiceClient is a client for the orchestrator.v1.ZSideConfService service.
 type ZSideConfServiceClient interface {
+	// Get current ZSide sidechain configuration state.
 	GetZSideConfig(context.Context, *v1.GetZSideConfigRequest) (*v1.GetZSideConfigResponse, error)
+	// Write ZSide configuration content.
 	WriteZSideConfig(context.Context, *v1.WriteZSideConfigRequest) (*v1.WriteZSideConfigResponse, error)
+	// Sync network from Bitcoin Core config.
 	SyncNetworkFromBitcoinConf(context.Context, *v1.ZSideSyncNetworkFromBitcoinConfRequest) (*v1.ZSideSyncNetworkFromBitcoinConfResponse, error)
 }
 
@@ -74,8 +77,11 @@ func NewZSideConfServiceClient(client *connect.Client) ZSideConfServiceClient {
 
 // ZSideConfServiceHandler is an implementation of the orchestrator.v1.ZSideConfService service.
 type ZSideConfServiceHandler interface {
+	// Get current ZSide sidechain configuration state.
 	GetZSideConfig(context.Context, *v1.GetZSideConfigRequest) (*v1.GetZSideConfigResponse, error)
+	// Write ZSide configuration content.
 	WriteZSideConfig(context.Context, *v1.WriteZSideConfigRequest) (*v1.WriteZSideConfigResponse, error)
+	// Sync network from Bitcoin Core config.
 	SyncNetworkFromBitcoinConf(context.Context, *v1.ZSideSyncNetworkFromBitcoinConfRequest) (*v1.ZSideSyncNetworkFromBitcoinConfResponse, error)
 }
 

@@ -61,8 +61,11 @@ var (
 
 // EnforcerConfServiceClient is a client for the orchestrator.v1.EnforcerConfService service.
 type EnforcerConfServiceClient interface {
+	// Get current Enforcer configuration state.
 	GetEnforcerConfig(context.Context, *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error)
+	// Write Enforcer configuration content.
 	WriteEnforcerConfig(context.Context, *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error)
+	// Sync node-rpc settings from Bitcoin Core config.
 	SyncNodeRpcFromBitcoinConf(context.Context, *v1.SyncNodeRpcFromBitcoinConfRequest) (*v1.SyncNodeRpcFromBitcoinConfResponse, error)
 }
 
@@ -75,8 +78,11 @@ func NewEnforcerConfServiceClient(client *connect.Client) EnforcerConfServiceCli
 // EnforcerConfServiceHandler is an implementation of the orchestrator.v1.EnforcerConfService
 // service.
 type EnforcerConfServiceHandler interface {
+	// Get current Enforcer configuration state.
 	GetEnforcerConfig(context.Context, *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error)
+	// Write Enforcer configuration content.
 	WriteEnforcerConfig(context.Context, *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error)
+	// Sync node-rpc settings from Bitcoin Core config.
 	SyncNodeRpcFromBitcoinConf(context.Context, *v1.SyncNodeRpcFromBitcoinConfRequest) (*v1.SyncNodeRpcFromBitcoinConfResponse, error)
 }
 

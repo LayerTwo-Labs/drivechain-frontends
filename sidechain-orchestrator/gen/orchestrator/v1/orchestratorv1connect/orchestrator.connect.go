@@ -401,42 +401,135 @@ var (
 
 // OrchestratorServiceClient is a client for the orchestrator.v1.OrchestratorService service.
 type OrchestratorServiceClient interface {
+	// List all configured binaries and their status.
 	ListBinaries(context.Context, *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error)
+	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error)
+	// Resolve a binary's on-disk path the same way the launcher does (variant-
+	// and test-build aware, honoring force_backend) and return its --version
+	// output. The frontend must never re-derive the path or shell out itself;
+	// this RPC is the single source of truth for "which binary, what version".
 	GetBinaryVersion(context.Context, *v1.GetBinaryVersionRequest) (*v1.GetBinaryVersionResponse, error)
+	// Download a binary with streaming progress.
+	// Kicks off a download in a background goroutine and returns
+	// immediately. Progress (MB downloaded / total, is_downloading) is
+	// polled out of GetSyncStatus, never tied to this RPC's lifetime — so
+	// a transport blip can't cancel an in-flight download.
 	DownloadBinary(context.Context, *v1.DownloadBinaryRequest) (*v1.DownloadBinaryResponse, error)
+	// Start a binary.
 	StartBinary(context.Context, *v1.StartBinaryRequest) (*v1.StartBinaryResponse, error)
+	// Stop a binary.
 	StopBinary(context.Context, *v1.StopBinaryRequest) (*v1.StopBinaryResponse, error)
+	// Stream stdout/stderr from a binary.
 	StreamLogs(context.Context, *v1.StreamLogsRequest) (OrchestratorServiceStreamLogsClientStream, error)
+	// Start a binary and its L1 dependencies. The call returns at once unless wait is true.
 	StartWithL1(context.Context, *v1.StartWithL1Request) (*v1.StartWithL1Response, error)
+	// Stop the named binary and start it again, single-daemon scope. Never
+	// touches sibling daemons: restarting "enforcer" never spawns or adopts
+	// bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
+	// StartWithL1 stays the entry point for full-chain bootstrap. Same
+	// fire-and-forget shape as StartWithL1.
 	RestartDaemon(context.Context, *v1.RestartDaemonRequest) (*v1.RestartDaemonResponse, error)
+	// Restart the whole L1 stack (bitcoind + enforcer) on the current config.
+	// Stops both (a not-running daemon is skipped, never an error) then boots
+	// the L1 chain via the same path as StartWithL1. Running sidechains are left
+	// alone — they reconnect once the enforcer is back. Fire-and-forget: returns
+	// as soon as the boot goroutine is dispatched. Use this for the "Restart
+	// Bitcoin Core and Enforcer" UI flow instead of hand-sequencing stop/start.
 	RestartL1(context.Context, *v1.RestartL1Request) (*v1.RestartL1Response, error)
+	// Load a UTXO snapshot into the running Bitcoin Core. Streams download and
+	// load progress; a snapshot Core refuses (its base block already passed, or
+	// a snapshot already loaded in this datadir) comes back as an error carrying
+	// Core's own message. Nothing is stopped, restarted or deleted.
 	ApplyUTXOSnapshot(context.Context, *v1.ApplyUTXOSnapshotRequest) (OrchestratorServiceApplyUTXOSnapshotClientStream, error)
+	// The UTXO snapshot published for the active network (from the network
+	// catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
+	// settings UI: pre-fills the snapshot field and shows what is loaded.
 	GetSnapshotStatus(context.Context, *v1.GetSnapshotStatusRequest) (*v1.GetSnapshotStatusResponse, error)
+	// The eCash network published but not switched to yet. Feeds the upgrade
+	// prompt; pending_network_id is empty when already on the newest one.
 	GetPendingNetworkGeneration(context.Context, *v1.GetPendingNetworkGenerationRequest) (*v1.GetPendingNetworkGenerationResponse, error)
+	// Record the user's go-ahead to switch to the published eCash network.
+	// Nothing is stopped or deleted here: the caller must restart the backends,
+	// and the switch runs on the next start. Wallets survive, chain history and
+	// its transactions do not — only call with the user's confirmation.
 	ConfirmPendingNetworkGeneration(context.Context, *v1.ConfirmPendingNetworkGenerationRequest) (*v1.ConfirmPendingNetworkGenerationResponse, error)
+	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *v1.ShutdownAllRequest) (OrchestratorServiceShutdownAllClientStream, error)
+	// Detached-daemon shutdown. bitwindowd calls this on window close;
+	// drivechaind acks immediately, drains its children (bitcoind, enforcer,
+	// sidechains) in a background goroutine, and os.Exit(0)s when done.
+	// Idempotent. If bitwindow is relaunched while the drain is still in
+	// flight, the next StartWithL1 transparently adopts it (flips the
+	// will-exit bit + awaits the in-flight stops) before booting a fresh
+	// stack — no separate cancel/await RPCs needed by callers.
 	Shutdown(context.Context, *v1.ShutdownRequest) (*v1.ShutdownResponse, error)
+	// Point the daemon at the frontend process that owns it now. An app update
+	// replaces the frontend with a new process, and the daemon drains itself a
+	// few seconds after the old one dies. bitwindowd calls this the moment it
+	// finds a live daemon, so the warm stack survives the swap.
 	AdoptOwner(context.Context, *v1.AdoptOwnerRequest) (*v1.AdoptOwnerResponse, error)
+	// Get the current BTC/USD exchange rate.
 	GetBTCPrice(context.Context, *v1.GetBTCPriceRequest) (*v1.GetBTCPriceResponse, error)
+	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBlockchainInfo(context.Context, *v1.GetMainchainBlockchainInfoRequest) (*v1.GetMainchainBlockchainInfoResponse, error)
+	// Get blockchain info from the enforcer (proxied via orchestrator).
 	GetEnforcerBlockchainInfo(context.Context, *v1.GetEnforcerBlockchainInfoRequest) (*v1.GetEnforcerBlockchainInfoResponse, error)
+	// One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
+	// Backend fans out to all three in parallel so the three numbers are taken
+	// at the same wall-clock instant — no two cards in the UI can ever disagree.
 	GetSyncStatus(context.Context, *v1.GetSyncStatusRequest) (*v1.GetSyncStatusResponse, error)
+	// Snapshot of every binary the orchestrator is currently downloading.
+	// Reads from the in-memory DownloadManager state — light, polled by the
+	// frontend's DownloadProvider on a fast (100ms) cadence while a download
+	// is in flight, and dropping back to 2s when the response is empty.
 	GetDownloadStatus(context.Context, *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error)
+	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error)
+	// Get wallet balance from a sidechain daemon (proxied via orchestrator).
 	GetSidechainBalance(context.Context, *v1.GetSidechainBalanceRequest) (*v1.GetSidechainBalanceResponse, error)
+	// Gather the files/dirs that would be deleted for a per-binary deletion spec
+	// (no side effects). Shared by the single-binary wipe and the full reset page.
 	GatherFilesToDelete(context.Context, *v1.GatherFilesToDeleteRequest) (*v1.GatherFilesToDeleteResponse, error)
+	// Delete the selected files. Stops binaries first; wallet paths are moved to
+	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
+	// Streams one message per path; an unset error means that path succeeded.
 	DeleteFiles(context.Context, *v1.DeleteFilesRequest) (OrchestratorServiceDeleteFilesClientStream, error)
+	// Drop a block Core must not follow. Core rejects it and every block above
+	// it, then follows the best remaining valid branch.
 	RejectBlock(context.Context, *v1.RejectBlockRequest) (*v1.RejectBlockResponse, error)
+	// Undo RejectBlock. Core re-checks the block and its branch, and follows it
+	// again when it has the most work.
 	AcceptBlock(context.Context, *v1.AcceptBlockRequest) (*v1.AcceptBlockResponse, error)
+	// Move the chain back to a block, then sync forward to the tip again. Core
+	// drops the block and every block above it, then re-validates them from
+	// disk. Streams one message per phase.
 	ResetToBlock(context.Context, *v1.ResetToBlockRequest) (OrchestratorServiceResetToBlockClientStream, error)
+	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *v1.GetCoreMempoolInfoRequest) (*v1.GetCoreMempoolInfoResponse, error)
+	// Parent-chain state the sidechain BMM tab bids against: the tip a request
+	// targets, the fee rate it competes with, mempool depth.
 	GetBmmContext(context.Context, *v1.GetBmmContextRequest) (*v1.GetBmmContextResponse, error)
+	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
+	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
 	CoreRawCall(context.Context, *v1.CoreRawCallRequest) (*v1.CoreRawCallResponse, error)
+	// ─── eCash fork ───────────────────────────────────────────────────────────
+	// Report where the mainchain tip sits relative to the eCash fork height.
+	// The orchestrator is the single source of truth for the fork height; the
+	// frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
+	// pre-fork coin detection and the sweep itself stay in the frontend via the
+	// existing WalletManagerService (listUnspent / sendTransaction), one call
+	// per wallet — this RPC only supplies the height.
 	GetForkStatus(context.Context, *v1.GetForkStatusRequest) (*v1.GetForkStatusResponse, error)
+	// Read the migration plan from the daemon without changes to node files.
 	PreviewECashMigration(context.Context, *v1.PreviewECashMigrationRequest) (*v1.PreviewECashMigrationResponse, error)
+	// Start or resume a migration that continues after the client disconnects.
 	StartECashMigration(context.Context, *v1.StartECashMigrationRequest) (*v1.StartECashMigrationResponse, error)
+	// Read the saved migration state from the daemon.
 	GetECashMigrationStatus(context.Context, *v1.GetECashMigrationStatusRequest) (*v1.GetECashMigrationStatusResponse, error)
+	// Read the network the blocks on disk belong to, next to the one the app
+	// runs. The blocks name the chain, so a datadir from another network says so
+	// before a rollback throws the balance away.
 	GetDatadirNetwork(context.Context, *v1.GetDatadirNetworkRequest) (*v1.GetDatadirNetworkResponse, error)
 }
 
@@ -554,42 +647,135 @@ func (s OrchestratorServiceResetToBlockClientStream) Close() error {
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
+	// List all configured binaries and their status.
 	ListBinaries(context.Context, *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error)
+	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error)
+	// Resolve a binary's on-disk path the same way the launcher does (variant-
+	// and test-build aware, honoring force_backend) and return its --version
+	// output. The frontend must never re-derive the path or shell out itself;
+	// this RPC is the single source of truth for "which binary, what version".
 	GetBinaryVersion(context.Context, *v1.GetBinaryVersionRequest) (*v1.GetBinaryVersionResponse, error)
+	// Download a binary with streaming progress.
+	// Kicks off a download in a background goroutine and returns
+	// immediately. Progress (MB downloaded / total, is_downloading) is
+	// polled out of GetSyncStatus, never tied to this RPC's lifetime — so
+	// a transport blip can't cancel an in-flight download.
 	DownloadBinary(context.Context, *v1.DownloadBinaryRequest) (*v1.DownloadBinaryResponse, error)
+	// Start a binary.
 	StartBinary(context.Context, *v1.StartBinaryRequest) (*v1.StartBinaryResponse, error)
+	// Stop a binary.
 	StopBinary(context.Context, *v1.StopBinaryRequest) (*v1.StopBinaryResponse, error)
+	// Stream stdout/stderr from a binary.
 	StreamLogs(context.Context, *v1.StreamLogsRequest, OrchestratorServiceStreamLogsServerStream) error
+	// Start a binary and its L1 dependencies. The call returns at once unless wait is true.
 	StartWithL1(context.Context, *v1.StartWithL1Request) (*v1.StartWithL1Response, error)
+	// Stop the named binary and start it again, single-daemon scope. Never
+	// touches sibling daemons: restarting "enforcer" never spawns or adopts
+	// bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
+	// StartWithL1 stays the entry point for full-chain bootstrap. Same
+	// fire-and-forget shape as StartWithL1.
 	RestartDaemon(context.Context, *v1.RestartDaemonRequest) (*v1.RestartDaemonResponse, error)
+	// Restart the whole L1 stack (bitcoind + enforcer) on the current config.
+	// Stops both (a not-running daemon is skipped, never an error) then boots
+	// the L1 chain via the same path as StartWithL1. Running sidechains are left
+	// alone — they reconnect once the enforcer is back. Fire-and-forget: returns
+	// as soon as the boot goroutine is dispatched. Use this for the "Restart
+	// Bitcoin Core and Enforcer" UI flow instead of hand-sequencing stop/start.
 	RestartL1(context.Context, *v1.RestartL1Request) (*v1.RestartL1Response, error)
+	// Load a UTXO snapshot into the running Bitcoin Core. Streams download and
+	// load progress; a snapshot Core refuses (its base block already passed, or
+	// a snapshot already loaded in this datadir) comes back as an error carrying
+	// Core's own message. Nothing is stopped, restarted or deleted.
 	ApplyUTXOSnapshot(context.Context, *v1.ApplyUTXOSnapshotRequest, OrchestratorServiceApplyUTXOSnapshotServerStream) error
+	// The UTXO snapshot published for the active network (from the network
+	// catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
+	// settings UI: pre-fills the snapshot field and shows what is loaded.
 	GetSnapshotStatus(context.Context, *v1.GetSnapshotStatusRequest) (*v1.GetSnapshotStatusResponse, error)
+	// The eCash network published but not switched to yet. Feeds the upgrade
+	// prompt; pending_network_id is empty when already on the newest one.
 	GetPendingNetworkGeneration(context.Context, *v1.GetPendingNetworkGenerationRequest) (*v1.GetPendingNetworkGenerationResponse, error)
+	// Record the user's go-ahead to switch to the published eCash network.
+	// Nothing is stopped or deleted here: the caller must restart the backends,
+	// and the switch runs on the next start. Wallets survive, chain history and
+	// its transactions do not — only call with the user's confirmation.
 	ConfirmPendingNetworkGeneration(context.Context, *v1.ConfirmPendingNetworkGenerationRequest) (*v1.ConfirmPendingNetworkGenerationResponse, error)
+	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *v1.ShutdownAllRequest, OrchestratorServiceShutdownAllServerStream) error
+	// Detached-daemon shutdown. bitwindowd calls this on window close;
+	// drivechaind acks immediately, drains its children (bitcoind, enforcer,
+	// sidechains) in a background goroutine, and os.Exit(0)s when done.
+	// Idempotent. If bitwindow is relaunched while the drain is still in
+	// flight, the next StartWithL1 transparently adopts it (flips the
+	// will-exit bit + awaits the in-flight stops) before booting a fresh
+	// stack — no separate cancel/await RPCs needed by callers.
 	Shutdown(context.Context, *v1.ShutdownRequest) (*v1.ShutdownResponse, error)
+	// Point the daemon at the frontend process that owns it now. An app update
+	// replaces the frontend with a new process, and the daemon drains itself a
+	// few seconds after the old one dies. bitwindowd calls this the moment it
+	// finds a live daemon, so the warm stack survives the swap.
 	AdoptOwner(context.Context, *v1.AdoptOwnerRequest) (*v1.AdoptOwnerResponse, error)
+	// Get the current BTC/USD exchange rate.
 	GetBTCPrice(context.Context, *v1.GetBTCPriceRequest) (*v1.GetBTCPriceResponse, error)
+	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBlockchainInfo(context.Context, *v1.GetMainchainBlockchainInfoRequest) (*v1.GetMainchainBlockchainInfoResponse, error)
+	// Get blockchain info from the enforcer (proxied via orchestrator).
 	GetEnforcerBlockchainInfo(context.Context, *v1.GetEnforcerBlockchainInfoRequest) (*v1.GetEnforcerBlockchainInfoResponse, error)
+	// One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
+	// Backend fans out to all three in parallel so the three numbers are taken
+	// at the same wall-clock instant — no two cards in the UI can ever disagree.
 	GetSyncStatus(context.Context, *v1.GetSyncStatusRequest) (*v1.GetSyncStatusResponse, error)
+	// Snapshot of every binary the orchestrator is currently downloading.
+	// Reads from the in-memory DownloadManager state — light, polled by the
+	// frontend's DownloadProvider on a fast (100ms) cadence while a download
+	// is in flight, and dropping back to 2s when the response is empty.
 	GetDownloadStatus(context.Context, *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error)
+	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error)
+	// Get wallet balance from a sidechain daemon (proxied via orchestrator).
 	GetSidechainBalance(context.Context, *v1.GetSidechainBalanceRequest) (*v1.GetSidechainBalanceResponse, error)
+	// Gather the files/dirs that would be deleted for a per-binary deletion spec
+	// (no side effects). Shared by the single-binary wipe and the full reset page.
 	GatherFilesToDelete(context.Context, *v1.GatherFilesToDeleteRequest) (*v1.GatherFilesToDeleteResponse, error)
+	// Delete the selected files. Stops binaries first; wallet paths are moved to
+	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
+	// Streams one message per path; an unset error means that path succeeded.
 	DeleteFiles(context.Context, *v1.DeleteFilesRequest, OrchestratorServiceDeleteFilesServerStream) error
+	// Drop a block Core must not follow. Core rejects it and every block above
+	// it, then follows the best remaining valid branch.
 	RejectBlock(context.Context, *v1.RejectBlockRequest) (*v1.RejectBlockResponse, error)
+	// Undo RejectBlock. Core re-checks the block and its branch, and follows it
+	// again when it has the most work.
 	AcceptBlock(context.Context, *v1.AcceptBlockRequest) (*v1.AcceptBlockResponse, error)
+	// Move the chain back to a block, then sync forward to the tip again. Core
+	// drops the block and every block above it, then re-validates them from
+	// disk. Streams one message per phase.
 	ResetToBlock(context.Context, *v1.ResetToBlockRequest, OrchestratorServiceResetToBlockServerStream) error
+	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *v1.GetCoreMempoolInfoRequest) (*v1.GetCoreMempoolInfoResponse, error)
+	// Parent-chain state the sidechain BMM tab bids against: the tip a request
+	// targets, the fee rate it competes with, mempool depth.
 	GetBmmContext(context.Context, *v1.GetBmmContextRequest) (*v1.GetBmmContextResponse, error)
+	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
+	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
 	CoreRawCall(context.Context, *v1.CoreRawCallRequest) (*v1.CoreRawCallResponse, error)
+	// ─── eCash fork ───────────────────────────────────────────────────────────
+	// Report where the mainchain tip sits relative to the eCash fork height.
+	// The orchestrator is the single source of truth for the fork height; the
+	// frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
+	// pre-fork coin detection and the sweep itself stay in the frontend via the
+	// existing WalletManagerService (listUnspent / sendTransaction), one call
+	// per wallet — this RPC only supplies the height.
 	GetForkStatus(context.Context, *v1.GetForkStatusRequest) (*v1.GetForkStatusResponse, error)
+	// Read the migration plan from the daemon without changes to node files.
 	PreviewECashMigration(context.Context, *v1.PreviewECashMigrationRequest) (*v1.PreviewECashMigrationResponse, error)
+	// Start or resume a migration that continues after the client disconnects.
 	StartECashMigration(context.Context, *v1.StartECashMigrationRequest) (*v1.StartECashMigrationResponse, error)
+	// Read the saved migration state from the daemon.
 	GetECashMigrationStatus(context.Context, *v1.GetECashMigrationStatusRequest) (*v1.GetECashMigrationStatusResponse, error)
+	// Read the network the blocks on disk belong to, next to the one the app
+	// runs. The blocks name the chain, so a datadir from another network says so
+	// before a rollback throws the balance away.
 	GetDatadirNetwork(context.Context, *v1.GetDatadirNetworkRequest) (*v1.GetDatadirNetworkResponse, error)
 }
 

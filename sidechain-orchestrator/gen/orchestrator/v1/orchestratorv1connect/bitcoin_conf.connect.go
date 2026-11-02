@@ -111,13 +111,27 @@ var (
 
 // BitcoinConfServiceClient is a client for the orchestrator.v1.BitcoinConfService service.
 type BitcoinConfServiceClient interface {
+	// Get current Bitcoin Core configuration state.
 	GetBitcoinConfig(context.Context, *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error)
+	// Report what the user must resolve before a network and/or wallet-backend
+	// change can be applied. Side-effect free.
 	PrepareNetworkChange(context.Context, *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error)
+	// The networks the user can pick, from the published catalog plus regtest.
 	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
+	// The networks that appeared in the catalog since the last call, so the app
+	// can name them in a notice. Reporting a network also marks it told: a
+	// second call returns it no more. A first run reports nothing.
 	TakeNewNetworks(context.Context, *v1.TakeNewNetworksRequest) (*v1.TakeNewNetworksResponse, error)
+	// What a move to another eCash network costs. Both fork mainnet, so the
+	// blocks below the lower fork height are shared and the move is a reset
+	// rather than a resync. Side-effect free.
 	PlanECashSwitch(context.Context, *v1.PlanECashSwitchRequest) (*v1.PlanECashSwitchResponse, error)
+	// Set the Bitcoin Core network. Takes a catalog id ("betanet") or a slot
+	// name (signet, mainnet, ecash, regtest).
 	SetBitcoinConfigNetwork(context.Context, *v1.SetBitcoinConfigNetworkRequest) (*v1.SetBitcoinConfigNetworkResponse, error)
+	// Set the Bitcoin Core datadir for a specific network.
 	SetBitcoinConfigDataDir(context.Context, *v1.SetBitcoinConfigDataDirRequest) (*v1.SetBitcoinConfigDataDirResponse, error)
+	// Write raw Bitcoin Core configuration content.
 	WriteBitcoinConfig(context.Context, *v1.WriteBitcoinConfigRequest) (*v1.WriteBitcoinConfigResponse, error)
 }
 
@@ -129,13 +143,27 @@ func NewBitcoinConfServiceClient(client *connect.Client) BitcoinConfServiceClien
 
 // BitcoinConfServiceHandler is an implementation of the orchestrator.v1.BitcoinConfService service.
 type BitcoinConfServiceHandler interface {
+	// Get current Bitcoin Core configuration state.
 	GetBitcoinConfig(context.Context, *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error)
+	// Report what the user must resolve before a network and/or wallet-backend
+	// change can be applied. Side-effect free.
 	PrepareNetworkChange(context.Context, *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error)
+	// The networks the user can pick, from the published catalog plus regtest.
 	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
+	// The networks that appeared in the catalog since the last call, so the app
+	// can name them in a notice. Reporting a network also marks it told: a
+	// second call returns it no more. A first run reports nothing.
 	TakeNewNetworks(context.Context, *v1.TakeNewNetworksRequest) (*v1.TakeNewNetworksResponse, error)
+	// What a move to another eCash network costs. Both fork mainnet, so the
+	// blocks below the lower fork height are shared and the move is a reset
+	// rather than a resync. Side-effect free.
 	PlanECashSwitch(context.Context, *v1.PlanECashSwitchRequest) (*v1.PlanECashSwitchResponse, error)
+	// Set the Bitcoin Core network. Takes a catalog id ("betanet") or a slot
+	// name (signet, mainnet, ecash, regtest).
 	SetBitcoinConfigNetwork(context.Context, *v1.SetBitcoinConfigNetworkRequest) (*v1.SetBitcoinConfigNetworkResponse, error)
+	// Set the Bitcoin Core datadir for a specific network.
 	SetBitcoinConfigDataDir(context.Context, *v1.SetBitcoinConfigDataDirRequest) (*v1.SetBitcoinConfigDataDirResponse, error)
+	// Write raw Bitcoin Core configuration content.
 	WriteBitcoinConfig(context.Context, *v1.WriteBitcoinConfigRequest) (*v1.WriteBitcoinConfigResponse, error)
 }
 

@@ -120,11 +120,19 @@ type StratumServiceClient interface {
 	StartStratum(context.Context, *v1.StartStratumRequest) (*v1.StartStratumResponse, error)
 	StopStratum(context.Context, *v1.StopStratumRequest) (*v1.StopStratumResponse, error)
 	GetStratumStatus(context.Context, *v1.GetStratumStatusRequest) (*v1.GetStratumStatusResponse, error)
+	// SetTarget selects where the miners' work goes. A running server switches
+	// at once and sends clean jobs.
 	SetTarget(context.Context, *v1.SetTargetRequest) (*v1.SetTargetResponse, error)
+	// ListTargets returns the catalog pools of the running network.
 	ListTargets(context.Context, *v1.ListTargetsRequest) (*v1.ListTargetsResponse, error)
+	// SetWorkMode changes the power mode of a connected miner over its device API.
 	SetWorkMode(context.Context, *v1.SetWorkModeRequest) (*v1.SetWorkModeResponse, error)
+	// SetMiningSettings changes the fields it carries and leaves the rest. The
+	// hasher on this computer starts the server first when the server is stopped.
 	SetMiningSettings(context.Context, *v1.SetMiningSettingsRequest) (*v1.SetMiningSettingsResponse, error)
+	// GetHashrateHistory returns the hashrate of all miners together over a range.
 	GetHashrateHistory(context.Context, *v1.GetHashrateHistoryRequest) (*v1.GetHashrateHistoryResponse, error)
+	// ListPoolBlocks returns the blocks the upstream pool found, newest first.
 	ListPoolBlocks(context.Context, *v1.ListPoolBlocksRequest) (*v1.ListPoolBlocksResponse, error)
 }
 
@@ -139,11 +147,19 @@ type StratumServiceHandler interface {
 	StartStratum(context.Context, *v1.StartStratumRequest) (*v1.StartStratumResponse, error)
 	StopStratum(context.Context, *v1.StopStratumRequest) (*v1.StopStratumResponse, error)
 	GetStratumStatus(context.Context, *v1.GetStratumStatusRequest) (*v1.GetStratumStatusResponse, error)
+	// SetTarget selects where the miners' work goes. A running server switches
+	// at once and sends clean jobs.
 	SetTarget(context.Context, *v1.SetTargetRequest) (*v1.SetTargetResponse, error)
+	// ListTargets returns the catalog pools of the running network.
 	ListTargets(context.Context, *v1.ListTargetsRequest) (*v1.ListTargetsResponse, error)
+	// SetWorkMode changes the power mode of a connected miner over its device API.
 	SetWorkMode(context.Context, *v1.SetWorkModeRequest) (*v1.SetWorkModeResponse, error)
+	// SetMiningSettings changes the fields it carries and leaves the rest. The
+	// hasher on this computer starts the server first when the server is stopped.
 	SetMiningSettings(context.Context, *v1.SetMiningSettingsRequest) (*v1.SetMiningSettingsResponse, error)
+	// GetHashrateHistory returns the hashrate of all miners together over a range.
 	GetHashrateHistory(context.Context, *v1.GetHashrateHistoryRequest) (*v1.GetHashrateHistoryResponse, error)
+	// ListPoolBlocks returns the blocks the upstream pool found, newest first.
 	ListPoolBlocks(context.Context, *v1.ListPoolBlocksRequest) (*v1.ListPoolBlocksResponse, error)
 }
 

@@ -418,45 +418,86 @@ var (
 
 // BitnamesServiceClient is a client for the bitnames.v1.BitnamesService service.
 type BitnamesServiceClient interface {
+	// Get wallet balance (total and available).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the bitnames node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain.
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Get BitName data by name.
 	GetBitNameData(context.Context, *v1.GetBitNameDataRequest) (*v1.GetBitNameDataResponse, error)
+	// List all BitNames.
 	ListBitNames(context.Context, *v1.ListBitNamesRequest) (*v1.ListBitNamesResponse, error)
+	// Register a BitName.
 	RegisterBitName(context.Context, *v1.RegisterBitNameRequest) (*v1.RegisterBitNameResponse, error)
+	// Reserve a BitName.
 	ReserveBitName(context.Context, *v1.ReserveBitNameRequest) (*v1.ReserveBitNameResponse, error)
+	// Get a new encryption key.
 	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	// Get a new verifying key.
 	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	// Decrypt a message.
 	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	// Encrypt a message.
 	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	// Get paymail information.
 	GetPaymail(context.Context, *v1.GetPaymailRequest) (*v1.GetPaymailResponse, error)
+	// Read the messages that wait in the mempool. A message reaches a BitName
+	// one block before GetPaymail reports it, so a chat reads both.
 	GetPendingPaymail(context.Context, *v1.GetPendingPaymailRequest) (*v1.GetPendingPaymailResponse, error)
+	// Read the address that holds a BitName. A message pays the holder.
 	GetBitNameOwner(context.Context, *v1.GetBitNameOwnerRequest) (*v1.GetBitNameOwnerResponse, error)
+	// Resolve a commitment from a BitName.
 	ResolveCommit(context.Context, *v1.ResolveCommitRequest) (*v1.ResolveCommitResponse, error)
+	// Read a data commitment from an address, before a BitName holds it.
 	ReadCommitment(context.Context, *v1.ReadCommitmentRequest) (*v1.ReadCommitmentResponse, error)
+	// Sign an arbitrary message with the specified verifying key.
 	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	// Sign an arbitrary message as a specific address.
 	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	// Get wallet addresses.
 	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	// List owned UTXOs.
 	MyUtxos(context.Context, *v1.MyUtxosRequest) (*v1.MyUtxosResponse, error)
+	// Get OpenAPI schema.
 	OpenapiSchema(context.Context, *v1.OpenapiSchemaRequest) (*v1.OpenapiSchemaResponse, error)
 }
 
@@ -468,45 +509,86 @@ func NewBitnamesServiceClient(client *connect.Client) BitnamesServiceClient {
 
 // BitnamesServiceHandler is an implementation of the bitnames.v1.BitnamesService service.
 type BitnamesServiceHandler interface {
+	// Get wallet balance (total and available).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the bitnames node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain.
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Get BitName data by name.
 	GetBitNameData(context.Context, *v1.GetBitNameDataRequest) (*v1.GetBitNameDataResponse, error)
+	// List all BitNames.
 	ListBitNames(context.Context, *v1.ListBitNamesRequest) (*v1.ListBitNamesResponse, error)
+	// Register a BitName.
 	RegisterBitName(context.Context, *v1.RegisterBitNameRequest) (*v1.RegisterBitNameResponse, error)
+	// Reserve a BitName.
 	ReserveBitName(context.Context, *v1.ReserveBitNameRequest) (*v1.ReserveBitNameResponse, error)
+	// Get a new encryption key.
 	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	// Get a new verifying key.
 	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	// Decrypt a message.
 	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	// Encrypt a message.
 	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	// Get paymail information.
 	GetPaymail(context.Context, *v1.GetPaymailRequest) (*v1.GetPaymailResponse, error)
+	// Read the messages that wait in the mempool. A message reaches a BitName
+	// one block before GetPaymail reports it, so a chat reads both.
 	GetPendingPaymail(context.Context, *v1.GetPendingPaymailRequest) (*v1.GetPendingPaymailResponse, error)
+	// Read the address that holds a BitName. A message pays the holder.
 	GetBitNameOwner(context.Context, *v1.GetBitNameOwnerRequest) (*v1.GetBitNameOwnerResponse, error)
+	// Resolve a commitment from a BitName.
 	ResolveCommit(context.Context, *v1.ResolveCommitRequest) (*v1.ResolveCommitResponse, error)
+	// Read a data commitment from an address, before a BitName holds it.
 	ReadCommitment(context.Context, *v1.ReadCommitmentRequest) (*v1.ReadCommitmentResponse, error)
+	// Sign an arbitrary message with the specified verifying key.
 	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	// Sign an arbitrary message as a specific address.
 	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	// Get wallet addresses.
 	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	// List owned UTXOs.
 	MyUtxos(context.Context, *v1.MyUtxosRequest) (*v1.MyUtxosResponse, error)
+	// Get OpenAPI schema.
 	OpenapiSchema(context.Context, *v1.OpenapiSchemaRequest) (*v1.OpenapiSchemaResponse, error)
 }
 
