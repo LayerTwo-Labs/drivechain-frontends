@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @immutable
