@@ -59,7 +59,6 @@ dependencies:
   pointycastle: ^3.9.1
   crypto: ^3.0.8
   thirds: ^0.2.0-alpha.1
-  encrypt: ^5.0.3
   connectrpc: ^1.0.0
   desktop_multi_window:
     git:
