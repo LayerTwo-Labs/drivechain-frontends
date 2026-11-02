@@ -249,12 +249,18 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<String> signMessage(String walletId, String message, String address) async {
-    return 'mock_signature';
+  Future<SignMessageResponse> signMessage(String walletId, String message, String address) async {
+    return SignMessageResponse(signature: 'mock_signature', publicKey: 'mock_public_key');
   }
 
   @override
-  Future<bool> verifyMessage(String walletId, String message, String signature, String address) async {
+  Future<bool> verifyMessage(
+    String walletId,
+    String message,
+    String signature,
+    String address, {
+    String signerPublicKey = '',
+  }) async {
     return true;
   }
 

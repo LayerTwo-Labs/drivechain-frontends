@@ -642,8 +642,16 @@ abstract class WalletAPI {
   // drivechain wallet stuff here
   Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(String walletId, int slot);
   Future<String> createSidechainDeposit(String walletId, int slot, String destination, double amount, double fee);
-  Future<String> signMessage(String walletId, String message, String address);
-  Future<bool> verifyMessage(String walletId, String message, String signature, String address);
+  Future<SignMessageResponse> signMessage(String walletId, String message, String address);
+
+  /// Checks [signature] against [address]. A non-empty [signerPublicKey] must also own [address].
+  Future<bool> verifyMessage(
+    String walletId,
+    String message,
+    String signature,
+    String address, {
+    String signerPublicKey = '',
+  });
   Future<GetStatsResponse> getStats(String walletId);
 
   // wallet unlock/lock for cheques
@@ -862,15 +870,14 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<String> signMessage(String walletId, String message, String address) async {
+  Future<SignMessageResponse> signMessage(String walletId, String message, String address) async {
     try {
-      final response = await _client.signMessage(
+      return await _client.signMessage(
         SignMessageRequest()
           ..walletId = walletId
           ..message = message
           ..address = address,
       );
-      return response.signature;
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
@@ -878,14 +885,21 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<bool> verifyMessage(String walletId, String message, String signature, String address) async {
+  Future<bool> verifyMessage(
+    String walletId,
+    String message,
+    String signature,
+    String address, {
+    String signerPublicKey = '',
+  }) async {
     try {
       final response = await _client.verifyMessage(
         VerifyMessageRequest()
           ..walletId = walletId
           ..message = message
           ..signature = signature
-          ..publicKey = address,
+          ..publicKey = address
+          ..signerPublicKey = signerPublicKey,
       );
       return response.valid;
     } catch (e) {

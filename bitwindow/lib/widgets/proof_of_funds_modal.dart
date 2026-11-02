@@ -1,17 +1,11 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
-import 'package:bitcoin_base/bitcoin_base.dart';
-import 'package:convert/convert.dart';
-
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/sail_ui.dart' hide BitcoinNetwork;
+import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 class ProofOfFundsModal extends StatelessWidget {
@@ -700,40 +694,15 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-/// Secure memory management utility for private keys
-class SecureUint8List {
-  final Uint8List _data;
-
-  SecureUint8List(int length) : _data = Uint8List(length);
-
-  SecureUint8List.fromList(List<int> bytes) : _data = Uint8List.fromList(bytes);
-
-  Uint8List get data => _data;
-  int get length => _data.length;
-
-  void dispose() {
-    // Clear memory by overwriting with random data, then zeros
-    final random = Random.secure();
-    for (int i = 0; i < _data.length; i++) {
-      _data[i] = random.nextInt(256);
-    }
-    _data.fillRange(0, _data.length, 0);
-  }
-
-  int operator [](int index) => _data[index];
-  void operator []=(int index, int value) => _data[index] = value;
-}
-
 /// Orchestrator migration status: COMPLETE
 /// - listUnspent: via orchestratorWallet (orchestrator)
-/// - HD wallet signing: client-side, no RPC dependency
+/// - signMessage: via bitwindowd (bitwindowd)
 class ProofOfFundsViewModel extends BaseViewModel {
   final Logger log = GetIt.I.get<Logger>();
   final EnforcerRPC enforcer = GetIt.I.get<EnforcerRPC>();
   final BitwindowRPC bitwindowd = GetIt.I.get<BitwindowRPC>();
   OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   final BitcoindConnection mainchain = GetIt.I.get<BitcoindConnection>();
-  final HDWalletProvider hdWallet = GetIt.I.get<HDWalletProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   Future<void> generateProofOfFunds(
@@ -844,134 +813,18 @@ class ProofOfFundsViewModel extends BaseViewModel {
     log.i('Successfully signed: $successCount, Failed: $failCount');
   }
 
-  /// Secure Bitcoin message signing using HD wallet derived private key
   Future<SignatureResult?> _signMessageForAddress(String address, String message) async {
-    SecureUint8List? privateKeyBytes;
+    final walletId = _walletReader.activeWalletId;
+    if (walletId == null) {
+      throw Exception('No active wallet');
+    }
     try {
-      if (!hdWallet.isInitialized) {
-        await hdWallet.init();
-      }
-
-      if (!hdWallet.isInitialized) {
-        throw Exception('HD wallet not initialized');
-      }
-
-      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
-
-      // Find the correct derivation path for the address
-      final keyInfo = await _findKeyForAddress(address, isMainnet);
-      if (keyInfo == null) {
-        log.w('Could not find matching private key for address $address');
-        return null;
-      }
-
-      // Get both private and public key from HD wallet derivation
-      final privateKeyHex = keyInfo['privateKey'] as String;
-      final publicKeyHex = keyInfo['publicKey'] as String;
-
-      // Convert private key hex to secure bytes
-      privateKeyBytes = _hexToSecureBytes(privateKeyHex);
-
-      // Create ECPrivate key using bitcoin_base
-      final ecPrivateKey = ECPrivate.fromBytes(privateKeyBytes.data);
-
-      // Verify the address matches (security check)
-      final derivedAddress = _publicKeyToBech32Address(publicKeyHex, isMainnet);
-      if (derivedAddress != address) {
-        throw Exception('Address mismatch: expected $address, got $derivedAddress');
-      }
-
-      // Create Bitcoin message signature using bitcoin_base
-      final messageBytes = utf8.encode(message);
-      final signatureBase64 = ecPrivateKey.signBip137(messageBytes, mode: BIP137Mode.p2wpkh);
-
-      return SignatureResult(
-        signature: signatureBase64,
-        publicKey: publicKeyHex,
-      );
+      final signed = await bitwindowd.wallet.signMessage(walletId, message, address);
+      return SignatureResult(signature: signed.signature, publicKey: signed.publicKey);
     } catch (e) {
       log.e('Error signing message for address $address: $e');
       return null;
-    } finally {
-      // Always clean up private key from memory
-      privateKeyBytes?.dispose();
     }
-  }
-
-  /// Find the correct HD wallet key for a given address with optimized performance
-  Future<Map<String, String>?> _findKeyForAddress(String address, bool isMainnet) async {
-    final coinType = isMainnet ? "0'" : "1'";
-
-    // Optimized search: start with change addresses since that's where the UTXO was found
-    final searchPatterns = [
-      // Most likely: account 0, change addresses first (based on actual wallet usage)
-      (0, 1, 10), // account 0, change 1, first 10 addresses (START HERE as you noted)
-      (0, 0, 10), // account 0, change 0, first 10 addresses
-    ];
-
-    for (final pattern in searchPatterns) {
-      final account = pattern.$1;
-      final change = pattern.$2;
-      final maxIndex = pattern.$3;
-
-      for (int addressIndex = 0; addressIndex < maxIndex; addressIndex++) {
-        final path = "m/84'/$coinType/$account'/$change/$addressIndex";
-
-        try {
-          final keyInfo = await hdWallet.deriveExtendedKeyInfo(hdWallet.mnemonic!, path, isMainnet);
-          final publicKeyHex = keyInfo['publicKey'];
-
-          if (publicKeyHex != null && publicKeyHex.isNotEmpty) {
-            final bech32Address = _publicKeyToBech32Address(publicKeyHex, isMainnet);
-            if (bech32Address == address) {
-              log.i('Found address $address at path $path');
-              return keyInfo;
-            }
-          }
-        } catch (e) {
-          // Continue searching on derivation errors
-          log.w('Derivation failed for path $path: ${e.toString().substring(0, 50)}...');
-          continue;
-        }
-      }
-    }
-
-    log.w('Address $address not found in first 15 derivation paths');
-    return null; // Address not found in wallet
-  }
-
-  /// Convert hex string to secure byte array
-  SecureUint8List _hexToSecureBytes(String hexString) {
-    String cleanHex = hexString;
-
-    // Remove 0x prefix if present
-    if (hexString.startsWith('0x')) {
-      cleanHex = hexString.substring(2);
-    }
-
-    // Handle leading zeros by padding/trimming to 64 characters (32 bytes)
-    if (cleanHex.length > 64) {
-      // Remove leading zeros
-      final excess = cleanHex.length - 64;
-      final leadingPart = cleanHex.substring(0, excess);
-
-      if (leadingPart.replaceAll('0', '').isEmpty) {
-        cleanHex = cleanHex.substring(excess);
-      } else {
-        throw Exception('Invalid private key format: unexpected leading data');
-      }
-    } else if (cleanHex.length < 64) {
-      // Pad with leading zeros
-      cleanHex = cleanHex.padLeft(64, '0');
-    }
-
-    if (cleanHex.length != 64) {
-      throw Exception('Private key must be exactly 64 hex characters (32 bytes)');
-    }
-
-    // Convert to bytes
-    final bytes = hex.decode(cleanHex);
-    return SecureUint8List.fromList(bytes);
   }
 
   Future<VerificationResult> verifyProofOfFunds(
@@ -1075,19 +928,12 @@ class ProofOfFundsViewModel extends BaseViewModel {
     String address,
   ) async {
     try {
-      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
-
-      final derivedAddress = _publicKeyToBech32Address(publicKeyHex, isMainnet);
-      if (derivedAddress != address) {
-        log.w('Address mismatch: expected $address, got $derivedAddress');
-        return false;
-      }
-
       return await GetIt.I.get<BitwindowRPC>().wallet.verifyMessage(
         _walletReader.activeWalletId ?? '',
         message,
         signatureBase64,
         address,
+        signerPublicKey: publicKeyHex,
       );
     } catch (e) {
       log.e('Error in signature verification: $e');
@@ -1103,17 +949,6 @@ class ProofOfFundsViewModel extends BaseViewModel {
     final random = Random.secure();
     const chars = '0123456789ABCDEF';
     return List.generate(16, (index) => chars[random.nextInt(16)]).join();
-  }
-
-  String _publicKeyToBech32Address(String publicKeyHex, bool isMainnet) {
-    try {
-      final ecPublic = ECPublic.fromHex(publicKeyHex);
-      final network = isMainnet ? BitcoinNetwork.mainnet : BitcoinNetwork.testnet;
-      final address = ecPublic.toSegwitAddress();
-      return address.toAddress(network);
-    } catch (e) {
-      throw Exception('Failed to convert public key to Bech32 address: $e');
-    }
   }
 }
 

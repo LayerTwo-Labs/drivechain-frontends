@@ -287,6 +287,8 @@ message SignMessageRequest {
 }
 message SignMessageResponse {
   string signature = 1;
+  // Compressed public key of the signing key, hex. For taproot, the tweaked key.
+  string public_key = 2;
 }
 
 message VerifyMessageRequest {
@@ -294,6 +296,8 @@ message VerifyMessageRequest {
   string message = 2;
   string signature = 3;
   string public_key = 4;
+  // Optional hex public key that must own the address in public_key.
+  string signer_public_key = 5;
 }
 message VerifyMessageResponse {
   bool valid = 1;

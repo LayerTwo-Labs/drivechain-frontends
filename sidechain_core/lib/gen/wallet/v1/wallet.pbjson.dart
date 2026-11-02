@@ -13,7 +13,7 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $2;
+import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $3;
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
@@ -490,12 +490,14 @@ const SignMessageResponse$json = {
   '1': 'SignMessageResponse',
   '2': [
     {'1': 'signature', '3': 1, '4': 1, '5': 9, '10': 'signature'},
+    {'1': 'public_key', '3': 2, '4': 1, '5': 9, '10': 'publicKey'},
   ],
 };
 
 /// Descriptor for `SignMessageResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List signMessageResponseDescriptor = $convert.base64Decode(
-    'ChNTaWduTWVzc2FnZVJlc3BvbnNlEhwKCXNpZ25hdHVyZRgBIAEoCVIJc2lnbmF0dXJl');
+    'ChNTaWduTWVzc2FnZVJlc3BvbnNlEhwKCXNpZ25hdHVyZRgBIAEoCVIJc2lnbmF0dXJlEh0KCn'
+    'B1YmxpY19rZXkYAiABKAlSCXB1YmxpY0tleQ==');
 
 @$core.Deprecated('Use verifyMessageRequestDescriptor instead')
 const VerifyMessageRequest$json = {
@@ -505,6 +507,7 @@ const VerifyMessageRequest$json = {
     {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
     {'1': 'signature', '3': 3, '4': 1, '5': 9, '10': 'signature'},
     {'1': 'public_key', '3': 4, '4': 1, '5': 9, '10': 'publicKey'},
+    {'1': 'signer_public_key', '3': 5, '4': 1, '5': 9, '10': 'signerPublicKey'},
   ],
 };
 
@@ -512,7 +515,8 @@ const VerifyMessageRequest$json = {
 final $typed_data.Uint8List verifyMessageRequestDescriptor = $convert.base64Decode(
     'ChRWZXJpZnlNZXNzYWdlUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEhgKB2'
     '1lc3NhZ2UYAiABKAlSB21lc3NhZ2USHAoJc2lnbmF0dXJlGAMgASgJUglzaWduYXR1cmUSHQoK'
-    'cHVibGljX2tleRgEIAEoCVIJcHVibGljS2V5');
+    'cHVibGljX2tleRgEIAEoCVIJcHVibGljS2V5EioKEXNpZ25lcl9wdWJsaWNfa2V5GAUgASgJUg'
+    '9zaWduZXJQdWJsaWNLZXk=');
 
 @$core.Deprecated('Use verifyMessageResponseDescriptor instead')
 const VerifyMessageResponse$json = {
@@ -1254,8 +1258,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.wallet.v1.UnspentOutput': UnspentOutput$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
-  '.bitwindowd.v1.DenialInfo': $2.DenialInfo$json,
-  '.bitwindowd.v1.ExecutedDenial': $2.ExecutedDenial$json,
+  '.bitwindowd.v1.DenialInfo': $3.DenialInfo$json,
+  '.bitwindowd.v1.ExecutedDenial': $3.ExecutedDenial$json,
   '.wallet.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.wallet.v1.GetBalanceRequest': GetBalanceRequest$json,
   '.wallet.v1.GetBalanceResponse': GetBalanceResponse$json,

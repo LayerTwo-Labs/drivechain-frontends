@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -669,17 +670,32 @@ func (s *Server) SignMessage(ctx context.Context, c *pb.SignMessageRequest) (*pb
 		return nil, fmt.Errorf("sign message: %w", err)
 	}
 
-	return &pb.SignMessageResponse{Signature: signature}, nil
+	return &pb.SignMessageResponse{
+		Signature: signature,
+		PublicKey: hex.EncodeToString(privKey.PubKey().SerializeCompressed()),
+	}, nil
 }
 
 // VerifyMessage implements walletv1connect.WalletServiceHandler.
 func (s *Server) VerifyMessage(ctx context.Context, c *pb.VerifyMessageRequest) (*pb.VerifyMessageResponse, error) {
-	valid, err := signmessage.Verify(c.PublicKey, c.Message, c.Signature, s.walletEngine.GetChainParams())
+	params := s.walletEngine.GetChainParams()
+	valid, err := signmessage.Verify(c.PublicKey, c.Message, c.Signature, params)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
+	if !valid || c.SignerPublicKey == "" {
+		return &pb.VerifyMessageResponse{Valid: valid}, nil
+	}
 
-	return &pb.VerifyMessageResponse{Valid: valid}, nil
+	address, err := btcutil.DecodeAddress(c.PublicKey, params)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Sprintf("decode address: %s", err)).WithCause(err)
+	}
+	owns, err := signmessage.KeyOwnsAddress(c.SignerPublicKey, address)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+	}
+	return &pb.VerifyMessageResponse{Valid: owns}, nil
 }
 
 // ListUnspent implements walletv1connect.WalletServiceHandler.

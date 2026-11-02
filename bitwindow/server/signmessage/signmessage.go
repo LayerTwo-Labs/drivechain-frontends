@@ -5,6 +5,7 @@ package signmessage
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -303,4 +304,31 @@ func decodeWitness(raw []byte) (wire.TxWitness, error) {
 		return nil, errors.New("trailing bytes after witness")
 	}
 	return witness, nil
+}
+
+// KeyOwnsAddress reports whether the hex public key controls address. For a
+// taproot address the key is the tweaked output key.
+func KeyOwnsAddress(publicKeyHex string, address btcutil.Address) (bool, error) {
+	raw, err := hex.DecodeString(publicKeyHex)
+	if err != nil {
+		return false, fmt.Errorf("decode public key: %w", err)
+	}
+	pub, err := btcec.ParsePubKey(raw)
+	if err != nil {
+		return false, fmt.Errorf("parse public key: %w", err)
+	}
+
+	switch addr := address.(type) {
+	case *btcutil.AddressPubKeyHash:
+		return bytes.Equal(btcutil.Hash160(raw), addr.ScriptAddress()), nil
+	case *btcutil.AddressWitnessPubKeyHash:
+		return bytes.Equal(btcutil.Hash160(pub.SerializeCompressed()), addr.ScriptAddress()), nil
+	case *btcutil.AddressScriptHash:
+		redeem := append([]byte{txscript.OP_0, txscript.OP_DATA_20}, btcutil.Hash160(pub.SerializeCompressed())...)
+		return bytes.Equal(btcutil.Hash160(redeem), addr.ScriptAddress()), nil
+	case *btcutil.AddressTaproot:
+		return bytes.Equal(schnorr.SerializePubKey(pub), addr.ScriptAddress()), nil
+	default:
+		return false, fmt.Errorf("cannot match a key to address type %T", address)
+	}
 }

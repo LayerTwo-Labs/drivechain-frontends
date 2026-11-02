@@ -1667,8 +1667,10 @@ func (x *SignMessageRequest) GetAddress() string {
 }
 
 type SignMessageResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Signature     string                 `protobuf:"bytes,1,opt,name=signature,proto3" json:"signature,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Signature string                 `protobuf:"bytes,1,opt,name=signature,proto3" json:"signature,omitempty"`
+	// Compressed public key of the signing key, hex. For taproot, the tweaked key.
+	PublicKey     string `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1710,14 +1712,23 @@ func (x *SignMessageResponse) GetSignature() string {
 	return ""
 }
 
+func (x *SignMessageResponse) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
 type VerifyMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WalletId      string                 `protobuf:"bytes,1,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	Signature     string                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
-	PublicKey     string                 `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	WalletId  string                 `protobuf:"bytes,1,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	Message   string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Signature string                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
+	PublicKey string                 `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// Optional hex public key that must own the address in public_key.
+	SignerPublicKey string `protobuf:"bytes,5,opt,name=signer_public_key,json=signerPublicKey,proto3" json:"signer_public_key,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *VerifyMessageRequest) Reset() {
@@ -1774,6 +1785,13 @@ func (x *VerifyMessageRequest) GetSignature() string {
 func (x *VerifyMessageRequest) GetPublicKey() string {
 	if x != nil {
 		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *VerifyMessageRequest) GetSignerPublicKey() string {
+	if x != nil {
+		return x.SignerPublicKey
 	}
 	return ""
 }
@@ -4572,15 +4590,18 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x12SignMessageRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x18\n" +
-	"\aaddress\x18\x03 \x01(\tR\aaddress\"3\n" +
+	"\aaddress\x18\x03 \x01(\tR\aaddress\"R\n" +
 	"\x13SignMessageResponse\x12\x1c\n" +
-	"\tsignature\x18\x01 \x01(\tR\tsignature\"\x8a\x01\n" +
+	"\tsignature\x18\x01 \x01(\tR\tsignature\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x02 \x01(\tR\tpublicKey\"\xb6\x01\n" +
 	"\x14VerifyMessageRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1c\n" +
 	"\tsignature\x18\x03 \x01(\tR\tsignature\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\x04 \x01(\tR\tpublicKey\"-\n" +
+	"public_key\x18\x04 \x01(\tR\tpublicKey\x12*\n" +
+	"\x11signer_public_key\x18\x05 \x01(\tR\x0fsignerPublicKey\"-\n" +
 	"\x15VerifyMessageResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\"\x86\x04\n" +
 	"\x10GetStatsResponse\x12#\n" +

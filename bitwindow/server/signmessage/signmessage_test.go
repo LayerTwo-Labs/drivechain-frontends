@@ -288,3 +288,58 @@ func TestVerifyRejectsMalformedInput(t *testing.T) {
 	_, err = Verify("mpLQjfK79b7CCV4VMJWEWAj5Mpx8Up5zxB", "Hello World", "AA==", params)
 	require.ErrorContains(t, err, "unknown address type")
 }
+
+// The signature that the frontend signer gave for the BIP84 vector key m/84'/1'/0'/0/0.
+func TestSignNativeSegwitMatchesFrontend(t *testing.T) {
+	keyBytes, err := hex.DecodeString("a9c4134b73560f43fc5c081e5c1daa7ce068adc806d80e1f37cb658e0fea4c8d")
+	require.NoError(t, err)
+	key, _ := btcec.PrivKeyFromBytes(keyBytes)
+	address, err := btcutil.DecodeAddress("tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl", &chaincfg.SigNetParams)
+	require.NoError(t, err)
+
+	signature, err := Sign(key, address, "proof of funds", &chaincfg.SigNetParams)
+	require.NoError(t, err)
+	require.Equal(t, "KGpyhikj6zHeOb3mcq4dtyqa0CIOI5CGQ7mxEkao3PYpfuBVFxVh4MDh6kPTtob7yw+qm4JLmODIAmVLP7I2Ey8=", signature)
+}
+
+func TestKeyOwnsAddress(t *testing.T) {
+	keyBytes, err := hex.DecodeString("a9c4134b73560f43fc5c081e5c1daa7ce068adc806d80e1f37cb658e0fea4c8d")
+	require.NoError(t, err)
+	_, pub := btcec.PrivKeyFromBytes(keyBytes)
+	params := &chaincfg.SigNetParams
+	hash := btcutil.Hash160(pub.SerializeCompressed())
+
+	p2pkh, err := btcutil.NewAddressPubKeyHash(hash, params)
+	require.NoError(t, err)
+	p2wpkh, err := btcutil.NewAddressWitnessPubKeyHash(hash, params)
+	require.NoError(t, err)
+	nested, err := btcutil.NewAddressScriptHash(append([]byte{txscript.OP_0, txscript.OP_DATA_20}, hash...), params)
+	require.NoError(t, err)
+	tweaked := txscript.ComputeTaprootKeyNoScript(pub)
+	p2tr, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tweaked), params)
+	require.NoError(t, err)
+
+	compressed := hex.EncodeToString(pub.SerializeCompressed())
+	for _, address := range []btcutil.Address{p2pkh, p2wpkh, nested} {
+		owns, err := KeyOwnsAddress(compressed, address)
+		require.NoError(t, err)
+		require.True(t, owns, address.EncodeAddress())
+	}
+	owns, err := KeyOwnsAddress(hex.EncodeToString(tweaked.SerializeCompressed()), p2tr)
+	require.NoError(t, err)
+	require.True(t, owns)
+
+	require.Equal(t, "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl", p2wpkh.EncodeAddress())
+
+	_, other := btcec.PrivKeyFromBytes(chainhash.HashB([]byte("other")))
+	for _, address := range []btcutil.Address{p2pkh, p2wpkh, nested, p2tr} {
+		owns, err := KeyOwnsAddress(hex.EncodeToString(other.SerializeCompressed()), address)
+		require.NoError(t, err)
+		require.False(t, owns, address.EncodeAddress())
+	}
+
+	_, err = KeyOwnsAddress("zz", p2wpkh)
+	require.ErrorContains(t, err, "decode public key")
+	_, err = KeyOwnsAddress("02ab", p2wpkh)
+	require.ErrorContains(t, err, "parse public key")
+}
