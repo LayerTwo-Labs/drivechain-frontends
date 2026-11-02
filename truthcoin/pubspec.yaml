@@ -48,7 +48,6 @@ dependencies:
 
 # Needed for silencing complaints from adding the web3dart lib
 dependency_overrides:
-  stream_channel: 2.1.2
 
 dev_dependencies:
   flutter_test:
