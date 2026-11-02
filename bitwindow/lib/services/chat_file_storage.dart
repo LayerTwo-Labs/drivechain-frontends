@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:sail_ui/sail_ui.dart';
-import 'package:synchronized/synchronized.dart';
 
 // Native implementation using file system
 class ChatFileStorage implements KeyValueStore {

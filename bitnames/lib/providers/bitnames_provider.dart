@@ -6,7 +6,7 @@ import 'package:sidechain_core/rpcs/bitnames_rpc.dart';
 import 'package:sidechain_core/rpcs/thunder_utxo.dart';
 import 'package:sidechain_core/settings/client_settings.dart';
 import 'package:sidechain_core/settings/hash_plaintext_settings.dart';
-import 'package:synchronized/synchronized.dart';
+import 'package:sidechain_core/utils/lock.dart';
 import 'package:thirds/blake3.dart';
 
 class BitnamesProvider extends ChangeNotifier {

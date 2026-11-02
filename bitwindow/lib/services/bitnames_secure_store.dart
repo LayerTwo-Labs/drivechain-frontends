@@ -5,7 +5,6 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/foundation.dart';
 import 'package:pointycastle/export.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:synchronized/synchronized.dart';
 
 enum BitnamesStorageState {
   locked,
