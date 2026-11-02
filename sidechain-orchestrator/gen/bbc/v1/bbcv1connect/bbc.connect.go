@@ -134,16 +134,27 @@ var (
 
 // BbcServiceClient is a client for the bbc.v1.BbcService service.
 type BbcServiceClient interface {
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Get the node's chain state.
 	GetBlockchainInfo(context.Context, *v1.GetBlockchainInfoRequest) (*v1.GetBlockchainInfoResponse, error)
+	// Report whether the node has caught up with the mainchain.
 	GetSidechainInfo(context.Context, *v1.GetSidechainInfoRequest) (*v1.GetSidechainInfoResponse, error)
+	// Get the mainchain block hash the node is following.
 	GetMainchainTip(context.Context, *v1.GetMainchainTipRequest) (*v1.GetMainchainTipResponse, error)
+	// Get the sidechain block a mainchain block commits to, empty when none.
 	GetBmmCommitment(context.Context, *v1.GetBmmCommitmentRequest) (*v1.GetBmmCommitmentResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Send to a sidechain address.
 	Send(context.Context, *v1.SendRequest) (*v1.SendResponse, error)
+	// Estimate the fee rate in sats per kvB.
 	EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error)
+	// List wallet UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// List wallet transactions, most recent first.
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
+	// Stop the node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
 }
 
@@ -155,16 +166,27 @@ func NewBbcServiceClient(client *connect.Client) BbcServiceClient {
 
 // BbcServiceHandler is an implementation of the bbc.v1.BbcService service.
 type BbcServiceHandler interface {
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Get the node's chain state.
 	GetBlockchainInfo(context.Context, *v1.GetBlockchainInfoRequest) (*v1.GetBlockchainInfoResponse, error)
+	// Report whether the node has caught up with the mainchain.
 	GetSidechainInfo(context.Context, *v1.GetSidechainInfoRequest) (*v1.GetSidechainInfoResponse, error)
+	// Get the mainchain block hash the node is following.
 	GetMainchainTip(context.Context, *v1.GetMainchainTipRequest) (*v1.GetMainchainTipResponse, error)
+	// Get the sidechain block a mainchain block commits to, empty when none.
 	GetBmmCommitment(context.Context, *v1.GetBmmCommitmentRequest) (*v1.GetBmmCommitmentResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Send to a sidechain address.
 	Send(context.Context, *v1.SendRequest) (*v1.SendResponse, error)
+	// Estimate the fee rate in sats per kvB.
 	EstimateFee(context.Context, *v1.EstimateFeeRequest) (*v1.EstimateFeeResponse, error)
+	// List wallet UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// List wallet transactions, most recent first.
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
+	// Stop the node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
 }
 

@@ -500,53 +500,101 @@ var (
 
 // BitAssetsServiceClient is a client for the bitassets.v1.BitAssetsService service.
 type BitAssetsServiceClient interface {
+	// Get wallet balance (total and available).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the bitassets node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain.
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// Forget a peer.
 	ForgetPeer(context.Context, *v1.ForgetPeerRequest) (*v1.ForgetPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Remove transaction from mempool.
 	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Get BitAsset data by asset ID.
 	GetBitAssetData(context.Context, *v1.GetBitAssetDataRequest) (*v1.GetBitAssetDataResponse, error)
+	// List all BitAssets.
 	ListBitAssets(context.Context, *v1.ListBitAssetsRequest) (*v1.ListBitAssetsResponse, error)
+	// Register a BitAsset.
 	RegisterBitAsset(context.Context, *v1.RegisterBitAssetRequest) (*v1.RegisterBitAssetResponse, error)
+	// Reserve a BitAsset.
 	ReserveBitAsset(context.Context, *v1.ReserveBitAssetRequest) (*v1.ReserveBitAssetResponse, error)
+	// Transfer a BitAsset token.
 	TransferBitAsset(context.Context, *v1.TransferBitAssetRequest) (*v1.TransferBitAssetResponse, error)
+	// Get a new encryption key.
 	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	// Get a new verifying key.
 	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	// Decrypt a message.
 	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	// Encrypt a message.
 	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	// Sign an arbitrary message with the specified verifying key.
 	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	// Sign an arbitrary message as a specific address.
 	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	// Verify a signature.
 	VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error)
+	// Get wallet addresses.
 	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	// List unconfirmed owned UTXOs.
 	MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error)
+	// Get OpenAPI schema.
 	OpenapiSchema(context.Context, *v1.OpenapiSchemaRequest) (*v1.OpenapiSchemaResponse, error)
+	// Burn an AMM position.
 	AmmBurn(context.Context, *v1.AmmBurnRequest) (*v1.AmmBurnResponse, error)
+	// Mint an AMM position.
 	AmmMint(context.Context, *v1.AmmMintRequest) (*v1.AmmMintResponse, error)
+	// AMM swap.
 	AmmSwap(context.Context, *v1.AmmSwapRequest) (*v1.AmmSwapResponse, error)
+	// Get the state of the specified AMM pool.
 	GetAmmPoolState(context.Context, *v1.GetAmmPoolStateRequest) (*v1.GetAmmPoolStateResponse, error)
+	// Get the current price for the specified pair.
 	GetAmmPrice(context.Context, *v1.GetAmmPriceRequest) (*v1.GetAmmPriceResponse, error)
+	// Bid on a dutch auction.
 	DutchAuctionBid(context.Context, *v1.DutchAuctionBidRequest) (*v1.DutchAuctionBidResponse, error)
+	// Collect from a dutch auction.
 	DutchAuctionCollect(context.Context, *v1.DutchAuctionCollectRequest) (*v1.DutchAuctionCollectResponse, error)
+	// Create a dutch auction.
 	DutchAuctionCreate(context.Context, *v1.DutchAuctionCreateRequest) (*v1.DutchAuctionCreateResponse, error)
+	// List all dutch auctions.
 	DutchAuctions(context.Context, *v1.DutchAuctionsRequest) (*v1.DutchAuctionsResponse, error)
 }
 
@@ -558,53 +606,101 @@ func NewBitAssetsServiceClient(client *connect.Client) BitAssetsServiceClient {
 
 // BitAssetsServiceHandler is an implementation of the bitassets.v1.BitAssetsService service.
 type BitAssetsServiceHandler interface {
+	// Get wallet balance (total and available).
 	GetBalance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
+	// Get current block count.
 	GetBlockCount(context.Context, *v1.GetBlockCountRequest) (*v1.GetBlockCountResponse, error)
+	// Stop the bitassets node.
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
+	// Get a new address from the wallet.
 	GetNewAddress(context.Context, *v1.GetNewAddressRequest) (*v1.GetNewAddressResponse, error)
+	// Withdraw to mainchain.
 	Withdraw(context.Context, *v1.WithdrawRequest) (*v1.WithdrawResponse, error)
+	// Transfer within sidechain.
 	Transfer(context.Context, *v1.TransferRequest) (*v1.TransferResponse, error)
+	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *v1.GetSidechainWealthRequest) (*v1.GetSidechainWealthResponse, error)
+	// Create a deposit transaction.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
+	// Get pending withdrawal bundle.
 	GetPendingWithdrawalBundle(context.Context, *v1.GetPendingWithdrawalBundleRequest) (*v1.GetPendingWithdrawalBundleResponse, error)
+	// Connect to a peer.
 	ConnectPeer(context.Context, *v1.ConnectPeerRequest) (*v1.ConnectPeerResponse, error)
+	// Forget a peer.
 	ForgetPeer(context.Context, *v1.ForgetPeerRequest) (*v1.ForgetPeerResponse, error)
+	// List connected peers.
 	ListPeers(context.Context, *v1.ListPeersRequest) (*v1.ListPeersResponse, error)
+	// Mine a block.
 	Mine(context.Context, *v1.MineRequest) (*v1.MineResponse, error)
+	// Get block by hash.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// Get best mainchain block hash.
 	GetBestMainchainBlockHash(context.Context, *v1.GetBestMainchainBlockHashRequest) (*v1.GetBestMainchainBlockHashResponse, error)
+	// Get best sidechain block hash.
 	GetBestSidechainBlockHash(context.Context, *v1.GetBestSidechainBlockHashRequest) (*v1.GetBestSidechainBlockHashResponse, error)
+	// Get BMM inclusions for a block.
 	GetBmmInclusions(context.Context, *v1.GetBmmInclusionsRequest) (*v1.GetBmmInclusionsResponse, error)
+	// Get wallet UTXOs.
 	GetWalletUtxos(context.Context, *v1.GetWalletUtxosRequest) (*v1.GetWalletUtxosResponse, error)
+	// List all UTXOs.
 	ListUtxos(context.Context, *v1.ListUtxosRequest) (*v1.ListUtxosResponse, error)
+	// Remove transaction from mempool.
 	RemoveFromMempool(context.Context, *v1.RemoveFromMempoolRequest) (*v1.RemoveFromMempoolResponse, error)
+	// Get latest failed withdrawal bundle height.
 	GetLatestFailedWithdrawalBundleHeight(context.Context, *v1.GetLatestFailedWithdrawalBundleHeightRequest) (*v1.GetLatestFailedWithdrawalBundleHeightResponse, error)
+	// Generate a new mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// Set seed from mnemonic.
 	SetSeedFromMnemonic(context.Context, *v1.SetSeedFromMnemonicRequest) (*v1.SetSeedFromMnemonicResponse, error)
+	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *v1.CallRawRequest) (*v1.CallRawResponse, error)
+	// Get BitAsset data by asset ID.
 	GetBitAssetData(context.Context, *v1.GetBitAssetDataRequest) (*v1.GetBitAssetDataResponse, error)
+	// List all BitAssets.
 	ListBitAssets(context.Context, *v1.ListBitAssetsRequest) (*v1.ListBitAssetsResponse, error)
+	// Register a BitAsset.
 	RegisterBitAsset(context.Context, *v1.RegisterBitAssetRequest) (*v1.RegisterBitAssetResponse, error)
+	// Reserve a BitAsset.
 	ReserveBitAsset(context.Context, *v1.ReserveBitAssetRequest) (*v1.ReserveBitAssetResponse, error)
+	// Transfer a BitAsset token.
 	TransferBitAsset(context.Context, *v1.TransferBitAssetRequest) (*v1.TransferBitAssetResponse, error)
+	// Get a new encryption key.
 	GetNewEncryptionKey(context.Context, *v1.GetNewEncryptionKeyRequest) (*v1.GetNewEncryptionKeyResponse, error)
+	// Get a new verifying key.
 	GetNewVerifyingKey(context.Context, *v1.GetNewVerifyingKeyRequest) (*v1.GetNewVerifyingKeyResponse, error)
+	// Decrypt a message.
 	DecryptMsg(context.Context, *v1.DecryptMsgRequest) (*v1.DecryptMsgResponse, error)
+	// Encrypt a message.
 	EncryptMsg(context.Context, *v1.EncryptMsgRequest) (*v1.EncryptMsgResponse, error)
+	// Sign an arbitrary message with the specified verifying key.
 	SignArbitraryMsg(context.Context, *v1.SignArbitraryMsgRequest) (*v1.SignArbitraryMsgResponse, error)
+	// Sign an arbitrary message as a specific address.
 	SignArbitraryMsgAsAddr(context.Context, *v1.SignArbitraryMsgAsAddrRequest) (*v1.SignArbitraryMsgAsAddrResponse, error)
+	// Verify a signature.
 	VerifySignature(context.Context, *v1.VerifySignatureRequest) (*v1.VerifySignatureResponse, error)
+	// Get wallet addresses.
 	GetWalletAddresses(context.Context, *v1.GetWalletAddressesRequest) (*v1.GetWalletAddressesResponse, error)
+	// List unconfirmed owned UTXOs.
 	MyUnconfirmedUtxos(context.Context, *v1.MyUnconfirmedUtxosRequest) (*v1.MyUnconfirmedUtxosResponse, error)
+	// Get OpenAPI schema.
 	OpenapiSchema(context.Context, *v1.OpenapiSchemaRequest) (*v1.OpenapiSchemaResponse, error)
+	// Burn an AMM position.
 	AmmBurn(context.Context, *v1.AmmBurnRequest) (*v1.AmmBurnResponse, error)
+	// Mint an AMM position.
 	AmmMint(context.Context, *v1.AmmMintRequest) (*v1.AmmMintResponse, error)
+	// AMM swap.
 	AmmSwap(context.Context, *v1.AmmSwapRequest) (*v1.AmmSwapResponse, error)
+	// Get the state of the specified AMM pool.
 	GetAmmPoolState(context.Context, *v1.GetAmmPoolStateRequest) (*v1.GetAmmPoolStateResponse, error)
+	// Get the current price for the specified pair.
 	GetAmmPrice(context.Context, *v1.GetAmmPriceRequest) (*v1.GetAmmPriceResponse, error)
+	// Bid on a dutch auction.
 	DutchAuctionBid(context.Context, *v1.DutchAuctionBidRequest) (*v1.DutchAuctionBidResponse, error)
+	// Collect from a dutch auction.
 	DutchAuctionCollect(context.Context, *v1.DutchAuctionCollectRequest) (*v1.DutchAuctionCollectResponse, error)
+	// Create a dutch auction.
 	DutchAuctionCreate(context.Context, *v1.DutchAuctionCreateRequest) (*v1.DutchAuctionCreateResponse, error)
+	// List all dutch auctions.
 	DutchAuctions(context.Context, *v1.DutchAuctionsRequest) (*v1.DutchAuctionsResponse, error)
 }
 

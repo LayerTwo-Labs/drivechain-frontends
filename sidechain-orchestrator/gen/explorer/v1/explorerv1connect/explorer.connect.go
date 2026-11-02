@@ -118,14 +118,27 @@ var (
 
 // ExplorerServiceClient is a client for the explorer.v1.ExplorerService service.
 type ExplorerServiceClient interface {
+	// GetOverview answers the explorer landing page: the newest blocks, what
+	// happened last, and what the treasury holds.
 	GetOverview(context.Context, *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error)
+	// GetBlock reads one block and what it carried. The request names either a
+	// hash or a height.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// ListBlocks reads a page of block headers, newest first, so a reader can
+	// walk back to the genesis block.
 	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
+	// GetTransaction reads one transaction, with the coins on both sides.
 	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error)
+	// GetSignedTransaction exports a transaction with its stored signatures.
 	GetSignedTransaction(context.Context, *v1.GetSignedTransactionRequest) (*v1.GetSignedTransactionResponse, error)
+	// RebroadcastTransaction sends a pending transaction to connected peers.
 	RebroadcastTransaction(context.Context, *v1.RebroadcastTransactionRequest) (*v1.RebroadcastTransactionResponse, error)
+	// BroadcastTransaction submits a signed transaction to the sidechain node.
 	BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error)
+	// GetAddress reads what an address holds and what it did. It needs an index,
+	// because no sidechain node keeps an address history.
 	GetAddress(context.Context, *v1.GetAddressRequest) (*v1.GetAddressResponse, error)
+	// GetWithdrawals reads the bundle the chain proposes to the mainchain.
 	GetWithdrawals(context.Context, *v1.GetWithdrawalsRequest) (*v1.GetWithdrawalsResponse, error)
 }
 
@@ -137,14 +150,27 @@ func NewExplorerServiceClient(client *connect.Client) ExplorerServiceClient {
 
 // ExplorerServiceHandler is an implementation of the explorer.v1.ExplorerService service.
 type ExplorerServiceHandler interface {
+	// GetOverview answers the explorer landing page: the newest blocks, what
+	// happened last, and what the treasury holds.
 	GetOverview(context.Context, *v1.GetOverviewRequest) (*v1.GetOverviewResponse, error)
+	// GetBlock reads one block and what it carried. The request names either a
+	// hash or a height.
 	GetBlock(context.Context, *v1.GetBlockRequest) (*v1.GetBlockResponse, error)
+	// ListBlocks reads a page of block headers, newest first, so a reader can
+	// walk back to the genesis block.
 	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
+	// GetTransaction reads one transaction, with the coins on both sides.
 	GetTransaction(context.Context, *v1.GetTransactionRequest) (*v1.GetTransactionResponse, error)
+	// GetSignedTransaction exports a transaction with its stored signatures.
 	GetSignedTransaction(context.Context, *v1.GetSignedTransactionRequest) (*v1.GetSignedTransactionResponse, error)
+	// RebroadcastTransaction sends a pending transaction to connected peers.
 	RebroadcastTransaction(context.Context, *v1.RebroadcastTransactionRequest) (*v1.RebroadcastTransactionResponse, error)
+	// BroadcastTransaction submits a signed transaction to the sidechain node.
 	BroadcastTransaction(context.Context, *v1.BroadcastTransactionRequest) (*v1.BroadcastTransactionResponse, error)
+	// GetAddress reads what an address holds and what it did. It needs an index,
+	// because no sidechain node keeps an address history.
 	GetAddress(context.Context, *v1.GetAddressRequest) (*v1.GetAddressResponse, error)
+	// GetWithdrawals reads the bundle the chain proposes to the mainchain.
 	GetWithdrawals(context.Context, *v1.GetWithdrawalsRequest) (*v1.GetWithdrawalsResponse, error)
 }
 

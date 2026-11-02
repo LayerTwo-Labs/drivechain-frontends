@@ -121,14 +121,36 @@ var (
 
 // MultisigLoungeServiceClient is a client for the multisiglounge.v1.MultisigLoungeService service.
 type MultisigLoungeServiceClient interface {
+	// BuildDescriptors builds the receive (/0/*) and change (/1/*) watch-only
+	// wsh(sortedmulti) descriptors for a multisig group, with checksums.
 	BuildDescriptors(context.Context, *v1.BuildDescriptorsRequest) (*v1.BuildDescriptorsResponse, error)
+	// ValidatePsbt parses a base64 PSBT and reports signature progress. When a
+	// group is supplied, inputs whose script does not belong to the group's
+	// descriptor are rejected.
 	ValidatePsbt(context.Context, *v1.ValidatePsbtRequest) (*v1.ValidatePsbtResponse, error)
+	// PublishGroup encodes a multisig group as an OP_RETURN payload (the
+	// BitWindow wire format) and broadcasts it, funding a fresh own address.
+	// Returns the broadcast txid.
 	PublishGroup(context.Context, *v1.PublishGroupRequest) (*v1.PublishGroupResponse, error)
+	// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
+	// multisig group, and reports which of the group's keys belong to the wallet.
 	ImportGroupFromTxid(context.Context, *v1.ImportGroupFromTxidRequest) (*v1.ImportGroupFromTxidResponse, error)
+	// SignTransaction adds the wallet's signature(s) to a multisig PSBT,
+	// deriving the wallet's keys server-side from its seed. The PSBT must belong
+	// to the group (foreign inputs are rejected).
 	SignTransaction(context.Context, *v1.SignTransactionRequest) (*v1.SignTransactionResponse, error)
+	// CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
+	// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
+	// never broadcast.
 	CombineAndBroadcast(context.Context, *v1.CombineAndBroadcastRequest) (*v1.CombineAndBroadcastResponse, error)
+	// SyncGroup ensures the group's watch-only wallet exists (creating it from the
+	// Phase-1 descriptors if missing) and returns its balance and UTXOs.
 	SyncGroup(context.Context, *v1.SyncGroupRequest) (*v1.SyncGroupResponse, error)
+	// RestoreHistory scans the watch-only wallet's transactions and reconstructs
+	// the group's spend/receive records with per-tx signature counts and status.
 	RestoreHistory(context.Context, *v1.RestoreHistoryRequest) (*v1.RestoreHistoryResponse, error)
+	// CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
+	// watch-only wallet to the given destinations (ensuring the wallet exists).
 	CreateSpendPsbt(context.Context, *v1.CreateSpendPsbtRequest) (*v1.CreateSpendPsbtResponse, error)
 }
 
@@ -142,14 +164,36 @@ func NewMultisigLoungeServiceClient(client *connect.Client) MultisigLoungeServic
 // MultisigLoungeServiceHandler is an implementation of the multisiglounge.v1.MultisigLoungeService
 // service.
 type MultisigLoungeServiceHandler interface {
+	// BuildDescriptors builds the receive (/0/*) and change (/1/*) watch-only
+	// wsh(sortedmulti) descriptors for a multisig group, with checksums.
 	BuildDescriptors(context.Context, *v1.BuildDescriptorsRequest) (*v1.BuildDescriptorsResponse, error)
+	// ValidatePsbt parses a base64 PSBT and reports signature progress. When a
+	// group is supplied, inputs whose script does not belong to the group's
+	// descriptor are rejected.
 	ValidatePsbt(context.Context, *v1.ValidatePsbtRequest) (*v1.ValidatePsbtResponse, error)
+	// PublishGroup encodes a multisig group as an OP_RETURN payload (the
+	// BitWindow wire format) and broadcasts it, funding a fresh own address.
+	// Returns the broadcast txid.
 	PublishGroup(context.Context, *v1.PublishGroupRequest) (*v1.PublishGroupResponse, error)
+	// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
+	// multisig group, and reports which of the group's keys belong to the wallet.
 	ImportGroupFromTxid(context.Context, *v1.ImportGroupFromTxidRequest) (*v1.ImportGroupFromTxidResponse, error)
+	// SignTransaction adds the wallet's signature(s) to a multisig PSBT,
+	// deriving the wallet's keys server-side from its seed. The PSBT must belong
+	// to the group (foreign inputs are rejected).
 	SignTransaction(context.Context, *v1.SignTransactionRequest) (*v1.SignTransactionResponse, error)
+	// CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
+	// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
+	// never broadcast.
 	CombineAndBroadcast(context.Context, *v1.CombineAndBroadcastRequest) (*v1.CombineAndBroadcastResponse, error)
+	// SyncGroup ensures the group's watch-only wallet exists (creating it from the
+	// Phase-1 descriptors if missing) and returns its balance and UTXOs.
 	SyncGroup(context.Context, *v1.SyncGroupRequest) (*v1.SyncGroupResponse, error)
+	// RestoreHistory scans the watch-only wallet's transactions and reconstructs
+	// the group's spend/receive records with per-tx signature counts and status.
 	RestoreHistory(context.Context, *v1.RestoreHistoryRequest) (*v1.RestoreHistoryResponse, error)
+	// CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
+	// watch-only wallet to the given destinations (ensuring the wallet exists).
 	CreateSpendPsbt(context.Context, *v1.CreateSpendPsbtRequest) (*v1.CreateSpendPsbtResponse, error)
 }
 

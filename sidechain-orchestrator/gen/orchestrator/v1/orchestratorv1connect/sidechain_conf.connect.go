@@ -61,8 +61,11 @@ var (
 
 // SidechainConfServiceClient is a client for the orchestrator.v1.SidechainConfService service.
 type SidechainConfServiceClient interface {
+	// Get current sidechain configuration state.
 	GetSidechainConfig(context.Context, *v1.GetSidechainConfigRequest) (*v1.GetSidechainConfigResponse, error)
+	// Write sidechain configuration content.
 	WriteSidechainConfig(context.Context, *v1.WriteSidechainConfigRequest) (*v1.WriteSidechainConfigResponse, error)
+	// Sync network from Bitcoin Core config.
 	SyncSidechainNetworkFromBitcoinConf(context.Context, *v1.SyncSidechainNetworkFromBitcoinConfRequest) (*v1.SyncSidechainNetworkFromBitcoinConfResponse, error)
 }
 
@@ -75,8 +78,11 @@ func NewSidechainConfServiceClient(client *connect.Client) SidechainConfServiceC
 // SidechainConfServiceHandler is an implementation of the orchestrator.v1.SidechainConfService
 // service.
 type SidechainConfServiceHandler interface {
+	// Get current sidechain configuration state.
 	GetSidechainConfig(context.Context, *v1.GetSidechainConfigRequest) (*v1.GetSidechainConfigResponse, error)
+	// Write sidechain configuration content.
 	WriteSidechainConfig(context.Context, *v1.WriteSidechainConfigRequest) (*v1.WriteSidechainConfigResponse, error)
+	// Sync network from Bitcoin Core config.
 	SyncSidechainNetworkFromBitcoinConf(context.Context, *v1.SyncSidechainNetworkFromBitcoinConfRequest) (*v1.SyncSidechainNetworkFromBitcoinConfResponse, error)
 }
 

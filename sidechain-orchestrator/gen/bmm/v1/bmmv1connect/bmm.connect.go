@@ -121,15 +121,35 @@ var (
 
 // BMMServiceClient is a client for the bmm.v1.BMMService service.
 type BMMServiceClient interface {
+	// Start bids on every new mainchain tip and connects the blocks miners take,
+	// until Stop. Bids are funded by the wallet the request names, and are
+	// opened at Core's next block fee and raised toward max_bid_sats when a
+	// competitor outbids us.
 	Start(context.Context, *v1.StartRequest) (*v1.StartResponse, error)
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
 	ClearHistory(context.Context, *v1.ClearHistoryRequest) (*v1.ClearHistoryResponse, error)
+	// Watch streams the round being bid on now plus recent finished rounds. The
+	// full state goes out on every frame, so a reconnect needs no delta merge.
 	Watch(context.Context, *v1.WatchRequest) (BMMServiceWatchClientStream, error)
+	// GetRoundBids returns every bid seen for one round. A losing bid never
+	// confirms and leaves the mempool, so this is limited to what was observed
+	// while that round was open.
 	GetRoundBids(context.Context, *v1.GetRoundBidsRequest) (*v1.GetRoundBidsResponse, error)
+	// CreateBid assembles a sidechain block and broadcasts one M8 bid for it;
+	// ConnectBid connects that block once a miner includes the bid. Use these to
+	// drive a single attempt by hand; Start does both on a loop.
 	CreateBid(context.Context, *v1.CreateBidRequest) (*v1.CreateBidResponse, error)
 	ConnectBid(context.Context, *v1.ConnectBidRequest) (*v1.ConnectBidResponse, error)
+	// CancelBid replaces a stranded bid with a payment back to its own wallet,
+	// so the coins under it come back. A bid that can still win is refused.
 	CancelBid(context.Context, *v1.CancelBidRequest) (*v1.CancelBidResponse, error)
+	// ListBids reads the competing bids for the slot out of the mainchain
+	// mempool, highest bid first.
 	ListBids(context.Context, *v1.ListBidsRequest) (*v1.ListBidsResponse, error)
+	// PrepareBMM gives every bidding sidechain a coin of its own to bid from,
+	// and splits one large coin when the wallet holds too few. One wallet funds
+	// them all, and a bid over another slot's bid change dies when that slot
+	// replaces its own bid.
 	PrepareBMM(context.Context, *v1.PrepareBMMRequest) (*v1.PrepareBMMResponse, error)
 }
 
@@ -161,15 +181,35 @@ func (s BMMServiceWatchClientStream) Close() error {
 
 // BMMServiceHandler is an implementation of the bmm.v1.BMMService service.
 type BMMServiceHandler interface {
+	// Start bids on every new mainchain tip and connects the blocks miners take,
+	// until Stop. Bids are funded by the wallet the request names, and are
+	// opened at Core's next block fee and raised toward max_bid_sats when a
+	// competitor outbids us.
 	Start(context.Context, *v1.StartRequest) (*v1.StartResponse, error)
 	Stop(context.Context, *v1.StopRequest) (*v1.StopResponse, error)
 	ClearHistory(context.Context, *v1.ClearHistoryRequest) (*v1.ClearHistoryResponse, error)
+	// Watch streams the round being bid on now plus recent finished rounds. The
+	// full state goes out on every frame, so a reconnect needs no delta merge.
 	Watch(context.Context, *v1.WatchRequest, BMMServiceWatchServerStream) error
+	// GetRoundBids returns every bid seen for one round. A losing bid never
+	// confirms and leaves the mempool, so this is limited to what was observed
+	// while that round was open.
 	GetRoundBids(context.Context, *v1.GetRoundBidsRequest) (*v1.GetRoundBidsResponse, error)
+	// CreateBid assembles a sidechain block and broadcasts one M8 bid for it;
+	// ConnectBid connects that block once a miner includes the bid. Use these to
+	// drive a single attempt by hand; Start does both on a loop.
 	CreateBid(context.Context, *v1.CreateBidRequest) (*v1.CreateBidResponse, error)
 	ConnectBid(context.Context, *v1.ConnectBidRequest) (*v1.ConnectBidResponse, error)
+	// CancelBid replaces a stranded bid with a payment back to its own wallet,
+	// so the coins under it come back. A bid that can still win is refused.
 	CancelBid(context.Context, *v1.CancelBidRequest) (*v1.CancelBidResponse, error)
+	// ListBids reads the competing bids for the slot out of the mainchain
+	// mempool, highest bid first.
 	ListBids(context.Context, *v1.ListBidsRequest) (*v1.ListBidsResponse, error)
+	// PrepareBMM gives every bidding sidechain a coin of its own to bid from,
+	// and splits one large coin when the wallet holds too few. One wallet funds
+	// them all, and a bid over another slot's bid change dies when that slot
+	// replaces its own bid.
 	PrepareBMM(context.Context, *v1.PrepareBMMRequest) (*v1.PrepareBMMResponse, error)
 }
 
