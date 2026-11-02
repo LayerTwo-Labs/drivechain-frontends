@@ -271,29 +271,53 @@ var (
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceClient interface {
+	// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
+	// detached and drains bitcoind/enforcer over ~90s in the background), then
+	// tears down bitwindowd itself. Acks fast so the Flutter window can destroy
+	// immediately. Pass skip_downstream=true to leave the orchestratord stack
+	// running (only bitwindowd dies).
 	Stop(context.Context, *v1.BitwindowdServiceStopRequest) (*emptypb.Empty, error)
+	// Deniability operations
 	CreateDenial(context.Context, *v1.CreateDenialRequest) (*emptypb.Empty, error)
 	CancelDenial(context.Context, *v1.CancelDenialRequest) (*emptypb.Empty, error)
 	PauseDenial(context.Context, *v1.PauseDenialRequest) (*emptypb.Empty, error)
 	ResumeDenial(context.Context, *v1.ResumeDenialRequest) (*emptypb.Empty, error)
+	// Wallet operations
 	CreateAddressBookEntry(context.Context, *v1.CreateAddressBookEntryRequest) (*v1.CreateAddressBookEntryResponse, error)
 	ListAddressBook(context.Context, *emptypb.Empty) (*v1.ListAddressBookResponse, error)
 	UpdateAddressBookEntry(context.Context, *v1.UpdateAddressBookEntryRequest) (*emptypb.Empty, error)
 	DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error)
 	GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error)
 	SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error)
+	// BIP329 label import/export. ExportLabels emits one JSONL object per
+	// labelled item (address book, tx note, UTXO label). ImportLabels parses
+	// BIP329 JSONL and writes into the matching store, skipping unknown or
+	// malformed lines.
 	ExportLabels(context.Context, *emptypb.Empty) (*v1.ExportLabelsResponse, error)
 	ImportLabels(context.Context, *v1.ImportLabelsRequest) (*v1.ImportLabelsResponse, error)
 	GetFireplaceStats(context.Context, *emptypb.Empty) (*v1.GetFireplaceStatsResponse, error)
+	// Lists the most recent transactions, both confirmed and unconfirmed.
 	ListRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error)
+	// Lists blocks with pagination support
 	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
+	// Get network statistics
 	GetNetworkStats(context.Context, *emptypb.Empty) (*v1.GetNetworkStatsResponse, error)
+	// Mempool watch: records every tx in the mempool and how long it has waited.
 	SetMempoolWatch(context.Context, *v1.SetMempoolWatchRequest) (*emptypb.Empty, error)
+	// Forgets everything recorded and starts over from the current mempool.
 	ResetMempoolWatch(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	GetMempoolWatchStatus(context.Context, *emptypb.Empty) (*v1.GetMempoolWatchStatusResponse, error)
 	ListMempoolTransactions(context.Context, *v1.ListMempoolTransactionsRequest) (*v1.ListMempoolTransactionsResponse, error)
 	ListBlockStats(context.Context, *v1.ListBlockStatsRequest) (*v1.ListBlockStatsResponse, error)
+	// Mining pools: which pools mined the recent blocks.
 	ListMiningPools(context.Context, *v1.ListMiningPoolsRequest) (*v1.ListMiningPoolsResponse, error)
+	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
+	// (network-scoped folder) is co-located with the orchestrator update.
+	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
+	// (which rewrites bitcoin.conf and restarts bitcoind on the new chain),
+	// then exit so the launcher restarts bitwindowd with a fresh DB scoped
+	// to the new network. Returns once orchestratord acknowledges the swap;
+	// the bitwindowd process exit happens shortly after.
 	UpdateNetwork(context.Context, *v1.UpdateNetworkRequest) (*v1.UpdateNetworkResponse, error)
 }
 
@@ -305,29 +329,53 @@ func NewBitwindowdServiceClient(client *connect.Client) BitwindowdServiceClient 
 
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
+	// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
+	// detached and drains bitcoind/enforcer over ~90s in the background), then
+	// tears down bitwindowd itself. Acks fast so the Flutter window can destroy
+	// immediately. Pass skip_downstream=true to leave the orchestratord stack
+	// running (only bitwindowd dies).
 	Stop(context.Context, *v1.BitwindowdServiceStopRequest) (*emptypb.Empty, error)
+	// Deniability operations
 	CreateDenial(context.Context, *v1.CreateDenialRequest) (*emptypb.Empty, error)
 	CancelDenial(context.Context, *v1.CancelDenialRequest) (*emptypb.Empty, error)
 	PauseDenial(context.Context, *v1.PauseDenialRequest) (*emptypb.Empty, error)
 	ResumeDenial(context.Context, *v1.ResumeDenialRequest) (*emptypb.Empty, error)
+	// Wallet operations
 	CreateAddressBookEntry(context.Context, *v1.CreateAddressBookEntryRequest) (*v1.CreateAddressBookEntryResponse, error)
 	ListAddressBook(context.Context, *emptypb.Empty) (*v1.ListAddressBookResponse, error)
 	UpdateAddressBookEntry(context.Context, *v1.UpdateAddressBookEntryRequest) (*emptypb.Empty, error)
 	DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error)
 	GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error)
 	SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error)
+	// BIP329 label import/export. ExportLabels emits one JSONL object per
+	// labelled item (address book, tx note, UTXO label). ImportLabels parses
+	// BIP329 JSONL and writes into the matching store, skipping unknown or
+	// malformed lines.
 	ExportLabels(context.Context, *emptypb.Empty) (*v1.ExportLabelsResponse, error)
 	ImportLabels(context.Context, *v1.ImportLabelsRequest) (*v1.ImportLabelsResponse, error)
 	GetFireplaceStats(context.Context, *emptypb.Empty) (*v1.GetFireplaceStatsResponse, error)
+	// Lists the most recent transactions, both confirmed and unconfirmed.
 	ListRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error)
+	// Lists blocks with pagination support
 	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
+	// Get network statistics
 	GetNetworkStats(context.Context, *emptypb.Empty) (*v1.GetNetworkStatsResponse, error)
+	// Mempool watch: records every tx in the mempool and how long it has waited.
 	SetMempoolWatch(context.Context, *v1.SetMempoolWatchRequest) (*emptypb.Empty, error)
+	// Forgets everything recorded and starts over from the current mempool.
 	ResetMempoolWatch(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	GetMempoolWatchStatus(context.Context, *emptypb.Empty) (*v1.GetMempoolWatchStatusResponse, error)
 	ListMempoolTransactions(context.Context, *v1.ListMempoolTransactionsRequest) (*v1.ListMempoolTransactionsResponse, error)
 	ListBlockStats(context.Context, *v1.ListBlockStatsRequest) (*v1.ListBlockStatsResponse, error)
+	// Mining pools: which pools mined the recent blocks.
 	ListMiningPools(context.Context, *v1.ListMiningPoolsRequest) (*v1.ListMiningPoolsResponse, error)
+	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
+	// (network-scoped folder) is co-located with the orchestrator update.
+	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
+	// (which rewrites bitcoin.conf and restarts bitcoind on the new chain),
+	// then exit so the launcher restarts bitwindowd with a fresh DB scoped
+	// to the new network. Returns once orchestratord acknowledges the swap;
+	// the bitwindowd process exit happens shortly after.
 	UpdateNetwork(context.Context, *v1.UpdateNetworkRequest) (*v1.UpdateNetworkResponse, error)
 }
 

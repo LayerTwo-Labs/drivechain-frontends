@@ -67,9 +67,13 @@ var (
 
 // M4ServiceClient is a client for the m4.v1.M4Service service.
 type M4ServiceClient interface {
+	// Get M4 voting history
 	GetM4History(context.Context, *v1.GetM4HistoryRequest) (*v1.GetM4HistoryResponse, error)
+	// Get the votes the enforcer puts in the next block it builds.
 	GetVotes(context.Context, *v1.GetVotesRequest) (*v1.GetVotesResponse, error)
+	// Upvote one pending bundle of a sidechain, or clear the upvote.
 	SetBundleUpvote(context.Context, *v1.SetBundleUpvoteRequest) (*v1.SetBundleUpvoteResponse, error)
+	// Set the vote for a sidechain that has no upvote.
 	SetVotePolicy(context.Context, *v1.SetVotePolicyRequest) (*v1.SetVotePolicyResponse, error)
 }
 
@@ -81,9 +85,13 @@ func NewM4ServiceClient(client *connect.Client) M4ServiceClient {
 
 // M4ServiceHandler is an implementation of the m4.v1.M4Service service.
 type M4ServiceHandler interface {
+	// Get M4 voting history
 	GetM4History(context.Context, *v1.GetM4HistoryRequest) (*v1.GetM4HistoryResponse, error)
+	// Get the votes the enforcer puts in the next block it builds.
 	GetVotes(context.Context, *v1.GetVotesRequest) (*v1.GetVotesResponse, error)
+	// Upvote one pending bundle of a sidechain, or clear the upvote.
 	SetBundleUpvote(context.Context, *v1.SetBundleUpvoteRequest) (*v1.SetBundleUpvoteResponse, error)
+	// Set the vote for a sidechain that has no upvote.
 	SetVotePolicy(context.Context, *v1.SetVotePolicyRequest) (*v1.SetVotePolicyResponse, error)
 }
 

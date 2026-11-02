@@ -41,6 +41,7 @@ var (
 
 // NotificationServiceClient is a client for the notification.v1.NotificationService service.
 type NotificationServiceClient interface {
+	// Watch returns a stream of notification events
 	Watch(context.Context, *emptypb.Empty) (NotificationServiceWatchClientStream, error)
 }
 
@@ -74,6 +75,7 @@ func (s NotificationServiceWatchClientStream) Close() error {
 // NotificationServiceHandler is an implementation of the notification.v1.NotificationService
 // service.
 type NotificationServiceHandler interface {
+	// Watch returns a stream of notification events
 	Watch(context.Context, *emptypb.Empty, NotificationServiceWatchServerStream) error
 }
 

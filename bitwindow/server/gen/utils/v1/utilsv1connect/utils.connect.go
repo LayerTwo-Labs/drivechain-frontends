@@ -110,11 +110,15 @@ var (
 
 // UtilsServiceClient is a client for the utils.v1.UtilsService service.
 type UtilsServiceClient interface {
+	// Bitcoin URI parsing (BIP-0021)
 	ParseBitcoinURI(context.Context, *v1.ParseBitcoinURIRequest) (*v1.ParseBitcoinURIResponse, error)
 	ValidateBitcoinURI(context.Context, *v1.ValidateBitcoinURIRequest) (*v1.ValidateBitcoinURIResponse, error)
+	// Base58Check encoding/decoding
 	DecodeBase58Check(context.Context, *v1.DecodeBase58CheckRequest) (*v1.DecodeBase58CheckResponse, error)
 	EncodeBase58Check(context.Context, *v1.EncodeBase58CheckRequest) (*v1.EncodeBase58CheckResponse, error)
+	// Merkle Tree calculation
 	CalculateMerkleTree(context.Context, *v1.CalculateMerkleTreeRequest) (*v1.CalculateMerkleTreeResponse, error)
+	// Paper Wallet generation
 	GeneratePaperWallet(context.Context, *emptypb.Empty) (*v1.GeneratePaperWalletResponse, error)
 	ValidateWIF(context.Context, *v1.ValidateWIFRequest) (*v1.ValidateWIFResponse, error)
 	WIFToAddress(context.Context, *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error)
@@ -128,11 +132,15 @@ func NewUtilsServiceClient(client *connect.Client) UtilsServiceClient {
 
 // UtilsServiceHandler is an implementation of the utils.v1.UtilsService service.
 type UtilsServiceHandler interface {
+	// Bitcoin URI parsing (BIP-0021)
 	ParseBitcoinURI(context.Context, *v1.ParseBitcoinURIRequest) (*v1.ParseBitcoinURIResponse, error)
 	ValidateBitcoinURI(context.Context, *v1.ValidateBitcoinURIRequest) (*v1.ValidateBitcoinURIResponse, error)
+	// Base58Check encoding/decoding
 	DecodeBase58Check(context.Context, *v1.DecodeBase58CheckRequest) (*v1.DecodeBase58CheckResponse, error)
 	EncodeBase58Check(context.Context, *v1.EncodeBase58CheckRequest) (*v1.EncodeBase58CheckResponse, error)
+	// Merkle Tree calculation
 	CalculateMerkleTree(context.Context, *v1.CalculateMerkleTreeRequest) (*v1.CalculateMerkleTreeResponse, error)
+	// Paper Wallet generation
 	GeneratePaperWallet(context.Context, *emptypb.Empty) (*v1.GeneratePaperWalletResponse, error)
 	ValidateWIF(context.Context, *v1.ValidateWIFRequest) (*v1.ValidateWIFResponse, error)
 	WIFToAddress(context.Context, *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error)

@@ -137,16 +137,27 @@ var (
 
 // BitDriveServiceClient is a client for the bitdrive.v1.BitDriveService service.
 type BitDriveServiceClient interface {
+	// Store file/content to blockchain with optional encryption
 	StoreFile(context.Context, *v1.StoreFileRequest) (*v1.StoreFileResponse, error)
+	// Retrieve content from blockchain by txid
 	RetrieveContent(context.Context, *v1.RetrieveContentRequest) (*v1.RetrieveContentResponse, error)
+	// Scan for files in wallet transactions
 	ScanForFiles(context.Context, *emptypb.Empty) (*v1.ScanForFilesResponse, error)
+	// Download/restore pending files
 	DownloadPendingFiles(context.Context, *emptypb.Empty) (*v1.DownloadPendingFilesResponse, error)
+	// List stored files from local storage
 	ListFiles(context.Context, *emptypb.Empty) (*v1.ListFilesResponse, error)
+	// Get file details
 	GetFile(context.Context, *v1.GetFileRequest) (*v1.GetFileResponse, error)
+	// Delete local file (does not affect blockchain)
 	DeleteFile(context.Context, *v1.DeleteFileRequest) (*emptypb.Empty, error)
+	// Store multisig group data on blockchain
 	StoreMultisigData(context.Context, *v1.StoreMultisigDataRequest) (*v1.StoreMultisigDataResponse, error)
+	// Wipe all local BitDrive data
 	WipeData(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	// Get the BitDrive data directory path
 	GetBitdriveDir(context.Context, *emptypb.Empty) (*v1.GetBitdriveDirResponse, error)
+	// Open the BitDrive data directory in the OS file manager
 	OpenBitdriveDir(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 }
 
@@ -158,16 +169,27 @@ func NewBitDriveServiceClient(client *connect.Client) BitDriveServiceClient {
 
 // BitDriveServiceHandler is an implementation of the bitdrive.v1.BitDriveService service.
 type BitDriveServiceHandler interface {
+	// Store file/content to blockchain with optional encryption
 	StoreFile(context.Context, *v1.StoreFileRequest) (*v1.StoreFileResponse, error)
+	// Retrieve content from blockchain by txid
 	RetrieveContent(context.Context, *v1.RetrieveContentRequest) (*v1.RetrieveContentResponse, error)
+	// Scan for files in wallet transactions
 	ScanForFiles(context.Context, *emptypb.Empty) (*v1.ScanForFilesResponse, error)
+	// Download/restore pending files
 	DownloadPendingFiles(context.Context, *emptypb.Empty) (*v1.DownloadPendingFilesResponse, error)
+	// List stored files from local storage
 	ListFiles(context.Context, *emptypb.Empty) (*v1.ListFilesResponse, error)
+	// Get file details
 	GetFile(context.Context, *v1.GetFileRequest) (*v1.GetFileResponse, error)
+	// Delete local file (does not affect blockchain)
 	DeleteFile(context.Context, *v1.DeleteFileRequest) (*emptypb.Empty, error)
+	// Store multisig group data on blockchain
 	StoreMultisigData(context.Context, *v1.StoreMultisigDataRequest) (*v1.StoreMultisigDataResponse, error)
+	// Wipe all local BitDrive data
 	WipeData(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	// Get the BitDrive data directory path
 	GetBitdriveDir(context.Context, *emptypb.Empty) (*v1.GetBitdriveDirResponse, error)
+	// Open the BitDrive data directory in the OS file manager
 	OpenBitdriveDir(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 }
 
