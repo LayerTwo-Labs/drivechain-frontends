@@ -1,9 +1,9 @@
 import 'dart:convert';
 
+import 'package:bitwindow/utils/ripemd160.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:pointycastle/export.dart' as pc;
 import 'package:sail_ui/sail_ui.dart';
 
 class HashCalculator extends StatefulWidget {
@@ -289,15 +289,13 @@ class _HashCalculatorState extends State<HashCalculator> {
     result.writeln('<font color="gray" size=2px>${_hexToBin(sha256d.toString())}</font><br>');
 
     // Hash160 (SHA256 + RIPEMD160)
-    final ripemd160Digest = pc.Digest('RIPEMD-160');
-    final hash160 = ripemd160Digest.process(Uint8List.fromList(sha256.convert(bytes).bytes));
+    final hash160 = ripemd160(sha256.convert(bytes).bytes);
     final hash160Hex = hash160.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
     result.writeln('<b>Hash160 - RIPEMD160(SHA256):</b> $hash160Hex');
     result.writeln('<font color="gray" size=2px>${_hexToBin(hash160Hex)}</font><br>');
 
     // RIPEMD160
-    final ripemd160 = ripemd160Digest.process(Uint8List.fromList(bytes));
-    final ripemd160Hex = ripemd160.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final ripemd160Hex = ripemd160(bytes).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
     result.writeln('<b>RIPEMD160:</b> $ripemd160Hex');
     result.writeln('<font color="gray" size=2px>${_hexToBin(ripemd160Hex)}</font><br>');
 
