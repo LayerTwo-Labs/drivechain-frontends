@@ -74,7 +74,6 @@ dependencies:
   bitcoin_base: ^7.3.0
   blockchain_utils: ^7.1.0
   archive: ^4.5.2
-  csv: ^8.0.0
   mobile_scanner: ^7.4.2
 
 dev_dependencies:
