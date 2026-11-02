@@ -82,7 +82,6 @@ dependencies:
   bech32: ^0.2.2
   archive: ^4.5.2
   csv: ^8.0.0
-  uuid: ^4.6.0
   mobile_scanner: ^7.4.2
 
 dev_dependencies:

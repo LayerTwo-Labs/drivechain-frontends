@@ -35,7 +35,6 @@ dependencies:
   skeletonizer: ^3.0.0
   stacked: ^3.5.0
   url_launcher: ^6.3.3
-  uuid: ^4.6.0
   window_manager: ^0.5.2
 
 dev_dependencies:

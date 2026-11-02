@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:sidechain_core/models/wallet_gradient.dart';
 import 'package:sidechain_core/models/wallet_metadata.dart';
+import 'package:sidechain_core/utils/uuid.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/buttons/button.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sail_ui/widgets/inputs/text_field.dart';
 import 'package:sail_ui/widgets/wallet_blob_avatar.dart';
-import 'package:uuid/uuid.dart';
 
 /// Dialog for creating or editing wallet metadata
 class WalletManagementDialog extends StatefulWidget {
@@ -46,7 +46,7 @@ class _WalletManagementDialogState extends State<WalletManagementDialog> {
   }
 
   String _generateId() {
-    return const Uuid().v4().replaceAll('-', '').toUpperCase();
+    return uuidV4().replaceAll('-', '').toUpperCase();
   }
 
   void _regenerateGradient() {
