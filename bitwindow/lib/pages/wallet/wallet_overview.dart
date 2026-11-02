@@ -7,7 +7,7 @@ import 'package:bitwindow/pages/wallet/bump_fee_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/transaction_search.dart';
 import 'package:collection/collection.dart';
-import 'package:csv/csv.dart';
+import 'package:bitwindow/utils/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
@@ -849,7 +849,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       ]);
     }
 
-    return csv.encode(rows);
+    return encodeCsv(rows);
   }
 
   @override
