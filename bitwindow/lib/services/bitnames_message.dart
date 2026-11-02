@@ -7,8 +7,8 @@ import 'package:blockchain_utils/exception/exceptions.dart';
 import 'package:bs58/bs58.dart';
 import 'package:connectrpc/connect.dart';
 import 'package:sidechain_core/rpcs/bitnames_rpc.dart';
+import 'package:sidechain_core/utils/uuid.dart';
 import 'package:thirds/blake3.dart';
-import 'package:uuid/uuid.dart';
 
 class BitnamesMessage {
   static const prefix = 'bitnames-message:';
@@ -52,7 +52,7 @@ class BitnamesMessage {
     if (data is! Map<String, dynamic> ||
         data['version'] != version ||
         data['id'] is! String ||
-        !Uuid.isValidUUID(fromString: data['id'] as String) ||
+        !isValidUuid(data['id'] as String) ||
         !_isHash(data['sender']) ||
         !_isHash(data['recipient']) ||
         data['text'] is! String ||
@@ -97,7 +97,7 @@ class BitnamesMessage {
     required String text,
   }) async {
     final message = BitnamesMessage(
-      id: const Uuid().v4(),
+      id: uuidV4(),
       sender: sender,
       recipient: recipient,
       text: text,

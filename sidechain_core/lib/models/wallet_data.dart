@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
-import 'package:uuid/uuid.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// Main wallet data structure containing all wallet information
@@ -120,7 +119,7 @@ class WalletData {
   }
 
   static String _generateId() {
-    return const Uuid().v4().replaceAll('-', '').toUpperCase();
+    return uuidV4().replaceAll('-', '').toUpperCase();
   }
 
   String toJsonString() {
