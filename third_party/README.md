@@ -8,3 +8,4 @@ Copies of pub.dev packages, from the archive whose sha256 matches `pubspec.lock`
 | `skeletonizer` | 3.0.0 | `lib/` |
 | `thirds` | 0.2.0-alpha.1 | `lib/blake3.dart`, `lib/src/format.dart` |
 | `qr_flutter` | 4.1.0 | `lib/` |
+| `logger` | 2.8.0 | `lib/` |

@@ -18,7 +18,8 @@ dependencies:
   thirds:
     path: ../third_party/thirds
 
-  logger: ^2.8.0
+  logger:
+    path: ../third_party/logger
   auto_route: ^11.2.0
   get_it: ^8.3.0
   qr_flutter:
