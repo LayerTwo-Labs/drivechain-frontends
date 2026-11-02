@@ -15,7 +15,8 @@ dependencies:
     path: ../sail_ui
   sidechain_core:
     path: ../sidechain_core
-  thirds: ^0.2.0-alpha.1
+  thirds:
+    path: ../third_party/thirds
 
   logger: ^2.8.0
   auto_route: ^11.2.0
