@@ -318,8 +318,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
         return 0;
       }
 
-      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
-
       for (int i = 0; i < keys.length; i++) {
         final keyData = keys[i];
 
@@ -336,19 +334,10 @@ class ImportTxidModalViewModel extends BaseViewModel {
 
           if (xpubFromPayload != null && derivationPath != null) {
             try {
-              final derivedKeyInfo = await _hdWallet.deriveExtendedKeyInfo(
-                _hdWallet.mnemonic ?? '',
-                derivationPath,
-                isMainnet,
-              );
-
-              if (derivedKeyInfo.isNotEmpty) {
-                final derivedXpub = derivedKeyInfo['xpub'];
-
-                if (derivedXpub == xpubFromPayload) {
-                  keyData['is_wallet'] = true;
-                  walletKeyCount++;
-                }
+              final derived = await _hdWallet.deriveAccountXpub(derivationPath);
+              if (derived.xpub == xpubFromPayload) {
+                keyData['is_wallet'] = true;
+                walletKeyCount++;
               }
             } catch (e) {
               // Failed to derive key - skip this key

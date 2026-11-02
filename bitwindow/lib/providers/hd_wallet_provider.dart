@@ -6,6 +6,7 @@ import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
@@ -217,7 +218,9 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
   String _withVersion(String extendedKey, int version) {
     final decoded = base58.decode(extendedKey);
     if (decoded.length != 82) {
-      throw FormatException('extended key has ${decoded.length} bytes, want 82');
+      throw FormatException(
+        'extended key has ${decoded.length} bytes, want 82',
+      );
     }
     decoded[0] = (version >> 24) & 0xff;
     decoded[1] = (version >> 16) & 0xff;
@@ -257,8 +260,14 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
     final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
     final extendedPublicKey = extendedPrivateKey.publicKey();
 
-    final xpub = _withVersion(extendedPublicKey.toString(), isMainnet ? 0x0488b21e : 0x043587cf);
-    final xprv = _withVersion(extendedPrivateKey.toString(), isMainnet ? 0x0488ade4 : 0x04358394);
+    final xpub = _withVersion(
+      extendedPublicKey.toString(),
+      isMainnet ? 0x0488b21e : 0x043587cf,
+    );
+    final xprv = _withVersion(
+      extendedPrivateKey.toString(),
+      isMainnet ? 0x0488ade4 : 0x04358394,
+    );
 
     if (!_validateExtendedKey(xpub)) {
       throw Exception('Generated extended key is invalid');
@@ -322,14 +331,28 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
   ]) async {
     final coinType = isMainnet ? "0'" : "1'";
     final path = "m/84'/$coinType/$accountIndex'";
+    final derived = await deriveAccountXpub(path);
 
-    final info = await deriveExtendedKeyInfo(_mnemonic ?? '', path, isMainnet);
+    return {
+      'xpub': derived.xpub,
+      'fingerprint': derived.fingerprint,
+      'xpub_with_origin': '[${derived.fingerprint}/${derived.originPath}]${derived.xpub}',
+      'derivation_path': path,
+    };
+  }
 
-    final originPath = path.replaceFirst('m/', '');
-    info['xpub_with_origin'] = "[${info['fingerprint']}/$originPath]${info['xpub']}";
-    info['derivation_path'] = path;
-
-    return info;
+  /// The account xpub at [path] for the loaded L1 seed, from the orchestrator.
+  Future<wmpb.DeriveKeystoreResponse> deriveAccountXpub(String path) {
+    final mnemonic = _mnemonic;
+    if (mnemonic == null || mnemonic.isEmpty) {
+      throw StateError('no L1 wallet seed is loaded');
+    }
+    return GetIt.I.get<OrchestratorRPC>().wallet.deriveKeystore(
+      mnemonic: mnemonic,
+      scriptType: 'wsh',
+      multisig: true,
+      derivationPath: path,
+    );
   }
 
   Future<int> getNextAccountIndex([Set<int>? additionalUsedIndices]) async {

@@ -173,3 +173,23 @@ func TestKeystorePathScriptType(t *testing.T) {
 		require.Equal(t, tc.want, KeystorePathScriptType(tc.path, tc.multisig), "path %q", tc.path)
 	}
 }
+
+// The values that the Dart HD wallet provider gave for the same seed and path.
+func TestDeriveKeystoreMultisigPathOverrideMatchesFrontend(t *testing.T) {
+	cases := []struct {
+		net  *chaincfg.Params
+		path string
+		xpub string
+	}{
+		{&chaincfg.MainNetParams, "m/84'/0'/0'", "xpub6CatWdiZiodmUeTDp8LT5or8nmbKNcuyvz7WyksVFkKB4RHwCD3XyuvPEbvqAQY3rAPshWcMLoP2fMFMKHPJ4ZeZXYVUhLv1VMrjPC7PW6V"},
+		{&chaincfg.SigNetParams, "m/84'/1'/0'", "tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M"},
+	}
+	for _, c := range cases {
+		out, err := DeriveKeystore(context.Background(), KeystoreSource{Mnemonic: testMnemonic}, "wsh", true, 0, c.path, c.net)
+		require.NoError(t, err, c.path)
+		require.Equal(t, c.xpub, out.Xpub, c.path)
+		require.Equal(t, "73c5da0a", out.Fingerprint, c.path)
+		require.Equal(t, c.path[2:], out.OriginPath, c.path)
+		require.Empty(t, out.Descriptor, c.path)
+	}
+}
