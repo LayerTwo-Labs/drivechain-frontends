@@ -1153,6 +1153,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ValidateDescriptor(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDescriptor", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).ValidateDescriptor), arg0, arg1)
 }
 
+// ValidateMnemonic mocks base method.
+func (m *MockWalletManagerServiceClient) ValidateMnemonic(arg0 context.Context, arg1 *walletmanagerv1.ValidateMnemonicRequest) (*walletmanagerv1.ValidateMnemonicResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateMnemonic", arg0, arg1)
+	ret0, _ := ret[0].(*walletmanagerv1.ValidateMnemonicResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateMnemonic indicates an expected call of ValidateMnemonic.
+func (mr *MockWalletManagerServiceClientMockRecorder) ValidateMnemonic(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateMnemonic", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).ValidateMnemonic), arg0, arg1)
+}
+
 // WatchWalletData mocks base method.
 func (m *MockWalletManagerServiceClient) WatchWalletData(arg0 context.Context, arg1 *emptypb.Empty) (walletmanagerv1connect.WalletManagerServiceWatchWalletDataClientStream, error) {
 	m.ctrl.T.Helper()
@@ -2299,6 +2314,21 @@ func (m *MockWalletManagerServiceHandler) ValidateDescriptor(arg0 context.Contex
 func (mr *MockWalletManagerServiceHandlerMockRecorder) ValidateDescriptor(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDescriptor", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).ValidateDescriptor), arg0, arg1)
+}
+
+// ValidateMnemonic mocks base method.
+func (m *MockWalletManagerServiceHandler) ValidateMnemonic(arg0 context.Context, arg1 *walletmanagerv1.ValidateMnemonicRequest) (*walletmanagerv1.ValidateMnemonicResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateMnemonic", arg0, arg1)
+	ret0, _ := ret[0].(*walletmanagerv1.ValidateMnemonicResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateMnemonic indicates an expected call of ValidateMnemonic.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) ValidateMnemonic(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateMnemonic", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).ValidateMnemonic), arg0, arg1)
 }
 
 // WatchWalletData mocks base method.

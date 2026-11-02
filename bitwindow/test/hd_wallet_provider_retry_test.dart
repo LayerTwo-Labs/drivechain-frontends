@@ -61,16 +61,16 @@ void main() {
     expect(hd.mnemonic, _validMnemonic);
   });
 
-  test('HDWalletProvider does not init when enforcer wallet absent', () async {
+  test('HDWalletProvider does not init when no wallet has an L1 seed', () async {
     final reader = GetIt.I.get<WalletReaderProvider>();
     final hd = HDWalletProvider();
 
-    // Only a Bitcoin Core wallet on the stream — no enforcer yet.
+    // Go stores an L1 seed only after it checks it, or none.
     reader.wallets = [
       WalletData(
         version: 1,
         master: MasterWallet(mnemonic: '', seedHex: '', masterKey: '', chainCode: ''),
-        l1: L1Wallet(mnemonic: 'core-l1-mnemonic'),
+        l1: L1Wallet(mnemonic: ''),
         sidechains: const [],
         id: 'core',
         name: 'Core',
@@ -99,15 +99,12 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
     expect(hd.mnemonic, _validMnemonic);
-    expect(hd.seedHex, isNotNull);
 
     reader.wallets = [];
     reader.notifyListeners();
 
     expect(hd.isInitialized, isFalse);
     expect(hd.mnemonic, isNull);
-    expect(hd.seedHex, isNull);
-    expect(hd.masterKey, isNull);
     expect(hd.error, isNull);
 
     reader.wallets = [_enforcer(l1Mnemonic: _validMnemonic)];

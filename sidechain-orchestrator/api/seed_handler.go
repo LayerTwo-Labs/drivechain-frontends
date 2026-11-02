@@ -43,3 +43,17 @@ func (h *WalletHandler) GenerateMnemonic(
 	}
 	return &pb.GenerateMnemonicResponse{Mnemonic: mnemonic}, nil
 }
+
+func (h *WalletHandler) ValidateMnemonic(
+	ctx context.Context,
+	req *pb.ValidateMnemonicRequest,
+) (*pb.ValidateMnemonicResponse, error) {
+	kind := pb.MnemonicKind_MNEMONIC_KIND_INVALID
+	switch {
+	case wallet.IsBIP39Mnemonic(req.Mnemonic):
+		kind = pb.MnemonicKind_MNEMONIC_KIND_BIP39
+	case wallet.IsElectrumSeed(req.Mnemonic):
+		kind = pb.MnemonicKind_MNEMONIC_KIND_ELECTRUM
+	}
+	return &pb.ValidateMnemonicResponse{Kind: kind}, nil
+}

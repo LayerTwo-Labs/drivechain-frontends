@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
 const _osHex = 'abababababababababababababababab';
 
@@ -51,6 +52,47 @@ class _FakeWriter extends WalletWriterProvider {
       'entropy_hex': _osHex,
     };
   }
+}
+
+const _validPhrases = {
+  'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+  'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon '
+      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
+};
+const _electrumSeed = 'bitter grass shiver impose acquire brush forget axis eager alone wine silver';
+
+/// Stands in for the orchestrator phrase check, with the answers it gives for these phrases.
+class _FakeWallet implements OrchestratorWalletRPC {
+  final checked = <String>[];
+  Object? failure;
+
+  @override
+  Future<wmpb.MnemonicKind> validateMnemonic(String mnemonic) async {
+    checked.add(mnemonic);
+    if (failure != null) {
+      throw failure!;
+    }
+    if (_validPhrases.contains(mnemonic)) {
+      return wmpb.MnemonicKind.MNEMONIC_KIND_BIP39;
+    }
+    if (mnemonic == _electrumSeed) {
+      return wmpb.MnemonicKind.MNEMONIC_KIND_ELECTRUM;
+    }
+    return wmpb.MnemonicKind.MNEMONIC_KIND_INVALID;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeOrchestrator implements OrchestratorRPC {
+  _FakeOrchestrator(this.wallet);
+
+  @override
+  final _FakeWallet wallet;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 /// The page targets a desktop window; the default 800x600 surface overflows it.
@@ -119,11 +161,14 @@ Future<void> _enterWords(WidgetTester tester, List<String> words) async {
 
 void main() {
   late _FakeWriter writer;
+  late _FakeWallet wallet;
 
   setUp(() {
     GetIt.I.registerSingleton<Logger>(Logger());
     writer = _FakeWriter();
     GetIt.I.registerSingleton<WalletWriterProvider>(writer);
+    wallet = _FakeWallet();
+    GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator(wallet));
   });
 
   tearDown(() async => GetIt.I.reset());
@@ -447,6 +492,8 @@ void main() {
       await tester.enterText(find.widgetWithText(TextField, 'Passphrase'), 'my secret');
       await tester.enterText(find.byType(TextField).first, phrase);
       await tester.pump();
+      // The phrase check answers one frame later.
+      await tester.pump();
       await _tapAndSettle(tester, 'Create Wallet');
 
       expect(created.single.mnemonic, phrase);
@@ -468,6 +515,8 @@ void main() {
 
       await tester.enterText(find.byType(TextField).first, phrase);
       await tester.pump();
+      // The phrase check answers one frame later.
+      await tester.pump();
 
       expect(find.text('about'), findsOneWidget);
       expect(find.text('abandon'), findsNWidgets(11));
@@ -482,12 +531,47 @@ void main() {
 
       await tester.enterText(find.byType(TextField).first, phrase.replaceFirst('about', 'zebra'));
       await tester.pump();
+      // The phrase check answers one frame later.
+      await tester.pump();
 
       expect(find.textContaining('not a valid BIP39 phrase'), findsOneWidget);
       expect(_createWalletButton(tester).disabled, isTrue);
     });
 
     // An Electrum-app seed fails the checksum too, and the line names it.
+    testWidgets('a failed phrase check shows why and keeps Create off', (tester) async {
+      wallet.failure = Exception('the orchestrator is not running');
+      await _pumpPage(tester, mode: SeedEntryMode.importExisting);
+
+      await tester.enterText(find.byType(TextField).first, _validPhrases.first);
+      await tester.pump();
+      await tester.pump();
+
+      expect(wallet.checked, [_validPhrases.first]);
+      expect(find.textContaining('the orchestrator is not running'), findsOneWidget);
+      expect(_createWalletButton(tester).disabled, isTrue);
+    });
+
+    testWidgets('a failed phrase check runs again after the next edit', (tester) async {
+      wallet.failure = Exception('the orchestrator is not running');
+      await _pumpPage(tester, mode: SeedEntryMode.importExisting);
+      await tester.enterText(find.byType(TextField).first, _validPhrases.first);
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      expect(wallet.checked, hasLength(1), reason: 'a rebuild must not retry the failed check');
+
+      wallet.failure = null;
+      await tester.enterText(find.byType(TextField).first, _validPhrases.first);
+      await tester.pump();
+      await tester.pump();
+
+      expect(wallet.checked, hasLength(2));
+      expect(find.text('Valid checksum'), findsOneWidget);
+      expect(find.textContaining('the orchestrator is not running'), findsNothing);
+      expect(_createWalletButton(tester).disabled, isFalse);
+    });
+
     testWidgets('an Electrum seed is named as one', (tester) async {
       await _pumpPage(tester, mode: SeedEntryMode.importExisting);
 
@@ -495,6 +579,8 @@ void main() {
         find.byType(TextField).first,
         'bitter grass shiver impose acquire brush forget axis eager alone wine silver',
       );
+      await tester.pump();
+      // The phrase check answers one frame later.
       await tester.pump();
 
       expect(find.textContaining('an Electrum seed'), findsOneWidget);

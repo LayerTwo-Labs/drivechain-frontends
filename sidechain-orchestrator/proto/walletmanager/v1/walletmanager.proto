@@ -129,6 +129,8 @@ service WalletManagerService {
   rpc ExploreSeed(ExploreSeedRequest) returns (ExploreSeedResponse);
   // GenerateMnemonic returns a new random 12-word BIP39 mnemonic.
   rpc GenerateMnemonic(GenerateMnemonicRequest) returns (GenerateMnemonicResponse);
+  // ValidateMnemonic says whether a phrase is a BIP39 mnemonic, an Electrum seed, or neither.
+  rpc ValidateMnemonic(ValidateMnemonicRequest) returns (ValidateMnemonicResponse);
 
   // PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
   // show the words while the user is still choosing their entropy.
@@ -1029,6 +1031,21 @@ message GenerateMnemonicRequest {}
 
 message GenerateMnemonicResponse {
   string mnemonic = 1;
+}
+
+enum MnemonicKind {
+  MNEMONIC_KIND_UNSPECIFIED = 0;
+  MNEMONIC_KIND_BIP39 = 1;
+  MNEMONIC_KIND_ELECTRUM = 2;
+  MNEMONIC_KIND_INVALID = 3;
+}
+
+message ValidateMnemonicRequest {
+  string mnemonic = 1;
+}
+
+message ValidateMnemonicResponse {
+  MnemonicKind kind = 1;
 }
 
 

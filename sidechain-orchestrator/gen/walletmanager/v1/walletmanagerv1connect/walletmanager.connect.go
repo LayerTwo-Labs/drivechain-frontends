@@ -220,6 +220,9 @@ const (
 	// WalletManagerServiceGenerateMnemonicProcedure is the procedure name of the WalletManagerService's
 	// GenerateMnemonic RPC.
 	WalletManagerServiceGenerateMnemonicProcedure = "/walletmanager.v1.WalletManagerService/GenerateMnemonic"
+	// WalletManagerServiceValidateMnemonicProcedure is the procedure name of the WalletManagerService's
+	// ValidateMnemonic RPC.
+	WalletManagerServiceValidateMnemonicProcedure = "/walletmanager.v1.WalletManagerService/ValidateMnemonic"
 	// WalletManagerServicePreviewWalletFromEntropyProcedure is the procedure name of the
 	// WalletManagerService's PreviewWalletFromEntropy RPC.
 	WalletManagerServicePreviewWalletFromEntropyProcedure = "/walletmanager.v1.WalletManagerService/PreviewWalletFromEntropy"
@@ -708,6 +711,13 @@ var (
 			Procedure:  WalletManagerServiceGenerateMnemonicProcedure,
 		}
 	})
+	walletManagerServiceValidateMnemonicSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("ValidateMnemonic"),
+			Procedure:  WalletManagerServiceValidateMnemonicProcedure,
+		}
+	})
 	walletManagerServicePreviewWalletFromEntropySpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -895,6 +905,8 @@ type WalletManagerServiceClient interface {
 	ExploreSeed(context.Context, *v1.ExploreSeedRequest) (*v1.ExploreSeedResponse, error)
 	// GenerateMnemonic returns a new random 12-word BIP39 mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// ValidateMnemonic says whether a phrase is a BIP39 mnemonic, an Electrum seed, or neither.
+	ValidateMnemonic(context.Context, *v1.ValidateMnemonicRequest) (*v1.ValidateMnemonicResponse, error)
 	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
 	// show the words while the user is still choosing their entropy.
 	PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error)
@@ -1079,6 +1091,8 @@ type WalletManagerServiceHandler interface {
 	ExploreSeed(context.Context, *v1.ExploreSeedRequest) (*v1.ExploreSeedResponse, error)
 	// GenerateMnemonic returns a new random 12-word BIP39 mnemonic.
 	GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error)
+	// ValidateMnemonic says whether a phrase is a BIP39 mnemonic, an Electrum seed, or neither.
+	ValidateMnemonic(context.Context, *v1.ValidateMnemonicRequest) (*v1.ValidateMnemonicResponse, error)
 	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
 	// show the words while the user is still choosing their entropy.
 	PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error)
@@ -1169,6 +1183,7 @@ func RegisterWalletManagerServiceHandler(server *connect.Server, svc WalletManag
 		connect.Method{Spec: walletManagerServiceDeriveKeystoreSpec(), Handler: adapter.deriveKeystore},
 		connect.Method{Spec: walletManagerServiceExploreSeedSpec(), Handler: adapter.exploreSeed},
 		connect.Method{Spec: walletManagerServiceGenerateMnemonicSpec(), Handler: adapter.generateMnemonic},
+		connect.Method{Spec: walletManagerServiceValidateMnemonicSpec(), Handler: adapter.validateMnemonic},
 		connect.Method{Spec: walletManagerServicePreviewWalletFromEntropySpec(), Handler: adapter.previewWalletFromEntropy},
 		connect.Method{Spec: walletManagerServiceGetWalletSeedSpec(), Handler: adapter.getWalletSeed},
 		connect.Method{Spec: walletManagerServiceListCoreVariantsSpec(), Handler: adapter.listCoreVariants},
@@ -1475,6 +1490,10 @@ func (UnimplementedWalletManagerServiceHandler) ExploreSeed(context.Context, *v1
 
 func (UnimplementedWalletManagerServiceHandler) GenerateMnemonic(context.Context, *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.GenerateMnemonic is not implemented")
+}
+
+func (UnimplementedWalletManagerServiceHandler) ValidateMnemonic(context.Context, *v1.ValidateMnemonicRequest) (*v1.ValidateMnemonicResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.ValidateMnemonic is not implemented")
 }
 
 func (UnimplementedWalletManagerServiceHandler) PreviewWalletFromEntropy(context.Context, *v1.PreviewWalletFromEntropyRequest) (*v1.PreviewWalletFromEntropyResponse, error) {
@@ -2036,6 +2055,14 @@ func (c *walletManagerServiceClient) ExploreSeed(ctx context.Context, req *v1.Ex
 func (c *walletManagerServiceClient) GenerateMnemonic(ctx context.Context, req *v1.GenerateMnemonicRequest) (*v1.GenerateMnemonicResponse, error) {
 	var res v1.GenerateMnemonicResponse
 	if err := c.client.CallUnary(ctx, walletManagerServiceGenerateMnemonicSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) ValidateMnemonic(ctx context.Context, req *v1.ValidateMnemonicRequest) (*v1.ValidateMnemonicResponse, error) {
+	var res v1.ValidateMnemonicResponse
+	if err := c.client.CallUnary(ctx, walletManagerServiceValidateMnemonicSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -2893,6 +2920,18 @@ func (h walletManagerServiceHandler) generateMnemonic(ctx context.Context, _ con
 		return err
 	}
 	res, err := h.svc.GenerateMnemonic(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) validateMnemonic(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ValidateMnemonicRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ValidateMnemonic(ctx, &req)
 	if err != nil {
 		return err
 	}

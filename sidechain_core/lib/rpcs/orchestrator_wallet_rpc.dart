@@ -632,6 +632,12 @@ class OrchestratorWalletRPC {
     );
   }
 
+  /// Whether [mnemonic] is a BIP39 phrase, an Electrum seed, or neither.
+  Future<wmpb.MnemonicKind> validateMnemonic(String mnemonic) async {
+    final response = await _unaryClient.validateMnemonic(wmpb.ValidateMnemonicRequest(mnemonic: mnemonic));
+    return response.kind;
+  }
+
   /// A new random 12-word BIP39 mnemonic.
   Future<String> generateMnemonic() async {
     final response = await _unaryClient.generateMnemonic(wmpb.GenerateMnemonicRequest());

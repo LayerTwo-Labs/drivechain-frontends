@@ -514,6 +514,14 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.GenerateMnemonicResponse.new,
   );
 
+  /// ValidateMnemonic says whether a phrase is a BIP39 mnemonic, an Electrum seed, or neither.
+  static const validateMnemonic = connect.Spec(
+    '/$name/ValidateMnemonic',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ValidateMnemonicRequest.new,
+    walletmanagerv1walletmanager.ValidateMnemonicResponse.new,
+  );
+
   /// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
   /// show the words while the user is still choosing their entropy.
   static const previewWalletFromEntropy = connect.Spec(
