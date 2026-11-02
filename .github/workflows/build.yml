@@ -7,6 +7,7 @@ on:
       - "scripts/**"
       - "sail_ui/**"
       - "sidechain_core/**"
+      - "third_party/**"
       - "drivechain_lints/**"
       - "sidechain-orchestrator/**"
       - "sqlitemigrate/**"
@@ -52,6 +53,7 @@ jobs:
               - 'thunder/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
+              - 'third_party/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
@@ -61,6 +63,7 @@ jobs:
               - 'truthcoin/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
+              - 'third_party/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
@@ -70,6 +73,7 @@ jobs:
               - 'photon/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
+              - 'third_party/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
@@ -79,6 +83,7 @@ jobs:
               - 'bitnames/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
+              - 'third_party/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
@@ -88,6 +93,7 @@ jobs:
               - 'bitassets/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
+              - 'third_party/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
@@ -97,6 +103,7 @@ jobs:
               - 'zside/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
+              - 'third_party/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
@@ -106,6 +113,7 @@ jobs:
               - 'coinshift/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
+              - 'third_party/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
@@ -122,6 +130,7 @@ jobs:
               - 'coinshift/**'
               - 'sail_ui/**'
               - 'sidechain_core/**'
+              - 'third_party/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
               - 'coinnews/codec/**'
@@ -269,6 +278,7 @@ jobs:
           cp -r sail_ui "$BUILD_DIR/"
           cp -r sidechain_core "$BUILD_DIR/"
           cp -r drivechain_lints "$BUILD_DIR/"
+          cp -r third_party "$BUILD_DIR/"
           # BitWindow opens the sidechain apps inside its own window.
           if [ "${{ matrix.client }}" == "bitwindow" ]; then
             cp -r thunder bitnames bitassets truthcoin zside photon coinshift "$BUILD_DIR/"

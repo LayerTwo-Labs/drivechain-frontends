@@ -53,7 +53,8 @@ dependencies:
   protobuf: ^4.2.0
   window_manager: ^0.5.2
   skeletonizer: ^3.0.0
-  flutter_markdown: ^0.7.7+1
+  flutter_markdown:
+    path: ../third_party/flutter_markdown
   path: ^1.9.1
   url_launcher: ^6.3.3
   pointycastle: ^3.9.1

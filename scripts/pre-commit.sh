@@ -37,6 +37,7 @@ fi
 files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.dart' \
   | grep -vE '(^|/)lib/gen/' \
   | grep -vE '(^|/)\.dart_tool/' \
+  | grep -vE '^third_party/' \
   || true)
 
 if [ -z "$files" ]; then
