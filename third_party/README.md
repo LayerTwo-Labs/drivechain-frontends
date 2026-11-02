@@ -5,3 +5,4 @@ Copies of pub.dev packages, from the archive whose sha256 matches `pubspec.lock`
 | Package | Version | Files kept |
 |---|---|---|
 | `flutter_markdown` | 0.7.7+1 | `lib/` |
+| `skeletonizer` | 3.0.0 | `lib/` |

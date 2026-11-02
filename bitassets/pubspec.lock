@@ -950,10 +950,9 @@ packages:
   skeletonizer:
     dependency: transitive
     description:
-      name: skeletonizer
-      sha256: f67c2ce8a3fedea63d885afe61a136f3adb59f2c28faa6e79102a5280973c64f
-      url: "https://pub.dev"
-    source: hosted
+      path: "../third_party/skeletonizer"
+      relative: true
+    source: path
     version: "3.0.0"
   sky_engine:
     dependency: transitive
