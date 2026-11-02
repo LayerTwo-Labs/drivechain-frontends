@@ -53,7 +53,6 @@ dependencies:
   auto_route: ^11.2.0
   fixnum: ^1.1.1
   get_it: ^8.3.0
-  meta: ^1.19.0
   protobuf: ^4.2.0
   dotted_border: ^3.1.0
   window_manager: ^0.5.2
