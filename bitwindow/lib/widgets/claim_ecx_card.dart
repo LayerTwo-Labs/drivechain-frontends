@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bitwindow/utils/explorer_url.dart';
-import 'package:bitwindow/utils/paper_wallet_generator.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -84,18 +83,22 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
       return;
     }
 
-    if (!PaperWalletGenerator.isValidWIF(wif)) {
-      setState(() {
-        _stage = ClaimEcxStage.invalid;
-        _preview = null;
-        _previewedWif = null;
-      });
-      return;
-    }
-
-    setState(() => _stage = ClaimEcxStage.checking);
-
     try {
+      final validity = await _bitwindow.utils.validateWIF(wif);
+      if (!mounted || _wif != wif) {
+        return;
+      }
+      if (!validity.valid) {
+        setState(() {
+          _stage = ClaimEcxStage.invalid;
+          _preview = null;
+          _previewedWif = null;
+        });
+        return;
+      }
+
+      setState(() => _stage = ClaimEcxStage.checking);
+
       final preview = await _bitwindow.wallet.previewSweep(wif);
       if (!mounted || _wif != wif) {
         return;

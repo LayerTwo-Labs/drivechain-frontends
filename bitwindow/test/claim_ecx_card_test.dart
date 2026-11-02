@@ -56,11 +56,31 @@ class _FakeWalletApi implements WalletAPI {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _FakeUtilsApi implements UtilsAPI {
+  Object? validateError;
+  final checked = <String>[];
+
+  @override
+  Future<ValidateWIFResponse> validateWIF(String wif) async {
+    checked.add(wif);
+    if (validateError != null) {
+      throw validateError!;
+    }
+    return ValidateWIFResponse(valid: wif == _validWif);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _FakeBitwindow implements BitwindowRPC {
   @override
   final WalletAPI wallet;
 
-  _FakeBitwindow(this.wallet);
+  @override
+  final UtilsAPI utils;
+
+  _FakeBitwindow(this.wallet, this.utils);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -107,11 +127,13 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _FakeWalletApi walletApi;
+  late _FakeUtilsApi utilsApi;
 
   setUp(() async {
     await GetIt.I.reset();
     walletApi = _FakeWalletApi();
-    GetIt.I.registerSingleton<BitwindowRPC>(_FakeBitwindow(walletApi));
+    utilsApi = _FakeUtilsApi();
+    GetIt.I.registerSingleton<BitwindowRPC>(_FakeBitwindow(walletApi, utilsApi));
     GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator());
     GetIt.I.registerSingleton<WalletReaderProvider>(_FakeWalletReader());
     GetIt.I.registerSingleton<BitcoinConfProvider>(_FakeConf());
@@ -150,7 +172,17 @@ void main() {
       await pumpCard(tester);
       await enterKey(tester, 'not-a-private-key');
 
+      expect(utilsApi.checked, ['not-a-private-key']);
       expect(find.text('Not a private key — check for a missing character.'), findsOneWidget);
+      expect(find.text('SEND TO'), findsNothing);
+    });
+
+    testWidgets('shows the reason when the key check fails', (tester) async {
+      utilsApi.validateError = Exception('bitwindowd is not running');
+      await pumpCard(tester);
+      await enterKey(tester, _validWif);
+
+      expect(find.textContaining('bitwindowd is not running'), findsOneWidget);
       expect(find.text('SEND TO'), findsNothing);
     });
 
