@@ -1,0 +1,9 @@
+name: logger
+description: Copy of logger 2.8.0 from pub.dev.
+version: 2.8.0
+publish_to: none
+environment:
+  sdk: '>=2.17.0 <4.0.0'
+dependencies:
+  meta: ^1.0.0
+  clock: ^1.1.0

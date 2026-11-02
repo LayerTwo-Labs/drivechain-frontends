@@ -632,10 +632,9 @@ packages:
   logger:
     dependency: "direct main"
     description:
-      name: logger
-      sha256: "2a0dc097e7b01d942475bdd552356db2d0f768b05540bd4b2b53f1840f2239a7"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../third_party/logger"
+      relative: true
+    source: path
     version: "2.8.0"
   logging:
     dependency: transitive
