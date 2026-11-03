@@ -137,10 +137,6 @@ class Base58Check {
 
   /// Convert BigInt to bytes
   static List<int> _bigIntToBytes(BigInt value) {
-    if (value == BigInt.zero) {
-      return [0];
-    }
-
     final bytes = <int>[];
     while (value > BigInt.zero) {
       bytes.insert(0, (value & BigInt.from(0xff)).toInt());
@@ -212,3 +208,9 @@ class Base58DecodeResult {
   String get checksumHex => checksum.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
   String get addressType => Base58Check.getAddressType(versionByte);
 }
+
+/// The Base58 string of [bytes], in the Bitcoin alphabet.
+String base58Encode(List<int> bytes) => Base58Check._base58Encode(Uint8List.fromList(bytes));
+
+/// The bytes of a Base58 string. Throws an [ArgumentError] for a character outside the Bitcoin alphabet.
+Uint8List base58Decode(String input) => Base58Check._base58Decode(input);

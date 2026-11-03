@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
-import 'package:bs58/bs58.dart';
+import 'package:bitwindow/utils/base58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
@@ -472,7 +472,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       return false;
     }
     try {
-      base58.decode(xpub);
+      base58Decode(xpub);
       return true;
     } catch (e) {
       return false;

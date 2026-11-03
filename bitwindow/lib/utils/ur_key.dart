@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:bs58/bs58.dart';
+import 'package:bitwindow/utils/base58.dart';
 import 'package:crypto/crypto.dart';
 
 /// One extended public key read out of a `crypto-hdkey` / `crypto-account` UR.
@@ -338,7 +338,7 @@ String _serializeExtendedKey({
   payload.setRange(45, 78, keyData);
 
   final checksum = sha256.convert(sha256.convert(payload).bytes).bytes.sublist(0, 4);
-  return base58.encode(Uint8List.fromList([...payload, ...checksum]));
+  return base58Encode(Uint8List.fromList([...payload, ...checksum]));
 }
 
 class _CborTag {
