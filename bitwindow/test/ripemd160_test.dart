@@ -1,11 +1,7 @@
-import 'dart:math';
-import 'dart:typed_data';
-
 import 'package:bitwindow/utils/ripemd160.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pointycastle/digests/ripemd160.dart';
 
 String _hash(String ascii) => hex.encode(ripemd160(ascii.codeUnits));
 
@@ -39,13 +35,5 @@ void main() {
   test('HASH160 of the compressed generator point', () {
     final pubkey = hex.decode('0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798');
     expect(hex.encode(ripemd160(sha256.convert(pubkey).bytes)), '751e76e8199196d454941c45d1b3a323f1433bd6');
-  });
-
-  test('gives the same digest as pointycastle for random input of each length up to 300', () {
-    final random = Random(42);
-    for (var length = 0; length <= 300; length++) {
-      final data = Uint8List.fromList(List.generate(length, (_) => random.nextInt(256)));
-      expect(hex.encode(ripemd160(data)), hex.encode(RIPEMD160Digest().process(data)), reason: 'length $length');
-    }
   });
 }

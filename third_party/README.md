@@ -9,3 +9,4 @@ Copies of pub.dev packages, from the archive whose sha256 matches `pubspec.lock`
 | `thirds` | 0.2.0-alpha.1 | `lib/blake3.dart`, `lib/src/format.dart` |
 | `qr_flutter` | 4.1.0 | `lib/` |
 | `logger` | 2.8.0 | `lib/` |
+| `pointycastle` | 3.9.1 | AES, GCM and `api.dart`, without the algorithm registry; `UPSTREAM.diff` shows each change |
