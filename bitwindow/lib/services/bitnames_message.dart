@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:bitwindow/utils/bech32.dart';
 import 'package:bitwindow/utils/ed25519_point.dart';
-import 'package:bs58/bs58.dart';
+import 'package:bitwindow/utils/base58.dart';
 import 'package:connectrpc/connect.dart';
 import 'package:sidechain_core/rpcs/bitnames_rpc.dart';
 import 'package:sidechain_core/utils/uuid.dart';
@@ -84,7 +84,7 @@ class BitnamesMessage {
     if (bytes.length != 32 || !isEd25519Point(bytes) || key != bytesToBech32('bn-svk', bytes, Bech32Variant.bech32m)) {
       throw const FormatException('Invalid BitNames owner key');
     }
-    return base58.encode(Uint8List.fromList(blake3(bytes).sublist(0, 20)));
+    return base58Encode(Uint8List.fromList(blake3(bytes).sublist(0, 20)));
   }
 
   static Future<BitnamesMessage> sign({
