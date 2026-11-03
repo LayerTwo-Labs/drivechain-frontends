@@ -1,0 +1,29 @@
+--- upstream/pubspec.yaml
++++ copy/pubspec.yaml
+@@ -1,22 +1,18 @@
+ name: app_links_linux
+-description: Linux platform implementation of app_links plugin.
++description: Copy of app_links_linux 1.0.4 from pub.dev.
+ version: 1.0.4
+-homepage: https://github.com/llfbandit/app_links/tree/main/app_links_linux
++publish_to: none
+ 
+ environment:
+   sdk: ^3.12.0
+   flutter: ">=3.44.0"
+ 
+-resolution: workspace
+-
+ dependencies:
+   flutter:
+     sdk: flutter
+-  
+-  app_links_platform_interface: ^2.0.2
+ 
+-dev_dependencies:
+-  flutter_lints: ^6.0.0
++  app_links_platform_interface:
++    path: ../app_links_platform_interface
+ 
+ flutter:
+   plugin:

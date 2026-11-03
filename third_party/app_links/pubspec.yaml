@@ -1,0 +1,27 @@
+name: app_links
+description: Copy of app_links 7.2.2 from pub.dev, for macOS, Windows and Linux only.
+version: 7.2.2
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  app_links_linux:
+    path: ../app_links_linux
+  app_links_platform_interface:
+    path: ../app_links_platform_interface
+
+flutter:
+  plugin:
+    platforms:
+      linux:
+        default_package: app_links_linux
+      macos:
+        pluginClass: AppLinksMacosPlugin
+      windows:
+        pluginClass: AppLinksPluginCApi

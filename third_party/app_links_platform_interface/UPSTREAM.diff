@@ -1,0 +1,26 @@
+--- upstream/pubspec.yaml
++++ copy/pubspec.yaml
+@@ -1,20 +1,15 @@
+ name: app_links_platform_interface
+-description: A common platform interface for the app_links plugin.
++description: Copy of app_links_platform_interface 2.0.4 from pub.dev.
+ version: 2.0.4
+-homepage: https://github.com/llfbandit/app_links/tree/main/app_links_platform_interface
++publish_to: none
+ 
+ environment:
+   sdk: ^3.12.0
+   flutter: ">=3.44.0"
+ 
+-resolution: workspace
+-
+ dependencies:
+   flutter:
+     sdk: flutter
+-  
++
+   # https://pub.dev/packages/plugin_platform_interface
+   plugin_platform_interface: ^2.1.8
+-
+-dev_dependencies:
+-  flutter_lints: ^6.0.0

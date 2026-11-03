@@ -1,0 +1,15 @@
+name: app_links_platform_interface
+description: Copy of app_links_platform_interface 2.0.4 from pub.dev.
+version: 2.0.4
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # https://pub.dev/packages/plugin_platform_interface
+  plugin_platform_interface: ^2.1.8
