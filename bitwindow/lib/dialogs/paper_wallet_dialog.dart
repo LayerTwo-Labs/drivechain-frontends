@@ -1,9 +1,7 @@
+import 'package:bitwindow/utils/paper_pdf.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -63,190 +61,26 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
   }
 
   Future<void> _printPaperWallet() async {
-    if (_keypair == null) {
+    final keypair = _keypair;
+    if (keypair == null) {
       return;
     }
 
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4.landscape,
-        build: (pw.Context context) {
-          return pw.Container(
-            padding: const pw.EdgeInsets.all(40),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                // Title
-                pw.Text(
-                  'BITCOIN PAPER WALLET',
-                  style: pw.TextStyle(
-                    fontSize: 32,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  'Keep this paper wallet in a secure location',
-                  style: const pw.TextStyle(fontSize: 12),
-                ),
-                pw.SizedBox(height: 30),
-
-                // Main content: Public Address (left) and Private Key (right)
-                pw.Expanded(
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                    children: [
-                      // Public Address Panel
-                      pw.Expanded(
-                        child: pw.Container(
-                          padding: const pw.EdgeInsets.all(20),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(width: 3),
-                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
-                          ),
-                          child: pw.Column(
-                            mainAxisAlignment: pw.MainAxisAlignment.center,
-                            children: [
-                              pw.Text(
-                                'LOAD & VERIFY',
-                                style: pw.TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Public Bitcoin Address',
-                                style: const pw.TextStyle(fontSize: 14),
-                              ),
-                              pw.SizedBox(height: 20),
-                              // QR Code for public address
-                              pw.Container(
-                                width: 200,
-                                height: 200,
-                                child: pw.BarcodeWidget(
-                                  barcode: pw.Barcode.qrCode(),
-                                  data: _keypair!.publicAddress,
-                                ),
-                              ),
-                              pw.SizedBox(height: 15),
-                              pw.Text(
-                                _keypair!.publicAddress,
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                                textAlign: pw.TextAlign.center,
-                              ),
-                              pw.SizedBox(height: 15),
-                              pw.Text(
-                                'Share this address to receive Bitcoin',
-                                style: const pw.TextStyle(fontSize: 10),
-                                textAlign: pw.TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      pw.SizedBox(width: 30),
-
-                      // Private Key Panel
-                      pw.Expanded(
-                        child: pw.Container(
-                          padding: const pw.EdgeInsets.all(20),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(width: 3),
-                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
-                          ),
-                          child: pw.Column(
-                            mainAxisAlignment: pw.MainAxisAlignment.center,
-                            children: [
-                              pw.Text(
-                                'SPEND',
-                                style: pw.TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Text(
-                                'Private Key (WIF)',
-                                style: const pw.TextStyle(fontSize: 14),
-                              ),
-                              pw.SizedBox(height: 20),
-                              // QR Code for private key
-                              pw.Container(
-                                width: 200,
-                                height: 200,
-                                child: pw.BarcodeWidget(
-                                  barcode: pw.Barcode.qrCode(),
-                                  data: _keypair!.privateKeyWif,
-                                ),
-                              ),
-                              pw.SizedBox(height: 15),
-                              pw.Text(
-                                _keypair!.privateKeyWif,
-                                style: pw.TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                                textAlign: pw.TextAlign.center,
-                              ),
-                              pw.SizedBox(height: 15),
-                              pw.Container(
-                                padding: const pw.EdgeInsets.all(8),
-                                decoration: pw.BoxDecoration(
-                                  border: pw.Border.all(width: 2),
-                                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
-                                ),
-                                child: pw.Text(
-                                  'KEEP SECRET: Anyone with this private key can spend your Bitcoin',
-                                  style: pw.TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: pw.FontWeight.bold,
-                                  ),
-                                  textAlign: pw.TextAlign.center,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                pw.SizedBox(height: 20),
-
-                // Footer warning
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(10),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(width: 2),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
-                  ),
-                  child: pw.Text(
-                    'SECURITY WARNING: Generate paper wallets on an offline computer. Store printed wallet in a secure location. '
-                    'Never share your private key. Anyone with access to the private key can spend all funds.',
-                    style: const pw.TextStyle(fontSize: 9),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'bitcoin_paper_wallet_${DateTime.now().millisecondsSinceEpoch}.pdf',
-    );
+    try {
+      final pdf = await GetIt.I.get<BitwindowRPC>().utils.createPaperWalletPdf(
+        CreatePaperWalletPdfRequest(
+          publicAddress: keypair.publicAddress,
+          privateKeyWif: keypair.privateKeyWif,
+          addressQr: paperQrMatrix(keypair.publicAddress),
+          privateKeyQr: paperQrMatrix(keypair.privateKeyWif),
+        ),
+      );
+      await savePdfAndOpen(pdf, 'paper-wallet.pdf');
+    } catch (e) {
+      if (mounted) {
+        showSailToast(context, 'Could not print the paper wallet: ${extractConnectException(e)}');
+      }
+    }
   }
 
   @override
@@ -388,7 +222,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                   Row(
                     children: [
                       SailButton(
-                        label: 'Print', // Qt pushButtonPrint
+                        label: 'Save PDF', // Qt pushButtonPrint
                         onPressed: () async => _printPaperWallet(),
                         disabled: _keypair == null || _isGenerating,
                       ),
