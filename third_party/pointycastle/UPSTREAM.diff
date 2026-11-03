@@ -1,0 +1,222 @@
+--- upstream/lib/api.dart
++++ copy/lib/api.dart
+@@ -9,7 +9,6 @@
+ 
+ import 'dart:typed_data';
+ 
+-import 'src/registry/registry.dart';
+ import 'src/utils.dart';
+ 
+ part 'src/api/aead_block_cipher.dart';
+--- upstream/lib/block/aes.dart
++++ copy/lib/block/aes.dart
+@@ -7,12 +7,9 @@
+ 
+ import 'package:pointycastle/api.dart';
+ import 'package:pointycastle/src/impl/base_block_cipher.dart';
+-import 'package:pointycastle/src/registry/registry.dart';
+ import 'package:pointycastle/src/ufixnum.dart';
+ 
+ class AESEngine extends BaseBlockCipher {
+-  static final FactoryConfig factoryConfig =
+-      StaticFactoryConfig(BlockCipher, 'AES', () => AESEngine());
+ 
+   int _ROUNDS = 0;
+   late List<List<int>> _WorkingKey;
+--- upstream/lib/block/modes/gcm.dart
++++ copy/lib/block/modes/gcm.dart
+@@ -7,19 +7,8 @@
+ 
+ import '../../api.dart';
+ import '../../src/impl/base_aead_block_cipher.dart';
+-import '../../src/registry/registry.dart';
+ 
+ class GCMBlockCipher extends BaseAEADBlockCipher {
+-  /// Intended for internal use.
+-  // ignore: non_constant_identifier_names
+-  static final FactoryConfig factoryConfig = DynamicFactoryConfig.suffix(
+-      BlockCipher,
+-      '/GCM',
+-      (_, final Match match) => () {
+-            var underlying = BlockCipher(match.group(1)!);
+-            return GCMBlockCipher(underlying);
+-          });
+-
+   late Uint8List _h;
+   late Uint8List _counter;
+   late Uint8List _e;
+--- upstream/lib/src/api/aead_block_cipher.dart
++++ copy/lib/src/api/aead_block_cipher.dart
+@@ -2,8 +2,6 @@
+ 
+ /// A block cipher mode that includes authenticated encryption
+ abstract class AEADBlockCipher extends BlockCipher {
+-  factory AEADBlockCipher(String algorithmName) =>
+-      registry.create<AEADBlockCipher>(algorithmName);
+ 
+   /// Process [len] bytes from [inp] starting at offset [inpOff] and output the
+   /// result to [out] at offset [outOff].
+--- upstream/lib/src/api/aead_cipher.dart
++++ copy/lib/src/api/aead_cipher.dart
+@@ -3,8 +3,6 @@
+ abstract class AEADCipher extends Algorithm {
+   void init(bool forEncryption, CipherParameters params);
+ 
+-  factory AEADCipher(String algorithmName) =>
+-      registry.create<AEADCipher>(algorithmName);
+ 
+   @override
+   String get algorithmName;
+--- upstream/lib/src/api/asymmetric_block_cipher.dart
++++ copy/lib/src/api/asymmetric_block_cipher.dart
+@@ -4,9 +4,6 @@
+ 
+ /// Asymmetric block cipher engines are expected to conform to this interface.
+ abstract class AsymmetricBlockCipher extends Algorithm {
+-  /// Create the cipher specified by the standard [algorithmName].
+-  factory AsymmetricBlockCipher(String algorithmName) =>
+-      registry.create<AsymmetricBlockCipher>(algorithmName);
+ 
+   /// Get this ciphers's maximum input block size.
+   int get inputBlockSize;
+--- upstream/lib/src/api/block_cipher.dart
++++ copy/lib/src/api/block_cipher.dart
+@@ -4,9 +4,6 @@
+ 
+ /// Block cipher engines are expected to conform to this interface.
+ abstract class BlockCipher extends Algorithm {
+-  /// Create the cipher specified by the standard [algorithmName].
+-  factory BlockCipher(String algorithmName) =>
+-      registry.create<BlockCipher>(algorithmName);
+ 
+   /// Get this ciphers's block size.
+   int get blockSize;
+--- upstream/lib/src/api/digest.dart
++++ copy/lib/src/api/digest.dart
+@@ -4,9 +4,6 @@
+ 
+ /// The interface that a message digest conforms to.
+ abstract class Digest extends Algorithm {
+-  /// Create the digest specified by the standard [algorithmName].
+-  factory Digest(String algorithmName) =>
+-      registry.create<Digest>(algorithmName);
+ 
+   /// Get this digest's output size in bytes
+   int get digestSize;
+--- upstream/lib/src/api/key_derivator.dart
++++ copy/lib/src/api/key_derivator.dart
+@@ -6,9 +6,6 @@
+ ///
+ /// A [KeyDerivator] is normally used to convert some master data (like a password, for instance) to a symmetric key.
+ abstract class KeyDerivator extends Algorithm {
+-  /// Create the key derivator specified by the standard [algorithmName].
+-  factory KeyDerivator(String algorithmName) =>
+-      registry.create<KeyDerivator>(algorithmName);
+ 
+   /// Get this derivator key's output size.
+   int get keySize;
+--- upstream/lib/src/api/key_generator.dart
++++ copy/lib/src/api/key_generator.dart
+@@ -6,9 +6,6 @@
+ ///
+ /// A [KeyGenerator] is used to create a pair of public and private keys.
+ abstract class KeyGenerator extends Algorithm {
+-  /// Create the key generator specified by the standard [algorithmName].
+-  factory KeyGenerator(String algorithmName) =>
+-      registry.create<KeyGenerator>(algorithmName);
+ 
+   /// Init the generator with its initialization [params]. The type of [CipherParameters] depends on the algorithm being used
+   /// (see the documentation of each implementation to find out more).
+--- upstream/lib/src/api/mac.dart
++++ copy/lib/src/api/mac.dart
+@@ -4,8 +4,6 @@
+ 
+ /// The interface that a MAC (message authentication code) conforms to.
+ abstract class Mac extends Algorithm {
+-  /// Create the MAC specified by the standard [algorithmName].
+-  factory Mac(String algorithmName) => registry.create<Mac>(algorithmName);
+ 
+   /// Get this MAC's output size.
+   int get macSize;
+--- upstream/lib/src/api/padded_block_cipher.dart
++++ copy/lib/src/api/padded_block_cipher.dart
+@@ -16,9 +16,6 @@
+ /// [processBlock] and [doFinal] which are different depending on whether you are encrypting or
+ /// decrypting and also depending on the data length being a multiple of the cipher's block size.
+ abstract class PaddedBlockCipher implements BlockCipher {
+-  /// Create the padded block cipher specified by the standard [algorithmName].
+-  factory PaddedBlockCipher(String algorithmName) =>
+-      registry.create<PaddedBlockCipher>(algorithmName);
+ 
+   /// Get the underlying [Padding] used by this cipher.
+   Padding get padding;
+--- upstream/lib/src/api/padding.dart
++++ copy/lib/src/api/padding.dart
+@@ -4,9 +4,6 @@
+ 
+ /// The interface that a padding conforms to.
+ abstract class Padding extends Algorithm {
+-  /// Create the digest specified by the standard [algorithmName].
+-  factory Padding(String algorithmName) =>
+-      registry.create<Padding>(algorithmName);
+ 
+   /// Initialise the padder. Normally, paddings don't need any init params.
+   void init([CipherParameters? params]);
+--- upstream/lib/src/api/pbe_parameters_generator.dart
++++ copy/lib/src/api/pbe_parameters_generator.dart
+@@ -1,8 +1,6 @@
+ part of '../../api.dart';
+ 
+ abstract class PBEParametersGenerator {
+-  factory PBEParametersGenerator(String algorithmName) =>
+-      registry.create<PBEParametersGenerator>(algorithmName);
+ 
+   void init(Uint8List password, Uint8List salt, int iterationCount);
+ 
+--- upstream/lib/src/api/secure_random.dart
++++ copy/lib/src/api/secure_random.dart
+@@ -10,9 +10,6 @@
+ /// a [SecureRandom] should be seen like a cryptographic PRNG. Thus, data from an **EntropySource**
+ /// should be seen as 'more random' than that returned from a [SecureRandom].
+ abstract class SecureRandom extends Algorithm {
+-  /// Create the secure random specified by the standard [algorithmName].
+-  factory SecureRandom([String algorithmName = '']) =>
+-      registry.create<SecureRandom>(algorithmName);
+ 
+   /// Seed the RNG with some entropy (look at package cipher_entropy providing entropy sources).
+   void seed(CipherParameters params);
+--- upstream/lib/src/api/signer.dart
++++ copy/lib/src/api/signer.dart
+@@ -4,9 +4,6 @@
+ 
+ /// An interface for DSAs (digital signature algorithms)
+ abstract class Signer extends Algorithm {
+-  /// Create the signer specified by the standard [algorithmName].
+-  factory Signer(String algorithmName) =>
+-      registry.create<Signer>(algorithmName);
+ 
+   /// Reset the signer to its original state.
+   void reset();
+--- upstream/lib/src/api/stream_cipher.dart
++++ copy/lib/src/api/stream_cipher.dart
+@@ -4,9 +4,6 @@
+ 
+ /// The interface stream ciphers conform to.
+ abstract class StreamCipher extends Algorithm {
+-  /// Create the cipher specified by the standard [algorithmName].
+-  factory StreamCipher(String algorithmName) =>
+-      registry.create<StreamCipher>(algorithmName);
+ 
+   /// Reset the cipher to its original state.
+   void reset();
+--- upstream/lib/src/api/xof.dart
++++ copy/lib/src/api/xof.dart
+@@ -1,8 +1,6 @@
+ part of '../../api.dart';
+ 
+ abstract class Xof extends Digest {
+-  /// Create the Xof specified by the standard [algorithmName].
+-  factory Xof(String algorithmName) => registry.create<Xof>(algorithmName);
+ 
+   ///
+   int doFinalRange(Uint8List out, int outOff, int outLen);

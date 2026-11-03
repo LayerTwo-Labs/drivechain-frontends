@@ -3,7 +3,9 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/foundation.dart';
-import 'package:pointycastle/export.dart';
+import 'package:pointycastle/api.dart';
+import 'package:pointycastle/block/aes.dart';
+import 'package:pointycastle/block/modes/gcm.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 enum BitnamesStorageState {
