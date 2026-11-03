@@ -10,3 +10,6 @@ Copies of pub.dev packages, from the archive whose sha256 matches `pubspec.lock`
 | `qr_flutter` | 4.1.0 | `lib/` |
 | `logger` | 2.8.0 | `lib/` |
 | `pointycastle` | 3.9.1 | AES, GCM and `api.dart`, without the algorithm registry; `UPSTREAM.diff` shows each change |
+| `app_links` | 7.2.2 | `lib/`, `macos/`, `windows/`, without the Android, iOS and web platforms; `UPSTREAM.diff` shows the pubspec change |
+| `app_links_platform_interface` | 2.0.4 | `lib/` |
+| `app_links_linux` | 1.0.4 | `linux/` |
