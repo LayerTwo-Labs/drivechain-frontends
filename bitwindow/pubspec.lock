@@ -168,14 +168,6 @@ packages:
       relative: true
     source: path
     version: "1.0.379"
-  bitcoin_base:
-    dependency: "direct main"
-    description:
-      name: bitcoin_base
-      sha256: "6a419a007727295ca612a1ad0d3034795512615591f6e06a2d10d441c6dbbb95"
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.3.0"
   bitnames:
     dependency: "direct main"
     description:
