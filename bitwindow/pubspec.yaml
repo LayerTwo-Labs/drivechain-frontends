@@ -65,7 +65,6 @@ dependencies:
       ref: b9a9f5684eb1c81e203d17efef2915e183b05e9e
       path: packages/desktop_multi_window
   auto_updater: ^1.0.0
-  archive: ^4.5.2
   mobile_scanner: ^7.4.2
 
 dev_dependencies:
