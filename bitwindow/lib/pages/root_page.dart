@@ -574,36 +574,24 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                   ],
                 ),
-                PlatformMenuItemGroup(
-                  members: [
-                    if (!_isWalletEncrypted && hasWallet)
-                      PlatformMenuItem(
-                        label: 'Encrypt Wallet',
-                        onSelected: () {
-                          showThemedDialog(
-                            context: context,
-                            builder: (context) => const EncryptWalletDialog(),
-                          );
-                        },
-                      ),
-                    if (_isWalletEncrypted)
-                      PlatformMenuItem(
-                        label: 'Change Password',
-                        onSelected: () {
-                          showThemedDialog(
-                            context: context,
-                            builder: (context) => const ChangePasswordDialog(),
-                          );
-                        },
-                      ),
-                    if (_isWalletEncrypted)
-                      PlatformMenuItem(
-                        label: 'Remove Encryption',
-                        onSelected: () {
-                          GetIt.I.get<AppRouter>().push(RemoveEncryptionRoute());
-                        },
-                      ),
-                  ],
+                ...encryptionMenuGroups(
+                  encrypted: _isWalletEncrypted,
+                  hasWallet: hasWallet,
+                  onEncrypt: () {
+                    showThemedDialog(
+                      context: context,
+                      builder: (context) => const EncryptWalletDialog(),
+                    );
+                  },
+                  onChangePassword: () {
+                    showThemedDialog(
+                      context: context,
+                      builder: (context) => const ChangePasswordDialog(),
+                    );
+                  },
+                  onRemoveEncryption: () {
+                    GetIt.I.get<AppRouter>().push(RemoveEncryptionRoute());
+                  },
                 ),
               ],
             ),
@@ -1385,6 +1373,25 @@ extension on Block {
   String toPretty() {
     return 'Block $height\nBlockTime=${blockTime.toDateTime().toLocal().format()}\nHash=$hash';
   }
+}
+
+// A PlatformMenuItemGroup with no members fails the macOS menu bar.
+List<PlatformMenuItem> encryptionMenuGroups({
+  required bool encrypted,
+  required bool hasWallet,
+  required VoidCallback onEncrypt,
+  required VoidCallback onChangePassword,
+  required VoidCallback onRemoveEncryption,
+}) {
+  final members = [
+    if (!encrypted && hasWallet) PlatformMenuItem(label: 'Encrypt Wallet', onSelected: onEncrypt),
+    if (encrypted) PlatformMenuItem(label: 'Change Password', onSelected: onChangePassword),
+    if (encrypted) PlatformMenuItem(label: 'Remove Encryption', onSelected: onRemoveEncryption),
+  ];
+  if (members.isEmpty) {
+    return [];
+  }
+  return [PlatformMenuItemGroup(members: members)];
 }
 
 List<PlatformMenuItem> buildVisibilityMenuItems() {

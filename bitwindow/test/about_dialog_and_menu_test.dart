@@ -22,6 +22,49 @@ void main() {
     expect(find.textContaining('2009-2024'), findsNothing);
   });
 
+  group('encryptionMenuGroups', () {
+    List<String?> labels(List<PlatformMenuItem> groups) => [
+      for (final group in groups.cast<PlatformMenuItemGroup>())
+        for (final member in group.members) member.label,
+    ];
+
+    List<PlatformMenuItem> build({required bool encrypted, required bool hasWallet}) => encryptionMenuGroups(
+      encrypted: encrypted,
+      hasWallet: hasWallet,
+      onEncrypt: () {},
+      onChangePassword: () {},
+      onRemoveEncryption: () {},
+    );
+
+    test('gives no group without a wallet, so the macOS menu bar does not fail', () {
+      expect(build(encrypted: false, hasWallet: false), isEmpty);
+    });
+
+    test('offers Encrypt Wallet for a wallet without a password', () {
+      expect(labels(build(encrypted: false, hasWallet: true)), ['Encrypt Wallet']);
+    });
+
+    test('offers Change Password and Remove Encryption for an encrypted wallet', () {
+      expect(labels(build(encrypted: true, hasWallet: true)), ['Change Password', 'Remove Encryption']);
+    });
+
+    test('every group serializes for the macOS menu bar', () {
+      for (final encrypted in [false, true]) {
+        for (final hasWallet in [false, true]) {
+          for (final group in build(encrypted: encrypted, hasWallet: hasWallet)) {
+            expect(
+              () => group.toChannelRepresentation(
+                DefaultPlatformMenuDelegate(),
+                getId: (_) => 0,
+              ),
+              returnsNormally,
+            );
+          }
+        }
+      }
+    });
+  });
+
   group('buildVisibilityMenuItems', () {
     test('exposes Minimize with Cmd/Ctrl+M on every platform', () {
       // Issue #1657: macOS used to call windowManager.hide(), which strips
