@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sidechain_core/config/binaries.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pbenum.dart';
 
@@ -155,7 +154,7 @@ class UpdateProvider extends ChangeNotifier {
       }
 
       // Save to temporary file
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = Directory.systemTemp;
       final scriptPath = '${tempDir.path}/install-$_appname.sh';
       final scriptFile = File(scriptPath);
 

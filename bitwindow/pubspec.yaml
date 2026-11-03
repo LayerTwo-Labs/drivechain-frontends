@@ -21,7 +21,6 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.3
   collection: ^1.19.1
-  path_provider: ^2.1.6
   sail_ui:
     path: ../sail_ui
   sidechain_core:
