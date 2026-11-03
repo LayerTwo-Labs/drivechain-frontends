@@ -7,7 +7,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/bmm/v1/bmm.pb.dart' as bmmpb;
 import 'package:sidechain_core/utils/explorer_url.dart';
 import 'package:stacked/stacked.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// What light mode reads for a bid, which the bid controls say out loud.
 const String bidSourceInLightMode =
@@ -488,7 +487,7 @@ class _HashLink extends StatelessWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => unawaited(launchUrl(Uri.parse(url))),
+        onTap: () => unawaited(openUrl(Uri.parse(url))),
         child: SailRow(
           spacing: SailStyleValues.padding08,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -858,7 +857,7 @@ class BMMViewModel extends BaseViewModel {
     if (txid.isEmpty || txid.startsWith('bid-')) {
       return;
     }
-    unawaited(launchUrl(Uri.parse(txUrl(txid))));
+    unawaited(openUrl(Uri.parse(txUrl(txid))));
   }
 
   Future<void> showAllBids(BuildContext context, String prevMainHash) async {

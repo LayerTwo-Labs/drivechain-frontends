@@ -47,7 +47,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sail_routes;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// Opens a tab of the Mining page.
@@ -384,12 +383,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
       CommandItem(
         label: 'Documentation',
         category: 'Help',
-        onSelected: () => launchUrl(Uri.parse('https://drivechain.info')),
+        onSelected: () => openUrl(Uri.parse('https://drivechain.info')),
       ),
       CommandItem(
         label: 'Report Issue',
         category: 'Help',
-        onSelected: () => launchUrl(Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends/issues')),
+        onSelected: () => openUrl(Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends/issues')),
       ),
     ];
   }
@@ -992,13 +991,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Documentation',
                       onSelected: () async {
-                        await launchUrl(Uri.parse('https://drivechain.info'));
+                        await openUrl(Uri.parse('https://drivechain.info'));
                       },
                     ),
                     PlatformMenuItem(
                       label: 'Report Issue',
                       onSelected: () async {
-                        await launchUrl(
+                        await openUrl(
                           Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends/issues'),
                         );
                       },
@@ -1148,7 +1147,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           ),
                           SailButton(
                             onPressed: () async {
-                              await launchUrl(Uri.parse('https://t.me/DcInsiders'));
+                              await openUrl(Uri.parse('https://t.me/DcInsiders'));
                             },
                             variant: ButtonVariant.icon,
                             icon: SailSVGAsset.telegram,
@@ -1456,7 +1455,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                     ),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        await launchUrl(Uri.parse('https://drivechain.info'));
+                        await openUrl(Uri.parse('https://drivechain.info'));
                       },
                   ),
                   const TextSpan(text: ' for further information about the software.\n'),
@@ -1471,7 +1470,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                     ),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        await launchUrl(
+                        await openUrl(
                           Uri.parse(
                             'https://github.com/LayerTwo-Labs/drivechain-frontends',
                           ),
@@ -1489,7 +1488,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                     ),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        await launchUrl(
+                        await openUrl(
                           Uri.parse(
                             'https://github.com/LayerTwo-Labs/bip300301_enforcer',
                           ),
@@ -1509,7 +1508,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                     ),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        await launchUrl(Uri.parse('https://opensource.org/licenses/MIT'));
+                        await openUrl(Uri.parse('https://opensource.org/licenses/MIT'));
                       },
                   ),
                   const TextSpan(text: '\n\n'),
@@ -1524,7 +1523,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                     ),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        await launchUrl(Uri.parse('https://www.openssl.org'));
+                        await openUrl(Uri.parse('https://www.openssl.org'));
                       },
                   ),
                   const TextSpan(

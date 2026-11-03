@@ -8,7 +8,6 @@ import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:stacked/stacked.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Renders a Cheque's created/funded/swept timestamp. Returns '-' for null
 /// or zero-valued proto Timestamps so unset DB timestamps don't surface as
@@ -257,7 +256,7 @@ class ChecksTable extends StatelessWidget {
           final network = GetIt.I.get<BitcoinConfProvider>().network;
           return [
             SailMenuItem(
-              onSelected: () => launchUrl(Uri.parse(mempoolAddressUrl(check.address, network))),
+              onSelected: () => openUrl(Uri.parse(mempoolAddressUrl(check.address, network))),
               child: SailText.primary12('View on mempool.space'),
             ),
           ];

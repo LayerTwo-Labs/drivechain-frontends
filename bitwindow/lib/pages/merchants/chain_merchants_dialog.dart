@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ChainMerchant {
   final String name;
@@ -63,10 +62,7 @@ class ChainMerchantsDialog extends StatelessWidget {
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
                   onTap: () async {
-                    final url = Uri.parse(merchant.url);
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url);
-                    }
+                    await openUrl(Uri.parse(merchant.url));
                   },
                   child: SailText.primary12(
                     merchant.name,
@@ -83,10 +79,7 @@ class ChainMerchantsDialog extends StatelessWidget {
           backgroundColor: context.sailTheme.colors.backgroundSecondary,
           onDoubleTap: (rowId) async {
             final index = int.parse(rowId);
-            final url = Uri.parse(merchants[index].url);
-            if (await canLaunchUrl(url)) {
-              await launchUrl(url);
-            }
+            await openUrl(Uri.parse(merchants[index].url));
           },
         ),
       ),

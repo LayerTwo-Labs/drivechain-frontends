@@ -30,7 +30,6 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class WalletPageViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
@@ -334,7 +333,7 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
           title: '2.1 BTC is on the way to your wallet',
           content: txid,
           dialogType: DialogType.info,
-          onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
+          onPressed: () => openUrl(Uri.parse(mempoolTxUrl(txid, network))),
         );
       }
     } catch (error, stackTrace) {

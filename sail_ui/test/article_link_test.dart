@@ -1,20 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sail_ui/sail_ui.dart';
-
-const _launcher = MethodChannel('plugins.flutter.io/url_launcher');
 
 void main() {
   testWidgets('a link in an article opens its URL', (tester) async {
     final opened = <String>[];
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(_launcher, (call) async {
-      if (call.method == 'launch') {
-        opened.add((call.arguments as Map)['url'] as String);
-      }
-      return true;
-    });
-    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(_launcher, null));
+    openUrlProcessRunner = (executable, arguments) async {
+      opened.add(arguments.last);
+      return ProcessResult(1, 0, '', '');
+    };
+    addTearDown(() => openUrlProcessRunner = Process.run);
 
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));

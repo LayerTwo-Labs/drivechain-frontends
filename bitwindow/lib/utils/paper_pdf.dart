@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Returns the QR module grid of [data], with the error correction level of the dialog QR codes.
 QrMatrix paperQrMatrix(String data) {
@@ -29,7 +28,9 @@ Future<void> savePdfAndOpen(List<int> pdf, String fileName) async {
   if (uri == null) {
     return;
   }
-  if (!await launchUrl(uri)) {
+  try {
+    await openUrl(uri);
+  } on OpenUrlException {
     throw Exception('could not open ${uri.toFilePath()}');
   }
 }

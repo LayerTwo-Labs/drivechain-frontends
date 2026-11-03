@@ -6,7 +6,6 @@ import 'package:bitwindow/widgets/ecx_burn_list.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 typedef _BurnContext = ({String? walletId, BitcoinNetwork network, String networkId, String? blocked});
 
@@ -441,9 +440,13 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
       onPressed: () async {
         final version = _version;
         try {
-          final opened = await launchUrl(Uri.parse(_explorerUrl!));
+          await openUrl(Uri.parse(_explorerUrl!));
           if (mounted && version == _version) {
-            setState(() => _error = opened ? null : 'The explorer did not open.');
+            setState(() => _error = null);
+          }
+        } on OpenUrlException {
+          if (mounted && version == _version) {
+            setState(() => _error = 'The explorer did not open.');
           }
         } catch (error) {
           if (mounted && version == _version) {
