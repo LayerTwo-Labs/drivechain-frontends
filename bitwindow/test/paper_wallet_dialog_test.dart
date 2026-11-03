@@ -27,13 +27,23 @@ class _Utils extends MockUtilsAPI {
   }
 }
 
+class _PdfUtils extends _Utils {
+  CreatePaperWalletPdfRequest? pdfRequest;
+
+  @override
+  Future<List<int>> createPaperWalletPdf(CreatePaperWalletPdfRequest request) async {
+    pdfRequest = request;
+    throw Exception('bitwindowd is not running');
+  }
+}
+
 class _Bitwindow extends MockAPI {
   _Bitwindow() : super(binaryType: BinaryType.BINARY_TYPE_BITWINDOWD);
 
-  final _utils = _Utils();
+  final _utils = _PdfUtils();
 
   @override
-  _Utils get utils => _utils;
+  _PdfUtils get utils => _utils;
 }
 
 void main() {
@@ -84,6 +94,24 @@ void main() {
     expect(find.text(_address), findsNothing);
     final createCheck = tester.widget<SailButton>(find.widgetWithText(SailButton, 'Create Check').first);
     expect(createCheck.disabled, isTrue);
+    await tester.pump(const Duration(seconds: 10));
+  });
+
+  testWidgets('Save PDF sends the keys and their QR codes to bitwindowd, and shows why it failed', (tester) async {
+    await tester.pumpSailPage(const PaperWalletDialog());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save PDF').first);
+    await tester.pump();
+    await tester.pump();
+
+    final request = bitwindow.utils.pdfRequest!;
+    expect(request.publicAddress, _address);
+    expect(request.privateKeyWif, 'KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn');
+    expect(request.addressQr.size, greaterThanOrEqualTo(21));
+    expect(request.addressQr.modules.length, request.addressQr.size * request.addressQr.size);
+    expect(request.privateKeyQr.modules.length, request.privateKeyQr.size * request.privateKeyQr.size);
+    expect(find.textContaining('bitwindowd is not running'), findsOneWidget);
     await tester.pump(const Duration(seconds: 10));
   });
 }
