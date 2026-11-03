@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:bitwindow/utils/ur_key.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sidechain_core/utils/hex.dart';
 import 'package:sidechain_core/utils/ur_psbt.dart';
 
 // BIP32 test vector 1, chain m/0'. The parser must rebuild exactly this xpub
@@ -12,14 +13,6 @@ const _bip32Vector1Account0Xpub =
 const _chainCodeHex = '47fdacbd0f1097043b78c63c20c34ef4ed9a111d980047ad16282c7ae6236141';
 const _keyDataHex = '035a784662a4a20a65bf6aab9ae98a6c068a81c52e4b032c0fb5400c706cfccc56';
 const _masterFingerprint = 0x3442193e;
-
-Uint8List _hex(String s) {
-  final out = Uint8List(s.length ~/ 2);
-  for (var i = 0; i < out.length; i++) {
-    out[i] = int.parse(s.substring(i * 2, i * 2 + 2), radix: 16);
-  }
-  return out;
-}
 
 /// Minimal CBOR writer for the UR shapes the tests build.
 class _Cbor {
@@ -62,9 +55,9 @@ class _Cbor {
 void _writeHdKey(_Cbor c) {
   c.map(4);
   c.uint(3);
-  c.byteString(_hex(_keyDataHex));
+  c.byteString(hexDecode(_keyDataHex));
   c.uint(4);
-  c.byteString(_hex(_chainCodeHex));
+  c.byteString(hexDecode(_chainCodeHex));
   c.uint(6);
   c.tag(304);
   c.map(3);

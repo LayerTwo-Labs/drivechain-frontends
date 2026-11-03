@@ -1,9 +1,9 @@
 import 'package:bitwindow/utils/ripemd160.dart';
-import 'package:convert/convert.dart';
+import 'package:sidechain_core/utils/hex.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-String _hash(String ascii) => hex.encode(ripemd160(ascii.codeUnits));
+String _hash(String ascii) => hexEncode(ripemd160(ascii.codeUnits));
 
 void main() {
   group('RIPEMD-160 vectors from the authors', () {
@@ -33,7 +33,7 @@ void main() {
   });
 
   test('HASH160 of the compressed generator point', () {
-    final pubkey = hex.decode('0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798');
-    expect(hex.encode(ripemd160(sha256.convert(pubkey).bytes)), '751e76e8199196d454941c45d1b3a323f1433bd6');
+    final pubkey = hexDecode('0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798');
+    expect(hexEncode(ripemd160(sha256.convert(pubkey).bytes)), '751e76e8199196d454941c45d1b3a323f1433bd6');
   });
 }
