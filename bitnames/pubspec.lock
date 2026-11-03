@@ -218,7 +218,7 @@ packages:
     source: hosted
     version: "1.19.1"
   connectrpc:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: connectrpc
       sha256: a1dbf301d0dfa189bb879a9f15bbe72f31dbac581f385035a10fcc2d31a93a18
@@ -242,7 +242,7 @@ packages:
     source: hosted
     version: "0.3.5+5"
   crypto:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: crypto
       sha256: e3626ae6270383c9e3a549f34c9e4cd26c09ae6a9adaab2bf4737a00340efdc4
@@ -274,7 +274,7 @@ packages:
     source: hosted
     version: "0.8.0"
   desktop_multi_window:
-    dependency: "direct main"
+    dependency: transitive
     description:
       path: "packages/desktop_multi_window"
       ref: b9a9f5684eb1c81e203d17efef2915e183b05e9e
@@ -462,7 +462,7 @@ packages:
     source: hosted
     version: "4.4.0"
   http:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: http
       sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
@@ -502,7 +502,7 @@ packages:
     source: hosted
     version: "4.12.0"
   intl:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: intl
       sha256: "1ca20c894b1717686a2319b8548763d812bc0aabdac580420a44c5178c57a867"
@@ -693,7 +693,7 @@ packages:
     source: hosted
     version: "1.1.0"
   path_provider:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: path_provider
       sha256: a7f4874f987173da295a61c181b8ee71dab59b332a486b391babf26a1b884825
@@ -812,21 +812,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.7.0"
-  qr:
-    dependency: transitive
-    description:
-      name: qr
-      sha256: "5a1d2586170e172b8a8c8470bbbffd5eb0cd38a66c0d77155ea138d3af3a4445"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.2"
-  qr_flutter:
-    dependency: "direct main"
-    description:
-      path: "../third_party/qr_flutter"
-      relative: true
-    source: path
-    version: "4.1.0"
   record_use:
     dependency: transitive
     description:
@@ -1165,7 +1150,7 @@ packages:
     source: hosted
     version: "6.4.0"
   window_manager:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: window_manager
       sha256: "05c231fd7b23d2380f14c5cc10b7b93d60d4fa4a2fb4e0f032de27e44b5560e9"
