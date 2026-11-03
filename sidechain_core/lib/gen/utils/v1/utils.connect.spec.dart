@@ -71,6 +71,20 @@ abstract final class UtilsService {
     utilsv1utils.WIFToAddressResponse.new,
   );
 
+  static const createPaperWalletPdf = connect.Spec(
+    '/$name/CreatePaperWalletPdf',
+    connect.StreamType.unary,
+    utilsv1utils.CreatePaperWalletPdfRequest.new,
+    utilsv1utils.CreatePaperWalletPdfResponse.new,
+  );
+
+  static const createPaperCheckPdf = connect.Spec(
+    '/$name/CreatePaperCheckPdf',
+    connect.StreamType.unary,
+    utilsv1utils.CreatePaperCheckPdfRequest.new,
+    utilsv1utils.CreatePaperCheckPdfResponse.new,
+  );
+
   /// Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
   static const convert = connect.Spec(
     '/$name/Convert',

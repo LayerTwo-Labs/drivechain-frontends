@@ -653,6 +653,16 @@ class MockUtilsAPI implements UtilsAPI {
   }
 
   @override
+  Future<List<int>> createPaperWalletPdf(CreatePaperWalletPdfRequest request) {
+    return Future.value(<int>[]);
+  }
+
+  @override
+  Future<List<int>> createPaperCheckPdf(CreatePaperCheckPdfRequest request) {
+    return Future.value(<int>[]);
+  }
+
+  @override
   Future<ConvertResponse> convert(String input, ConvertFormat format) {
     return Future.value(ConvertResponse());
   }

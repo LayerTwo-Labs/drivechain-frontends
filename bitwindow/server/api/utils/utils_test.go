@@ -1,7 +1,9 @@
 package utils_test
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect/v2"
@@ -86,5 +88,60 @@ func TestConvertOverTheWire(t *testing.T) {
 		assert.Equal(t, utilspb.ConvertFormat_CONVERT_FORMAT_WIF, resp.Detected)
 		assert.Contains(t, resp.Error, "WIF checksum does not match")
 		assert.Empty(t, resp.Keys)
+	})
+}
+
+func TestCreatePaperPdfs(t *testing.T) {
+	t.Parallel()
+
+	matrix := &utilspb.QrMatrix{Size: 21, Modules: make([]byte, 21*21)}
+	server := utils.New(&chaincfg.RegressionNetParams)
+
+	t.Run("paper wallet", func(t *testing.T) {
+		t.Parallel()
+		resp, err := server.CreatePaperWalletPdf(t.Context(), &utilspb.CreatePaperWalletPdfRequest{
+			PublicAddress: "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
+			PrivateKeyWif: "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy",
+			AddressQr:     matrix,
+			PrivateKeyQr:  matrix,
+		})
+		require.NoError(t, err)
+		assert.True(t, bytes.HasPrefix(resp.Pdf, []byte("%PDF-1.4")))
+	})
+
+	t.Run("paper check", func(t *testing.T) {
+		t.Parallel()
+		resp, err := server.CreatePaperCheckPdf(t.Context(), &utilspb.CreatePaperCheckPdfRequest{
+			PublicAddress: "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
+			PrivateKeyWif: "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy",
+			Amount:        "0.001 BTC",
+			Txid:          strings.Repeat("ab", 32),
+			AddressQr:     matrix,
+			PrivateKeyQr:  matrix,
+		})
+		require.NoError(t, err)
+		assert.True(t, bytes.HasPrefix(resp.Pdf, []byte("%PDF-1.4")))
+	})
+
+	t.Run("a QR code without modules is invalid", func(t *testing.T) {
+		t.Parallel()
+		_, err := server.CreatePaperWalletPdf(t.Context(), &utilspb.CreatePaperWalletPdfRequest{
+			PublicAddress: "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
+			PrivateKeyWif: "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy",
+			AddressQr:     matrix,
+		})
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	})
+
+	t.Run("a check without a txid is invalid", func(t *testing.T) {
+		t.Parallel()
+		_, err := server.CreatePaperCheckPdf(t.Context(), &utilspb.CreatePaperCheckPdfRequest{
+			PublicAddress: "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
+			PrivateKeyWif: "cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy",
+			Amount:        "0.001 BTC",
+			AddressQr:     matrix,
+			PrivateKeyQr:  matrix,
+		})
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 }

@@ -149,6 +149,40 @@ extension type UtilsServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<utilsv1utils.CreatePaperWalletPdfResponse> createPaperWalletPdf(
+    utilsv1utils.CreatePaperWalletPdfRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.UtilsService.createPaperWalletPdf,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<utilsv1utils.CreatePaperCheckPdfResponse> createPaperCheckPdf(
+    utilsv1utils.CreatePaperCheckPdfRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.UtilsService.createPaperCheckPdf,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
   Future<utilsv1utils.ConvertResponse> convert(
     utilsv1utils.ConvertRequest input, {
