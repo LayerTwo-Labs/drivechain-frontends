@@ -4,7 +4,6 @@ import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 const _ticker = 'ECX';
 const _checkDebounce = Duration(milliseconds: 400);
@@ -549,7 +548,7 @@ class _ClaimedCard extends StatelessWidget {
                   variant: ButtonVariant.link,
                   icon: SailSVGAsset.externalLink,
                   small: true,
-                  onPressed: () async => launchUrl(Uri.parse(url)),
+                  onPressed: () async => openUrl(Uri.parse(url)),
                 ),
               ],
             ),

@@ -11,7 +11,6 @@ import 'package:bitwindow/widgets/pagination.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -933,7 +932,7 @@ class CoinNewsTable extends StatelessWidget {
                 SailMenuItem(
                   onSelected: () async {
                     final network = GetIt.I.get<BitcoinConfProvider>().network;
-                    await launchUrl(Uri.parse(mempoolTxUrl(news.txid, network)));
+                    await openUrl(Uri.parse(mempoolTxUrl(news.txid, network)));
                   },
                   child: SailText.primary12('View on chain'),
                 ),
@@ -1111,7 +1110,7 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
                               const SailSpacing(SailStyleValues.padding20),
                               if (widget.news.url.isNotEmpty) ...[
                                 GestureDetector(
-                                  onTap: () async => launchUrl(Uri.parse(widget.news.url)),
+                                  onTap: () async => openUrl(Uri.parse(widget.news.url)),
                                   child: SailText.primary13(widget.news.url, color: theme.colors.primary),
                                 ),
                                 const SailSpacing(SailStyleValues.padding16),
@@ -1146,7 +1145,7 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
                                   if (href == null) {
                                     return;
                                   }
-                                  await launchUrl(Uri.parse(href));
+                                  await openUrl(Uri.parse(href));
                                 },
                               ),
                               const SailSpacing(SailStyleValues.padding32),

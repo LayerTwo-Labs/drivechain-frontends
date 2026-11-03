@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/utils/explorer_url.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 const _menuItemHeight = 33.0;
 const _menuItemWidth = 200.0;
@@ -217,7 +216,7 @@ class MempoolMenuItem extends StatelessWidget implements SailMenuEntity {
     final network = GetIt.I.get<BitcoinConfProvider>().network;
     return SailMenuItem(
       onSelected: () async {
-        await launchUrl(Uri.parse(mempoolTxUrl(txid, network)));
+        await openUrl(Uri.parse(mempoolTxUrl(txid, network)));
       },
       child: SailText.primary12('View transaction'),
     );

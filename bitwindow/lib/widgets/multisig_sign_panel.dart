@@ -13,7 +13,6 @@ import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as walletpb;
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// The saved-transaction view for one PSBT draft: the flow card, the keys
 /// table, and the sign / import / broadcast actions. Drawn as frame 12 of
@@ -622,7 +621,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
             label: 'View transaction',
             variant: ButtonVariant.ghost,
             small: true,
-            onPressed: () async => launchUrl(Uri.parse(mempoolTxUrl(draft.txid, network))),
+            onPressed: () async => openUrl(Uri.parse(mempoolTxUrl(draft.txid, network))),
           ),
         ],
       );

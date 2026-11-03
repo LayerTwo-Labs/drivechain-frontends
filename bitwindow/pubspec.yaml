@@ -49,7 +49,6 @@ dependencies:
   flutter_markdown:
     path: ../third_party/flutter_markdown
   path: ^1.9.1
-  url_launcher: ^6.3.3
   pointycastle:
     path: ../third_party/pointycastle
   crypto: ^3.0.8

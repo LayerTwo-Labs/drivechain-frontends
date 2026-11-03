@@ -4,7 +4,6 @@ import 'package:sail_ui/pages/sidechains/explorer/transaction_broadcast.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
 import 'package:sidechain_core/utils/explorer_url.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// What the explorer is looking at.
 /// _paidOut is what a transaction pays out. A withdrawal takes the mainchain
@@ -246,13 +245,13 @@ class _BlindMergeMineCard extends StatelessWidget {
             _LinkRow(
               label: 'Bid block',
               value: '${bid.blockHeight}',
-              onTap: () async => launchUrl(Uri.parse(mempoolBlockUrl(bid.blockHash, network))),
+              onTap: () async => openUrl(Uri.parse(mempoolBlockUrl(bid.blockHash, network))),
             ),
           if (bid != null)
             _LinkRow(
               label: 'Bid outpoint',
               value: '${shortenId(bid.txid)} : ${bid.vout}',
-              onTap: () async => launchUrl(Uri.parse(mempoolTxUrl(bid.txid, network))),
+              onTap: () async => openUrl(Uri.parse(mempoolTxUrl(bid.txid, network))),
             ),
           if (block.mainchainHash.isEmpty)
             const _Row(label: 'Parent block', value: 'Unknown')
@@ -260,7 +259,7 @@ class _BlindMergeMineCard extends StatelessWidget {
             _LinkRow(
               label: 'Parent block',
               value: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : shortenId(block.mainchainHash),
-              onTap: () async => launchUrl(Uri.parse(mempoolBlockUrl(block.mainchainHash, network))),
+              onTap: () async => openUrl(Uri.parse(mempoolBlockUrl(block.mainchainHash, network))),
             ),
           if (block.prevHash.isNotEmpty)
             _LinkRow(

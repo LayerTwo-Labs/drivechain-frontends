@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SailNotification extends StatelessWidget {
   final String title;
@@ -114,7 +113,7 @@ class NotificationLinkText extends StatelessWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => launchUrl(Uri.parse(link.url)),
+        onTap: () => openUrl(Uri.parse(link.url)),
         child: SailText.primary12(link.text, color: primary, decoration: TextDecoration.underline),
       ),
     );

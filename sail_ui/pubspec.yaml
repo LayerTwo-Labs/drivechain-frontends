@@ -34,7 +34,6 @@ dependencies:
   skeletonizer:
     path: ../third_party/skeletonizer
   stacked: ^3.5.0
-  url_launcher: ^6.3.3
   window_manager: ^0.5.2
 
 dev_dependencies:

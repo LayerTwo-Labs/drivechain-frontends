@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:bitwindow/widgets/burn_ecx_card.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -627,17 +626,16 @@ void main() {
   });
 
   for (final result in ['true', 'false', 'error']) {
-    testWidgets('shows the explorer result when the launcher returns $result', (tester) async {
-      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+    testWidgets('shows the explorer result when the open command returns $result', (tester) async {
       String? url;
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
-        url = (call.arguments as Map)['url'] as String;
+      openUrlProcessRunner = (executable, arguments) async {
+        url = arguments.last;
         if (result == 'error') {
-          throw PlatformException(code: 'test-error', message: 'The browser did not start.');
+          throw const ProcessException('open', [], 'The browser did not start.');
         }
-        return result == 'true';
-      });
-      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
+        return ProcessResult(1, result == 'true' ? 0 : 1, '', '');
+      };
+      addTearDown(() => openUrlProcessRunner = Process.run);
       await pumpCard(tester);
       await enterAmount(tester);
       await burn(tester);

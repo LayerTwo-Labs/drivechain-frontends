@@ -7,7 +7,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
 import 'package:sidechain_core/utils/explorer_url.dart';
 import 'package:stacked/stacked.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// ChainExplorerTab is the explorer landing page: the newest blocks, what
 /// happened last, and what the treasury holds.
@@ -301,7 +300,7 @@ class _MainchainLink extends StatelessWidget {
       return row;
     }
     return SailTappable(
-      onTap: () async => launchUrl(
+      onTap: () async => openUrl(
         Uri.parse(mempoolBlockUrl(hash, GetIt.I.get<BitcoinConfProvider>().network)),
       ),
       child: row,
@@ -405,7 +404,7 @@ class DepositsCard extends StatelessWidget {
           },
           rowCount: rows.length,
           drawGrid: false,
-          onDoubleTap: (rowId) async => launchUrl(
+          onDoubleTap: (rowId) async => openUrl(
             Uri.parse(mempoolTxUrl(rowId, GetIt.I.get<BitcoinConfProvider>().network)),
           ),
           emptyPlaceholder: 'No deposits yet',

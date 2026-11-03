@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void showArticleDetails(
   BuildContext context,
@@ -156,7 +155,7 @@ void showArticleDetails(
                               if (href == null) {
                                 return;
                               }
-                              await launchUrl(Uri.parse(href));
+                              await openUrl(Uri.parse(href));
                             },
                           ),
                           const SailSpacing(SailStyleValues.padding40),
