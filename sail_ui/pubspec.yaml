@@ -22,7 +22,6 @@ dependencies:
   fixnum: ^1.1.1
   flutter:
     sdk: flutter
-  flutter_custom_tabs: ^2.6.0
   flutter_markdown:
     path: ../third_party/flutter_markdown
   flutter_svg: ^2.3.2
