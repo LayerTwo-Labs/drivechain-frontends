@@ -64,7 +64,6 @@ dependencies:
   convert: ^3.1.2
   bs58: ^1.0.2
   auto_updater: ^1.0.0
-  bitcoin_base: ^7.3.0
   blockchain_utils: ^7.1.0
   archive: ^4.5.2
   mobile_scanner: ^7.4.2
