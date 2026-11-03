@@ -1,0 +1,28 @@
+{
+  "data": "bitwindow paper",
+  "size": 21,
+  "modules": "AQEBAQEBAQABAQEAAQABAQEBAQEBAQAAAAAAAQABAAEAAQABAAAAAAABAQABAQEAAQABAAABAQABAAEBAQABAQABAQEAAQABAQEBAAABAAEBAQABAQABAQEAAQAAAAABAAABAAEBAQABAQAAAAAAAQABAQABAQABAAAAAAABAQEBAQEBAQABAAEAAQABAQEBAQEBAAAAAAAAAAAAAQEAAAAAAAAAAAAAAQEAAAEBAQAAAQABAQAAAQABAQEBAQEAAAEBAAABAAEAAAAAAAEAAAEAAQEAAQEAAQEAAQAAAAEBAAEAAAEAAQABAQABAAABAQABAAEAAQEAAAABAAABAQEBAQEBAAAAAQAAAQABAAEBAAAAAAAAAAABAQABAAABAAEBAQEAAQEBAQEBAQAAAQEAAAEBAAEBAAEAAQAAAAAAAQABAAAAAAAAAQAAAAEBAQABAQEAAQABAQAAAQEAAQEBAAAAAQABAQEAAQAAAAEAAAEBAAEBAQEBAQABAQEAAQAAAAEAAAAAAAEAAQAAAQAAAAAAAQABAAABAAEAAAEAAAAAAQEBAQEBAQABAAEAAQAAAAEAAAAB",
+  "rows": [
+    "#######.###.#.#######",
+    "#.....#.#.#.#.#.....#",
+    "#.###.#.#..##.#.###.#",
+    "#.###.#.####..#.###.#",
+    "#.###.#....#..#.###.#",
+    "#.....#.##.##.#.....#",
+    "#######.#.#.#.#######",
+    ".........##..........",
+    "##..###..#.##..#.####",
+    "##..##..#.#.....#..#.",
+    "##.##.##.#...##.#..#.",
+    "#.##.#..##.#.#.##...#",
+    "..#######...#..#.#.##",
+    "........##.#..#.####.",
+    "#######..##..##.##.#.",
+    "#.....#.#......#...##",
+    "#.###.#.##..##.###...",
+    "#.###.#...#..##.#####",
+    "#.###.#...#.....#.#..",
+    "#.....#.#..#.#..#....",
+    "#######.#.#.#...#...#"
+  ]
+}
