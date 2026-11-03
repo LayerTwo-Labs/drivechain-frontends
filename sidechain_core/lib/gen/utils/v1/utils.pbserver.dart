@@ -30,6 +30,8 @@ abstract class UtilsServiceBase extends $pb.GeneratedService {
   $async.Future<$12.GeneratePaperWalletResponse> generatePaperWallet($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$12.ValidateWIFResponse> validateWIF($pb.ServerContext ctx, $12.ValidateWIFRequest request);
   $async.Future<$12.WIFToAddressResponse> wIFToAddress($pb.ServerContext ctx, $12.WIFToAddressRequest request);
+  $async.Future<$12.CreatePaperWalletPdfResponse> createPaperWalletPdf($pb.ServerContext ctx, $12.CreatePaperWalletPdfRequest request);
+  $async.Future<$12.CreatePaperCheckPdfResponse> createPaperCheckPdf($pb.ServerContext ctx, $12.CreatePaperCheckPdfRequest request);
   $async.Future<$12.ConvertResponse> convert($pb.ServerContext ctx, $12.ConvertRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
@@ -42,6 +44,8 @@ abstract class UtilsServiceBase extends $pb.GeneratedService {
       case 'GeneratePaperWallet': return $1.Empty();
       case 'ValidateWIF': return $12.ValidateWIFRequest();
       case 'WIFToAddress': return $12.WIFToAddressRequest();
+      case 'CreatePaperWalletPdf': return $12.CreatePaperWalletPdfRequest();
+      case 'CreatePaperCheckPdf': return $12.CreatePaperCheckPdfRequest();
       case 'Convert': return $12.ConvertRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -57,6 +61,8 @@ abstract class UtilsServiceBase extends $pb.GeneratedService {
       case 'GeneratePaperWallet': return this.generatePaperWallet(ctx, request as $1.Empty);
       case 'ValidateWIF': return this.validateWIF(ctx, request as $12.ValidateWIFRequest);
       case 'WIFToAddress': return this.wIFToAddress(ctx, request as $12.WIFToAddressRequest);
+      case 'CreatePaperWalletPdf': return this.createPaperWalletPdf(ctx, request as $12.CreatePaperWalletPdfRequest);
+      case 'CreatePaperCheckPdf': return this.createPaperCheckPdf(ctx, request as $12.CreatePaperCheckPdfRequest);
       case 'Convert': return this.convert(ctx, request as $12.ConvertRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }

@@ -781,6 +781,304 @@ func (x *GeneratePaperWalletResponse) GetPrivateKeyHex() string {
 	return ""
 }
 
+// QrMatrix is the module grid of one QR code.
+type QrMatrix struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Count of modules per side.
+	Size int32 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
+	// One byte per module, row-major from the top-left module. 1 is dark, 0 is light.
+	Modules       []byte `protobuf:"bytes,2,opt,name=modules,proto3" json:"modules,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QrMatrix) Reset() {
+	*x = QrMatrix{}
+	mi := &file_utils_v1_utils_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QrMatrix) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QrMatrix) ProtoMessage() {}
+
+func (x *QrMatrix) ProtoReflect() protoreflect.Message {
+	mi := &file_utils_v1_utils_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QrMatrix.ProtoReflect.Descriptor instead.
+func (*QrMatrix) Descriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *QrMatrix) GetSize() int32 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+func (x *QrMatrix) GetModules() []byte {
+	if x != nil {
+		return x.Modules
+	}
+	return nil
+}
+
+type CreatePaperWalletPdfRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PublicAddress string                 `protobuf:"bytes,1,opt,name=public_address,json=publicAddress,proto3" json:"public_address,omitempty"`
+	PrivateKeyWif string                 `protobuf:"bytes,2,opt,name=private_key_wif,json=privateKeyWif,proto3" json:"private_key_wif,omitempty"`
+	AddressQr     *QrMatrix              `protobuf:"bytes,3,opt,name=address_qr,json=addressQr,proto3" json:"address_qr,omitempty"`
+	PrivateKeyQr  *QrMatrix              `protobuf:"bytes,4,opt,name=private_key_qr,json=privateKeyQr,proto3" json:"private_key_qr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreatePaperWalletPdfRequest) Reset() {
+	*x = CreatePaperWalletPdfRequest{}
+	mi := &file_utils_v1_utils_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePaperWalletPdfRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePaperWalletPdfRequest) ProtoMessage() {}
+
+func (x *CreatePaperWalletPdfRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_utils_v1_utils_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePaperWalletPdfRequest.ProtoReflect.Descriptor instead.
+func (*CreatePaperWalletPdfRequest) Descriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CreatePaperWalletPdfRequest) GetPublicAddress() string {
+	if x != nil {
+		return x.PublicAddress
+	}
+	return ""
+}
+
+func (x *CreatePaperWalletPdfRequest) GetPrivateKeyWif() string {
+	if x != nil {
+		return x.PrivateKeyWif
+	}
+	return ""
+}
+
+func (x *CreatePaperWalletPdfRequest) GetAddressQr() *QrMatrix {
+	if x != nil {
+		return x.AddressQr
+	}
+	return nil
+}
+
+func (x *CreatePaperWalletPdfRequest) GetPrivateKeyQr() *QrMatrix {
+	if x != nil {
+		return x.PrivateKeyQr
+	}
+	return nil
+}
+
+type CreatePaperWalletPdfResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A4 landscape PDF file.
+	Pdf           []byte `protobuf:"bytes,1,opt,name=pdf,proto3" json:"pdf,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreatePaperWalletPdfResponse) Reset() {
+	*x = CreatePaperWalletPdfResponse{}
+	mi := &file_utils_v1_utils_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePaperWalletPdfResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePaperWalletPdfResponse) ProtoMessage() {}
+
+func (x *CreatePaperWalletPdfResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_utils_v1_utils_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePaperWalletPdfResponse.ProtoReflect.Descriptor instead.
+func (*CreatePaperWalletPdfResponse) Descriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CreatePaperWalletPdfResponse) GetPdf() []byte {
+	if x != nil {
+		return x.Pdf
+	}
+	return nil
+}
+
+type CreatePaperCheckPdfRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PublicAddress string                 `protobuf:"bytes,1,opt,name=public_address,json=publicAddress,proto3" json:"public_address,omitempty"`
+	PrivateKeyWif string                 `protobuf:"bytes,2,opt,name=private_key_wif,json=privateKeyWif,proto3" json:"private_key_wif,omitempty"`
+	// Amount with its unit, for example "0.001 BTC".
+	Amount        string    `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Txid          string    `protobuf:"bytes,4,opt,name=txid,proto3" json:"txid,omitempty"`
+	AddressQr     *QrMatrix `protobuf:"bytes,5,opt,name=address_qr,json=addressQr,proto3" json:"address_qr,omitempty"`
+	PrivateKeyQr  *QrMatrix `protobuf:"bytes,6,opt,name=private_key_qr,json=privateKeyQr,proto3" json:"private_key_qr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreatePaperCheckPdfRequest) Reset() {
+	*x = CreatePaperCheckPdfRequest{}
+	mi := &file_utils_v1_utils_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePaperCheckPdfRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePaperCheckPdfRequest) ProtoMessage() {}
+
+func (x *CreatePaperCheckPdfRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_utils_v1_utils_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePaperCheckPdfRequest.ProtoReflect.Descriptor instead.
+func (*CreatePaperCheckPdfRequest) Descriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *CreatePaperCheckPdfRequest) GetPublicAddress() string {
+	if x != nil {
+		return x.PublicAddress
+	}
+	return ""
+}
+
+func (x *CreatePaperCheckPdfRequest) GetPrivateKeyWif() string {
+	if x != nil {
+		return x.PrivateKeyWif
+	}
+	return ""
+}
+
+func (x *CreatePaperCheckPdfRequest) GetAmount() string {
+	if x != nil {
+		return x.Amount
+	}
+	return ""
+}
+
+func (x *CreatePaperCheckPdfRequest) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *CreatePaperCheckPdfRequest) GetAddressQr() *QrMatrix {
+	if x != nil {
+		return x.AddressQr
+	}
+	return nil
+}
+
+func (x *CreatePaperCheckPdfRequest) GetPrivateKeyQr() *QrMatrix {
+	if x != nil {
+		return x.PrivateKeyQr
+	}
+	return nil
+}
+
+type CreatePaperCheckPdfResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A4 landscape PDF file.
+	Pdf           []byte `protobuf:"bytes,1,opt,name=pdf,proto3" json:"pdf,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreatePaperCheckPdfResponse) Reset() {
+	*x = CreatePaperCheckPdfResponse{}
+	mi := &file_utils_v1_utils_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePaperCheckPdfResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePaperCheckPdfResponse) ProtoMessage() {}
+
+func (x *CreatePaperCheckPdfResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_utils_v1_utils_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePaperCheckPdfResponse.ProtoReflect.Descriptor instead.
+func (*CreatePaperCheckPdfResponse) Descriptor() ([]byte, []int) {
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *CreatePaperCheckPdfResponse) GetPdf() []byte {
+	if x != nil {
+		return x.Pdf
+	}
+	return nil
+}
+
 type ValidateWIFRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Wif           string                 `protobuf:"bytes,1,opt,name=wif,proto3" json:"wif,omitempty"`
@@ -790,7 +1088,7 @@ type ValidateWIFRequest struct {
 
 func (x *ValidateWIFRequest) Reset() {
 	*x = ValidateWIFRequest{}
-	mi := &file_utils_v1_utils_proto_msgTypes[12]
+	mi := &file_utils_v1_utils_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -802,7 +1100,7 @@ func (x *ValidateWIFRequest) String() string {
 func (*ValidateWIFRequest) ProtoMessage() {}
 
 func (x *ValidateWIFRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_utils_v1_utils_proto_msgTypes[12]
+	mi := &file_utils_v1_utils_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -815,7 +1113,7 @@ func (x *ValidateWIFRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateWIFRequest.ProtoReflect.Descriptor instead.
 func (*ValidateWIFRequest) Descriptor() ([]byte, []int) {
-	return file_utils_v1_utils_proto_rawDescGZIP(), []int{12}
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ValidateWIFRequest) GetWif() string {
@@ -834,7 +1132,7 @@ type ValidateWIFResponse struct {
 
 func (x *ValidateWIFResponse) Reset() {
 	*x = ValidateWIFResponse{}
-	mi := &file_utils_v1_utils_proto_msgTypes[13]
+	mi := &file_utils_v1_utils_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -846,7 +1144,7 @@ func (x *ValidateWIFResponse) String() string {
 func (*ValidateWIFResponse) ProtoMessage() {}
 
 func (x *ValidateWIFResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_utils_v1_utils_proto_msgTypes[13]
+	mi := &file_utils_v1_utils_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -859,7 +1157,7 @@ func (x *ValidateWIFResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateWIFResponse.ProtoReflect.Descriptor instead.
 func (*ValidateWIFResponse) Descriptor() ([]byte, []int) {
-	return file_utils_v1_utils_proto_rawDescGZIP(), []int{13}
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ValidateWIFResponse) GetValid() bool {
@@ -878,7 +1176,7 @@ type WIFToAddressRequest struct {
 
 func (x *WIFToAddressRequest) Reset() {
 	*x = WIFToAddressRequest{}
-	mi := &file_utils_v1_utils_proto_msgTypes[14]
+	mi := &file_utils_v1_utils_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -890,7 +1188,7 @@ func (x *WIFToAddressRequest) String() string {
 func (*WIFToAddressRequest) ProtoMessage() {}
 
 func (x *WIFToAddressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_utils_v1_utils_proto_msgTypes[14]
+	mi := &file_utils_v1_utils_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -903,7 +1201,7 @@ func (x *WIFToAddressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WIFToAddressRequest.ProtoReflect.Descriptor instead.
 func (*WIFToAddressRequest) Descriptor() ([]byte, []int) {
-	return file_utils_v1_utils_proto_rawDescGZIP(), []int{14}
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *WIFToAddressRequest) GetWif() string {
@@ -923,7 +1221,7 @@ type WIFToAddressResponse struct {
 
 func (x *WIFToAddressResponse) Reset() {
 	*x = WIFToAddressResponse{}
-	mi := &file_utils_v1_utils_proto_msgTypes[15]
+	mi := &file_utils_v1_utils_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -935,7 +1233,7 @@ func (x *WIFToAddressResponse) String() string {
 func (*WIFToAddressResponse) ProtoMessage() {}
 
 func (x *WIFToAddressResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_utils_v1_utils_proto_msgTypes[15]
+	mi := &file_utils_v1_utils_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -948,7 +1246,7 @@ func (x *WIFToAddressResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WIFToAddressResponse.ProtoReflect.Descriptor instead.
 func (*WIFToAddressResponse) Descriptor() ([]byte, []int) {
-	return file_utils_v1_utils_proto_rawDescGZIP(), []int{15}
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *WIFToAddressResponse) GetAddress() string {
@@ -975,7 +1273,7 @@ type ConvertRequest struct {
 
 func (x *ConvertRequest) Reset() {
 	*x = ConvertRequest{}
-	mi := &file_utils_v1_utils_proto_msgTypes[16]
+	mi := &file_utils_v1_utils_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -987,7 +1285,7 @@ func (x *ConvertRequest) String() string {
 func (*ConvertRequest) ProtoMessage() {}
 
 func (x *ConvertRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_utils_v1_utils_proto_msgTypes[16]
+	mi := &file_utils_v1_utils_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1000,7 +1298,7 @@ func (x *ConvertRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConvertRequest.ProtoReflect.Descriptor instead.
 func (*ConvertRequest) Descriptor() ([]byte, []int) {
-	return file_utils_v1_utils_proto_rawDescGZIP(), []int{16}
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ConvertRequest) GetInput() string {
@@ -1027,7 +1325,7 @@ type ConvertRow struct {
 
 func (x *ConvertRow) Reset() {
 	*x = ConvertRow{}
-	mi := &file_utils_v1_utils_proto_msgTypes[17]
+	mi := &file_utils_v1_utils_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1039,7 +1337,7 @@ func (x *ConvertRow) String() string {
 func (*ConvertRow) ProtoMessage() {}
 
 func (x *ConvertRow) ProtoReflect() protoreflect.Message {
-	mi := &file_utils_v1_utils_proto_msgTypes[17]
+	mi := &file_utils_v1_utils_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1052,7 +1350,7 @@ func (x *ConvertRow) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConvertRow.ProtoReflect.Descriptor instead.
 func (*ConvertRow) Descriptor() ([]byte, []int) {
-	return file_utils_v1_utils_proto_rawDescGZIP(), []int{17}
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ConvertRow) GetLabel() string {
@@ -1083,7 +1381,7 @@ type ConvertResponse struct {
 
 func (x *ConvertResponse) Reset() {
 	*x = ConvertResponse{}
-	mi := &file_utils_v1_utils_proto_msgTypes[18]
+	mi := &file_utils_v1_utils_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1095,7 +1393,7 @@ func (x *ConvertResponse) String() string {
 func (*ConvertResponse) ProtoMessage() {}
 
 func (x *ConvertResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_utils_v1_utils_proto_msgTypes[18]
+	mi := &file_utils_v1_utils_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1108,7 +1406,7 @@ func (x *ConvertResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConvertResponse.ProtoReflect.Descriptor instead.
 func (*ConvertResponse) Descriptor() ([]byte, []int) {
-	return file_utils_v1_utils_proto_rawDescGZIP(), []int{18}
+	return file_utils_v1_utils_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ConvertResponse) GetDetected() ConvertFormat {
@@ -1198,7 +1496,28 @@ const file_utils_v1_utils_proto_rawDesc = "" +
 	"\x1bGeneratePaperWalletResponse\x12&\n" +
 	"\x0fprivate_key_wif\x18\x01 \x01(\tR\rprivateKeyWif\x12%\n" +
 	"\x0epublic_address\x18\x02 \x01(\tR\rpublicAddress\x12&\n" +
-	"\x0fprivate_key_hex\x18\x03 \x01(\tR\rprivateKeyHex\"&\n" +
+	"\x0fprivate_key_hex\x18\x03 \x01(\tR\rprivateKeyHex\"8\n" +
+	"\bQrMatrix\x12\x12\n" +
+	"\x04size\x18\x01 \x01(\x05R\x04size\x12\x18\n" +
+	"\amodules\x18\x02 \x01(\fR\amodules\"\xd9\x01\n" +
+	"\x1bCreatePaperWalletPdfRequest\x12%\n" +
+	"\x0epublic_address\x18\x01 \x01(\tR\rpublicAddress\x12&\n" +
+	"\x0fprivate_key_wif\x18\x02 \x01(\tR\rprivateKeyWif\x121\n" +
+	"\n" +
+	"address_qr\x18\x03 \x01(\v2\x12.utils.v1.QrMatrixR\taddressQr\x128\n" +
+	"\x0eprivate_key_qr\x18\x04 \x01(\v2\x12.utils.v1.QrMatrixR\fprivateKeyQr\"0\n" +
+	"\x1cCreatePaperWalletPdfResponse\x12\x10\n" +
+	"\x03pdf\x18\x01 \x01(\fR\x03pdf\"\x84\x02\n" +
+	"\x1aCreatePaperCheckPdfRequest\x12%\n" +
+	"\x0epublic_address\x18\x01 \x01(\tR\rpublicAddress\x12&\n" +
+	"\x0fprivate_key_wif\x18\x02 \x01(\tR\rprivateKeyWif\x12\x16\n" +
+	"\x06amount\x18\x03 \x01(\tR\x06amount\x12\x12\n" +
+	"\x04txid\x18\x04 \x01(\tR\x04txid\x121\n" +
+	"\n" +
+	"address_qr\x18\x05 \x01(\v2\x12.utils.v1.QrMatrixR\taddressQr\x128\n" +
+	"\x0eprivate_key_qr\x18\x06 \x01(\v2\x12.utils.v1.QrMatrixR\fprivateKeyQr\"/\n" +
+	"\x1bCreatePaperCheckPdfResponse\x12\x10\n" +
+	"\x03pdf\x18\x01 \x01(\fR\x03pdf\"&\n" +
 	"\x12ValidateWIFRequest\x12\x10\n" +
 	"\x03wif\x18\x01 \x01(\tR\x03wif\"+\n" +
 	"\x13ValidateWIFResponse\x12\x14\n" +
@@ -1230,7 +1549,7 @@ const file_utils_v1_utils_proto_rawDesc = "" +
 	"\x15CONVERT_FORMAT_BECH32\x10\x05\x12\x18\n" +
 	"\x14CONVERT_FORMAT_ASCII\x10\x06\x12\x16\n" +
 	"\x12CONVERT_FORMAT_WIF\x10\a\x12\x1d\n" +
-	"\x19CONVERT_FORMAT_PASSPHRASE\x10\b2\x98\x06\n" +
+	"\x19CONVERT_FORMAT_PASSPHRASE\x10\b2\xe3\a\n" +
 	"\fUtilsService\x12V\n" +
 	"\x0fParseBitcoinURI\x12 .utils.v1.ParseBitcoinURIRequest\x1a!.utils.v1.ParseBitcoinURIResponse\x12_\n" +
 	"\x12ValidateBitcoinURI\x12#.utils.v1.ValidateBitcoinURIRequest\x1a$.utils.v1.ValidateBitcoinURIResponse\x12\\\n" +
@@ -1239,7 +1558,9 @@ const file_utils_v1_utils_proto_rawDesc = "" +
 	"\x13CalculateMerkleTree\x12$.utils.v1.CalculateMerkleTreeRequest\x1a%.utils.v1.CalculateMerkleTreeResponse\x12T\n" +
 	"\x13GeneratePaperWallet\x12\x16.google.protobuf.Empty\x1a%.utils.v1.GeneratePaperWalletResponse\x12J\n" +
 	"\vValidateWIF\x12\x1c.utils.v1.ValidateWIFRequest\x1a\x1d.utils.v1.ValidateWIFResponse\x12M\n" +
-	"\fWIFToAddress\x12\x1d.utils.v1.WIFToAddressRequest\x1a\x1e.utils.v1.WIFToAddressResponse\x12>\n" +
+	"\fWIFToAddress\x12\x1d.utils.v1.WIFToAddressRequest\x1a\x1e.utils.v1.WIFToAddressResponse\x12e\n" +
+	"\x14CreatePaperWalletPdf\x12%.utils.v1.CreatePaperWalletPdfRequest\x1a&.utils.v1.CreatePaperWalletPdfResponse\x12b\n" +
+	"\x13CreatePaperCheckPdf\x12$.utils.v1.CreatePaperCheckPdfRequest\x1a%.utils.v1.CreatePaperCheckPdfResponse\x12>\n" +
 	"\aConvert\x12\x18.utils.v1.ConvertRequest\x1a\x19.utils.v1.ConvertResponseB\xa4\x01\n" +
 	"\fcom.utils.v1B\n" +
 	"UtilsProtoP\x01ZGgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1;utilsv1\xa2\x02\x03UXX\xaa\x02\bUtils.V1\xca\x02\bUtils\\V1\xe2\x02\x14Utils\\V1\\GPBMetadata\xea\x02\tUtils::V1b\x06proto3"
@@ -1257,62 +1578,75 @@ func file_utils_v1_utils_proto_rawDescGZIP() []byte {
 }
 
 var file_utils_v1_utils_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_utils_v1_utils_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_utils_v1_utils_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_utils_v1_utils_proto_goTypes = []any{
-	(ConvertFormat)(0),                  // 0: utils.v1.ConvertFormat
-	(*ParseBitcoinURIRequest)(nil),      // 1: utils.v1.ParseBitcoinURIRequest
-	(*ParseBitcoinURIResponse)(nil),     // 2: utils.v1.ParseBitcoinURIResponse
-	(*ValidateBitcoinURIRequest)(nil),   // 3: utils.v1.ValidateBitcoinURIRequest
-	(*ValidateBitcoinURIResponse)(nil),  // 4: utils.v1.ValidateBitcoinURIResponse
-	(*DecodeBase58CheckRequest)(nil),    // 5: utils.v1.DecodeBase58CheckRequest
-	(*DecodeBase58CheckResponse)(nil),   // 6: utils.v1.DecodeBase58CheckResponse
-	(*EncodeBase58CheckRequest)(nil),    // 7: utils.v1.EncodeBase58CheckRequest
-	(*EncodeBase58CheckResponse)(nil),   // 8: utils.v1.EncodeBase58CheckResponse
-	(*CalculateMerkleTreeRequest)(nil),  // 9: utils.v1.CalculateMerkleTreeRequest
-	(*CalculateMerkleTreeResponse)(nil), // 10: utils.v1.CalculateMerkleTreeResponse
-	(*MerkleTreeLevel)(nil),             // 11: utils.v1.MerkleTreeLevel
-	(*GeneratePaperWalletResponse)(nil), // 12: utils.v1.GeneratePaperWalletResponse
-	(*ValidateWIFRequest)(nil),          // 13: utils.v1.ValidateWIFRequest
-	(*ValidateWIFResponse)(nil),         // 14: utils.v1.ValidateWIFResponse
-	(*WIFToAddressRequest)(nil),         // 15: utils.v1.WIFToAddressRequest
-	(*WIFToAddressResponse)(nil),        // 16: utils.v1.WIFToAddressResponse
-	(*ConvertRequest)(nil),              // 17: utils.v1.ConvertRequest
-	(*ConvertRow)(nil),                  // 18: utils.v1.ConvertRow
-	(*ConvertResponse)(nil),             // 19: utils.v1.ConvertResponse
-	nil,                                 // 20: utils.v1.ParseBitcoinURIResponse.ExtraParamsEntry
-	(*emptypb.Empty)(nil),               // 21: google.protobuf.Empty
+	(ConvertFormat)(0),                   // 0: utils.v1.ConvertFormat
+	(*ParseBitcoinURIRequest)(nil),       // 1: utils.v1.ParseBitcoinURIRequest
+	(*ParseBitcoinURIResponse)(nil),      // 2: utils.v1.ParseBitcoinURIResponse
+	(*ValidateBitcoinURIRequest)(nil),    // 3: utils.v1.ValidateBitcoinURIRequest
+	(*ValidateBitcoinURIResponse)(nil),   // 4: utils.v1.ValidateBitcoinURIResponse
+	(*DecodeBase58CheckRequest)(nil),     // 5: utils.v1.DecodeBase58CheckRequest
+	(*DecodeBase58CheckResponse)(nil),    // 6: utils.v1.DecodeBase58CheckResponse
+	(*EncodeBase58CheckRequest)(nil),     // 7: utils.v1.EncodeBase58CheckRequest
+	(*EncodeBase58CheckResponse)(nil),    // 8: utils.v1.EncodeBase58CheckResponse
+	(*CalculateMerkleTreeRequest)(nil),   // 9: utils.v1.CalculateMerkleTreeRequest
+	(*CalculateMerkleTreeResponse)(nil),  // 10: utils.v1.CalculateMerkleTreeResponse
+	(*MerkleTreeLevel)(nil),              // 11: utils.v1.MerkleTreeLevel
+	(*GeneratePaperWalletResponse)(nil),  // 12: utils.v1.GeneratePaperWalletResponse
+	(*QrMatrix)(nil),                     // 13: utils.v1.QrMatrix
+	(*CreatePaperWalletPdfRequest)(nil),  // 14: utils.v1.CreatePaperWalletPdfRequest
+	(*CreatePaperWalletPdfResponse)(nil), // 15: utils.v1.CreatePaperWalletPdfResponse
+	(*CreatePaperCheckPdfRequest)(nil),   // 16: utils.v1.CreatePaperCheckPdfRequest
+	(*CreatePaperCheckPdfResponse)(nil),  // 17: utils.v1.CreatePaperCheckPdfResponse
+	(*ValidateWIFRequest)(nil),           // 18: utils.v1.ValidateWIFRequest
+	(*ValidateWIFResponse)(nil),          // 19: utils.v1.ValidateWIFResponse
+	(*WIFToAddressRequest)(nil),          // 20: utils.v1.WIFToAddressRequest
+	(*WIFToAddressResponse)(nil),         // 21: utils.v1.WIFToAddressResponse
+	(*ConvertRequest)(nil),               // 22: utils.v1.ConvertRequest
+	(*ConvertRow)(nil),                   // 23: utils.v1.ConvertRow
+	(*ConvertResponse)(nil),              // 24: utils.v1.ConvertResponse
+	nil,                                  // 25: utils.v1.ParseBitcoinURIResponse.ExtraParamsEntry
+	(*emptypb.Empty)(nil),                // 26: google.protobuf.Empty
 }
 var file_utils_v1_utils_proto_depIdxs = []int32{
-	20, // 0: utils.v1.ParseBitcoinURIResponse.extra_params:type_name -> utils.v1.ParseBitcoinURIResponse.ExtraParamsEntry
+	25, // 0: utils.v1.ParseBitcoinURIResponse.extra_params:type_name -> utils.v1.ParseBitcoinURIResponse.ExtraParamsEntry
 	11, // 1: utils.v1.CalculateMerkleTreeResponse.levels:type_name -> utils.v1.MerkleTreeLevel
-	0,  // 2: utils.v1.ConvertRequest.format:type_name -> utils.v1.ConvertFormat
-	0,  // 3: utils.v1.ConvertResponse.detected:type_name -> utils.v1.ConvertFormat
-	18, // 4: utils.v1.ConvertResponse.encodings:type_name -> utils.v1.ConvertRow
-	18, // 5: utils.v1.ConvertResponse.hashes:type_name -> utils.v1.ConvertRow
-	18, // 6: utils.v1.ConvertResponse.keys:type_name -> utils.v1.ConvertRow
-	1,  // 7: utils.v1.UtilsService.ParseBitcoinURI:input_type -> utils.v1.ParseBitcoinURIRequest
-	3,  // 8: utils.v1.UtilsService.ValidateBitcoinURI:input_type -> utils.v1.ValidateBitcoinURIRequest
-	5,  // 9: utils.v1.UtilsService.DecodeBase58Check:input_type -> utils.v1.DecodeBase58CheckRequest
-	7,  // 10: utils.v1.UtilsService.EncodeBase58Check:input_type -> utils.v1.EncodeBase58CheckRequest
-	9,  // 11: utils.v1.UtilsService.CalculateMerkleTree:input_type -> utils.v1.CalculateMerkleTreeRequest
-	21, // 12: utils.v1.UtilsService.GeneratePaperWallet:input_type -> google.protobuf.Empty
-	13, // 13: utils.v1.UtilsService.ValidateWIF:input_type -> utils.v1.ValidateWIFRequest
-	15, // 14: utils.v1.UtilsService.WIFToAddress:input_type -> utils.v1.WIFToAddressRequest
-	17, // 15: utils.v1.UtilsService.Convert:input_type -> utils.v1.ConvertRequest
-	2,  // 16: utils.v1.UtilsService.ParseBitcoinURI:output_type -> utils.v1.ParseBitcoinURIResponse
-	4,  // 17: utils.v1.UtilsService.ValidateBitcoinURI:output_type -> utils.v1.ValidateBitcoinURIResponse
-	6,  // 18: utils.v1.UtilsService.DecodeBase58Check:output_type -> utils.v1.DecodeBase58CheckResponse
-	8,  // 19: utils.v1.UtilsService.EncodeBase58Check:output_type -> utils.v1.EncodeBase58CheckResponse
-	10, // 20: utils.v1.UtilsService.CalculateMerkleTree:output_type -> utils.v1.CalculateMerkleTreeResponse
-	12, // 21: utils.v1.UtilsService.GeneratePaperWallet:output_type -> utils.v1.GeneratePaperWalletResponse
-	14, // 22: utils.v1.UtilsService.ValidateWIF:output_type -> utils.v1.ValidateWIFResponse
-	16, // 23: utils.v1.UtilsService.WIFToAddress:output_type -> utils.v1.WIFToAddressResponse
-	19, // 24: utils.v1.UtilsService.Convert:output_type -> utils.v1.ConvertResponse
-	16, // [16:25] is the sub-list for method output_type
-	7,  // [7:16] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	13, // 2: utils.v1.CreatePaperWalletPdfRequest.address_qr:type_name -> utils.v1.QrMatrix
+	13, // 3: utils.v1.CreatePaperWalletPdfRequest.private_key_qr:type_name -> utils.v1.QrMatrix
+	13, // 4: utils.v1.CreatePaperCheckPdfRequest.address_qr:type_name -> utils.v1.QrMatrix
+	13, // 5: utils.v1.CreatePaperCheckPdfRequest.private_key_qr:type_name -> utils.v1.QrMatrix
+	0,  // 6: utils.v1.ConvertRequest.format:type_name -> utils.v1.ConvertFormat
+	0,  // 7: utils.v1.ConvertResponse.detected:type_name -> utils.v1.ConvertFormat
+	23, // 8: utils.v1.ConvertResponse.encodings:type_name -> utils.v1.ConvertRow
+	23, // 9: utils.v1.ConvertResponse.hashes:type_name -> utils.v1.ConvertRow
+	23, // 10: utils.v1.ConvertResponse.keys:type_name -> utils.v1.ConvertRow
+	1,  // 11: utils.v1.UtilsService.ParseBitcoinURI:input_type -> utils.v1.ParseBitcoinURIRequest
+	3,  // 12: utils.v1.UtilsService.ValidateBitcoinURI:input_type -> utils.v1.ValidateBitcoinURIRequest
+	5,  // 13: utils.v1.UtilsService.DecodeBase58Check:input_type -> utils.v1.DecodeBase58CheckRequest
+	7,  // 14: utils.v1.UtilsService.EncodeBase58Check:input_type -> utils.v1.EncodeBase58CheckRequest
+	9,  // 15: utils.v1.UtilsService.CalculateMerkleTree:input_type -> utils.v1.CalculateMerkleTreeRequest
+	26, // 16: utils.v1.UtilsService.GeneratePaperWallet:input_type -> google.protobuf.Empty
+	18, // 17: utils.v1.UtilsService.ValidateWIF:input_type -> utils.v1.ValidateWIFRequest
+	20, // 18: utils.v1.UtilsService.WIFToAddress:input_type -> utils.v1.WIFToAddressRequest
+	14, // 19: utils.v1.UtilsService.CreatePaperWalletPdf:input_type -> utils.v1.CreatePaperWalletPdfRequest
+	16, // 20: utils.v1.UtilsService.CreatePaperCheckPdf:input_type -> utils.v1.CreatePaperCheckPdfRequest
+	22, // 21: utils.v1.UtilsService.Convert:input_type -> utils.v1.ConvertRequest
+	2,  // 22: utils.v1.UtilsService.ParseBitcoinURI:output_type -> utils.v1.ParseBitcoinURIResponse
+	4,  // 23: utils.v1.UtilsService.ValidateBitcoinURI:output_type -> utils.v1.ValidateBitcoinURIResponse
+	6,  // 24: utils.v1.UtilsService.DecodeBase58Check:output_type -> utils.v1.DecodeBase58CheckResponse
+	8,  // 25: utils.v1.UtilsService.EncodeBase58Check:output_type -> utils.v1.EncodeBase58CheckResponse
+	10, // 26: utils.v1.UtilsService.CalculateMerkleTree:output_type -> utils.v1.CalculateMerkleTreeResponse
+	12, // 27: utils.v1.UtilsService.GeneratePaperWallet:output_type -> utils.v1.GeneratePaperWalletResponse
+	19, // 28: utils.v1.UtilsService.ValidateWIF:output_type -> utils.v1.ValidateWIFResponse
+	21, // 29: utils.v1.UtilsService.WIFToAddress:output_type -> utils.v1.WIFToAddressResponse
+	15, // 30: utils.v1.UtilsService.CreatePaperWalletPdf:output_type -> utils.v1.CreatePaperWalletPdfResponse
+	17, // 31: utils.v1.UtilsService.CreatePaperCheckPdf:output_type -> utils.v1.CreatePaperCheckPdfResponse
+	24, // 32: utils.v1.UtilsService.Convert:output_type -> utils.v1.ConvertResponse
+	22, // [22:33] is the sub-list for method output_type
+	11, // [11:22] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_utils_v1_utils_proto_init() }
@@ -1326,7 +1660,7 @@ func file_utils_v1_utils_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_utils_v1_utils_proto_rawDesc), len(file_utils_v1_utils_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   20,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

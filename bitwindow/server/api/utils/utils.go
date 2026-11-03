@@ -11,6 +11,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	utilspb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/paperpdf"
 )
 
 var _ rpc.UtilsServiceHandler = new(Server)
@@ -130,6 +131,46 @@ func (s *Server) GeneratePaperWallet(_ context.Context, _ *emptypb.Empty) (*util
 		PublicAddress: keypair.PublicAddress,
 		PrivateKeyHex: keypair.PrivateKeyHex,
 	}, nil
+}
+
+// CreatePaperWalletPdf implements utilsv1connect.UtilsServiceHandler
+func (s *Server) CreatePaperWalletPdf(_ context.Context, req *utilspb.CreatePaperWalletPdfRequest) (*utilspb.CreatePaperWalletPdfResponse, error) {
+	if req.PublicAddress == "" || req.PrivateKeyWif == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "public_address and private_key_wif are necessary")
+	}
+	pdf, err := paperpdf.PaperWalletPDF(paperpdf.PaperWallet{
+		Address:   req.PublicAddress,
+		WIF:       req.PrivateKeyWif,
+		AddressQR: qrMatrix(req.AddressQr),
+		WIFQR:     qrMatrix(req.PrivateKeyQr),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+	}
+	return &utilspb.CreatePaperWalletPdfResponse{Pdf: pdf}, nil
+}
+
+// CreatePaperCheckPdf implements utilsv1connect.UtilsServiceHandler
+func (s *Server) CreatePaperCheckPdf(_ context.Context, req *utilspb.CreatePaperCheckPdfRequest) (*utilspb.CreatePaperCheckPdfResponse, error) {
+	if req.PublicAddress == "" || req.PrivateKeyWif == "" || req.Amount == "" || req.Txid == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "public_address, private_key_wif, amount and txid are necessary")
+	}
+	pdf, err := paperpdf.PaperCheckPDF(paperpdf.PaperCheck{
+		Amount:    req.Amount,
+		Address:   req.PublicAddress,
+		WIF:       req.PrivateKeyWif,
+		TxID:      req.Txid,
+		AddressQR: qrMatrix(req.AddressQr),
+		WIFQR:     qrMatrix(req.PrivateKeyQr),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+	}
+	return &utilspb.CreatePaperCheckPdfResponse{Pdf: pdf}, nil
+}
+
+func qrMatrix(m *utilspb.QrMatrix) paperpdf.QRMatrix {
+	return paperpdf.QRMatrix{Size: int(m.GetSize()), Modules: m.GetModules()}
 }
 
 // ValidateWIF implements utilsv1connect.UtilsServiceHandler

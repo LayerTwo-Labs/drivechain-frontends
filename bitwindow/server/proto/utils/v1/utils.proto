@@ -20,6 +20,8 @@ service UtilsService {
   rpc GeneratePaperWallet(google.protobuf.Empty) returns (GeneratePaperWalletResponse);
   rpc ValidateWIF(ValidateWIFRequest) returns (ValidateWIFResponse);
   rpc WIFToAddress(WIFToAddressRequest) returns (WIFToAddressResponse);
+  rpc CreatePaperWalletPdf(CreatePaperWalletPdfRequest) returns (CreatePaperWalletPdfResponse);
+  rpc CreatePaperCheckPdf(CreatePaperCheckPdfRequest) returns (CreatePaperCheckPdfResponse);
 
   // Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
   rpc Convert(ConvertRequest) returns (ConvertResponse);
@@ -95,6 +97,41 @@ message GeneratePaperWalletResponse {
   string private_key_wif = 1;
   string public_address = 2;
   string private_key_hex = 3;
+}
+
+// QrMatrix is the module grid of one QR code.
+message QrMatrix {
+  // Count of modules per side.
+  int32 size = 1;
+  // One byte per module, row-major from the top-left module. 1 is dark, 0 is light.
+  bytes modules = 2;
+}
+
+message CreatePaperWalletPdfRequest {
+  string public_address = 1;
+  string private_key_wif = 2;
+  QrMatrix address_qr = 3;
+  QrMatrix private_key_qr = 4;
+}
+
+message CreatePaperWalletPdfResponse {
+  // A4 landscape PDF file.
+  bytes pdf = 1;
+}
+
+message CreatePaperCheckPdfRequest {
+  string public_address = 1;
+  string private_key_wif = 2;
+  // Amount with its unit, for example "0.001 BTC".
+  string amount = 3;
+  string txid = 4;
+  QrMatrix address_qr = 5;
+  QrMatrix private_key_qr = 6;
+}
+
+message CreatePaperCheckPdfResponse {
+  // A4 landscape PDF file.
+  bytes pdf = 1;
 }
 
 message ValidateWIFRequest {

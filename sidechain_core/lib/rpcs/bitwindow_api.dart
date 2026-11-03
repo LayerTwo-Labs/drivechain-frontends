@@ -2015,6 +2015,8 @@ abstract class UtilsAPI {
   Future<utilspb.GeneratePaperWalletResponse> generatePaperWallet();
   Future<utilspb.ValidateWIFResponse> validateWIF(String wif);
   Future<utilspb.WIFToAddressResponse> wifToAddress(String wif);
+  Future<List<int>> createPaperWalletPdf(utilspb.CreatePaperWalletPdfRequest request);
+  Future<List<int>> createPaperCheckPdf(utilspb.CreatePaperCheckPdfRequest request);
   Future<utilspb.ConvertResponse> convert(String input, utilspb.ConvertFormat format);
 }
 
@@ -2108,6 +2110,24 @@ class _UtilsAPILive implements UtilsAPI {
     } catch (e) {
       final error = 'could not convert WIF to address: ${extractConnectException(e)}';
       throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<List<int>> createPaperWalletPdf(utilspb.CreatePaperWalletPdfRequest request) async {
+    try {
+      return (await _client.createPaperWalletPdf(request)).pdf;
+    } catch (e) {
+      throw UtilsException('could not create the paper wallet PDF: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<List<int>> createPaperCheckPdf(utilspb.CreatePaperCheckPdfRequest request) async {
+    try {
+      return (await _client.createPaperCheckPdf(request)).pdf;
+    } catch (e) {
+      throw UtilsException('could not create the paper check PDF: ${extractConnectException(e)}');
     }
   }
 

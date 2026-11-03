@@ -873,6 +873,396 @@ class GeneratePaperWalletResponse extends $pb.GeneratedMessage {
   void clearPrivateKeyHex() => clearField(3);
 }
 
+/// QrMatrix is the module grid of one QR code.
+class QrMatrix extends $pb.GeneratedMessage {
+  factory QrMatrix({
+    $core.int? size,
+    $core.List<$core.int>? modules,
+  }) {
+    final $result = create();
+    if (size != null) {
+      $result.size = size;
+    }
+    if (modules != null) {
+      $result.modules = modules;
+    }
+    return $result;
+  }
+  QrMatrix._() : super();
+  factory QrMatrix.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory QrMatrix.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'QrMatrix', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'size', $pb.PbFieldType.O3)
+    ..a<$core.List<$core.int>>(2, _omitFieldNames ? '' : 'modules', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  QrMatrix clone() => QrMatrix()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  QrMatrix copyWith(void Function(QrMatrix) updates) => super.copyWith((message) => updates(message as QrMatrix)) as QrMatrix;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static QrMatrix create() => QrMatrix._();
+  QrMatrix createEmptyInstance() => create();
+  static $pb.PbList<QrMatrix> createRepeated() => $pb.PbList<QrMatrix>();
+  @$core.pragma('dart2js:noInline')
+  static QrMatrix getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<QrMatrix>(create);
+  static QrMatrix? _defaultInstance;
+
+  /// Count of modules per side.
+  @$pb.TagNumber(1)
+  $core.int get size => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set size($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSize() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSize() => clearField(1);
+
+  /// One byte per module, row-major from the top-left module. 1 is dark, 0 is light.
+  @$pb.TagNumber(2)
+  $core.List<$core.int> get modules => $_getN(1);
+  @$pb.TagNumber(2)
+  set modules($core.List<$core.int> v) { $_setBytes(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasModules() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearModules() => clearField(2);
+}
+
+class CreatePaperWalletPdfRequest extends $pb.GeneratedMessage {
+  factory CreatePaperWalletPdfRequest({
+    $core.String? publicAddress,
+    $core.String? privateKeyWif,
+    QrMatrix? addressQr,
+    QrMatrix? privateKeyQr,
+  }) {
+    final $result = create();
+    if (publicAddress != null) {
+      $result.publicAddress = publicAddress;
+    }
+    if (privateKeyWif != null) {
+      $result.privateKeyWif = privateKeyWif;
+    }
+    if (addressQr != null) {
+      $result.addressQr = addressQr;
+    }
+    if (privateKeyQr != null) {
+      $result.privateKeyQr = privateKeyQr;
+    }
+    return $result;
+  }
+  CreatePaperWalletPdfRequest._() : super();
+  factory CreatePaperWalletPdfRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreatePaperWalletPdfRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreatePaperWalletPdfRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'publicAddress')
+    ..aOS(2, _omitFieldNames ? '' : 'privateKeyWif')
+    ..aOM<QrMatrix>(3, _omitFieldNames ? '' : 'addressQr', subBuilder: QrMatrix.create)
+    ..aOM<QrMatrix>(4, _omitFieldNames ? '' : 'privateKeyQr', subBuilder: QrMatrix.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreatePaperWalletPdfRequest clone() => CreatePaperWalletPdfRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreatePaperWalletPdfRequest copyWith(void Function(CreatePaperWalletPdfRequest) updates) => super.copyWith((message) => updates(message as CreatePaperWalletPdfRequest)) as CreatePaperWalletPdfRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreatePaperWalletPdfRequest create() => CreatePaperWalletPdfRequest._();
+  CreatePaperWalletPdfRequest createEmptyInstance() => create();
+  static $pb.PbList<CreatePaperWalletPdfRequest> createRepeated() => $pb.PbList<CreatePaperWalletPdfRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreatePaperWalletPdfRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreatePaperWalletPdfRequest>(create);
+  static CreatePaperWalletPdfRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get publicAddress => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set publicAddress($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPublicAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPublicAddress() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get privateKeyWif => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set privateKeyWif($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPrivateKeyWif() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPrivateKeyWif() => clearField(2);
+
+  @$pb.TagNumber(3)
+  QrMatrix get addressQr => $_getN(2);
+  @$pb.TagNumber(3)
+  set addressQr(QrMatrix v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAddressQr() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAddressQr() => clearField(3);
+  @$pb.TagNumber(3)
+  QrMatrix ensureAddressQr() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  QrMatrix get privateKeyQr => $_getN(3);
+  @$pb.TagNumber(4)
+  set privateKeyQr(QrMatrix v) { setField(4, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPrivateKeyQr() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPrivateKeyQr() => clearField(4);
+  @$pb.TagNumber(4)
+  QrMatrix ensurePrivateKeyQr() => $_ensure(3);
+}
+
+class CreatePaperWalletPdfResponse extends $pb.GeneratedMessage {
+  factory CreatePaperWalletPdfResponse({
+    $core.List<$core.int>? pdf,
+  }) {
+    final $result = create();
+    if (pdf != null) {
+      $result.pdf = pdf;
+    }
+    return $result;
+  }
+  CreatePaperWalletPdfResponse._() : super();
+  factory CreatePaperWalletPdfResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreatePaperWalletPdfResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreatePaperWalletPdfResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'pdf', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreatePaperWalletPdfResponse clone() => CreatePaperWalletPdfResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreatePaperWalletPdfResponse copyWith(void Function(CreatePaperWalletPdfResponse) updates) => super.copyWith((message) => updates(message as CreatePaperWalletPdfResponse)) as CreatePaperWalletPdfResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreatePaperWalletPdfResponse create() => CreatePaperWalletPdfResponse._();
+  CreatePaperWalletPdfResponse createEmptyInstance() => create();
+  static $pb.PbList<CreatePaperWalletPdfResponse> createRepeated() => $pb.PbList<CreatePaperWalletPdfResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreatePaperWalletPdfResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreatePaperWalletPdfResponse>(create);
+  static CreatePaperWalletPdfResponse? _defaultInstance;
+
+  /// A4 landscape PDF file.
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get pdf => $_getN(0);
+  @$pb.TagNumber(1)
+  set pdf($core.List<$core.int> v) { $_setBytes(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPdf() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPdf() => clearField(1);
+}
+
+class CreatePaperCheckPdfRequest extends $pb.GeneratedMessage {
+  factory CreatePaperCheckPdfRequest({
+    $core.String? publicAddress,
+    $core.String? privateKeyWif,
+    $core.String? amount,
+    $core.String? txid,
+    QrMatrix? addressQr,
+    QrMatrix? privateKeyQr,
+  }) {
+    final $result = create();
+    if (publicAddress != null) {
+      $result.publicAddress = publicAddress;
+    }
+    if (privateKeyWif != null) {
+      $result.privateKeyWif = privateKeyWif;
+    }
+    if (amount != null) {
+      $result.amount = amount;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (addressQr != null) {
+      $result.addressQr = addressQr;
+    }
+    if (privateKeyQr != null) {
+      $result.privateKeyQr = privateKeyQr;
+    }
+    return $result;
+  }
+  CreatePaperCheckPdfRequest._() : super();
+  factory CreatePaperCheckPdfRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreatePaperCheckPdfRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreatePaperCheckPdfRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'publicAddress')
+    ..aOS(2, _omitFieldNames ? '' : 'privateKeyWif')
+    ..aOS(3, _omitFieldNames ? '' : 'amount')
+    ..aOS(4, _omitFieldNames ? '' : 'txid')
+    ..aOM<QrMatrix>(5, _omitFieldNames ? '' : 'addressQr', subBuilder: QrMatrix.create)
+    ..aOM<QrMatrix>(6, _omitFieldNames ? '' : 'privateKeyQr', subBuilder: QrMatrix.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreatePaperCheckPdfRequest clone() => CreatePaperCheckPdfRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreatePaperCheckPdfRequest copyWith(void Function(CreatePaperCheckPdfRequest) updates) => super.copyWith((message) => updates(message as CreatePaperCheckPdfRequest)) as CreatePaperCheckPdfRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreatePaperCheckPdfRequest create() => CreatePaperCheckPdfRequest._();
+  CreatePaperCheckPdfRequest createEmptyInstance() => create();
+  static $pb.PbList<CreatePaperCheckPdfRequest> createRepeated() => $pb.PbList<CreatePaperCheckPdfRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreatePaperCheckPdfRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreatePaperCheckPdfRequest>(create);
+  static CreatePaperCheckPdfRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get publicAddress => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set publicAddress($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPublicAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPublicAddress() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get privateKeyWif => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set privateKeyWif($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPrivateKeyWif() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPrivateKeyWif() => clearField(2);
+
+  /// Amount with its unit, for example "0.001 BTC".
+  @$pb.TagNumber(3)
+  $core.String get amount => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set amount($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAmount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAmount() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get txid => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set txid($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasTxid() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTxid() => clearField(4);
+
+  @$pb.TagNumber(5)
+  QrMatrix get addressQr => $_getN(4);
+  @$pb.TagNumber(5)
+  set addressQr(QrMatrix v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasAddressQr() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAddressQr() => clearField(5);
+  @$pb.TagNumber(5)
+  QrMatrix ensureAddressQr() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  QrMatrix get privateKeyQr => $_getN(5);
+  @$pb.TagNumber(6)
+  set privateKeyQr(QrMatrix v) { setField(6, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasPrivateKeyQr() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearPrivateKeyQr() => clearField(6);
+  @$pb.TagNumber(6)
+  QrMatrix ensurePrivateKeyQr() => $_ensure(5);
+}
+
+class CreatePaperCheckPdfResponse extends $pb.GeneratedMessage {
+  factory CreatePaperCheckPdfResponse({
+    $core.List<$core.int>? pdf,
+  }) {
+    final $result = create();
+    if (pdf != null) {
+      $result.pdf = pdf;
+    }
+    return $result;
+  }
+  CreatePaperCheckPdfResponse._() : super();
+  factory CreatePaperCheckPdfResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreatePaperCheckPdfResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreatePaperCheckPdfResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'pdf', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreatePaperCheckPdfResponse clone() => CreatePaperCheckPdfResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreatePaperCheckPdfResponse copyWith(void Function(CreatePaperCheckPdfResponse) updates) => super.copyWith((message) => updates(message as CreatePaperCheckPdfResponse)) as CreatePaperCheckPdfResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreatePaperCheckPdfResponse create() => CreatePaperCheckPdfResponse._();
+  CreatePaperCheckPdfResponse createEmptyInstance() => create();
+  static $pb.PbList<CreatePaperCheckPdfResponse> createRepeated() => $pb.PbList<CreatePaperCheckPdfResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreatePaperCheckPdfResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreatePaperCheckPdfResponse>(create);
+  static CreatePaperCheckPdfResponse? _defaultInstance;
+
+  /// A4 landscape PDF file.
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get pdf => $_getN(0);
+  @$pb.TagNumber(1)
+  set pdf($core.List<$core.int> v) { $_setBytes(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPdf() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPdf() => clearField(1);
+}
+
 class ValidateWIFRequest extends $pb.GeneratedMessage {
   factory ValidateWIFRequest({
     $core.String? wif,
@@ -1331,6 +1721,12 @@ class UtilsServiceApi {
   ;
   $async.Future<WIFToAddressResponse> wIFToAddress($pb.ClientContext? ctx, WIFToAddressRequest request) =>
     _client.invoke<WIFToAddressResponse>(ctx, 'UtilsService', 'WIFToAddress', request, WIFToAddressResponse())
+  ;
+  $async.Future<CreatePaperWalletPdfResponse> createPaperWalletPdf($pb.ClientContext? ctx, CreatePaperWalletPdfRequest request) =>
+    _client.invoke<CreatePaperWalletPdfResponse>(ctx, 'UtilsService', 'CreatePaperWalletPdf', request, CreatePaperWalletPdfResponse())
+  ;
+  $async.Future<CreatePaperCheckPdfResponse> createPaperCheckPdf($pb.ClientContext? ctx, CreatePaperCheckPdfRequest request) =>
+    _client.invoke<CreatePaperCheckPdfResponse>(ctx, 'UtilsService', 'CreatePaperCheckPdf', request, CreatePaperCheckPdfResponse())
   ;
   $async.Future<ConvertResponse> convert($pb.ClientContext? ctx, ConvertRequest request) =>
     _client.invoke<ConvertResponse>(ctx, 'UtilsService', 'Convert', request, ConvertResponse())

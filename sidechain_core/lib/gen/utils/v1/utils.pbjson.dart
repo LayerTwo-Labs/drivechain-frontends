@@ -231,6 +231,83 @@ final $typed_data.Uint8List generatePaperWalletResponseDescriptor = $convert.bas
     '1wcml2YXRlS2V5V2lmEiUKDnB1YmxpY19hZGRyZXNzGAIgASgJUg1wdWJsaWNBZGRyZXNzEiYK'
     'D3ByaXZhdGVfa2V5X2hleBgDIAEoCVINcHJpdmF0ZUtleUhleA==');
 
+@$core.Deprecated('Use qrMatrixDescriptor instead')
+const QrMatrix$json = {
+  '1': 'QrMatrix',
+  '2': [
+    {'1': 'size', '3': 1, '4': 1, '5': 5, '10': 'size'},
+    {'1': 'modules', '3': 2, '4': 1, '5': 12, '10': 'modules'},
+  ],
+};
+
+/// Descriptor for `QrMatrix`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List qrMatrixDescriptor = $convert.base64Decode(
+    'CghRck1hdHJpeBISCgRzaXplGAEgASgFUgRzaXplEhgKB21vZHVsZXMYAiABKAxSB21vZHVsZX'
+    'M=');
+
+@$core.Deprecated('Use createPaperWalletPdfRequestDescriptor instead')
+const CreatePaperWalletPdfRequest$json = {
+  '1': 'CreatePaperWalletPdfRequest',
+  '2': [
+    {'1': 'public_address', '3': 1, '4': 1, '5': 9, '10': 'publicAddress'},
+    {'1': 'private_key_wif', '3': 2, '4': 1, '5': 9, '10': 'privateKeyWif'},
+    {'1': 'address_qr', '3': 3, '4': 1, '5': 11, '6': '.utils.v1.QrMatrix', '10': 'addressQr'},
+    {'1': 'private_key_qr', '3': 4, '4': 1, '5': 11, '6': '.utils.v1.QrMatrix', '10': 'privateKeyQr'},
+  ],
+};
+
+/// Descriptor for `CreatePaperWalletPdfRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPaperWalletPdfRequestDescriptor = $convert.base64Decode(
+    'ChtDcmVhdGVQYXBlcldhbGxldFBkZlJlcXVlc3QSJQoOcHVibGljX2FkZHJlc3MYASABKAlSDX'
+    'B1YmxpY0FkZHJlc3MSJgoPcHJpdmF0ZV9rZXlfd2lmGAIgASgJUg1wcml2YXRlS2V5V2lmEjEK'
+    'CmFkZHJlc3NfcXIYAyABKAsyEi51dGlscy52MS5Rck1hdHJpeFIJYWRkcmVzc1FyEjgKDnByaX'
+    'ZhdGVfa2V5X3FyGAQgASgLMhIudXRpbHMudjEuUXJNYXRyaXhSDHByaXZhdGVLZXlRcg==');
+
+@$core.Deprecated('Use createPaperWalletPdfResponseDescriptor instead')
+const CreatePaperWalletPdfResponse$json = {
+  '1': 'CreatePaperWalletPdfResponse',
+  '2': [
+    {'1': 'pdf', '3': 1, '4': 1, '5': 12, '10': 'pdf'},
+  ],
+};
+
+/// Descriptor for `CreatePaperWalletPdfResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPaperWalletPdfResponseDescriptor = $convert.base64Decode(
+    'ChxDcmVhdGVQYXBlcldhbGxldFBkZlJlc3BvbnNlEhAKA3BkZhgBIAEoDFIDcGRm');
+
+@$core.Deprecated('Use createPaperCheckPdfRequestDescriptor instead')
+const CreatePaperCheckPdfRequest$json = {
+  '1': 'CreatePaperCheckPdfRequest',
+  '2': [
+    {'1': 'public_address', '3': 1, '4': 1, '5': 9, '10': 'publicAddress'},
+    {'1': 'private_key_wif', '3': 2, '4': 1, '5': 9, '10': 'privateKeyWif'},
+    {'1': 'amount', '3': 3, '4': 1, '5': 9, '10': 'amount'},
+    {'1': 'txid', '3': 4, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'address_qr', '3': 5, '4': 1, '5': 11, '6': '.utils.v1.QrMatrix', '10': 'addressQr'},
+    {'1': 'private_key_qr', '3': 6, '4': 1, '5': 11, '6': '.utils.v1.QrMatrix', '10': 'privateKeyQr'},
+  ],
+};
+
+/// Descriptor for `CreatePaperCheckPdfRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPaperCheckPdfRequestDescriptor = $convert.base64Decode(
+    'ChpDcmVhdGVQYXBlckNoZWNrUGRmUmVxdWVzdBIlCg5wdWJsaWNfYWRkcmVzcxgBIAEoCVINcH'
+    'VibGljQWRkcmVzcxImCg9wcml2YXRlX2tleV93aWYYAiABKAlSDXByaXZhdGVLZXlXaWYSFgoG'
+    'YW1vdW50GAMgASgJUgZhbW91bnQSEgoEdHhpZBgEIAEoCVIEdHhpZBIxCgphZGRyZXNzX3FyGA'
+    'UgASgLMhIudXRpbHMudjEuUXJNYXRyaXhSCWFkZHJlc3NRchI4Cg5wcml2YXRlX2tleV9xchgG'
+    'IAEoCzISLnV0aWxzLnYxLlFyTWF0cml4Ugxwcml2YXRlS2V5UXI=');
+
+@$core.Deprecated('Use createPaperCheckPdfResponseDescriptor instead')
+const CreatePaperCheckPdfResponse$json = {
+  '1': 'CreatePaperCheckPdfResponse',
+  '2': [
+    {'1': 'pdf', '3': 1, '4': 1, '5': 12, '10': 'pdf'},
+  ],
+};
+
+/// Descriptor for `CreatePaperCheckPdfResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPaperCheckPdfResponseDescriptor = $convert.base64Decode(
+    'ChtDcmVhdGVQYXBlckNoZWNrUGRmUmVzcG9uc2USEAoDcGRmGAEgASgMUgNwZGY=');
+
 @$core.Deprecated('Use validateWIFRequestDescriptor instead')
 const ValidateWIFRequest$json = {
   '1': 'ValidateWIFRequest',
@@ -340,6 +417,8 @@ const $core.Map<$core.String, $core.dynamic> UtilsServiceBase$json = {
     {'1': 'GeneratePaperWallet', '2': '.google.protobuf.Empty', '3': '.utils.v1.GeneratePaperWalletResponse'},
     {'1': 'ValidateWIF', '2': '.utils.v1.ValidateWIFRequest', '3': '.utils.v1.ValidateWIFResponse'},
     {'1': 'WIFToAddress', '2': '.utils.v1.WIFToAddressRequest', '3': '.utils.v1.WIFToAddressResponse'},
+    {'1': 'CreatePaperWalletPdf', '2': '.utils.v1.CreatePaperWalletPdfRequest', '3': '.utils.v1.CreatePaperWalletPdfResponse'},
+    {'1': 'CreatePaperCheckPdf', '2': '.utils.v1.CreatePaperCheckPdfRequest', '3': '.utils.v1.CreatePaperCheckPdfResponse'},
     {'1': 'Convert', '2': '.utils.v1.ConvertRequest', '3': '.utils.v1.ConvertResponse'},
   ],
 };
@@ -364,6 +443,11 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> UtilsServi
   '.utils.v1.ValidateWIFResponse': ValidateWIFResponse$json,
   '.utils.v1.WIFToAddressRequest': WIFToAddressRequest$json,
   '.utils.v1.WIFToAddressResponse': WIFToAddressResponse$json,
+  '.utils.v1.CreatePaperWalletPdfRequest': CreatePaperWalletPdfRequest$json,
+  '.utils.v1.QrMatrix': QrMatrix$json,
+  '.utils.v1.CreatePaperWalletPdfResponse': CreatePaperWalletPdfResponse$json,
+  '.utils.v1.CreatePaperCheckPdfRequest': CreatePaperCheckPdfRequest$json,
+  '.utils.v1.CreatePaperCheckPdfResponse': CreatePaperCheckPdfResponse$json,
   '.utils.v1.ConvertRequest': ConvertRequest$json,
   '.utils.v1.ConvertResponse': ConvertResponse$json,
   '.utils.v1.ConvertRow': ConvertRow$json,
@@ -384,6 +468,9 @@ final $typed_data.Uint8List utilsServiceDescriptor = $convert.base64Decode(
     'YXBlcldhbGxldFJlc3BvbnNlEkoKC1ZhbGlkYXRlV0lGEhwudXRpbHMudjEuVmFsaWRhdGVXSU'
     'ZSZXF1ZXN0Gh0udXRpbHMudjEuVmFsaWRhdGVXSUZSZXNwb25zZRJNCgxXSUZUb0FkZHJlc3MS'
     'HS51dGlscy52MS5XSUZUb0FkZHJlc3NSZXF1ZXN0Gh4udXRpbHMudjEuV0lGVG9BZGRyZXNzUm'
-    'VzcG9uc2USPgoHQ29udmVydBIYLnV0aWxzLnYxLkNvbnZlcnRSZXF1ZXN0GhkudXRpbHMudjEu'
-    'Q29udmVydFJlc3BvbnNl');
+    'VzcG9uc2USZQoUQ3JlYXRlUGFwZXJXYWxsZXRQZGYSJS51dGlscy52MS5DcmVhdGVQYXBlcldh'
+    'bGxldFBkZlJlcXVlc3QaJi51dGlscy52MS5DcmVhdGVQYXBlcldhbGxldFBkZlJlc3BvbnNlEm'
+    'IKE0NyZWF0ZVBhcGVyQ2hlY2tQZGYSJC51dGlscy52MS5DcmVhdGVQYXBlckNoZWNrUGRmUmVx'
+    'dWVzdBolLnV0aWxzLnYxLkNyZWF0ZVBhcGVyQ2hlY2tQZGZSZXNwb25zZRI+CgdDb252ZXJ0Eh'
+    'gudXRpbHMudjEuQ29udmVydFJlcXVlc3QaGS51dGlscy52MS5Db252ZXJ0UmVzcG9uc2U=');
 

@@ -47,6 +47,12 @@ const (
 	UtilsServiceValidateWIFProcedure = "/utils.v1.UtilsService/ValidateWIF"
 	// UtilsServiceWIFToAddressProcedure is the procedure name of the UtilsService's WIFToAddress RPC.
 	UtilsServiceWIFToAddressProcedure = "/utils.v1.UtilsService/WIFToAddress"
+	// UtilsServiceCreatePaperWalletPdfProcedure is the procedure name of the UtilsService's
+	// CreatePaperWalletPdf RPC.
+	UtilsServiceCreatePaperWalletPdfProcedure = "/utils.v1.UtilsService/CreatePaperWalletPdf"
+	// UtilsServiceCreatePaperCheckPdfProcedure is the procedure name of the UtilsService's
+	// CreatePaperCheckPdf RPC.
+	UtilsServiceCreatePaperCheckPdfProcedure = "/utils.v1.UtilsService/CreatePaperCheckPdf"
 	// UtilsServiceConvertProcedure is the procedure name of the UtilsService's Convert RPC.
 	UtilsServiceConvertProcedure = "/utils.v1.UtilsService/Convert"
 )
@@ -108,6 +114,20 @@ var (
 			Procedure:  UtilsServiceWIFToAddressProcedure,
 		}
 	})
+	utilsServiceCreatePaperWalletPdfSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_utils_v1_utils_proto.Services().ByName("UtilsService").Methods().ByName("CreatePaperWalletPdf"),
+			Procedure:  UtilsServiceCreatePaperWalletPdfProcedure,
+		}
+	})
+	utilsServiceCreatePaperCheckPdfSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_utils_v1_utils_proto.Services().ByName("UtilsService").Methods().ByName("CreatePaperCheckPdf"),
+			Procedure:  UtilsServiceCreatePaperCheckPdfProcedure,
+		}
+	})
 	utilsServiceConvertSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -131,6 +151,8 @@ type UtilsServiceClient interface {
 	GeneratePaperWallet(context.Context, *emptypb.Empty) (*v1.GeneratePaperWalletResponse, error)
 	ValidateWIF(context.Context, *v1.ValidateWIFRequest) (*v1.ValidateWIFResponse, error)
 	WIFToAddress(context.Context, *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error)
+	CreatePaperWalletPdf(context.Context, *v1.CreatePaperWalletPdfRequest) (*v1.CreatePaperWalletPdfResponse, error)
+	CreatePaperCheckPdf(context.Context, *v1.CreatePaperCheckPdfRequest) (*v1.CreatePaperCheckPdfResponse, error)
 	// Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
 	Convert(context.Context, *v1.ConvertRequest) (*v1.ConvertResponse, error)
 }
@@ -155,6 +177,8 @@ type UtilsServiceHandler interface {
 	GeneratePaperWallet(context.Context, *emptypb.Empty) (*v1.GeneratePaperWalletResponse, error)
 	ValidateWIF(context.Context, *v1.ValidateWIFRequest) (*v1.ValidateWIFResponse, error)
 	WIFToAddress(context.Context, *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error)
+	CreatePaperWalletPdf(context.Context, *v1.CreatePaperWalletPdfRequest) (*v1.CreatePaperWalletPdfResponse, error)
+	CreatePaperCheckPdf(context.Context, *v1.CreatePaperCheckPdfRequest) (*v1.CreatePaperCheckPdfResponse, error)
 	// Convert shows the encodings, the hashes and, for a 32-byte secret, the keys of one input.
 	Convert(context.Context, *v1.ConvertRequest) (*v1.ConvertResponse, error)
 }
@@ -171,6 +195,8 @@ func RegisterUtilsServiceHandler(server *connect.Server, svc UtilsServiceHandler
 		connect.Method{Spec: utilsServiceGeneratePaperWalletSpec(), Handler: adapter.generatePaperWallet},
 		connect.Method{Spec: utilsServiceValidateWIFSpec(), Handler: adapter.validateWIF},
 		connect.Method{Spec: utilsServiceWIFToAddressSpec(), Handler: adapter.wIFToAddress},
+		connect.Method{Spec: utilsServiceCreatePaperWalletPdfSpec(), Handler: adapter.createPaperWalletPdf},
+		connect.Method{Spec: utilsServiceCreatePaperCheckPdfSpec(), Handler: adapter.createPaperCheckPdf},
 		connect.Method{Spec: utilsServiceConvertSpec(), Handler: adapter.convert},
 	)
 }
@@ -208,6 +234,14 @@ func (UnimplementedUtilsServiceHandler) ValidateWIF(context.Context, *v1.Validat
 
 func (UnimplementedUtilsServiceHandler) WIFToAddress(context.Context, *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "utils.v1.UtilsService.WIFToAddress is not implemented")
+}
+
+func (UnimplementedUtilsServiceHandler) CreatePaperWalletPdf(context.Context, *v1.CreatePaperWalletPdfRequest) (*v1.CreatePaperWalletPdfResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "utils.v1.UtilsService.CreatePaperWalletPdf is not implemented")
+}
+
+func (UnimplementedUtilsServiceHandler) CreatePaperCheckPdf(context.Context, *v1.CreatePaperCheckPdfRequest) (*v1.CreatePaperCheckPdfResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "utils.v1.UtilsService.CreatePaperCheckPdf is not implemented")
 }
 
 func (UnimplementedUtilsServiceHandler) Convert(context.Context, *v1.ConvertRequest) (*v1.ConvertResponse, error) {
@@ -277,6 +311,22 @@ func (c *utilsServiceClient) ValidateWIF(ctx context.Context, req *v1.ValidateWI
 func (c *utilsServiceClient) WIFToAddress(ctx context.Context, req *v1.WIFToAddressRequest) (*v1.WIFToAddressResponse, error) {
 	var res v1.WIFToAddressResponse
 	if err := c.client.CallUnary(ctx, utilsServiceWIFToAddressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *utilsServiceClient) CreatePaperWalletPdf(ctx context.Context, req *v1.CreatePaperWalletPdfRequest) (*v1.CreatePaperWalletPdfResponse, error) {
+	var res v1.CreatePaperWalletPdfResponse
+	if err := c.client.CallUnary(ctx, utilsServiceCreatePaperWalletPdfSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *utilsServiceClient) CreatePaperCheckPdf(ctx context.Context, req *v1.CreatePaperCheckPdfRequest) (*v1.CreatePaperCheckPdfResponse, error) {
+	var res v1.CreatePaperCheckPdfResponse
+	if err := c.client.CallUnary(ctx, utilsServiceCreatePaperCheckPdfSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -382,6 +432,30 @@ func (h utilsServiceHandler) wIFToAddress(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.WIFToAddress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h utilsServiceHandler) createPaperWalletPdf(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreatePaperWalletPdfRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreatePaperWalletPdf(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h utilsServiceHandler) createPaperCheckPdf(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreatePaperCheckPdfRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreatePaperCheckPdf(ctx, &req)
 	if err != nil {
 		return err
 	}
