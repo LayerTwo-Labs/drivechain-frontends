@@ -1,5 +1,5 @@
 import 'package:bitwindow/utils/base58.dart';
-import 'package:convert/convert.dart';
+import 'package:sidechain_core/utils/hex.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Bitcoin Core src/test/data/base58_encode_decode.json.
@@ -21,8 +21,8 @@ const _vectors = <(String, String)>[
 void main() {
   test('encodes and decodes the Bitcoin Core vectors', () {
     for (final (hexValue, encoded) in _vectors) {
-      expect(base58Encode(hex.decode(hexValue)), encoded, reason: hexValue);
-      expect(hex.encode(base58Decode(encoded)), hexValue, reason: encoded);
+      expect(base58Encode(hexDecode(hexValue)), encoded, reason: hexValue);
+      expect(hexEncode(base58Decode(encoded)), hexValue, reason: encoded);
     }
   });
 

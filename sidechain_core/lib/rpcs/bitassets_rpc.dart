@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
-import 'package:convert/convert.dart' show hex;
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -764,7 +763,7 @@ class BitAssetsLive extends BitAssetsRPC {
       ),
     );
     // Convert hex to string
-    final bytes = hex.decode(resp.plaintext);
+    final bytes = hexDecode(resp.plaintext);
     final decoded = utf8.decode(bytes);
     return decoded;
   }

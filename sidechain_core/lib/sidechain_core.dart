@@ -217,6 +217,7 @@ export 'utils/log_file.dart';
 export 'utils/shared_log_tail.dart';
 export 'utils/diff_utils.dart';
 export 'utils/lock.dart';
+export 'utils/hex.dart';
 export 'utils/ur_psbt.dart';
 export 'utils/uuid.dart';
 export 'models/core_transaction.dart';

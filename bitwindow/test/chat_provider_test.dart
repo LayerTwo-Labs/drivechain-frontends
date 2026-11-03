@@ -11,7 +11,6 @@ import 'package:bitwindow/services/bitnames_secure_store.dart';
 import 'package:bitwindow/utils/bech32.dart';
 import 'package:bitwindow/utils/ed25519_point.dart';
 import 'package:flutter/foundation.dart';
-import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:connectrpc/connect.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,7 +96,7 @@ class _ChatRPC extends MockBitnamesRPC {
   @override
   Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
     final key = bytesToBech32('bn-svk', keys[address]!, Bech32Variant.bech32m);
-    final signature = hex.encode(sha512.convert(utf8.encode('$key|$msg')).bytes);
+    final signature = hexEncode(sha512.convert(utf8.encode('$key|$msg')).bytes);
     issued.add('$key|$msg|$signature');
     return {'verifying_key': key, 'signature': signature};
   }
@@ -114,7 +113,7 @@ class _ChatRPC extends MockBitnamesRPC {
   @override
   Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
     await encryptWait?.future;
-    final ciphertext = hex.encode(utf8.encode('${ciphertexts.length}:$encryptionPubkey'));
+    final ciphertext = hexEncode(utf8.encode('${ciphertexts.length}:$encryptionPubkey'));
     ciphertexts[ciphertext] = (encryptionPubkey, msg);
     return ciphertext;
   }
@@ -162,7 +161,7 @@ class _ChatRPC extends MockBitnamesRPC {
     return {
       'address': owners[recipient.hash],
       'sender_address': 'untrusted-input-owner',
-      'memo': hexMemo ? memo : hex.decode(memo),
+      'memo': hexMemo ? memo : hexDecode(memo),
       'content': {'BitcoinSats': 1500},
     };
   }
@@ -658,7 +657,7 @@ void main() {
       final transfer = rpc.transfers.single;
       final output = {
         'address': transfer.address,
-        'memo': hex.decode(transfer.memo!),
+        'memo': hexDecode(transfer.memo!),
         'content': {'BitcoinSats': transfer.value},
       };
       if (receipt == 'pending') {
@@ -935,7 +934,7 @@ void main() {
     expect(provider.currentConversation, isEmpty);
     rpc.pending = {};
     rpc.settled = {
-      'shared:0': {...output, 'memo': hex.encode(output['memo'] as List<int>)},
+      'shared:0': {...output, 'memo': hexEncode(output['memo'] as List<int>)},
     };
     await provider.fetchPaymail();
     await provider.fetchPaymail();
@@ -1127,7 +1126,7 @@ void main() {
   });
 
   test('the owner key uses Bech32m and BLAKE3', () {
-    final bytes = hex.decode('d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a');
+    final bytes = hexDecode('d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a');
     final key = bytesToBech32('bn-svk', bytes, Bech32Variant.bech32m);
     expect(BitnamesMessage.addressForKey(key), '2WRXAwiHCW7rvEpkN1nPmFY5hiUC');
     final oldKey = bytesToBech32('bn-svk', bytes, Bech32Variant.bech32);
@@ -1430,7 +1429,7 @@ void main() {
     final data = jsonDecode(memo.encode().substring(BitnamesMessage.prefix.length)) as Map<String, dynamic>;
     data['key'] = bytesToBech32(
       'bn-svk',
-      hex.decode('0200000000000000000000000000000000000000000000000000000000000000'),
+      hexDecode('0200000000000000000000000000000000000000000000000000000000000000'),
       Bech32Variant.bech32m,
     );
     rpc.pending = {

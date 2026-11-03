@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sidechain_core/utils/hex.dart';
 import 'package:sidechain_core/utils/ur_psbt.dart';
 
 // Known-answer vector from BCR-2020-006 (UR types registry). The crypto-psbt
@@ -21,14 +22,6 @@ const _expectedSinglePart =
     'prtjsprsgksecdratkkhktikewdcaadaeaeaeaezmzmzmzmaojopkwtayaeaeaeaecmaebbtphhdnjsti'
     'ambdassoloimwmlyhygdnlcatnbggtaevyykahaeaeaeaecmaebbaeplptoevwwtyakoonlourgofgvsj'
     'ydpcaltaemyaeaeaeaeaeaeaeaeaebkgdcarh';
-
-Uint8List _hexToBytes(String hex) {
-  final out = Uint8List(hex.length ~/ 2);
-  for (var i = 0; i < out.length; i++) {
-    out[i] = int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16);
-  }
-  return out;
-}
 
 // Canonical bc-ur reference multipart frame bodies (test_ur_encoder, 256-byte
 // "Wolf" message, seqLen 9): the pure sequential parts 1..9. Each body is
@@ -96,21 +89,21 @@ class _CborPartReader {
 void main() {
   group('URPsbt crypto-psbt', () {
     test('single-part encode matches BCR-2020-006 known vector', () {
-      final psbt = _hexToBytes(_psbtHex);
+      final psbt = hexDecode(_psbtHex);
       final frames = URPsbt.encode(psbt, maxFragmentLen: 10000);
       expect(frames.length, 1);
       expect(frames.first, _expectedSinglePart);
     });
 
     test('emits ur:crypto-psbt type, not ur:bytes', () {
-      final frames = URPsbt.encode(_hexToBytes(_psbtHex));
+      final frames = URPsbt.encode(hexDecode(_psbtHex));
       for (final f in frames) {
         expect(f.startsWith('ur:crypto-psbt/'), isTrue);
       }
     });
 
     test('single-part round-trip is byte-identical', () {
-      final psbt = _hexToBytes(_psbtHex);
+      final psbt = hexDecode(_psbtHex);
       final frames = URPsbt.encode(psbt, maxFragmentLen: 10000);
       final dec = URPsbt.decoder();
       for (final f in frames) {
@@ -200,7 +193,7 @@ void main() {
     });
 
     test('base64 helpers round-trip', () {
-      final psbt = _hexToBytes(_psbtHex);
+      final psbt = hexDecode(_psbtHex);
       final b64 = base64.encode(psbt);
       final frames = URPsbt.encodeBase64(b64, maxFragmentLen: 200);
       final dec = URPsbt.decoder();

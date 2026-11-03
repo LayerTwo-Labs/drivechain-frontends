@@ -11,7 +11,6 @@ dependencies:
   auto_route: ^11.2.0
   collection: ^1.19.1
   connectrpc: 1.0.0
-  convert: ^3.1.2
   crypto: ^3.0.8
   desktop_multi_window:
     git:

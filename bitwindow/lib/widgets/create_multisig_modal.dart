@@ -5,7 +5,6 @@ import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:bitwindow/utils/base58.dart';
-import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
@@ -847,7 +846,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final secondHash = sha256.convert(firstHash).bytes;
 
       final idBytes = secondHash.sublist(0, 3);
-      return hex.encode(idBytes);
+      return hexEncode(idBytes);
     } catch (e) {
       throw Exception('Failed to compute multisig ID: $e');
     }

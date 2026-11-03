@@ -1,23 +1,23 @@
 import 'dart:typed_data';
 
-import 'package:convert/convert.dart';
+import 'package:sidechain_core/utils/hex.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pointycastle/api.dart';
 import 'package:pointycastle/block/aes.dart';
 import 'package:pointycastle/block/modes/gcm.dart';
 
-Uint8List _b(String h) => Uint8List.fromList(hex.decode(h));
+Uint8List _b(String h) => Uint8List.fromList(hexDecode(h));
 
 String _seal(String key, String nonce, String aad, String plaintext) {
   final cipher = GCMBlockCipher(AESEngine())
     ..init(true, AEADParameters(KeyParameter(_b(key)), 128, _b(nonce), _b(aad)));
-  return hex.encode(cipher.process(_b(plaintext)));
+  return hexEncode(cipher.process(_b(plaintext)));
 }
 
 String _open(String key, String nonce, String aad, String sealed) {
   final cipher = GCMBlockCipher(AESEngine())
     ..init(false, AEADParameters(KeyParameter(_b(key)), 128, _b(nonce), _b(aad)));
-  return hex.encode(cipher.process(_b(sealed)));
+  return hexEncode(cipher.process(_b(sealed)));
 }
 
 const _zeroKey = '0000000000000000000000000000000000000000000000000000000000000000';

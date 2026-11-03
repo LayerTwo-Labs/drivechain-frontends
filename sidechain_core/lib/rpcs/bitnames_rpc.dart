@@ -4,7 +4,7 @@ import 'package:connectrpc/protobuf.dart';
 import 'package:sidechain_core/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:sidechain_core/auth/local_auth.dart';
-import 'package:convert/convert.dart' show hex;
+import 'package:sidechain_core/utils/hex.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -470,7 +470,7 @@ class BitnamesLive extends BitnamesRPC {
       ),
     );
     // The backend returns raw hex; convert to string
-    final bytes = hex.decode(resp.plaintext);
+    final bytes = hexDecode(resp.plaintext);
     final decoded = utf8.decode(bytes);
     return decoded;
   }
