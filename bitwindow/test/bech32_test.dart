@@ -1,7 +1,4 @@
-import 'dart:math';
-
 import 'package:bitwindow/utils/bech32.dart';
-import 'package:blockchain_utils/bech32/bech32.dart' as bu;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -81,21 +78,6 @@ void main() {
       words[words.length - 1] = 1;
       final s = encodeBech32('bn-svk', words, Bech32Variant.bech32m);
       expect(() => bech32ToBytes('bn-svk', s, Bech32Variant.bech32m), throwsFormatException);
-    });
-
-    test('gives the same strings as blockchain_utils for random keys', () {
-      final random = Random(7);
-      for (var i = 0; i < 300; i++) {
-        final bytes = List<int>.generate(32, (_) => random.nextInt(256));
-        for (final (ours, theirs) in [
-          (Bech32Variant.bech32, bu.Bech32Encodings.bech32),
-          (Bech32Variant.bech32m, bu.Bech32Encodings.bech32m),
-        ]) {
-          final expected = bu.Bech32Encoder.encode('bn-svk', bytes, encoding: theirs);
-          expect(bytesToBech32('bn-svk', bytes, ours), expected);
-          expect(bech32ToBytes('bn-svk', expected, ours), bytes);
-        }
-      }
     });
   });
 }

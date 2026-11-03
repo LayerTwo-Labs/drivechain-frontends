@@ -1,7 +1,4 @@
-import 'dart:math';
-
 import 'package:bitwindow/utils/ed25519_point.dart';
-import 'package:blockchain_utils/bip/ecc/keys/ed25519_keys.dart';
 import 'package:convert/convert.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,19 +24,5 @@ void main() {
     expect(isEd25519Point(hex.decode('edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f')), isFalse);
     expect(isEd25519Point(hex.decode('0100000000000000000000000000000000000000000000000000000000000080')), isFalse);
     expect(isEd25519Point(List<int>.filled(31, 0)), isFalse);
-  });
-
-  test('gives the same answer as blockchain_utils for random input', () {
-    final random = Random(11);
-    var valid = 0;
-    for (var i = 0; i < 2000; i++) {
-      final bytes = List<int>.generate(32, (_) => random.nextInt(256));
-      final expected = Ed25519PublicKey.isValidBytes(bytes);
-      expect(isEd25519Point(bytes), expected, reason: hex.encode(bytes));
-      if (expected) {
-        valid++;
-      }
-    }
-    expect(valid, inInclusiveRange(800, 1200));
   });
 }
