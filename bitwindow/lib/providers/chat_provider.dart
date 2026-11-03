@@ -8,7 +8,6 @@ import 'package:bitwindow/services/chat_file_storage.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:thirds/blake3.dart';
@@ -447,7 +446,7 @@ class ChatProvider extends ChangeNotifier {
     if (!GetIt.I.isRegistered<WalletReaderProvider>()) {
       return null;
     }
-    final directory = await getApplicationSupportDirectory();
+    final directory = await applicationSupportDir();
     _secureStore = BitnamesSecureStore(
       store: ChatFileStorage.fromDirectory(directory),
       keySource: WalletBitnamesStorageKeySource(GetIt.I.get<WalletReaderProvider>()),

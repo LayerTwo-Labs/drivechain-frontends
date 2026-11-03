@@ -26,7 +26,6 @@ dependencies:
   logger:
     path: ../third_party/logger
   path: ^1.9.1
-  path_provider: ^2.1.6
   protobuf: ^4.2.0
   thirds:
     path: ../third_party/thirds

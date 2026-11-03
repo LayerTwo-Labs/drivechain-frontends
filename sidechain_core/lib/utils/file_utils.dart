@@ -1,12 +1,12 @@
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
+import 'package:sidechain_core/utils/app_support_dir.dart';
 
-/// getApplicationSupportDirectory, but creation failures name the broken
+/// appSupportDirectory, but creation failures name the broken
 /// path component (e.g. ~/.local/share being a symlink to a missing target).
 Future<Directory> applicationSupportDir() async {
   try {
-    return await getApplicationSupportDirectory();
+    return await appSupportDirectory();
   } on FileSystemException catch (e) {
     final diagnosis = diagnoseUncreatablePath(e.path);
     if (diagnosis == null) {
