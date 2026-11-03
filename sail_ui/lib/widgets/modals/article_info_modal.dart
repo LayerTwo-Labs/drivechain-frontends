@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void showArticleDetails(
   BuildContext context,
