@@ -12,7 +12,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  file_picker: ^13.3.0
+  file_picker: ^13.3.2
   fl_chart: ^1.3.0
 
   stacked: ^3.5.0
@@ -61,7 +61,7 @@ dependencies:
       ref: b9a9f5684eb1c81e203d17efef2915e183b05e9e
       path: packages/desktop_multi_window
   auto_updater: ^1.0.0
-  mobile_scanner: ^7.4.2
+  mobile_scanner: ^7.5.0
 
 dev_dependencies:
   flutter_test:
