@@ -4,7 +4,8 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
+
 import "multisig.pb.dart" as multisigv1multisig;
 
 abstract final class MultisigService {

@@ -1,13 +1,15 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: m4/v1/m4.proto
-//
-// @dart = 2.12
+// Generated from m4/v1/m4.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -26,10 +28,10 @@ const VotePolicy$json = {
 };
 
 /// Descriptor for `VotePolicy`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List votePolicyDescriptor = $convert.base64Decode(
-    'CgpWb3RlUG9saWN5EhsKF1ZPVEVfUE9MSUNZX1VOU1BFQ0lGSUVEEAASFwoTVk9URV9QT0xJQ1'
-    'lfQUJTVEFJThABEhwKGFZPVEVfUE9MSUNZX1VQVk9URV9LTk9XThACEhoKFlZPVEVfUE9MSUNZ'
-    'X1VQVk9URV9BTEwQAxIVChFWT1RFX1BPTElDWV9BTEFSTRAE');
+final $typed_data.Uint8List votePolicyDescriptor =
+    $convert.base64Decode('CgpWb3RlUG9saWN5EhsKF1ZPVEVfUE9MSUNZX1VOU1BFQ0lGSUVEEAASFwoTVk9URV9QT0xJQ1'
+        'lfQUJTVEFJThABEhwKGFZPVEVfUE9MSUNZX1VQVk9URV9LTk9XThACEhoKFlZPVEVfUE9MSUNZ'
+        'X1VQVk9URV9BTEwQAxIVChFWT1RFX1BPTElDWV9BTEFSTRAE');
 
 @$core.Deprecated('Use m4VoteDescriptor instead')
 const M4Vote$json = {
@@ -47,11 +49,11 @@ const M4Vote$json = {
 };
 
 /// Descriptor for `M4Vote`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List m4VoteDescriptor = $convert.base64Decode(
-    'CgZNNFZvdGUSJQoOc2lkZWNoYWluX3Nsb3QYASABKA1SDXNpZGVjaGFpblNsb3QSGwoJdm90ZV'
-    '90eXBlGAIgASgJUgh2b3RlVHlwZRIkCgtidW5kbGVfaGFzaBgDIAEoCUgAUgpidW5kbGVIYXNo'
-    'iAEBEiYKDGJ1bmRsZV9pbmRleBgEIAEoDUgBUgtidW5kbGVJbmRleIgBAUIOCgxfYnVuZGxlX2'
-    'hhc2hCDwoNX2J1bmRsZV9pbmRleA==');
+final $typed_data.Uint8List m4VoteDescriptor =
+    $convert.base64Decode('CgZNNFZvdGUSJQoOc2lkZWNoYWluX3Nsb3QYASABKA1SDXNpZGVjaGFpblNsb3QSGwoJdm90ZV'
+        '90eXBlGAIgASgJUgh2b3RlVHlwZRIkCgtidW5kbGVfaGFzaBgDIAEoCUgAUgpidW5kbGVIYXNo'
+        'iAEBEiYKDGJ1bmRsZV9pbmRleBgEIAEoDUgBUgtidW5kbGVJbmRleIgBAUIOCgxfYnVuZGxlX2'
+        'hhc2hCDwoNX2J1bmRsZV9pbmRleA==');
 
 @$core.Deprecated('Use m4HistoryEntryDescriptor instead')
 const M4HistoryEntry$json = {
@@ -66,11 +68,11 @@ const M4HistoryEntry$json = {
 };
 
 /// Descriptor for `M4HistoryEntry`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List m4HistoryEntryDescriptor = $convert.base64Decode(
-    'Cg5NNEhpc3RvcnlFbnRyeRIhCgxibG9ja19oZWlnaHQYASABKA1SC2Jsb2NrSGVpZ2h0Eh0KCm'
-    'Jsb2NrX2hhc2gYAiABKAlSCWJsb2NrSGFzaBIdCgpibG9ja190aW1lGAMgASgDUglibG9ja1Rp'
-    'bWUSGAoHdmVyc2lvbhgEIAEoDVIHdmVyc2lvbhIjCgV2b3RlcxgFIAMoCzINLm00LnYxLk00Vm'
-    '90ZVIFdm90ZXM=');
+final $typed_data.Uint8List m4HistoryEntryDescriptor =
+    $convert.base64Decode('Cg5NNEhpc3RvcnlFbnRyeRIhCgxibG9ja19oZWlnaHQYASABKA1SC2Jsb2NrSGVpZ2h0Eh0KCm'
+        'Jsb2NrX2hhc2gYAiABKAlSCWJsb2NrSGFzaBIdCgpibG9ja190aW1lGAMgASgDUglibG9ja1Rp'
+        'bWUSGAoHdmVyc2lvbhgEIAEoDVIHdmVyc2lvbhIjCgV2b3RlcxgFIAMoCzINLm00LnYxLk00Vm'
+        '90ZVIFdm90ZXM=');
 
 @$core.Deprecated('Use getM4HistoryRequestDescriptor instead')
 const GetM4HistoryRequest$json = {
@@ -81,8 +83,8 @@ const GetM4HistoryRequest$json = {
 };
 
 /// Descriptor for `GetM4HistoryRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getM4HistoryRequestDescriptor = $convert.base64Decode(
-    'ChNHZXRNNEhpc3RvcnlSZXF1ZXN0EhQKBWxpbWl0GAEgASgNUgVsaW1pdA==');
+final $typed_data.Uint8List getM4HistoryRequestDescriptor =
+    $convert.base64Decode('ChNHZXRNNEhpc3RvcnlSZXF1ZXN0EhQKBWxpbWl0GAEgASgNUgVsaW1pdA==');
 
 @$core.Deprecated('Use getM4HistoryResponseDescriptor instead')
 const GetM4HistoryResponse$json = {
@@ -93,9 +95,9 @@ const GetM4HistoryResponse$json = {
 };
 
 /// Descriptor for `GetM4HistoryResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getM4HistoryResponseDescriptor = $convert.base64Decode(
-    'ChRHZXRNNEhpc3RvcnlSZXNwb25zZRIvCgdoaXN0b3J5GAEgAygLMhUubTQudjEuTTRIaXN0b3'
-    'J5RW50cnlSB2hpc3Rvcnk=');
+final $typed_data.Uint8List getM4HistoryResponseDescriptor =
+    $convert.base64Decode('ChRHZXRNNEhpc3RvcnlSZXNwb25zZRIvCgdoaXN0b3J5GAEgAygLMhUubTQudjEuTTRIaXN0b3'
+        'J5RW50cnlSB2hpc3Rvcnk=');
 
 @$core.Deprecated('Use bundleUpvoteDescriptor instead')
 const BundleUpvote$json = {
@@ -107,9 +109,9 @@ const BundleUpvote$json = {
 };
 
 /// Descriptor for `BundleUpvote`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List bundleUpvoteDescriptor = $convert.base64Decode(
-    'CgxCdW5kbGVVcHZvdGUSJQoOc2lkZWNoYWluX3Nsb3QYASABKA1SDXNpZGVjaGFpblNsb3QSEg'
-    'oEbTZpZBgCIAEoCVIEbTZpZA==');
+final $typed_data.Uint8List bundleUpvoteDescriptor =
+    $convert.base64Decode('CgxCdW5kbGVVcHZvdGUSJQoOc2lkZWNoYWluX3Nsb3QYASABKA1SDXNpZGVjaGFpblNsb3QSEg'
+        'oEbTZpZBgCIAEoCVIEbTZpZA==');
 
 @$core.Deprecated('Use getVotesRequestDescriptor instead')
 const GetVotesRequest$json = {
@@ -117,8 +119,7 @@ const GetVotesRequest$json = {
 };
 
 /// Descriptor for `GetVotesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getVotesRequestDescriptor = $convert.base64Decode(
-    'Cg9HZXRWb3Rlc1JlcXVlc3Q=');
+final $typed_data.Uint8List getVotesRequestDescriptor = $convert.base64Decode('Cg9HZXRWb3Rlc1JlcXVlc3Q=');
 
 @$core.Deprecated('Use getVotesResponseDescriptor instead')
 const GetVotesResponse$json = {
@@ -130,9 +131,9 @@ const GetVotesResponse$json = {
 };
 
 /// Descriptor for `GetVotesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getVotesResponseDescriptor = $convert.base64Decode(
-    'ChBHZXRWb3Rlc1Jlc3BvbnNlEikKBnBvbGljeRgBIAEoDjIRLm00LnYxLlZvdGVQb2xpY3lSBn'
-    'BvbGljeRItCgd1cHZvdGVzGAIgAygLMhMubTQudjEuQnVuZGxlVXB2b3RlUgd1cHZvdGVz');
+final $typed_data.Uint8List getVotesResponseDescriptor =
+    $convert.base64Decode('ChBHZXRWb3Rlc1Jlc3BvbnNlEikKBnBvbGljeRgBIAEoDjIRLm00LnYxLlZvdGVQb2xpY3lSBn'
+        'BvbGljeRItCgd1cHZvdGVzGAIgAygLMhMubTQudjEuQnVuZGxlVXB2b3RlUgd1cHZvdGVz');
 
 @$core.Deprecated('Use setBundleUpvoteRequestDescriptor instead')
 const SetBundleUpvoteRequest$json = {
@@ -147,9 +148,9 @@ const SetBundleUpvoteRequest$json = {
 };
 
 /// Descriptor for `SetBundleUpvoteRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setBundleUpvoteRequestDescriptor = $convert.base64Decode(
-    'ChZTZXRCdW5kbGVVcHZvdGVSZXF1ZXN0EiUKDnNpZGVjaGFpbl9zbG90GAEgASgNUg1zaWRlY2'
-    'hhaW5TbG90EhcKBG02aWQYAiABKAlIAFIEbTZpZIgBAUIHCgVfbTZpZA==');
+final $typed_data.Uint8List setBundleUpvoteRequestDescriptor =
+    $convert.base64Decode('ChZTZXRCdW5kbGVVcHZvdGVSZXF1ZXN0EiUKDnNpZGVjaGFpbl9zbG90GAEgASgNUg1zaWRlY2'
+        'hhaW5TbG90EhcKBG02aWQYAiABKAlIAFIEbTZpZIgBAUIHCgVfbTZpZA==');
 
 @$core.Deprecated('Use setBundleUpvoteResponseDescriptor instead')
 const SetBundleUpvoteResponse$json = {
@@ -157,8 +158,8 @@ const SetBundleUpvoteResponse$json = {
 };
 
 /// Descriptor for `SetBundleUpvoteResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setBundleUpvoteResponseDescriptor = $convert.base64Decode(
-    'ChdTZXRCdW5kbGVVcHZvdGVSZXNwb25zZQ==');
+final $typed_data.Uint8List setBundleUpvoteResponseDescriptor =
+    $convert.base64Decode('ChdTZXRCdW5kbGVVcHZvdGVSZXNwb25zZQ==');
 
 @$core.Deprecated('Use setVotePolicyRequestDescriptor instead')
 const SetVotePolicyRequest$json = {
@@ -169,9 +170,9 @@ const SetVotePolicyRequest$json = {
 };
 
 /// Descriptor for `SetVotePolicyRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setVotePolicyRequestDescriptor = $convert.base64Decode(
-    'ChRTZXRWb3RlUG9saWN5UmVxdWVzdBIpCgZwb2xpY3kYASABKA4yES5tNC52MS5Wb3RlUG9saW'
-    'N5UgZwb2xpY3k=');
+final $typed_data.Uint8List setVotePolicyRequestDescriptor =
+    $convert.base64Decode('ChRTZXRWb3RlUG9saWN5UmVxdWVzdBIpCgZwb2xpY3kYASABKA4yES5tNC52MS5Wb3RlUG9saW'
+        'N5UgZwb2xpY3k=');
 
 @$core.Deprecated('Use setVotePolicyResponseDescriptor instead')
 const SetVotePolicyResponse$json = {
@@ -179,8 +180,7 @@ const SetVotePolicyResponse$json = {
 };
 
 /// Descriptor for `SetVotePolicyResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setVotePolicyResponseDescriptor = $convert.base64Decode(
-    'ChVTZXRWb3RlUG9saWN5UmVzcG9uc2U=');
+final $typed_data.Uint8List setVotePolicyResponseDescriptor = $convert.base64Decode('ChVTZXRWb3RlUG9saWN5UmVzcG9uc2U=');
 
 const $core.Map<$core.String, $core.dynamic> M4ServiceBase$json = {
   '1': 'M4Service',
@@ -208,11 +208,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> M4ServiceB
 };
 
 /// Descriptor for `M4Service`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List m4ServiceDescriptor = $convert.base64Decode(
-    'CglNNFNlcnZpY2USRwoMR2V0TTRIaXN0b3J5EhoubTQudjEuR2V0TTRIaXN0b3J5UmVxdWVzdB'
-    'obLm00LnYxLkdldE00SGlzdG9yeVJlc3BvbnNlEjsKCEdldFZvdGVzEhYubTQudjEuR2V0Vm90'
-    'ZXNSZXF1ZXN0GhcubTQudjEuR2V0Vm90ZXNSZXNwb25zZRJQCg9TZXRCdW5kbGVVcHZvdGUSHS'
-    '5tNC52MS5TZXRCdW5kbGVVcHZvdGVSZXF1ZXN0Gh4ubTQudjEuU2V0QnVuZGxlVXB2b3RlUmVz'
-    'cG9uc2USSgoNU2V0Vm90ZVBvbGljeRIbLm00LnYxLlNldFZvdGVQb2xpY3lSZXF1ZXN0GhwubT'
-    'QudjEuU2V0Vm90ZVBvbGljeVJlc3BvbnNl');
-
+final $typed_data.Uint8List m4ServiceDescriptor =
+    $convert.base64Decode('CglNNFNlcnZpY2USRwoMR2V0TTRIaXN0b3J5EhoubTQudjEuR2V0TTRIaXN0b3J5UmVxdWVzdB'
+        'obLm00LnYxLkdldE00SGlzdG9yeVJlc3BvbnNlEjsKCEdldFZvdGVzEhYubTQudjEuR2V0Vm90'
+        'ZXNSZXF1ZXN0GhcubTQudjEuR2V0Vm90ZXNSZXNwb25zZRJQCg9TZXRCdW5kbGVVcHZvdGUSHS'
+        '5tNC52MS5TZXRCdW5kbGVVcHZvdGVSZXF1ZXN0Gh4ubTQudjEuU2V0QnVuZGxlVXB2b3RlUmVz'
+        'cG9uc2USSgoNU2V0Vm90ZVBvbGljeRIbLm00LnYxLlNldFZvdGVQb2xpY3lSZXF1ZXN0GhwubT'
+        'QudjEuU2V0Vm90ZVBvbGljeVJlc3BvbnNl');

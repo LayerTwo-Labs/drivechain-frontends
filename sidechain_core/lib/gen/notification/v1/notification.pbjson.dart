@@ -1,30 +1,56 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: notification/v1/notification.proto
-//
-// @dart = 2.12
+// Generated from notification/v1/notification.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $1;
-import '../../google/protobuf/timestamp.pbjson.dart' as $0;
+import 'package:protobuf/well_known_types/google/protobuf/empty.pbjson.dart' as $1;
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pbjson.dart' as $0;
 
 @$core.Deprecated('Use watchResponseDescriptor instead')
 const WatchResponse$json = {
   '1': 'WatchResponse',
   '2': [
     {'1': 'timestamp', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'timestamp'},
-    {'1': 'transaction', '3': 2, '4': 1, '5': 11, '6': '.notification.v1.TransactionEvent', '9': 0, '10': 'transaction'},
-    {'1': 'timestamp_event', '3': 3, '4': 1, '5': 11, '6': '.notification.v1.TimestampEvent', '9': 0, '10': 'timestampEvent'},
+    {
+      '1': 'transaction',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.notification.v1.TransactionEvent',
+      '9': 0,
+      '10': 'transaction'
+    },
+    {
+      '1': 'timestamp_event',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.notification.v1.TimestampEvent',
+      '9': 0,
+      '10': 'timestampEvent'
+    },
     {'1': 'system', '3': 4, '4': 1, '5': 11, '6': '.notification.v1.SystemEvent', '9': 0, '10': 'system'},
-    {'1': 'sidechain_withdrawal', '3': 5, '4': 1, '5': 11, '6': '.notification.v1.SidechainWithdrawalEvent', '9': 0, '10': 'sidechainWithdrawal'},
+    {
+      '1': 'sidechain_withdrawal',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.notification.v1.SidechainWithdrawalEvent',
+      '9': 0,
+      '10': 'sidechainWithdrawal'
+    },
   ],
   '8': [
     {'1': 'event'},
@@ -32,14 +58,14 @@ const WatchResponse$json = {
 };
 
 /// Descriptor for `WatchResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List watchResponseDescriptor = $convert.base64Decode(
-    'Cg1XYXRjaFJlc3BvbnNlEjgKCXRpbWVzdGFtcBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW'
-    '1lc3RhbXBSCXRpbWVzdGFtcBJFCgt0cmFuc2FjdGlvbhgCIAEoCzIhLm5vdGlmaWNhdGlvbi52'
-    'MS5UcmFuc2FjdGlvbkV2ZW50SABSC3RyYW5zYWN0aW9uEkoKD3RpbWVzdGFtcF9ldmVudBgDIA'
-    'EoCzIfLm5vdGlmaWNhdGlvbi52MS5UaW1lc3RhbXBFdmVudEgAUg50aW1lc3RhbXBFdmVudBI2'
-    'CgZzeXN0ZW0YBCABKAsyHC5ub3RpZmljYXRpb24udjEuU3lzdGVtRXZlbnRIAFIGc3lzdGVtEl'
-    '4KFHNpZGVjaGFpbl93aXRoZHJhd2FsGAUgASgLMikubm90aWZpY2F0aW9uLnYxLlNpZGVjaGFp'
-    'bldpdGhkcmF3YWxFdmVudEgAUhNzaWRlY2hhaW5XaXRoZHJhd2FsQgcKBWV2ZW50');
+final $typed_data.Uint8List watchResponseDescriptor =
+    $convert.base64Decode('Cg1XYXRjaFJlc3BvbnNlEjgKCXRpbWVzdGFtcBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW'
+        '1lc3RhbXBSCXRpbWVzdGFtcBJFCgt0cmFuc2FjdGlvbhgCIAEoCzIhLm5vdGlmaWNhdGlvbi52'
+        'MS5UcmFuc2FjdGlvbkV2ZW50SABSC3RyYW5zYWN0aW9uEkoKD3RpbWVzdGFtcF9ldmVudBgDIA'
+        'EoCzIfLm5vdGlmaWNhdGlvbi52MS5UaW1lc3RhbXBFdmVudEgAUg50aW1lc3RhbXBFdmVudBI2'
+        'CgZzeXN0ZW0YBCABKAsyHC5ub3RpZmljYXRpb24udjEuU3lzdGVtRXZlbnRIAFIGc3lzdGVtEl'
+        '4KFHNpZGVjaGFpbl93aXRoZHJhd2FsGAUgASgLMikubm90aWZpY2F0aW9uLnYxLlNpZGVjaGFp'
+        'bldpdGhkcmF3YWxFdmVudEgAUhNzaWRlY2hhaW5XaXRoZHJhd2FsQgcKBWV2ZW50');
 
 @$core.Deprecated('Use transactionEventDescriptor instead')
 const TransactionEvent$json = {
@@ -65,12 +91,12 @@ const TransactionEvent_Type$json = {
 };
 
 /// Descriptor for `TransactionEvent`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List transactionEventDescriptor = $convert.base64Decode(
-    'ChBUcmFuc2FjdGlvbkV2ZW50EjoKBHR5cGUYASABKA4yJi5ub3RpZmljYXRpb24udjEuVHJhbn'
-    'NhY3Rpb25FdmVudC5UeXBlUgR0eXBlEhIKBHR4aWQYAiABKAlSBHR4aWQSHwoLYW1vdW50X3Nh'
-    'dHMYAyABKARSCmFtb3VudFNhdHMSJAoNY29uZmlybWF0aW9ucxgEIAEoDVINY29uZmlybWF0aW'
-    '9ucyJSCgRUeXBlEhQKEFRZUEVfVU5TUEVDSUZJRUQQABIRCg1UWVBFX1JFQ0VJVkVEEAESDQoJ'
-    'VFlQRV9TRU5UEAISEgoOVFlQRV9DT05GSVJNRUQQAw==');
+final $typed_data.Uint8List transactionEventDescriptor =
+    $convert.base64Decode('ChBUcmFuc2FjdGlvbkV2ZW50EjoKBHR5cGUYASABKA4yJi5ub3RpZmljYXRpb24udjEuVHJhbn'
+        'NhY3Rpb25FdmVudC5UeXBlUgR0eXBlEhIKBHR4aWQYAiABKAlSBHR4aWQSHwoLYW1vdW50X3Nh'
+        'dHMYAyABKARSCmFtb3VudFNhdHMSJAoNY29uZmlybWF0aW9ucxgEIAEoDVINY29uZmlybWF0aW'
+        '9ucyJSCgRUeXBlEhQKEFRZUEVfVU5TUEVDSUZJRUQQABIRCg1UWVBFX1JFQ0VJVkVEEAESDQoJ'
+        'VFlQRV9TRU5UEAISEgoOVFlQRV9DT05GSVJNRUQQAw==');
 
 @$core.Deprecated('Use timestampEventDescriptor instead')
 const TimestampEvent$json = {
@@ -99,12 +125,12 @@ const TimestampEvent_Type$json = {
 };
 
 /// Descriptor for `TimestampEvent`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List timestampEventDescriptor = $convert.base64Decode(
-    'Cg5UaW1lc3RhbXBFdmVudBI4CgR0eXBlGAEgASgOMiQubm90aWZpY2F0aW9uLnYxLlRpbWVzdG'
-    'FtcEV2ZW50LlR5cGVSBHR5cGUSDgoCaWQYAiABKANSAmlkEhoKCGZpbGVuYW1lGAMgASgJUghm'
-    'aWxlbmFtZRISCgR0eGlkGAQgASgJUgR0eGlkEiYKDGJsb2NrX2hlaWdodBgFIAEoA0gAUgtibG'
-    '9ja0hlaWdodIgBASJCCgRUeXBlEhQKEFRZUEVfVU5TUEVDSUZJRUQQABIQCgxUWVBFX0NSRUFU'
-    'RUQQARISCg5UWVBFX0NPTkZJUk1FRBACQg8KDV9ibG9ja19oZWlnaHQ=');
+final $typed_data.Uint8List timestampEventDescriptor =
+    $convert.base64Decode('Cg5UaW1lc3RhbXBFdmVudBI4CgR0eXBlGAEgASgOMiQubm90aWZpY2F0aW9uLnYxLlRpbWVzdG'
+        'FtcEV2ZW50LlR5cGVSBHR5cGUSDgoCaWQYAiABKANSAmlkEhoKCGZpbGVuYW1lGAMgASgJUghm'
+        'aWxlbmFtZRISCgR0eGlkGAQgASgJUgR0eGlkEiYKDGJsb2NrX2hlaWdodBgFIAEoA0gAUgtibG'
+        '9ja0hlaWdodIgBASJCCgRUeXBlEhQKEFRZUEVfVU5TUEVDSUZJRUQQABIQCgxUWVBFX0NSRUFU'
+        'RUQQARISCg5UWVBFX0NPTkZJUk1FRBACQg8KDV9ibG9ja19oZWlnaHQ=');
 
 @$core.Deprecated('Use systemEventDescriptor instead')
 const SystemEvent$json = {
@@ -130,12 +156,12 @@ const SystemEvent_Type$json = {
 };
 
 /// Descriptor for `SystemEvent`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List systemEventDescriptor = $convert.base64Decode(
-    'CgtTeXN0ZW1FdmVudBI1CgR0eXBlGAEgASgOMiEubm90aWZpY2F0aW9uLnYxLlN5c3RlbUV2ZW'
-    '50LlR5cGVSBHR5cGUSGAoHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZSKgAQoEVHlwZRIUChBUWVBF'
-    'X1VOU1BFQ0lGSUVEEAASGgoWVFlQRV9TRVJWSUNFX0NPTk5FQ1RFRBABEh0KGVRZUEVfU0VSVk'
-    'lDRV9ESVNDT05ORUNURUQQAhIXChNUWVBFX1NZTkNfQ09NUExFVEVEEAMSFAoQVFlQRV9CTE9D'
-    'S19GT1VORBAEEhgKFFRZUEVfREVQT1NJVF9EUk9QUEVEEAU=');
+final $typed_data.Uint8List systemEventDescriptor =
+    $convert.base64Decode('CgtTeXN0ZW1FdmVudBI1CgR0eXBlGAEgASgOMiEubm90aWZpY2F0aW9uLnYxLlN5c3RlbUV2ZW'
+        '50LlR5cGVSBHR5cGUSGAoHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZSKgAQoEVHlwZRIUChBUWVBF'
+        'X1VOU1BFQ0lGSUVEEAASGgoWVFlQRV9TRVJWSUNFX0NPTk5FQ1RFRBABEh0KGVRZUEVfU0VSVk'
+        'lDRV9ESVNDT05ORUNURUQQAhIXChNUWVBFX1NZTkNfQ09NUExFVEVEEAMSFAoQVFlQRV9CTE9D'
+        'S19GT1VORBAEEhgKFFRZUEVfREVQT1NJVF9EUk9QUEVEEAU=');
 
 @$core.Deprecated('Use sidechainWithdrawalEventDescriptor instead')
 const SidechainWithdrawalEvent$json = {
@@ -166,14 +192,14 @@ const SidechainWithdrawalEvent_Type$json = {
 };
 
 /// Descriptor for `SidechainWithdrawalEvent`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sidechainWithdrawalEventDescriptor = $convert.base64Decode(
-    'ChhTaWRlY2hhaW5XaXRoZHJhd2FsRXZlbnQSQgoEdHlwZRgBIAEoDjIuLm5vdGlmaWNhdGlvbi'
-    '52MS5TaWRlY2hhaW5XaXRoZHJhd2FsRXZlbnQuVHlwZVIEdHlwZRISCgR0eGlkGAIgASgJUgR0'
-    'eGlkEhwKCXNpZGVjaGFpbhgDIAEoCVIJc2lkZWNoYWluEhYKBmFtb3VudBgEIAEoA1IGYW1vdW'
-    '50EiAKC2Rlc3RpbmF0aW9uGAUgASgJUgtkZXN0aW5hdGlvbhI7CgtkZXRlY3RlZF9hdBgGIAEo'
-    'CzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCmRldGVjdGVkQXQSIgoKYmxvY2tfaGFzaB'
-    'gHIAEoCUgAUglibG9ja0hhc2iIAQEiQwoEVHlwZRIUChBUWVBFX1VOU1BFQ0lGSUVEEAASEQoN'
-    'VFlQRV9ERVRFQ1RFRBABEhIKDlRZUEVfQ09ORklSTUVEEAJCDQoLX2Jsb2NrX2hhc2g=');
+final $typed_data.Uint8List sidechainWithdrawalEventDescriptor =
+    $convert.base64Decode('ChhTaWRlY2hhaW5XaXRoZHJhd2FsRXZlbnQSQgoEdHlwZRgBIAEoDjIuLm5vdGlmaWNhdGlvbi'
+        '52MS5TaWRlY2hhaW5XaXRoZHJhd2FsRXZlbnQuVHlwZVIEdHlwZRISCgR0eGlkGAIgASgJUgR0'
+        'eGlkEhwKCXNpZGVjaGFpbhgDIAEoCVIJc2lkZWNoYWluEhYKBmFtb3VudBgEIAEoA1IGYW1vdW'
+        '50EiAKC2Rlc3RpbmF0aW9uGAUgASgJUgtkZXN0aW5hdGlvbhI7CgtkZXRlY3RlZF9hdBgGIAEo'
+        'CzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCmRldGVjdGVkQXQSIgoKYmxvY2tfaGFzaB'
+        'gHIAEoCUgAUglibG9ja0hhc2iIAQEiQwoEVHlwZRIUChBUWVBFX1VOU1BFQ0lGSUVEEAASEQoN'
+        'VFlQRV9ERVRFQ1RFRBABEhIKDlRZUEVfQ09ORklSTUVEEAJCDQoLX2Jsb2NrX2hhc2g=');
 
 const $core.Map<$core.String, $core.dynamic> NotificationServiceBase$json = {
   '1': 'NotificationService',
@@ -194,7 +220,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Notificati
 };
 
 /// Descriptor for `NotificationService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List notificationServiceDescriptor = $convert.base64Decode(
-    'ChNOb3RpZmljYXRpb25TZXJ2aWNlEkEKBVdhdGNoEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh'
-    '4ubm90aWZpY2F0aW9uLnYxLldhdGNoUmVzcG9uc2UwAQ==');
-
+final $typed_data.Uint8List notificationServiceDescriptor =
+    $convert.base64Decode('ChNOb3RpZmljYXRpb25TZXJ2aWNlEkEKBVdhdGNoEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh'
+        '4ubm90aWZpY2F0aW9uLnYxLldhdGNoUmVzcG9uc2UwAQ==');

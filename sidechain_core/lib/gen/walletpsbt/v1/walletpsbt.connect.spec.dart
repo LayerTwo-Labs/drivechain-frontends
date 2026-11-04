@@ -4,8 +4,10 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "walletpsbt.pb.dart" as walletpsbtv1walletpsbt;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 /// Persists in-progress multisig spends for the Send tab, so partial
 /// signatures survive restarts. The PSBT blob itself carries the

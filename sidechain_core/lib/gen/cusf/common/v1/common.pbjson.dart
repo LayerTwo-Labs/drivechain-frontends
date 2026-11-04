@@ -1,13 +1,15 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: cusf/common/v1/common.proto
-//
-// @dart = 2.12
+// Generated from cusf/common/v1/common.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -22,9 +24,9 @@ const ConsensusHex$json = {
 };
 
 /// Descriptor for `ConsensusHex`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List consensusHexDescriptor = $convert.base64Decode(
-    'CgxDb25zZW5zdXNIZXgSLgoDaGV4GAEgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbH'
-    'VlUgNoZXg=');
+final $typed_data.Uint8List consensusHexDescriptor =
+    $convert.base64Decode('CgxDb25zZW5zdXNIZXgSLgoDaGV4GAEgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbH'
+        'VlUgNoZXg=');
 
 @$core.Deprecated('Use hexDescriptor instead')
 const Hex$json = {
@@ -35,8 +37,8 @@ const Hex$json = {
 };
 
 /// Descriptor for `Hex`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List hexDescriptor = $convert.base64Decode(
-    'CgNIZXgSLgoDaGV4GAEgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbHVlUgNoZXg=');
+final $typed_data.Uint8List hexDescriptor =
+    $convert.base64Decode('CgNIZXgSLgoDaGV4GAEgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbHVlUgNoZXg=');
 
 @$core.Deprecated('Use reverseHexDescriptor instead')
 const ReverseHex$json = {
@@ -47,7 +49,6 @@ const ReverseHex$json = {
 };
 
 /// Descriptor for `ReverseHex`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List reverseHexDescriptor = $convert.base64Decode(
-    'CgpSZXZlcnNlSGV4Ei4KA2hleBgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5TdHJpbmdWYWx1ZV'
-    'IDaGV4');
-
+final $typed_data.Uint8List reverseHexDescriptor =
+    $convert.base64Decode('CgpSZXZlcnNlSGV4Ei4KA2hleBgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5TdHJpbmdWYWx1ZV'
+        'IDaGV4');

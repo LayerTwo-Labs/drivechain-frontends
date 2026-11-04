@@ -1,7 +1,7 @@
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 
 Cheque _mkCheck({required int id, String address = 'tb1qabc'}) => Cheque(

@@ -4,11 +4,14 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "multisig.pb.dart" as multisigv1multisig;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
+
 import "multisig.connect.spec.dart" as specs;
 
-extension type MultisigServiceClient (connect.Transport _transport) {
+extension type MultisigServiceClient(connect.Transport _transport) {
   /// Group CRUD
   Future<multisigv1multisig.ListGroupsResponse> listGroups(
     googleprotobufempty.Empty input, {

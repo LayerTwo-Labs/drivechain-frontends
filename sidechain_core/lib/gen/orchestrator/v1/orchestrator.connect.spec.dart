@@ -4,6 +4,7 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "orchestrator.pb.dart" as orchestratorv1orchestrator;
 
 abstract final class OrchestratorService {
@@ -73,11 +74,7 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.StreamLogsResponse.new,
   );
 
-  /// Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
-  /// target). Fire-and-forget on the server: returns as soon as the boot
-  /// goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
-  /// download progress and connection state — never tied to this RPC's
-  /// lifetime, so a transport blip can't kill an in-flight download.
+  /// Start a binary and its L1 dependencies. The call returns at once unless wait is true.
   static const startWithL1 = connect.Spec(
     '/$name/StartWithL1',
     connect.StreamType.unary,

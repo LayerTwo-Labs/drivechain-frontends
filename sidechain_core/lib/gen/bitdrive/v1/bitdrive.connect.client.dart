@@ -4,11 +4,13 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "bitdrive.pb.dart" as bitdrivev1bitdrive;
 import "bitdrive.connect.spec.dart" as specs;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type BitDriveServiceClient (connect.Transport _transport) {
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+extension type BitDriveServiceClient(connect.Transport _transport) {
   /// Store file/content to blockchain with optional encryption
   Future<bitdrivev1bitdrive.StoreFileResponse> storeFile(
     bitdrivev1bitdrive.StoreFileRequest input, {

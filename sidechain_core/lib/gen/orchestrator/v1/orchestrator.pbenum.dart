@@ -1,13 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: orchestrator/v1/orchestrator.proto
-//
-// @dart = 2.12
+// Generated from orchestrator/v1/orchestrator.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -18,17 +19,24 @@ import 'package:protobuf/protobuf.dart' as $pb;
 /// a frontend sees it, the binary is known to the orchestrator but doesn't
 /// have a typed enum value yet.
 class SidechainType extends $pb.ProtobufEnum {
-  static const SidechainType SIDECHAIN_TYPE_UNSPECIFIED = SidechainType._(0, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_UNSPECIFIED');
-  static const SidechainType SIDECHAIN_TYPE_THUNDER = SidechainType._(1, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_THUNDER');
+  static const SidechainType SIDECHAIN_TYPE_UNSPECIFIED =
+      SidechainType._(0, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_UNSPECIFIED');
+  static const SidechainType SIDECHAIN_TYPE_THUNDER =
+      SidechainType._(1, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_THUNDER');
   static const SidechainType SIDECHAIN_TYPE_ZSIDE = SidechainType._(2, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_ZSIDE');
-  static const SidechainType SIDECHAIN_TYPE_BITNAMES = SidechainType._(3, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_BITNAMES');
-  static const SidechainType SIDECHAIN_TYPE_BITASSETS = SidechainType._(4, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_BITASSETS');
-  static const SidechainType SIDECHAIN_TYPE_TRUTHCOIN = SidechainType._(5, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_TRUTHCOIN');
+  static const SidechainType SIDECHAIN_TYPE_BITNAMES =
+      SidechainType._(3, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_BITNAMES');
+  static const SidechainType SIDECHAIN_TYPE_BITASSETS =
+      SidechainType._(4, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_BITASSETS');
+  static const SidechainType SIDECHAIN_TYPE_TRUTHCOIN =
+      SidechainType._(5, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_TRUTHCOIN');
   static const SidechainType SIDECHAIN_TYPE_PHOTON = SidechainType._(6, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_PHOTON');
-  static const SidechainType SIDECHAIN_TYPE_COINSHIFT = SidechainType._(7, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_COINSHIFT');
-  static const SidechainType SIDECHAIN_TYPE_FREEBANK = SidechainType._(8, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_FREEBANK');
+  static const SidechainType SIDECHAIN_TYPE_COINSHIFT =
+      SidechainType._(7, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_COINSHIFT');
+  static const SidechainType SIDECHAIN_TYPE_FREEBANK =
+      SidechainType._(8, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_FREEBANK');
 
-  static const $core.List<SidechainType> values = <SidechainType> [
+  static const $core.List<SidechainType> values = <SidechainType>[
     SIDECHAIN_TYPE_UNSPECIFIED,
     SIDECHAIN_TYPE_THUNDER,
     SIDECHAIN_TYPE_ZSIDE,
@@ -40,10 +48,10 @@ class SidechainType extends $pb.ProtobufEnum {
     SIDECHAIN_TYPE_FREEBANK,
   ];
 
-  static final $core.Map<$core.int, SidechainType> _byValue = $pb.ProtobufEnum.initByValue(values);
-  static SidechainType? valueOf($core.int value) => _byValue[value];
+  static final $core.List<SidechainType?> _byValue = $pb.ProtobufEnum.$_initByValueList(values, 8);
+  static SidechainType? valueOf($core.int value) => value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const SidechainType._($core.int v, $core.String n) : super(v, n);
+  const SidechainType._(super.value, super.name);
 }
 
 /// BinaryType is the single typed identifier for any binary the system tracks.
@@ -70,7 +78,7 @@ class BinaryType extends $pb.ProtobufEnum {
   static const BinaryType BINARY_TYPE_FREEBANK = BinaryType._(16, _omitEnumNames ? '' : 'BINARY_TYPE_FREEBANK');
   static const BinaryType BINARY_TYPE_SOLANA = BinaryType._(17, _omitEnumNames ? '' : 'BINARY_TYPE_SOLANA');
 
-  static const $core.List<BinaryType> values = <BinaryType> [
+  static const $core.List<BinaryType> values = <BinaryType>[
     BINARY_TYPE_UNSPECIFIED,
     BINARY_TYPE_BITCOIND,
     BINARY_TYPE_ENFORCER,
@@ -90,20 +98,34 @@ class BinaryType extends $pb.ProtobufEnum {
     BINARY_TYPE_SOLANA,
   ];
 
-  static final $core.Map<$core.int, BinaryType> _byValue = $pb.ProtobufEnum.initByValue(values);
-  static BinaryType? valueOf($core.int value) => _byValue[value];
+  static final $core.List<BinaryType?> _byValue = $pb.ProtobufEnum.$_initByValueList(values, 17);
+  static BinaryType? valueOf($core.int value) => value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const BinaryType._($core.int v, $core.String n) : super(v, n);
+  const BinaryType._(super.value, super.name);
 }
 
 class MainchainSyncPhase extends $pb.ProtobufEnum {
-  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_UNSPECIFIED = MainchainSyncPhase._(0, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_UNSPECIFIED');
-  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_HEADERS = MainchainSyncPhase._(1, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_HEADERS');
-  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_STATE = MainchainSyncPhase._(2, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_STATE');
-  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_WRITING = MainchainSyncPhase._(3, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_WRITING');
-  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_OTHER = MainchainSyncPhase._(4, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_OTHER');
+  /// The node reports no mainchain sync.
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_UNSPECIFIED =
+      MainchainSyncPhase._(0, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_UNSPECIFIED');
 
-  static const $core.List<MainchainSyncPhase> values = <MainchainSyncPhase> [
+  /// The node fetches the mainchain headers.
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_HEADERS =
+      MainchainSyncPhase._(1, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_HEADERS');
+
+  /// The node connects the mainchain state.
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_STATE =
+      MainchainSyncPhase._(2, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_STATE');
+
+  /// The node writes the fetched mainchain headers to disk.
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_WRITING =
+      MainchainSyncPhase._(3, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_WRITING');
+
+  /// The node reports a phase this build does not name.
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_OTHER =
+      MainchainSyncPhase._(4, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_OTHER');
+
+  static const $core.List<MainchainSyncPhase> values = <MainchainSyncPhase>[
     MAINCHAIN_SYNC_PHASE_UNSPECIFIED,
     MAINCHAIN_SYNC_PHASE_HEADERS,
     MAINCHAIN_SYNC_PHASE_STATE,
@@ -111,22 +133,23 @@ class MainchainSyncPhase extends $pb.ProtobufEnum {
     MAINCHAIN_SYNC_PHASE_OTHER,
   ];
 
-  static final $core.Map<$core.int, MainchainSyncPhase> _byValue = $pb.ProtobufEnum.initByValue(values);
-  static MainchainSyncPhase? valueOf($core.int value) => _byValue[value];
+  static final $core.List<MainchainSyncPhase?> _byValue = $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static MainchainSyncPhase? valueOf($core.int value) => value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const MainchainSyncPhase._($core.int v, $core.String n) : super(v, n);
+  const MainchainSyncPhase._(super.value, super.name);
 }
 
 /// DeletionType selects which category of a binary's files to gather/delete.
 class DeletionType extends $pb.ProtobufEnum {
-  static const DeletionType DELETION_TYPE_UNSPECIFIED = DeletionType._(0, _omitEnumNames ? '' : 'DELETION_TYPE_UNSPECIFIED');
+  static const DeletionType DELETION_TYPE_UNSPECIFIED =
+      DeletionType._(0, _omitEnumNames ? '' : 'DELETION_TYPE_UNSPECIFIED');
   static const DeletionType DELETION_TYPE_DATA = DeletionType._(1, _omitEnumNames ? '' : 'DELETION_TYPE_DATA');
   static const DeletionType DELETION_TYPE_WALLET = DeletionType._(2, _omitEnumNames ? '' : 'DELETION_TYPE_WALLET');
   static const DeletionType DELETION_TYPE_SETTINGS = DeletionType._(3, _omitEnumNames ? '' : 'DELETION_TYPE_SETTINGS');
   static const DeletionType DELETION_TYPE_LOGS = DeletionType._(4, _omitEnumNames ? '' : 'DELETION_TYPE_LOGS');
   static const DeletionType DELETION_TYPE_SOFTWARE = DeletionType._(5, _omitEnumNames ? '' : 'DELETION_TYPE_SOFTWARE');
 
-  static const $core.List<DeletionType> values = <DeletionType> [
+  static const $core.List<DeletionType> values = <DeletionType>[
     DELETION_TYPE_UNSPECIFIED,
     DELETION_TYPE_DATA,
     DELETION_TYPE_WALLET,
@@ -135,42 +158,62 @@ class DeletionType extends $pb.ProtobufEnum {
     DELETION_TYPE_SOFTWARE,
   ];
 
-  static final $core.Map<$core.int, DeletionType> _byValue = $pb.ProtobufEnum.initByValue(values);
-  static DeletionType? valueOf($core.int value) => _byValue[value];
+  static final $core.List<DeletionType?> _byValue = $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static DeletionType? valueOf($core.int value) => value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const DeletionType._($core.int v, $core.String n) : super(v, n);
+  const DeletionType._(super.value, super.name);
 }
 
 /// What the reject did to the chain Core follows.
 class RejectOutcome extends $pb.ProtobufEnum {
-  static const RejectOutcome REJECT_OUTCOME_UNSPECIFIED = RejectOutcome._(0, _omitEnumNames ? '' : 'REJECT_OUTCOME_UNSPECIFIED');
-  static const RejectOutcome REJECT_OUTCOME_SWITCHED_BRANCH = RejectOutcome._(1, _omitEnumNames ? '' : 'REJECT_OUTCOME_SWITCHED_BRANCH');
-  static const RejectOutcome REJECT_OUTCOME_PARKED_ON_PARENT = RejectOutcome._(2, _omitEnumNames ? '' : 'REJECT_OUTCOME_PARKED_ON_PARENT');
-  static const RejectOutcome REJECT_OUTCOME_ALREADY_INACTIVE = RejectOutcome._(3, _omitEnumNames ? '' : 'REJECT_OUTCOME_ALREADY_INACTIVE');
+  static const RejectOutcome REJECT_OUTCOME_UNSPECIFIED =
+      RejectOutcome._(0, _omitEnumNames ? '' : 'REJECT_OUTCOME_UNSPECIFIED');
 
-  static const $core.List<RejectOutcome> values = <RejectOutcome> [
+  /// Core dropped the block and followed another branch.
+  static const RejectOutcome REJECT_OUTCOME_SWITCHED_BRANCH =
+      RejectOutcome._(1, _omitEnumNames ? '' : 'REJECT_OUTCOME_SWITCHED_BRANCH');
+
+  /// Core dropped the block and parked on its parent, with no branch to take.
+  static const RejectOutcome REJECT_OUTCOME_PARKED_ON_PARENT =
+      RejectOutcome._(2, _omitEnumNames ? '' : 'REJECT_OUTCOME_PARKED_ON_PARENT');
+
+  /// The block already sat off the active chain, so the tip did not move.
+  static const RejectOutcome REJECT_OUTCOME_ALREADY_INACTIVE =
+      RejectOutcome._(3, _omitEnumNames ? '' : 'REJECT_OUTCOME_ALREADY_INACTIVE');
+
+  static const $core.List<RejectOutcome> values = <RejectOutcome>[
     REJECT_OUTCOME_UNSPECIFIED,
     REJECT_OUTCOME_SWITCHED_BRANCH,
     REJECT_OUTCOME_PARKED_ON_PARENT,
     REJECT_OUTCOME_ALREADY_INACTIVE,
   ];
 
-  static final $core.Map<$core.int, RejectOutcome> _byValue = $pb.ProtobufEnum.initByValue(values);
-  static RejectOutcome? valueOf($core.int value) => _byValue[value];
+  static final $core.List<RejectOutcome?> _byValue = $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static RejectOutcome? valueOf($core.int value) => value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const RejectOutcome._($core.int v, $core.String n) : super(v, n);
+  const RejectOutcome._(super.value, super.name);
 }
 
 /// Which step of a reset a progress message reports.
 class ResetPhase extends $pb.ProtobufEnum {
   static const ResetPhase RESET_PHASE_UNSPECIFIED = ResetPhase._(0, _omitEnumNames ? '' : 'RESET_PHASE_UNSPECIFIED');
+
+  /// The target reads as a height or a hash, and Core holds the block.
   static const ResetPhase RESET_PHASE_RESOLVE = ResetPhase._(1, _omitEnumNames ? '' : 'RESET_PHASE_RESOLVE');
+
+  /// Core drops the target block and every block above it.
   static const ResetPhase RESET_PHASE_MOVE_BACK = ResetPhase._(2, _omitEnumNames ? '' : 'RESET_PHASE_MOVE_BACK');
+
+  /// Core re-validates the dropped blocks from disk and climbs to the old tip.
   static const ResetPhase RESET_PHASE_SYNC_FORWARD = ResetPhase._(3, _omitEnumNames ? '' : 'RESET_PHASE_SYNC_FORWARD');
+
+  /// The enforcer comes back onto the chain Core follows.
   static const ResetPhase RESET_PHASE_ENFORCER = ResetPhase._(4, _omitEnumNames ? '' : 'RESET_PHASE_ENFORCER');
+
+  /// The reset is over.
   static const ResetPhase RESET_PHASE_DONE = ResetPhase._(5, _omitEnumNames ? '' : 'RESET_PHASE_DONE');
 
-  static const $core.List<ResetPhase> values = <ResetPhase> [
+  static const $core.List<ResetPhase> values = <ResetPhase>[
     RESET_PHASE_UNSPECIFIED,
     RESET_PHASE_RESOLVE,
     RESET_PHASE_MOVE_BACK,
@@ -179,11 +222,10 @@ class ResetPhase extends $pb.ProtobufEnum {
     RESET_PHASE_DONE,
   ];
 
-  static final $core.Map<$core.int, ResetPhase> _byValue = $pb.ProtobufEnum.initByValue(values);
-  static ResetPhase? valueOf($core.int value) => _byValue[value];
+  static final $core.List<ResetPhase?> _byValue = $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static ResetPhase? valueOf($core.int value) => value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const ResetPhase._($core.int v, $core.String n) : super(v, n);
+  const ResetPhase._(super.value, super.name);
 }
 
-
-const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');
+const $core.bool _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

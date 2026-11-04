@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 
 import 'test_utils.dart';

@@ -4,7 +4,8 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
+
 import "notification.pb.dart" as notificationv1notification;
 
 abstract final class NotificationService {

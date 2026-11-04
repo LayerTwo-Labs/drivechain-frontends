@@ -1,20 +1,22 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: walletmanager/v1/walletmanager.proto
-//
-// @dart = 2.12
+// Generated from walletmanager/v1/walletmanager.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $21;
-import '../../google/protobuf/timestamp.pbjson.dart' as $14;
+import 'package:protobuf/well_known_types/google/protobuf/empty.pbjson.dart' as $1;
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pbjson.dart' as $0;
 
 @$core.Deprecated('Use walletStateDescriptor instead')
 const WalletState$json = {
@@ -28,10 +30,10 @@ const WalletState$json = {
 };
 
 /// Descriptor for `WalletState`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List walletStateDescriptor = $convert.base64Decode(
-    'CgtXYWxsZXRTdGF0ZRIcChhXQUxMRVRfU1RBVEVfVU5TUEVDSUZJRUQQABIaChZXQUxMRVRfU1'
-    'RBVEVfTk9fV0FMTEVUEAESFwoTV0FMTEVUX1NUQVRFX0xPQ0tFRBACEhkKFVdBTExFVF9TVEFU'
-    'RV9VTkxPQ0tFRBAD');
+final $typed_data.Uint8List walletStateDescriptor =
+    $convert.base64Decode('CgtXYWxsZXRTdGF0ZRIcChhXQUxMRVRfU1RBVEVfVU5TUEVDSUZJRUQQABIaChZXQUxMRVRfU1'
+        'RBVEVfTk9fV0FMTEVUEAESFwoTV0FMTEVUX1NUQVRFX0xPQ0tFRBACEhkKFVdBTExFVF9TVEFU'
+        'RV9VTkxPQ0tFRBAD');
 
 @$core.Deprecated('Use nodeModeDescriptor instead')
 const NodeMode$json = {
@@ -44,9 +46,9 @@ const NodeMode$json = {
 };
 
 /// Descriptor for `NodeMode`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List nodeModeDescriptor = $convert.base64Decode(
-    'CghOb2RlTW9kZRIZChVOT0RFX01PREVfVU5TUEVDSUZJRUQQABISCg5OT0RFX01PREVfRlVMTB'
-    'ABEhMKD05PREVfTU9ERV9MSUdIVBAC');
+final $typed_data.Uint8List nodeModeDescriptor =
+    $convert.base64Decode('CghOb2RlTW9kZRIZChVOT0RFX01PREVfVU5TUEVDSUZJRUQQABISCg5OT0RFX01PREVfRlVMTB'
+        'ABEhMKD05PREVfTU9ERV9MSUdIVBAC');
 
 @$core.Deprecated('Use walletTypeDescriptor instead')
 const WalletType$json = {
@@ -60,10 +62,10 @@ const WalletType$json = {
 };
 
 /// Descriptor for `WalletType`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List walletTypeDescriptor = $convert.base64Decode(
-    'CgpXYWxsZXRUeXBlEhsKF1dBTExFVF9UWVBFX1VOU1BFQ0lGSUVEEAASHAoYV0FMTEVUX1RZUE'
-    'VfQklUQ09JTl9DT1JFEAESGAoUV0FMTEVUX1RZUEVfRU5GT1JDRVIQAhIYChRXQUxMRVRfVFlQ'
-    'RV9FTEVDVFJVTRAD');
+final $typed_data.Uint8List walletTypeDescriptor =
+    $convert.base64Decode('CgpXYWxsZXRUeXBlEhsKF1dBTExFVF9UWVBFX1VOU1BFQ0lGSUVEEAASHAoYV0FMTEVUX1RZUE'
+        'VfQklUQ09JTl9DT1JFEAESGAoUV0FMTEVUX1RZUEVfRU5GT1JDRVIQAhIYChRXQUxMRVRfVFlQ'
+        'RV9FTEVDVFJVTRAD');
 
 @$core.Deprecated('Use restoreWalletBackupStepStateDescriptor instead')
 const RestoreWalletBackupStepState$json = {
@@ -77,11 +79,11 @@ const RestoreWalletBackupStepState$json = {
 };
 
 /// Descriptor for `RestoreWalletBackupStepState`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List restoreWalletBackupStepStateDescriptor = $convert.base64Decode(
-    'ChxSZXN0b3JlV2FsbGV0QmFja3VwU3RlcFN0YXRlEjAKLFJFU1RPUkVfV0FMTEVUX0JBQ0tVUF'
-    '9TVEVQX1NUQVRFX1VOU1BFQ0lGSUVEEAASLAooUkVTVE9SRV9XQUxMRVRfQkFDS1VQX1NURVBf'
-    'U1RBVEVfU1RBUlRFRBABEi4KKlJFU1RPUkVfV0FMTEVUX0JBQ0tVUF9TVEVQX1NUQVRFX0NPTV'
-    'BMRVRFRBACEisKJ1JFU1RPUkVfV0FMTEVUX0JBQ0tVUF9TVEVQX1NUQVRFX0ZBSUxFRBAD');
+final $typed_data.Uint8List restoreWalletBackupStepStateDescriptor =
+    $convert.base64Decode('ChxSZXN0b3JlV2FsbGV0QmFja3VwU3RlcFN0YXRlEjAKLFJFU1RPUkVfV0FMTEVUX0JBQ0tVUF'
+        '9TVEVQX1NUQVRFX1VOU1BFQ0lGSUVEEAASLAooUkVTVE9SRV9XQUxMRVRfQkFDS1VQX1NURVBf'
+        'U1RBVEVfU1RBUlRFRBABEi4KKlJFU1RPUkVfV0FMTEVUX0JBQ0tVUF9TVEVQX1NUQVRFX0NPTV'
+        'BMRVRFRBACEisKJ1JFU1RPUkVfV0FMTEVUX0JBQ0tVUF9TVEVQX1NUQVRFX0ZBSUxFRBAD');
 
 @$core.Deprecated('Use addressTypeDescriptor instead')
 const AddressType$json = {
@@ -94,9 +96,9 @@ const AddressType$json = {
 };
 
 /// Descriptor for `AddressType`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List addressTypeDescriptor = $convert.base64Decode(
-    'CgtBZGRyZXNzVHlwZRIcChhBRERSRVNTX1RZUEVfVU5TUEVDSUZJRUQQABIXChNBRERSRVNTX1'
-    'RZUEVfU0VHV0lUEAESGAoUQUREUkVTU19UWVBFX1RBUFJPT1QQAg==');
+final $typed_data.Uint8List addressTypeDescriptor =
+    $convert.base64Decode('CgtBZGRyZXNzVHlwZRIcChhBRERSRVNTX1RZUEVfVU5TUEVDSUZJRUQQABIXChNBRERSRVNTX1'
+        'RZUEVfU0VHV0lUEAESGAoUQUREUkVTU19UWVBFX1RBUFJPT1QQAg==');
 
 @$core.Deprecated('Use mnemonicKindDescriptor instead')
 const MnemonicKind$json = {
@@ -110,10 +112,10 @@ const MnemonicKind$json = {
 };
 
 /// Descriptor for `MnemonicKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List mnemonicKindDescriptor = $convert.base64Decode(
-    'CgxNbmVtb25pY0tpbmQSHQoZTU5FTU9OSUNfS0lORF9VTlNQRUNJRklFRBAAEhcKE01ORU1PTk'
-    'lDX0tJTkRfQklQMzkQARIaChZNTkVNT05JQ19LSU5EX0VMRUNUUlVNEAISGQoVTU5FTU9OSUNf'
-    'S0lORF9JTlZBTElEEAM=');
+final $typed_data.Uint8List mnemonicKindDescriptor =
+    $convert.base64Decode('CgxNbmVtb25pY0tpbmQSHQoZTU5FTU9OSUNfS0lORF9VTlNQRUNJRklFRBAAEhcKE01ORU1PTk'
+        'lDX0tJTkRfQklQMzkQARIaChZNTkVNT05JQ19LSU5EX0VMRUNUUlVNEAISGQoVTU5FTU9OSUNf'
+        'S0lORF9JTlZBTElEEAM=');
 
 @$core.Deprecated('Use decodedFormDescriptor instead')
 const DecodedForm$json = {
@@ -127,10 +129,10 @@ const DecodedForm$json = {
 };
 
 /// Descriptor for `DecodedForm`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List decodedFormDescriptor = $convert.base64Decode(
-    'CgtEZWNvZGVkRm9ybRIcChhERUNPREVEX0ZPUk1fVU5TUEVDSUZJRUQQABIVChFERUNPREVEX0'
-    'ZPUk1fVFhJRBABEhcKE0RFQ09ERURfRk9STV9SQVdfVFgQAhIVChFERUNPREVEX0ZPUk1fUFNC'
-    'VBAD');
+final $typed_data.Uint8List decodedFormDescriptor =
+    $convert.base64Decode('CgtEZWNvZGVkRm9ybRIcChhERUNPREVEX0ZPUk1fVU5TUEVDSUZJRUQQABIVChFERUNPREVEX0'
+        'ZPUk1fVFhJRBABEhcKE0RFQ09ERURfRk9STV9SQVdfVFgQAhIVChFERUNPREVEX0ZPUk1fUFNC'
+        'VBAD');
 
 @$core.Deprecated('Use getWalletStatusRequestDescriptor instead')
 const GetWalletStatusRequest$json = {
@@ -138,8 +140,8 @@ const GetWalletStatusRequest$json = {
 };
 
 /// Descriptor for `GetWalletStatusRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getWalletStatusRequestDescriptor = $convert.base64Decode(
-    'ChZHZXRXYWxsZXRTdGF0dXNSZXF1ZXN0');
+final $typed_data.Uint8List getWalletStatusRequestDescriptor =
+    $convert.base64Decode('ChZHZXRXYWxsZXRTdGF0dXNSZXF1ZXN0');
 
 @$core.Deprecated('Use getWalletStatusResponseDescriptor instead')
 const GetWalletStatusResponse$json = {
@@ -169,12 +171,12 @@ const GetWalletStatusResponse$json = {
 };
 
 /// Descriptor for `GetWalletStatusResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getWalletStatusResponseDescriptor = $convert.base64Decode(
-    'ChdHZXRXYWxsZXRTdGF0dXNSZXNwb25zZRIhCgpoYXNfd2FsbGV0GAEgASgIQgIYAVIJaGFzV2'
-    'FsbGV0EhwKCWVuY3J5cHRlZBgCIAEoCFIJZW5jcnlwdGVkEh4KCHVubG9ja2VkGAMgASgIQgIY'
-    'AVIIdW5sb2NrZWQSKAoQYWN0aXZlX3dhbGxldF9pZBgEIAEoCVIOYWN0aXZlV2FsbGV0SWQSLA'
-    'oSYWN0aXZlX3dhbGxldF9uYW1lGAUgASgJUhBhY3RpdmVXYWxsZXROYW1lEjMKBXN0YXRlGAYg'
-    'ASgOMh0ud2FsbGV0bWFuYWdlci52MS5XYWxsZXRTdGF0ZVIFc3RhdGU=');
+final $typed_data.Uint8List getWalletStatusResponseDescriptor =
+    $convert.base64Decode('ChdHZXRXYWxsZXRTdGF0dXNSZXNwb25zZRIhCgpoYXNfd2FsbGV0GAEgASgIQgIYAVIJaGFzV2'
+        'FsbGV0EhwKCWVuY3J5cHRlZBgCIAEoCFIJZW5jcnlwdGVkEh4KCHVubG9ja2VkGAMgASgIQgIY'
+        'AVIIdW5sb2NrZWQSKAoQYWN0aXZlX3dhbGxldF9pZBgEIAEoCVIOYWN0aXZlV2FsbGV0SWQSLA'
+        'oSYWN0aXZlX3dhbGxldF9uYW1lGAUgASgJUhBhY3RpdmVXYWxsZXROYW1lEjMKBXN0YXRlGAYg'
+        'ASgOMh0ud2FsbGV0bWFuYWdlci52MS5XYWxsZXRTdGF0ZVIFc3RhdGU=');
 
 @$core.Deprecated('Use listSidechainDepositsRequestDescriptor instead')
 const ListSidechainDepositsRequest$json = {
@@ -186,9 +188,9 @@ const ListSidechainDepositsRequest$json = {
 };
 
 /// Descriptor for `ListSidechainDepositsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listSidechainDepositsRequestDescriptor = $convert.base64Decode(
-    'ChxMaXN0U2lkZWNoYWluRGVwb3NpdHNSZXF1ZXN0EhIKBHNsb3QYASABKA1SBHNsb3QSGwoJd2'
-    'FsbGV0X2lkGAIgASgJUgh3YWxsZXRJZA==');
+final $typed_data.Uint8List listSidechainDepositsRequestDescriptor =
+    $convert.base64Decode('ChxMaXN0U2lkZWNoYWluRGVwb3NpdHNSZXF1ZXN0EhIKBHNsb3QYASABKA1SBHNsb3QSGwoJd2'
+        'FsbGV0X2lkGAIgASgJUgh3YWxsZXRJZA==');
 
 @$core.Deprecated('Use sidechainDepositDescriptor instead')
 const SidechainDeposit$json = {
@@ -207,13 +209,13 @@ const SidechainDeposit$json = {
 };
 
 /// Descriptor for `SidechainDeposit`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sidechainDepositDescriptor = $convert.base64Decode(
-    'ChBTaWRlY2hhaW5EZXBvc2l0EhIKBHR4aWQYASABKAlSBHR4aWQSGwoJd2FsbGV0X2lkGAIgAS'
-    'gJUgh3YWxsZXRJZBISCgRzbG90GAMgASgNUgRzbG90EiAKC2Rlc3RpbmF0aW9uGAQgASgJUgtk'
-    'ZXN0aW5hdGlvbhIfCgthbW91bnRfc2F0cxgFIAEoA1IKYW1vdW50U2F0cxIdCgpjcmVhdGVkX2'
-    'F0GAYgASgJUgljcmVhdGVkQXQSGQoIZmVlX3NhdHMYByABKANSB2ZlZVNhdHMSJAoNY29uZmly'
-    'bWF0aW9ucxgIIAEoBVINY29uZmlybWF0aW9ucxIdCgpkcm9wcGVkX2F0GAkgASgJUglkcm9wcG'
-    'VkQXQ=');
+final $typed_data.Uint8List sidechainDepositDescriptor =
+    $convert.base64Decode('ChBTaWRlY2hhaW5EZXBvc2l0EhIKBHR4aWQYASABKAlSBHR4aWQSGwoJd2FsbGV0X2lkGAIgAS'
+        'gJUgh3YWxsZXRJZBISCgRzbG90GAMgASgNUgRzbG90EiAKC2Rlc3RpbmF0aW9uGAQgASgJUgtk'
+        'ZXN0aW5hdGlvbhIfCgthbW91bnRfc2F0cxgFIAEoA1IKYW1vdW50U2F0cxIdCgpjcmVhdGVkX2'
+        'F0GAYgASgJUgljcmVhdGVkQXQSGQoIZmVlX3NhdHMYByABKANSB2ZlZVNhdHMSJAoNY29uZmly'
+        'bWF0aW9ucxgIIAEoBVINY29uZmlybWF0aW9ucxIdCgpkcm9wcGVkX2F0GAkgASgJUglkcm9wcG'
+        'VkQXQ=');
 
 @$core.Deprecated('Use listSidechainDepositsResponseDescriptor instead')
 const ListSidechainDepositsResponse$json = {
@@ -224,9 +226,9 @@ const ListSidechainDepositsResponse$json = {
 };
 
 /// Descriptor for `ListSidechainDepositsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listSidechainDepositsResponseDescriptor = $convert.base64Decode(
-    'Ch1MaXN0U2lkZWNoYWluRGVwb3NpdHNSZXNwb25zZRI+CghkZXBvc2l0cxgBIAMoCzIiLndhbG'
-    'xldG1hbmFnZXIudjEuU2lkZWNoYWluRGVwb3NpdFIIZGVwb3NpdHM=');
+final $typed_data.Uint8List listSidechainDepositsResponseDescriptor =
+    $convert.base64Decode('Ch1MaXN0U2lkZWNoYWluRGVwb3NpdHNSZXNwb25zZRI+CghkZXBvc2l0cxgBIAMoCzIiLndhbG'
+        'xldG1hbmFnZXIudjEuU2lkZWNoYWluRGVwb3NpdFIIZGVwb3NpdHM=');
 
 @$core.Deprecated('Use getSidechainDepositTotalsRequestDescriptor instead')
 const GetSidechainDepositTotalsRequest$json = {
@@ -238,9 +240,9 @@ const GetSidechainDepositTotalsRequest$json = {
 };
 
 /// Descriptor for `GetSidechainDepositTotalsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getSidechainDepositTotalsRequestDescriptor = $convert.base64Decode(
-    'CiBHZXRTaWRlY2hhaW5EZXBvc2l0VG90YWxzUmVxdWVzdBIdCgpzaW5jZV91bml4GAEgASgDUg'
-    'lzaW5jZVVuaXgSGwoJd2FsbGV0X2lkGAIgASgJUgh3YWxsZXRJZA==');
+final $typed_data.Uint8List getSidechainDepositTotalsRequestDescriptor =
+    $convert.base64Decode('CiBHZXRTaWRlY2hhaW5EZXBvc2l0VG90YWxzUmVxdWVzdBIdCgpzaW5jZV91bml4GAEgASgDUg'
+        'lzaW5jZVVuaXgSGwoJd2FsbGV0X2lkGAIgASgJUgh3YWxsZXRJZA==');
 
 @$core.Deprecated('Use getSidechainDepositTotalsResponseDescriptor instead')
 const GetSidechainDepositTotalsResponse$json = {
@@ -252,9 +254,9 @@ const GetSidechainDepositTotalsResponse$json = {
 };
 
 /// Descriptor for `GetSidechainDepositTotalsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getSidechainDepositTotalsResponseDescriptor = $convert.base64Decode(
-    'CiFHZXRTaWRlY2hhaW5EZXBvc2l0VG90YWxzUmVzcG9uc2USHQoKdG90YWxfc2F0cxgBIAEoA1'
-    'IJdG90YWxTYXRzEh8KC3JlY2VudF9zYXRzGAIgASgDUgpyZWNlbnRTYXRz');
+final $typed_data.Uint8List getSidechainDepositTotalsResponseDescriptor =
+    $convert.base64Decode('CiFHZXRTaWRlY2hhaW5EZXBvc2l0VG90YWxzUmVzcG9uc2USHQoKdG90YWxfc2F0cxgBIAEoA1'
+        'IJdG90YWxTYXRzEh8KC3JlY2VudF9zYXRzGAIgASgDUgpyZWNlbnRTYXRz');
 
 @$core.Deprecated('Use getNodeModeRequestDescriptor instead')
 const GetNodeModeRequest$json = {
@@ -262,8 +264,7 @@ const GetNodeModeRequest$json = {
 };
 
 /// Descriptor for `GetNodeModeRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getNodeModeRequestDescriptor = $convert.base64Decode(
-    'ChJHZXROb2RlTW9kZVJlcXVlc3Q=');
+final $typed_data.Uint8List getNodeModeRequestDescriptor = $convert.base64Decode('ChJHZXROb2RlTW9kZVJlcXVlc3Q=');
 
 @$core.Deprecated('Use getNodeModeResponseDescriptor instead')
 const GetNodeModeResponse$json = {
@@ -277,12 +278,12 @@ const GetNodeModeResponse$json = {
 };
 
 /// Descriptor for `GetNodeModeResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getNodeModeResponseDescriptor = $convert.base64Decode(
-    'ChNHZXROb2RlTW9kZVJlc3BvbnNlEi4KBG1vZGUYASABKA4yGi53YWxsZXRtYW5hZ2VyLnYxLk'
-    '5vZGVNb2RlUgRtb2RlEjAKFGxpZ2h0X21vZGVfYXZhaWxhYmxlGAIgASgIUhJsaWdodE1vZGVB'
-    'dmFpbGFibGUSOgoZcmVtb3RlX2VuZm9yY2VyX2F2YWlsYWJsZRgDIAEoCFIXcmVtb3RlRW5mb3'
-    'JjZXJBdmFpbGFibGUSOAoYcmVtb3RlX2VuZm9yY2VyX25ldHdvcmtzGAQgAygJUhZyZW1vdGVF'
-    'bmZvcmNlck5ldHdvcmtz');
+final $typed_data.Uint8List getNodeModeResponseDescriptor =
+    $convert.base64Decode('ChNHZXROb2RlTW9kZVJlc3BvbnNlEi4KBG1vZGUYASABKA4yGi53YWxsZXRtYW5hZ2VyLnYxLk'
+        '5vZGVNb2RlUgRtb2RlEjAKFGxpZ2h0X21vZGVfYXZhaWxhYmxlGAIgASgIUhJsaWdodE1vZGVB'
+        'dmFpbGFibGUSOgoZcmVtb3RlX2VuZm9yY2VyX2F2YWlsYWJsZRgDIAEoCFIXcmVtb3RlRW5mb3'
+        'JjZXJBdmFpbGFibGUSOAoYcmVtb3RlX2VuZm9yY2VyX25ldHdvcmtzGAQgAygJUhZyZW1vdGVF'
+        'bmZvcmNlck5ldHdvcmtz');
 
 @$core.Deprecated('Use setNodeModeRequestDescriptor instead')
 const SetNodeModeRequest$json = {
@@ -293,9 +294,9 @@ const SetNodeModeRequest$json = {
 };
 
 /// Descriptor for `SetNodeModeRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setNodeModeRequestDescriptor = $convert.base64Decode(
-    'ChJTZXROb2RlTW9kZVJlcXVlc3QSLgoEbW9kZRgBIAEoDjIaLndhbGxldG1hbmFnZXIudjEuTm'
-    '9kZU1vZGVSBG1vZGU=');
+final $typed_data.Uint8List setNodeModeRequestDescriptor =
+    $convert.base64Decode('ChJTZXROb2RlTW9kZVJlcXVlc3QSLgoEbW9kZRgBIAEoDjIaLndhbGxldG1hbmFnZXIudjEuTm'
+        '9kZU1vZGVSBG1vZGU=');
 
 @$core.Deprecated('Use setNodeModeResponseDescriptor instead')
 const SetNodeModeResponse$json = {
@@ -303,8 +304,7 @@ const SetNodeModeResponse$json = {
 };
 
 /// Descriptor for `SetNodeModeResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setNodeModeResponseDescriptor = $convert.base64Decode(
-    'ChNTZXROb2RlTW9kZVJlc3BvbnNl');
+final $typed_data.Uint8List setNodeModeResponseDescriptor = $convert.base64Decode('ChNTZXROb2RlTW9kZVJlc3BvbnNl');
 
 @$core.Deprecated('Use generateWalletRequestDescriptor instead')
 const GenerateWalletRequest$json = {
@@ -320,11 +320,11 @@ const GenerateWalletRequest$json = {
 };
 
 /// Descriptor for `GenerateWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateWalletRequestDescriptor = $convert.base64Decode(
-    'ChVHZW5lcmF0ZVdhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRInCg9jdXN0b21fbW'
-    '5lbW9uaWMYAiABKAlSDmN1c3RvbU1uZW1vbmljEh4KCnBhc3NwaHJhc2UYAyABKAlSCnBhc3Nw'
-    'aHJhc2USGAoHYWNjb3VudBgEIAEoDVIHYWNjb3VudBInCg9kZXJpdmF0aW9uX3BhdGgYBSABKA'
-    'lSDmRlcml2YXRpb25QYXRoEh8KC3NjcmlwdF90eXBlGAYgASgJUgpzY3JpcHRUeXBl');
+final $typed_data.Uint8List generateWalletRequestDescriptor =
+    $convert.base64Decode('ChVHZW5lcmF0ZVdhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRInCg9jdXN0b21fbW'
+        '5lbW9uaWMYAiABKAlSDmN1c3RvbU1uZW1vbmljEh4KCnBhc3NwaHJhc2UYAyABKAlSCnBhc3Nw'
+        'aHJhc2USGAoHYWNjb3VudBgEIAEoDVIHYWNjb3VudBInCg9kZXJpdmF0aW9uX3BhdGgYBSABKA'
+        'lSDmRlcml2YXRpb25QYXRoEh8KC3NjcmlwdF90eXBlGAYgASgJUgpzY3JpcHRUeXBl');
 
 @$core.Deprecated('Use generateWalletResponseDescriptor instead')
 const GenerateWalletResponse$json = {
@@ -336,9 +336,9 @@ const GenerateWalletResponse$json = {
 };
 
 /// Descriptor for `GenerateWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateWalletResponseDescriptor = $convert.base64Decode(
-    'ChZHZW5lcmF0ZVdhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSGg'
-    'oIbW5lbW9uaWMYAiABKAlSCG1uZW1vbmlj');
+final $typed_data.Uint8List generateWalletResponseDescriptor =
+    $convert.base64Decode('ChZHZW5lcmF0ZVdhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSGg'
+        'oIbW5lbW9uaWMYAiABKAlSCG1uZW1vbmlj');
 
 @$core.Deprecated('Use unlockWalletRequestDescriptor instead')
 const UnlockWalletRequest$json = {
@@ -349,8 +349,8 @@ const UnlockWalletRequest$json = {
 };
 
 /// Descriptor for `UnlockWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unlockWalletRequestDescriptor = $convert.base64Decode(
-    'ChNVbmxvY2tXYWxsZXRSZXF1ZXN0EhoKCHBhc3N3b3JkGAEgASgJUghwYXNzd29yZA==');
+final $typed_data.Uint8List unlockWalletRequestDescriptor =
+    $convert.base64Decode('ChNVbmxvY2tXYWxsZXRSZXF1ZXN0EhoKCHBhc3N3b3JkGAEgASgJUghwYXNzd29yZA==');
 
 @$core.Deprecated('Use unlockWalletResponseDescriptor instead')
 const UnlockWalletResponse$json = {
@@ -358,8 +358,7 @@ const UnlockWalletResponse$json = {
 };
 
 /// Descriptor for `UnlockWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unlockWalletResponseDescriptor = $convert.base64Decode(
-    'ChRVbmxvY2tXYWxsZXRSZXNwb25zZQ==');
+final $typed_data.Uint8List unlockWalletResponseDescriptor = $convert.base64Decode('ChRVbmxvY2tXYWxsZXRSZXNwb25zZQ==');
 
 @$core.Deprecated('Use lockWalletRequestDescriptor instead')
 const LockWalletRequest$json = {
@@ -367,8 +366,7 @@ const LockWalletRequest$json = {
 };
 
 /// Descriptor for `LockWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List lockWalletRequestDescriptor = $convert.base64Decode(
-    'ChFMb2NrV2FsbGV0UmVxdWVzdA==');
+final $typed_data.Uint8List lockWalletRequestDescriptor = $convert.base64Decode('ChFMb2NrV2FsbGV0UmVxdWVzdA==');
 
 @$core.Deprecated('Use lockWalletResponseDescriptor instead')
 const LockWalletResponse$json = {
@@ -376,8 +374,7 @@ const LockWalletResponse$json = {
 };
 
 /// Descriptor for `LockWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List lockWalletResponseDescriptor = $convert.base64Decode(
-    'ChJMb2NrV2FsbGV0UmVzcG9uc2U=');
+final $typed_data.Uint8List lockWalletResponseDescriptor = $convert.base64Decode('ChJMb2NrV2FsbGV0UmVzcG9uc2U=');
 
 @$core.Deprecated('Use encryptWalletRequestDescriptor instead')
 const EncryptWalletRequest$json = {
@@ -388,8 +385,8 @@ const EncryptWalletRequest$json = {
 };
 
 /// Descriptor for `EncryptWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List encryptWalletRequestDescriptor = $convert.base64Decode(
-    'ChRFbmNyeXB0V2FsbGV0UmVxdWVzdBIaCghwYXNzd29yZBgBIAEoCVIIcGFzc3dvcmQ=');
+final $typed_data.Uint8List encryptWalletRequestDescriptor =
+    $convert.base64Decode('ChRFbmNyeXB0V2FsbGV0UmVxdWVzdBIaCghwYXNzd29yZBgBIAEoCVIIcGFzc3dvcmQ=');
 
 @$core.Deprecated('Use encryptWalletResponseDescriptor instead')
 const EncryptWalletResponse$json = {
@@ -397,8 +394,7 @@ const EncryptWalletResponse$json = {
 };
 
 /// Descriptor for `EncryptWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List encryptWalletResponseDescriptor = $convert.base64Decode(
-    'ChVFbmNyeXB0V2FsbGV0UmVzcG9uc2U=');
+final $typed_data.Uint8List encryptWalletResponseDescriptor = $convert.base64Decode('ChVFbmNyeXB0V2FsbGV0UmVzcG9uc2U=');
 
 @$core.Deprecated('Use changePasswordRequestDescriptor instead')
 const ChangePasswordRequest$json = {
@@ -410,9 +406,9 @@ const ChangePasswordRequest$json = {
 };
 
 /// Descriptor for `ChangePasswordRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List changePasswordRequestDescriptor = $convert.base64Decode(
-    'ChVDaGFuZ2VQYXNzd29yZFJlcXVlc3QSIQoMb2xkX3Bhc3N3b3JkGAEgASgJUgtvbGRQYXNzd2'
-    '9yZBIhCgxuZXdfcGFzc3dvcmQYAiABKAlSC25ld1Bhc3N3b3Jk');
+final $typed_data.Uint8List changePasswordRequestDescriptor =
+    $convert.base64Decode('ChVDaGFuZ2VQYXNzd29yZFJlcXVlc3QSIQoMb2xkX3Bhc3N3b3JkGAEgASgJUgtvbGRQYXNzd2'
+        '9yZBIhCgxuZXdfcGFzc3dvcmQYAiABKAlSC25ld1Bhc3N3b3Jk');
 
 @$core.Deprecated('Use changePasswordResponseDescriptor instead')
 const ChangePasswordResponse$json = {
@@ -420,8 +416,8 @@ const ChangePasswordResponse$json = {
 };
 
 /// Descriptor for `ChangePasswordResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List changePasswordResponseDescriptor = $convert.base64Decode(
-    'ChZDaGFuZ2VQYXNzd29yZFJlc3BvbnNl');
+final $typed_data.Uint8List changePasswordResponseDescriptor =
+    $convert.base64Decode('ChZDaGFuZ2VQYXNzd29yZFJlc3BvbnNl');
 
 @$core.Deprecated('Use removeEncryptionRequestDescriptor instead')
 const RemoveEncryptionRequest$json = {
@@ -432,8 +428,8 @@ const RemoveEncryptionRequest$json = {
 };
 
 /// Descriptor for `RemoveEncryptionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List removeEncryptionRequestDescriptor = $convert.base64Decode(
-    'ChdSZW1vdmVFbmNyeXB0aW9uUmVxdWVzdBIaCghwYXNzd29yZBgBIAEoCVIIcGFzc3dvcmQ=');
+final $typed_data.Uint8List removeEncryptionRequestDescriptor =
+    $convert.base64Decode('ChdSZW1vdmVFbmNyeXB0aW9uUmVxdWVzdBIaCghwYXNzd29yZBgBIAEoCVIIcGFzc3dvcmQ=');
 
 @$core.Deprecated('Use removeEncryptionResponseDescriptor instead')
 const RemoveEncryptionResponse$json = {
@@ -441,8 +437,8 @@ const RemoveEncryptionResponse$json = {
 };
 
 /// Descriptor for `RemoveEncryptionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List removeEncryptionResponseDescriptor = $convert.base64Decode(
-    'ChhSZW1vdmVFbmNyeXB0aW9uUmVzcG9uc2U=');
+final $typed_data.Uint8List removeEncryptionResponseDescriptor =
+    $convert.base64Decode('ChhSZW1vdmVFbmNyeXB0aW9uUmVzcG9uc2U=');
 
 @$core.Deprecated('Use walletMetadataDescriptor instead')
 const WalletMetadata$json = {
@@ -461,7 +457,14 @@ const WalletMetadata$json = {
     {'1': 'multisig', '3': 11, '4': 1, '5': 11, '6': '.walletmanager.v1.MultisigInfo', '10': 'multisig'},
     {'1': 'hardware_device_type', '3': 12, '4': 1, '5': 9, '10': 'hardwareDeviceType'},
     {'1': 'hardware_fingerprint', '3': 13, '4': 1, '5': 9, '10': 'hardwareFingerprint'},
-    {'1': 'receive_address_types', '3': 14, '4': 3, '5': 14, '6': '.walletmanager.v1.AddressType', '10': 'receiveAddressTypes'},
+    {
+      '1': 'receive_address_types',
+      '3': 14,
+      '4': 3,
+      '5': 14,
+      '6': '.walletmanager.v1.AddressType',
+      '10': 'receiveAddressTypes'
+    },
     {'1': 'is_starter', '3': 15, '4': 1, '5': 8, '10': 'isStarter'},
     {'1': 'script_type', '3': 16, '4': 1, '5': 9, '10': 'scriptType'},
     {'1': 'account_index', '3': 17, '4': 1, '5': 13, '10': 'accountIndex'},
@@ -470,22 +473,22 @@ const WalletMetadata$json = {
 };
 
 /// Descriptor for `WalletMetadata`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List walletMetadataDescriptor = $convert.base64Decode(
-    'Cg5XYWxsZXRNZXRhZGF0YRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRI9Cg'
-    't3YWxsZXRfdHlwZRgDIAEoDjIcLndhbGxldG1hbmFnZXIudjEuV2FsbGV0VHlwZVIKd2FsbGV0'
-    'VHlwZRIjCg1ncmFkaWVudF9qc29uGAQgASgJUgxncmFkaWVudEpzb24SHQoKY3JlYXRlZF9hdB'
-    'gFIAEoCVIJY3JlYXRlZEF0EiwKEmJpcDQ3X3BheW1lbnRfY29kZRgGIAEoCVIQYmlwNDdQYXlt'
-    'ZW50Q29kZRInCg9tYXN0ZXJfbW5lbW9uaWMYByABKAlSDm1hc3Rlck1uZW1vbmljEh8KC2wxX2'
-    '1uZW1vbmljGAggASgJUgpsMU1uZW1vbmljEkIKCnNpZGVjaGFpbnMYCSADKAsyIi53YWxsZXRt'
-    'YW5hZ2VyLnYxLlNpZGVjaGFpblN0YXJ0ZXJSCnNpZGVjaGFpbnMSHQoKd2F0Y2hfb25seRgKIA'
-    'EoCFIJd2F0Y2hPbmx5EjoKCG11bHRpc2lnGAsgASgLMh4ud2FsbGV0bWFuYWdlci52MS5NdWx0'
-    'aXNpZ0luZm9SCG11bHRpc2lnEjAKFGhhcmR3YXJlX2RldmljZV90eXBlGAwgASgJUhJoYXJkd2'
-    'FyZURldmljZVR5cGUSMQoUaGFyZHdhcmVfZmluZ2VycHJpbnQYDSABKAlSE2hhcmR3YXJlRmlu'
-    'Z2VycHJpbnQSUQoVcmVjZWl2ZV9hZGRyZXNzX3R5cGVzGA4gAygOMh0ud2FsbGV0bWFuYWdlci'
-    '52MS5BZGRyZXNzVHlwZVITcmVjZWl2ZUFkZHJlc3NUeXBlcxIdCgppc19zdGFydGVyGA8gASgI'
-    'Uglpc1N0YXJ0ZXISHwoLc2NyaXB0X3R5cGUYECABKAlSCnNjcmlwdFR5cGUSIwoNYWNjb3VudF'
-    '9pbmRleBgRIAEoDVIMYWNjb3VudEluZGV4EicKD2Rlcml2YXRpb25fcGF0aBgSIAEoCVIOZGVy'
-    'aXZhdGlvblBhdGg=');
+final $typed_data.Uint8List walletMetadataDescriptor =
+    $convert.base64Decode('Cg5XYWxsZXRNZXRhZGF0YRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRI9Cg'
+        't3YWxsZXRfdHlwZRgDIAEoDjIcLndhbGxldG1hbmFnZXIudjEuV2FsbGV0VHlwZVIKd2FsbGV0'
+        'VHlwZRIjCg1ncmFkaWVudF9qc29uGAQgASgJUgxncmFkaWVudEpzb24SHQoKY3JlYXRlZF9hdB'
+        'gFIAEoCVIJY3JlYXRlZEF0EiwKEmJpcDQ3X3BheW1lbnRfY29kZRgGIAEoCVIQYmlwNDdQYXlt'
+        'ZW50Q29kZRInCg9tYXN0ZXJfbW5lbW9uaWMYByABKAlSDm1hc3Rlck1uZW1vbmljEh8KC2wxX2'
+        '1uZW1vbmljGAggASgJUgpsMU1uZW1vbmljEkIKCnNpZGVjaGFpbnMYCSADKAsyIi53YWxsZXRt'
+        'YW5hZ2VyLnYxLlNpZGVjaGFpblN0YXJ0ZXJSCnNpZGVjaGFpbnMSHQoKd2F0Y2hfb25seRgKIA'
+        'EoCFIJd2F0Y2hPbmx5EjoKCG11bHRpc2lnGAsgASgLMh4ud2FsbGV0bWFuYWdlci52MS5NdWx0'
+        'aXNpZ0luZm9SCG11bHRpc2lnEjAKFGhhcmR3YXJlX2RldmljZV90eXBlGAwgASgJUhJoYXJkd2'
+        'FyZURldmljZVR5cGUSMQoUaGFyZHdhcmVfZmluZ2VycHJpbnQYDSABKAlSE2hhcmR3YXJlRmlu'
+        'Z2VycHJpbnQSUQoVcmVjZWl2ZV9hZGRyZXNzX3R5cGVzGA4gAygOMh0ud2FsbGV0bWFuYWdlci'
+        '52MS5BZGRyZXNzVHlwZVITcmVjZWl2ZUFkZHJlc3NUeXBlcxIdCgppc19zdGFydGVyGA8gASgI'
+        'Uglpc1N0YXJ0ZXISHwoLc2NyaXB0X3R5cGUYECABKAlSCnNjcmlwdFR5cGUSIwoNYWNjb3VudF'
+        '9pbmRleBgRIAEoDVIMYWNjb3VudEluZGV4EicKD2Rlcml2YXRpb25fcGF0aBgSIAEoCVIOZGVy'
+        'aXZhdGlvblBhdGg=');
 
 @$core.Deprecated('Use multisigInfoDescriptor instead')
 const MultisigInfo$json = {
@@ -499,10 +502,10 @@ const MultisigInfo$json = {
 };
 
 /// Descriptor for `MultisigInfo`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List multisigInfoDescriptor = $convert.base64Decode(
-    'CgxNdWx0aXNpZ0luZm8SDAoBbRgBIAEoDVIBbRIMCgFuGAIgASgNUgFuEh8KC3NjcmlwdF90eX'
-    'BlGAMgASgJUgpzY3JpcHRUeXBlEkQKCWNvc2lnbmVycxgEIAMoCzImLndhbGxldG1hbmFnZXIu'
-    'djEuTXVsdGlzaWdDb3NpZ25lckluZm9SCWNvc2lnbmVycw==');
+final $typed_data.Uint8List multisigInfoDescriptor =
+    $convert.base64Decode('CgxNdWx0aXNpZ0luZm8SDAoBbRgBIAEoDVIBbRIMCgFuGAIgASgNUgFuEh8KC3NjcmlwdF90eX'
+        'BlGAMgASgJUgpzY3JpcHRUeXBlEkQKCWNvc2lnbmVycxgEIAMoCzImLndhbGxldG1hbmFnZXIu'
+        'djEuTXVsdGlzaWdDb3NpZ25lckluZm9SCWNvc2lnbmVycw==');
 
 @$core.Deprecated('Use multisigCosignerInfoDescriptor instead')
 const MultisigCosignerInfo$json = {
@@ -517,11 +520,11 @@ const MultisigCosignerInfo$json = {
 };
 
 /// Descriptor for `MultisigCosignerInfo`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List multisigCosignerInfoDescriptor = $convert.base64Decode(
-    'ChRNdWx0aXNpZ0Nvc2lnbmVySW5mbxISCgR4cHViGAEgASgJUgR4cHViEiAKC2ZpbmdlcnByaW'
-    '50GAIgASgJUgtmaW5nZXJwcmludBIfCgtvcmlnaW5fcGF0aBgDIAEoCVIKb3JpZ2luUGF0aBIS'
-    'CgRoZWxkGAQgASgIUgRoZWxkEjAKFGhhcmR3YXJlX2RldmljZV90eXBlGAUgASgJUhJoYXJkd2'
-    'FyZURldmljZVR5cGU=');
+final $typed_data.Uint8List multisigCosignerInfoDescriptor =
+    $convert.base64Decode('ChRNdWx0aXNpZ0Nvc2lnbmVySW5mbxISCgR4cHViGAEgASgJUgR4cHViEiAKC2ZpbmdlcnByaW'
+        '50GAIgASgJUgtmaW5nZXJwcmludBIfCgtvcmlnaW5fcGF0aBgDIAEoCVIKb3JpZ2luUGF0aBIS'
+        'CgRoZWxkGAQgASgIUgRoZWxkEjAKFGhhcmR3YXJlX2RldmljZV90eXBlGAUgASgJUhJoYXJkd2'
+        'FyZURldmljZVR5cGU=');
 
 @$core.Deprecated('Use sidechainStarterDescriptor instead')
 const SidechainStarter$json = {
@@ -534,9 +537,9 @@ const SidechainStarter$json = {
 };
 
 /// Descriptor for `SidechainStarter`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sidechainStarterDescriptor = $convert.base64Decode(
-    'ChBTaWRlY2hhaW5TdGFydGVyEhIKBHNsb3QYASABKAVSBHNsb3QSEgoEbmFtZRgCIAEoCVIEbm'
-    'FtZRIaCghtbmVtb25pYxgDIAEoCVIIbW5lbW9uaWM=');
+final $typed_data.Uint8List sidechainStarterDescriptor =
+    $convert.base64Decode('ChBTaWRlY2hhaW5TdGFydGVyEhIKBHNsb3QYASABKAVSBHNsb3QSEgoEbmFtZRgCIAEoCVIEbm'
+        'FtZRIaCghtbmVtb25pYxgDIAEoCVIIbW5lbW9uaWM=');
 
 @$core.Deprecated('Use listWalletsRequestDescriptor instead')
 const ListWalletsRequest$json = {
@@ -544,8 +547,7 @@ const ListWalletsRequest$json = {
 };
 
 /// Descriptor for `ListWalletsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listWalletsRequestDescriptor = $convert.base64Decode(
-    'ChJMaXN0V2FsbGV0c1JlcXVlc3Q=');
+final $typed_data.Uint8List listWalletsRequestDescriptor = $convert.base64Decode('ChJMaXN0V2FsbGV0c1JlcXVlc3Q=');
 
 @$core.Deprecated('Use listWalletsResponseDescriptor instead')
 const ListWalletsResponse$json = {
@@ -557,10 +559,10 @@ const ListWalletsResponse$json = {
 };
 
 /// Descriptor for `ListWalletsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listWalletsResponseDescriptor = $convert.base64Decode(
-    'ChNMaXN0V2FsbGV0c1Jlc3BvbnNlEjoKB3dhbGxldHMYASADKAsyIC53YWxsZXRtYW5hZ2VyLn'
-    'YxLldhbGxldE1ldGFkYXRhUgd3YWxsZXRzEigKEGFjdGl2ZV93YWxsZXRfaWQYAiABKAlSDmFj'
-    'dGl2ZVdhbGxldElk');
+final $typed_data.Uint8List listWalletsResponseDescriptor =
+    $convert.base64Decode('ChNMaXN0V2FsbGV0c1Jlc3BvbnNlEjoKB3dhbGxldHMYASADKAsyIC53YWxsZXRtYW5hZ2VyLn'
+        'YxLldhbGxldE1ldGFkYXRhUgd3YWxsZXRzEigKEGFjdGl2ZV93YWxsZXRfaWQYAiABKAlSDmFj'
+        'dGl2ZVdhbGxldElk');
 
 @$core.Deprecated('Use switchWalletRequestDescriptor instead')
 const SwitchWalletRequest$json = {
@@ -572,9 +574,9 @@ const SwitchWalletRequest$json = {
 };
 
 /// Descriptor for `SwitchWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List switchWalletRequestDescriptor = $convert.base64Decode(
-    'ChNTd2l0Y2hXYWxsZXRSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSGQoIZG'
-    'F0YV9kaXIYAiABKAlSB2RhdGFEaXI=');
+final $typed_data.Uint8List switchWalletRequestDescriptor =
+    $convert.base64Decode('ChNTd2l0Y2hXYWxsZXRSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSGQoIZG'
+        'F0YV9kaXIYAiABKAlSB2RhdGFEaXI=');
 
 @$core.Deprecated('Use switchWalletResponseDescriptor instead')
 const SwitchWalletResponse$json = {
@@ -582,8 +584,7 @@ const SwitchWalletResponse$json = {
 };
 
 /// Descriptor for `SwitchWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List switchWalletResponseDescriptor = $convert.base64Decode(
-    'ChRTd2l0Y2hXYWxsZXRSZXNwb25zZQ==');
+final $typed_data.Uint8List switchWalletResponseDescriptor = $convert.base64Decode('ChRTd2l0Y2hXYWxsZXRSZXNwb25zZQ==');
 
 @$core.Deprecated('Use updateWalletMetadataRequestDescriptor instead')
 const UpdateWalletMetadataRequest$json = {
@@ -596,10 +597,10 @@ const UpdateWalletMetadataRequest$json = {
 };
 
 /// Descriptor for `UpdateWalletMetadataRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List updateWalletMetadataRequestDescriptor = $convert.base64Decode(
-    'ChtVcGRhdGVXYWxsZXRNZXRhZGF0YVJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
-    'RJZBISCgRuYW1lGAIgASgJUgRuYW1lEiMKDWdyYWRpZW50X2pzb24YAyABKAlSDGdyYWRpZW50'
-    'SnNvbg==');
+final $typed_data.Uint8List updateWalletMetadataRequestDescriptor =
+    $convert.base64Decode('ChtVcGRhdGVXYWxsZXRNZXRhZGF0YVJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+        'RJZBISCgRuYW1lGAIgASgJUgRuYW1lEiMKDWdyYWRpZW50X2pzb24YAyABKAlSDGdyYWRpZW50'
+        'SnNvbg==');
 
 @$core.Deprecated('Use updateWalletMetadataResponseDescriptor instead')
 const UpdateWalletMetadataResponse$json = {
@@ -607,8 +608,8 @@ const UpdateWalletMetadataResponse$json = {
 };
 
 /// Descriptor for `UpdateWalletMetadataResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List updateWalletMetadataResponseDescriptor = $convert.base64Decode(
-    'ChxVcGRhdGVXYWxsZXRNZXRhZGF0YVJlc3BvbnNl');
+final $typed_data.Uint8List updateWalletMetadataResponseDescriptor =
+    $convert.base64Decode('ChxVcGRhdGVXYWxsZXRNZXRhZGF0YVJlc3BvbnNl');
 
 @$core.Deprecated('Use deleteWalletRequestDescriptor instead')
 const DeleteWalletRequest$json = {
@@ -619,8 +620,8 @@ const DeleteWalletRequest$json = {
 };
 
 /// Descriptor for `DeleteWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteWalletRequestDescriptor = $convert.base64Decode(
-    'ChNEZWxldGVXYWxsZXRSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQ=');
+final $typed_data.Uint8List deleteWalletRequestDescriptor =
+    $convert.base64Decode('ChNEZWxldGVXYWxsZXRSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQ=');
 
 @$core.Deprecated('Use deleteWalletResponseDescriptor instead')
 const DeleteWalletResponse$json = {
@@ -628,8 +629,7 @@ const DeleteWalletResponse$json = {
 };
 
 /// Descriptor for `DeleteWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteWalletResponseDescriptor = $convert.base64Decode(
-    'ChREZWxldGVXYWxsZXRSZXNwb25zZQ==');
+final $typed_data.Uint8List deleteWalletResponseDescriptor = $convert.base64Decode('ChREZWxldGVXYWxsZXRSZXNwb25zZQ==');
 
 @$core.Deprecated('Use deleteAllWalletsRequestDescriptor instead')
 const DeleteAllWalletsRequest$json = {
@@ -637,8 +637,8 @@ const DeleteAllWalletsRequest$json = {
 };
 
 /// Descriptor for `DeleteAllWalletsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteAllWalletsRequestDescriptor = $convert.base64Decode(
-    'ChdEZWxldGVBbGxXYWxsZXRzUmVxdWVzdA==');
+final $typed_data.Uint8List deleteAllWalletsRequestDescriptor =
+    $convert.base64Decode('ChdEZWxldGVBbGxXYWxsZXRzUmVxdWVzdA==');
 
 @$core.Deprecated('Use deleteAllWalletsResponseDescriptor instead')
 const DeleteAllWalletsResponse$json = {
@@ -646,8 +646,8 @@ const DeleteAllWalletsResponse$json = {
 };
 
 /// Descriptor for `DeleteAllWalletsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteAllWalletsResponseDescriptor = $convert.base64Decode(
-    'ChhEZWxldGVBbGxXYWxsZXRzUmVzcG9uc2U=');
+final $typed_data.Uint8List deleteAllWalletsResponseDescriptor =
+    $convert.base64Decode('ChhEZWxldGVBbGxXYWxsZXRzUmVzcG9uc2U=');
 
 @$core.Deprecated('Use balanceSnapshotDescriptor instead')
 const BalanceSnapshot$json = {
@@ -662,12 +662,12 @@ const BalanceSnapshot$json = {
 };
 
 /// Descriptor for `BalanceSnapshot`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List balanceSnapshotDescriptor = $convert.base64Decode(
-    'Cg9CYWxhbmNlU25hcHNob3QSMwoGYmluYXJ5GAEgASgOMhsub3JjaGVzdHJhdG9yLnYxLkJpbm'
-    'FyeVR5cGVSBmJpbmFyeRIhCgxkaXNwbGF5X25hbWUYAiABKAlSC2Rpc3BsYXlOYW1lEiUKDmNv'
-    'bmZpcm1lZF9zYXRzGAMgASgEUg1jb25maXJtZWRTYXRzEiEKDHBlbmRpbmdfc2F0cxgEIAEoBF'
-    'ILcGVuZGluZ1NhdHMSOQoKdXBkYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1l'
-    'c3RhbXBSCXVwZGF0ZWRBdA==');
+final $typed_data.Uint8List balanceSnapshotDescriptor =
+    $convert.base64Decode('Cg9CYWxhbmNlU25hcHNob3QSMwoGYmluYXJ5GAEgASgOMhsub3JjaGVzdHJhdG9yLnYxLkJpbm'
+        'FyeVR5cGVSBmJpbmFyeRIhCgxkaXNwbGF5X25hbWUYAiABKAlSC2Rpc3BsYXlOYW1lEiUKDmNv'
+        'bmZpcm1lZF9zYXRzGAMgASgEUg1jb25maXJtZWRTYXRzEiEKDHBlbmRpbmdfc2F0cxgEIAEoBF'
+        'ILcGVuZGluZ1NhdHMSOQoKdXBkYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1l'
+        'c3RhbXBSCXVwZGF0ZWRBdA==');
 
 @$core.Deprecated('Use backupWalletSummaryDescriptor instead')
 const BackupWalletSummary$json = {
@@ -680,9 +680,9 @@ const BackupWalletSummary$json = {
 };
 
 /// Descriptor for `BackupWalletSummary`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List backupWalletSummaryDescriptor = $convert.base64Decode(
-    'ChNCYWNrdXBXYWxsZXRTdW1tYXJ5Eg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW'
-    '1lEh8KC3dhbGxldF90eXBlGAMgASgJUgp3YWxsZXRUeXBl');
+final $typed_data.Uint8List backupWalletSummaryDescriptor =
+    $convert.base64Decode('ChNCYWNrdXBXYWxsZXRTdW1tYXJ5Eg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW'
+        '1lEh8KC3dhbGxldF90eXBlGAMgASgJUgp3YWxsZXRUeXBl');
 
 @$core.Deprecated('Use walletBackupDescriptor instead')
 const WalletBackup$json = {
@@ -695,23 +695,30 @@ const WalletBackup$json = {
     {'1': 'has_metadata', '3': 5, '4': 1, '5': 8, '10': 'hasMetadata'},
     {'1': 'active_wallet_id', '3': 6, '4': 1, '5': 9, '10': 'activeWalletId'},
     {'1': 'wallets', '3': 7, '4': 3, '5': 11, '6': '.walletmanager.v1.BackupWalletSummary', '10': 'wallets'},
-    {'1': 'latest_known_balance', '3': 8, '4': 3, '5': 11, '6': '.walletmanager.v1.BalanceSnapshot', '10': 'latestKnownBalance'},
+    {
+      '1': 'latest_known_balance',
+      '3': 8,
+      '4': 3,
+      '5': 11,
+      '6': '.walletmanager.v1.BalanceSnapshot',
+      '10': 'latestKnownBalance'
+    },
     {'1': 'valid', '3': 9, '4': 1, '5': 8, '10': 'valid'},
     {'1': 'error_message', '3': 10, '4': 1, '5': 9, '10': 'errorMessage'},
   ],
 };
 
 /// Descriptor for `WalletBackup`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List walletBackupDescriptor = $convert.base64Decode(
-    'CgxXYWxsZXRCYWNrdXASGwoJYmFja3VwX2lkGAEgASgJUghiYWNrdXBJZBI5CgpjcmVhdGVkX2'
-    'F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0Eh8KC3NvdXJj'
-    'ZV9uYW1lGAMgASgJUgpzb3VyY2VOYW1lEhwKCWVuY3J5cHRlZBgEIAEoCFIJZW5jcnlwdGVkEi'
-    'EKDGhhc19tZXRhZGF0YRgFIAEoCFILaGFzTWV0YWRhdGESKAoQYWN0aXZlX3dhbGxldF9pZBgG'
-    'IAEoCVIOYWN0aXZlV2FsbGV0SWQSPwoHd2FsbGV0cxgHIAMoCzIlLndhbGxldG1hbmFnZXIudj'
-    'EuQmFja3VwV2FsbGV0U3VtbWFyeVIHd2FsbGV0cxJTChRsYXRlc3Rfa25vd25fYmFsYW5jZRgI'
-    'IAMoCzIhLndhbGxldG1hbmFnZXIudjEuQmFsYW5jZVNuYXBzaG90UhJsYXRlc3RLbm93bkJhbG'
-    'FuY2USFAoFdmFsaWQYCSABKAhSBXZhbGlkEiMKDWVycm9yX21lc3NhZ2UYCiABKAlSDGVycm9y'
-    'TWVzc2FnZQ==');
+final $typed_data.Uint8List walletBackupDescriptor =
+    $convert.base64Decode('CgxXYWxsZXRCYWNrdXASGwoJYmFja3VwX2lkGAEgASgJUghiYWNrdXBJZBI5CgpjcmVhdGVkX2'
+        'F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0Eh8KC3NvdXJj'
+        'ZV9uYW1lGAMgASgJUgpzb3VyY2VOYW1lEhwKCWVuY3J5cHRlZBgEIAEoCFIJZW5jcnlwdGVkEi'
+        'EKDGhhc19tZXRhZGF0YRgFIAEoCFILaGFzTWV0YWRhdGESKAoQYWN0aXZlX3dhbGxldF9pZBgG'
+        'IAEoCVIOYWN0aXZlV2FsbGV0SWQSPwoHd2FsbGV0cxgHIAMoCzIlLndhbGxldG1hbmFnZXIudj'
+        'EuQmFja3VwV2FsbGV0U3VtbWFyeVIHd2FsbGV0cxJTChRsYXRlc3Rfa25vd25fYmFsYW5jZRgI'
+        'IAMoCzIhLndhbGxldG1hbmFnZXIudjEuQmFsYW5jZVNuYXBzaG90UhJsYXRlc3RLbm93bkJhbG'
+        'FuY2USFAoFdmFsaWQYCSABKAhSBXZhbGlkEiMKDWVycm9yX21lc3NhZ2UYCiABKAlSDGVycm9y'
+        'TWVzc2FnZQ==');
 
 @$core.Deprecated('Use listWalletBackupsRequestDescriptor instead')
 const ListWalletBackupsRequest$json = {
@@ -719,8 +726,8 @@ const ListWalletBackupsRequest$json = {
 };
 
 /// Descriptor for `ListWalletBackupsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listWalletBackupsRequestDescriptor = $convert.base64Decode(
-    'ChhMaXN0V2FsbGV0QmFja3Vwc1JlcXVlc3Q=');
+final $typed_data.Uint8List listWalletBackupsRequestDescriptor =
+    $convert.base64Decode('ChhMaXN0V2FsbGV0QmFja3Vwc1JlcXVlc3Q=');
 
 @$core.Deprecated('Use listWalletBackupsResponseDescriptor instead')
 const ListWalletBackupsResponse$json = {
@@ -731,9 +738,9 @@ const ListWalletBackupsResponse$json = {
 };
 
 /// Descriptor for `ListWalletBackupsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listWalletBackupsResponseDescriptor = $convert.base64Decode(
-    'ChlMaXN0V2FsbGV0QmFja3Vwc1Jlc3BvbnNlEjgKB2JhY2t1cHMYASADKAsyHi53YWxsZXRtYW'
-    '5hZ2VyLnYxLldhbGxldEJhY2t1cFIHYmFja3Vwcw==');
+final $typed_data.Uint8List listWalletBackupsResponseDescriptor =
+    $convert.base64Decode('ChlMaXN0V2FsbGV0QmFja3Vwc1Jlc3BvbnNlEjgKB2JhY2t1cHMYASADKAsyHi53YWxsZXRtYW'
+        '5hZ2VyLnYxLldhbGxldEJhY2t1cFIHYmFja3Vwcw==');
 
 @$core.Deprecated('Use restoreWalletBackupRequestDescriptor instead')
 const RestoreWalletBackupRequest$json = {
@@ -745,9 +752,9 @@ const RestoreWalletBackupRequest$json = {
 };
 
 /// Descriptor for `RestoreWalletBackupRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List restoreWalletBackupRequestDescriptor = $convert.base64Decode(
-    'ChpSZXN0b3JlV2FsbGV0QmFja3VwUmVxdWVzdBIbCgliYWNrdXBfaWQYASABKAlSCGJhY2t1cE'
-    'lkEhoKCHBhc3N3b3JkGAIgASgJUghwYXNzd29yZA==');
+final $typed_data.Uint8List restoreWalletBackupRequestDescriptor =
+    $convert.base64Decode('ChpSZXN0b3JlV2FsbGV0QmFja3VwUmVxdWVzdBIbCgliYWNrdXBfaWQYASABKAlSCGJhY2t1cE'
+        'lkEhoKCHBhc3N3b3JkGAIgASgJUghwYXNzd29yZA==');
 
 @$core.Deprecated('Use restoreWalletBackupResponseDescriptor instead')
 const RestoreWalletBackupResponse$json = {
@@ -755,8 +762,8 @@ const RestoreWalletBackupResponse$json = {
 };
 
 /// Descriptor for `RestoreWalletBackupResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List restoreWalletBackupResponseDescriptor = $convert.base64Decode(
-    'ChtSZXN0b3JlV2FsbGV0QmFja3VwUmVzcG9uc2U=');
+final $typed_data.Uint8List restoreWalletBackupResponseDescriptor =
+    $convert.base64Decode('ChtSZXN0b3JlV2FsbGV0QmFja3VwUmVzcG9uc2U=');
 
 @$core.Deprecated('Use restoreWalletBackupStepDescriptor instead')
 const RestoreWalletBackupStep$json = {
@@ -768,9 +775,9 @@ const RestoreWalletBackupStep$json = {
 };
 
 /// Descriptor for `RestoreWalletBackupStep`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List restoreWalletBackupStepDescriptor = $convert.base64Decode(
-    'ChdSZXN0b3JlV2FsbGV0QmFja3VwU3RlcBIXCgdzdGVwX2lkGAEgASgJUgZzdGVwSWQSEgoEbm'
-    'FtZRgCIAEoCVIEbmFtZQ==');
+final $typed_data.Uint8List restoreWalletBackupStepDescriptor =
+    $convert.base64Decode('ChdSZXN0b3JlV2FsbGV0QmFja3VwU3RlcBIXCgdzdGVwX2lkGAEgASgJUgZzdGVwSWQSEgoEbm'
+        'FtZRgCIAEoCVIEbmFtZQ==');
 
 @$core.Deprecated('Use restoreWalletBackupProgressStatusDescriptor instead')
 const RestoreWalletBackupProgressStatus$json = {
@@ -784,27 +791,34 @@ const RestoreWalletBackupProgressStatus$json = {
 };
 
 /// Descriptor for `RestoreWalletBackupProgressStatus`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List restoreWalletBackupProgressStatusDescriptor = $convert.base64Decode(
-    'CiFSZXN0b3JlV2FsbGV0QmFja3VwUHJvZ3Jlc3NTdGF0dXMSFwoHc3RlcF9pZBgBIAEoCVIGc3'
-    'RlcElkEkQKBXN0YXRlGAIgASgOMi4ud2FsbGV0bWFuYWdlci52MS5SZXN0b3JlV2FsbGV0QmFj'
-    'a3VwU3RlcFN0YXRlUgVzdGF0ZRIUCgVlcnJvchgDIAEoCVIFZXJyb3ISGgoIY29tcGxldGUYBC'
-    'ABKAhSCGNvbXBsZXRl');
+final $typed_data.Uint8List restoreWalletBackupProgressStatusDescriptor =
+    $convert.base64Decode('CiFSZXN0b3JlV2FsbGV0QmFja3VwUHJvZ3Jlc3NTdGF0dXMSFwoHc3RlcF9pZBgBIAEoCVIGc3'
+        'RlcElkEkQKBXN0YXRlGAIgASgOMi4ud2FsbGV0bWFuYWdlci52MS5SZXN0b3JlV2FsbGV0QmFj'
+        'a3VwU3RlcFN0YXRlUgVzdGF0ZRIUCgVlcnJvchgDIAEoCVIFZXJyb3ISGgoIY29tcGxldGUYBC'
+        'ABKAhSCGNvbXBsZXRl');
 
 @$core.Deprecated('Use restoreWalletBackupProgressResponseDescriptor instead')
 const RestoreWalletBackupProgressResponse$json = {
   '1': 'RestoreWalletBackupProgressResponse',
   '2': [
     {'1': 'steps', '3': 1, '4': 3, '5': 11, '6': '.walletmanager.v1.RestoreWalletBackupStep', '10': 'steps'},
-    {'1': 'status', '3': 2, '4': 1, '5': 11, '6': '.walletmanager.v1.RestoreWalletBackupProgressStatus', '10': 'status'},
+    {
+      '1': 'status',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.walletmanager.v1.RestoreWalletBackupProgressStatus',
+      '10': 'status'
+    },
   ],
 };
 
 /// Descriptor for `RestoreWalletBackupProgressResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List restoreWalletBackupProgressResponseDescriptor = $convert.base64Decode(
-    'CiNSZXN0b3JlV2FsbGV0QmFja3VwUHJvZ3Jlc3NSZXNwb25zZRI/CgVzdGVwcxgBIAMoCzIpLn'
-    'dhbGxldG1hbmFnZXIudjEuUmVzdG9yZVdhbGxldEJhY2t1cFN0ZXBSBXN0ZXBzEksKBnN0YXR1'
-    'cxgCIAEoCzIzLndhbGxldG1hbmFnZXIudjEuUmVzdG9yZVdhbGxldEJhY2t1cFByb2dyZXNzU3'
-    'RhdHVzUgZzdGF0dXM=');
+final $typed_data.Uint8List restoreWalletBackupProgressResponseDescriptor =
+    $convert.base64Decode('CiNSZXN0b3JlV2FsbGV0QmFja3VwUHJvZ3Jlc3NSZXNwb25zZRI/CgVzdGVwcxgBIAMoCzIpLn'
+        'dhbGxldG1hbmFnZXIudjEuUmVzdG9yZVdhbGxldEJhY2t1cFN0ZXBSBXN0ZXBzEksKBnN0YXR1'
+        'cxgCIAEoCzIzLndhbGxldG1hbmFnZXIudjEuUmVzdG9yZVdhbGxldEJhY2t1cFByb2dyZXNzU3'
+        'RhdHVzUgZzdGF0dXM=');
 
 @$core.Deprecated('Use createWatchOnlyWalletRequestDescriptor instead')
 const CreateWatchOnlyWalletRequest$json = {
@@ -817,10 +831,10 @@ const CreateWatchOnlyWalletRequest$json = {
 };
 
 /// Descriptor for `CreateWatchOnlyWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createWatchOnlyWalletRequestDescriptor = $convert.base64Decode(
-    'ChxDcmVhdGVXYXRjaE9ubHlXYWxsZXRSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWUSLAoSeH'
-    'B1Yl9vcl9kZXNjcmlwdG9yGAIgASgJUhB4cHViT3JEZXNjcmlwdG9yEiMKDWdyYWRpZW50X2pz'
-    'b24YAyABKAlSDGdyYWRpZW50SnNvbg==');
+final $typed_data.Uint8List createWatchOnlyWalletRequestDescriptor =
+    $convert.base64Decode('ChxDcmVhdGVXYXRjaE9ubHlXYWxsZXRSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWUSLAoSeH'
+        'B1Yl9vcl9kZXNjcmlwdG9yGAIgASgJUhB4cHViT3JEZXNjcmlwdG9yEiMKDWdyYWRpZW50X2pz'
+        'b24YAyABKAlSDGdyYWRpZW50SnNvbg==');
 
 @$core.Deprecated('Use createWatchOnlyWalletResponseDescriptor instead')
 const CreateWatchOnlyWalletResponse$json = {
@@ -831,9 +845,9 @@ const CreateWatchOnlyWalletResponse$json = {
 };
 
 /// Descriptor for `CreateWatchOnlyWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createWatchOnlyWalletResponseDescriptor = $convert.base64Decode(
-    'Ch1DcmVhdGVXYXRjaE9ubHlXYWxsZXRSZXNwb25zZRIbCgl3YWxsZXRfaWQYASABKAlSCHdhbG'
-    'xldElk');
+final $typed_data.Uint8List createWatchOnlyWalletResponseDescriptor =
+    $convert.base64Decode('Ch1DcmVhdGVXYXRjaE9ubHlXYWxsZXRSZXNwb25zZRIbCgl3YWxsZXRfaWQYASABKAlSCHdhbG'
+        'xldElk');
 
 @$core.Deprecated('Use createElectrumWalletRequestDescriptor instead')
 const CreateElectrumWalletRequest$json = {
@@ -855,16 +869,16 @@ const CreateElectrumWalletRequest$json = {
 };
 
 /// Descriptor for `CreateElectrumWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createElectrumWalletRequestDescriptor = $convert.base64Decode(
-    'ChtDcmVhdGVFbGVjdHJ1bVdhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIjCg1ncm'
-    'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SFAoFc2xvdHMYAyADKA1SBXNsb3RzEicK'
-    'D2N1c3RvbV9tbmVtb25pYxgEIAEoCVIOY3VzdG9tTW5lbW9uaWMSLAoSeHB1Yl9vcl9kZXNjcm'
-    'lwdG9yGAUgASgJUhB4cHViT3JEZXNjcmlwdG9yEh8KC3NjcmlwdF90eXBlGAYgASgJUgpzY3Jp'
-    'cHRUeXBlEhgKB2FjY291bnQYByABKA1SB2FjY291bnQSJwoPZGVyaXZhdGlvbl9wYXRoGAggAS'
-    'gJUg5kZXJpdmF0aW9uUGF0aBIwChRoYXJkd2FyZV9kZXZpY2VfdHlwZRgJIAEoCVISaGFyZHdh'
-    'cmVEZXZpY2VUeXBlEjEKFGhhcmR3YXJlX2ZpbmdlcnByaW50GAogASgJUhNoYXJkd2FyZUZpbm'
-    'dlcnByaW50Eh4KCnBhc3NwaHJhc2UYCyABKAlSCnBhc3NwaHJhc2USLQoScHJpdmF0ZV9kZXNj'
-    'cmlwdG9yGAwgASgJUhFwcml2YXRlRGVzY3JpcHRvcg==');
+final $typed_data.Uint8List createElectrumWalletRequestDescriptor =
+    $convert.base64Decode('ChtDcmVhdGVFbGVjdHJ1bVdhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIjCg1ncm'
+        'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SFAoFc2xvdHMYAyADKA1SBXNsb3RzEicK'
+        'D2N1c3RvbV9tbmVtb25pYxgEIAEoCVIOY3VzdG9tTW5lbW9uaWMSLAoSeHB1Yl9vcl9kZXNjcm'
+        'lwdG9yGAUgASgJUhB4cHViT3JEZXNjcmlwdG9yEh8KC3NjcmlwdF90eXBlGAYgASgJUgpzY3Jp'
+        'cHRUeXBlEhgKB2FjY291bnQYByABKA1SB2FjY291bnQSJwoPZGVyaXZhdGlvbl9wYXRoGAggAS'
+        'gJUg5kZXJpdmF0aW9uUGF0aBIwChRoYXJkd2FyZV9kZXZpY2VfdHlwZRgJIAEoCVISaGFyZHdh'
+        'cmVEZXZpY2VUeXBlEjEKFGhhcmR3YXJlX2ZpbmdlcnByaW50GAogASgJUhNoYXJkd2FyZUZpbm'
+        'dlcnByaW50Eh4KCnBhc3NwaHJhc2UYCyABKAlSCnBhc3NwaHJhc2USLQoScHJpdmF0ZV9kZXNj'
+        'cmlwdG9yGAwgASgJUhFwcml2YXRlRGVzY3JpcHRvcg==');
 
 @$core.Deprecated('Use createElectrumWalletResponseDescriptor instead')
 const CreateElectrumWalletResponse$json = {
@@ -875,9 +889,9 @@ const CreateElectrumWalletResponse$json = {
 };
 
 /// Descriptor for `CreateElectrumWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createElectrumWalletResponseDescriptor = $convert.base64Decode(
-    'ChxDcmVhdGVFbGVjdHJ1bVdhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
-    'V0SWQ=');
+final $typed_data.Uint8List createElectrumWalletResponseDescriptor =
+    $convert.base64Decode('ChxDcmVhdGVFbGVjdHJ1bVdhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
+        'V0SWQ=');
 
 @$core.Deprecated('Use multisigCosignerInputDescriptor instead')
 const MultisigCosignerInput$json = {
@@ -894,12 +908,12 @@ const MultisigCosignerInput$json = {
 };
 
 /// Descriptor for `MultisigCosignerInput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List multisigCosignerInputDescriptor = $convert.base64Decode(
-    'ChVNdWx0aXNpZ0Nvc2lnbmVySW5wdXQSEgoEeHB1YhgBIAEoCVIEeHB1YhIfCgtvcmlnaW5fcG'
-    'F0aBgCIAEoCVIKb3JpZ2luUGF0aBIgCgtmaW5nZXJwcmludBgDIAEoCVILZmluZ2VycHJpbnQS'
-    'GgoIbW5lbW9uaWMYBCABKAlSCG1uZW1vbmljEhIKBHhwcnYYBSABKAlSBHhwcnYSHgoKcGFzc3'
-    'BocmFzZRgGIAEoCVIKcGFzc3BocmFzZRIwChRoYXJkd2FyZV9kZXZpY2VfdHlwZRgHIAEoCVIS'
-    'aGFyZHdhcmVEZXZpY2VUeXBl');
+final $typed_data.Uint8List multisigCosignerInputDescriptor =
+    $convert.base64Decode('ChVNdWx0aXNpZ0Nvc2lnbmVySW5wdXQSEgoEeHB1YhgBIAEoCVIEeHB1YhIfCgtvcmlnaW5fcG'
+        'F0aBgCIAEoCVIKb3JpZ2luUGF0aBIgCgtmaW5nZXJwcmludBgDIAEoCVILZmluZ2VycHJpbnQS'
+        'GgoIbW5lbW9uaWMYBCABKAlSCG1uZW1vbmljEhIKBHhwcnYYBSABKAlSBHhwcnYSHgoKcGFzc3'
+        'BocmFzZRgGIAEoCVIKcGFzc3BocmFzZRIwChRoYXJkd2FyZV9kZXZpY2VfdHlwZRgHIAEoCVIS'
+        'aGFyZHdhcmVEZXZpY2VUeXBl');
 
 @$core.Deprecated('Use createMultisigWalletRequestDescriptor instead')
 const CreateMultisigWalletRequest$json = {
@@ -915,11 +929,11 @@ const CreateMultisigWalletRequest$json = {
 };
 
 /// Descriptor for `CreateMultisigWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createMultisigWalletRequestDescriptor = $convert.base64Decode(
-    'ChtDcmVhdGVNdWx0aXNpZ1dhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIjCg1ncm'
-    'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SDAoBbRgDIAEoDVIBbRIMCgFuGAQgASgN'
-    'UgFuEh8KC3NjcmlwdF90eXBlGAUgASgJUgpzY3JpcHRUeXBlEkUKCWNvc2lnbmVycxgGIAMoCz'
-    'InLndhbGxldG1hbmFnZXIudjEuTXVsdGlzaWdDb3NpZ25lcklucHV0Ugljb3NpZ25lcnM=');
+final $typed_data.Uint8List createMultisigWalletRequestDescriptor =
+    $convert.base64Decode('ChtDcmVhdGVNdWx0aXNpZ1dhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIjCg1ncm'
+        'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SDAoBbRgDIAEoDVIBbRIMCgFuGAQgASgN'
+        'UgFuEh8KC3NjcmlwdF90eXBlGAUgASgJUgpzY3JpcHRUeXBlEkUKCWNvc2lnbmVycxgGIAMoCz'
+        'InLndhbGxldG1hbmFnZXIudjEuTXVsdGlzaWdDb3NpZ25lcklucHV0Ugljb3NpZ25lcnM=');
 
 @$core.Deprecated('Use createMultisigWalletResponseDescriptor instead')
 const CreateMultisigWalletResponse$json = {
@@ -930,9 +944,9 @@ const CreateMultisigWalletResponse$json = {
 };
 
 /// Descriptor for `CreateMultisigWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createMultisigWalletResponseDescriptor = $convert.base64Decode(
-    'ChxDcmVhdGVNdWx0aXNpZ1dhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
-    'V0SWQ=');
+final $typed_data.Uint8List createMultisigWalletResponseDescriptor =
+    $convert.base64Decode('ChxDcmVhdGVNdWx0aXNpZ1dhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
+        'V0SWQ=');
 
 @$core.Deprecated('Use parseMultisigConfigRequestDescriptor instead')
 const ParseMultisigConfigRequest$json = {
@@ -943,8 +957,8 @@ const ParseMultisigConfigRequest$json = {
 };
 
 /// Descriptor for `ParseMultisigConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List parseMultisigConfigRequestDescriptor = $convert.base64Decode(
-    'ChpQYXJzZU11bHRpc2lnQ29uZmlnUmVxdWVzdBIYCgdjb250ZW50GAEgASgJUgdjb250ZW50');
+final $typed_data.Uint8List parseMultisigConfigRequestDescriptor =
+    $convert.base64Decode('ChpQYXJzZU11bHRpc2lnQ29uZmlnUmVxdWVzdBIYCgdjb250ZW50GAEgASgJUgdjb250ZW50');
 
 @$core.Deprecated('Use parsedCosignerDescriptor instead')
 const ParsedCosigner$json = {
@@ -958,10 +972,10 @@ const ParsedCosigner$json = {
 };
 
 /// Descriptor for `ParsedCosigner`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List parsedCosignerDescriptor = $convert.base64Decode(
-    'Cg5QYXJzZWRDb3NpZ25lchISCgR4cHViGAEgASgJUgR4cHViEiAKC2ZpbmdlcnByaW50GAIgAS'
-    'gJUgtmaW5nZXJwcmludBIfCgtvcmlnaW5fcGF0aBgDIAEoCVIKb3JpZ2luUGF0aBISCgR4cHJ2'
-    'GAQgASgJUgR4cHJ2');
+final $typed_data.Uint8List parsedCosignerDescriptor =
+    $convert.base64Decode('Cg5QYXJzZWRDb3NpZ25lchISCgR4cHViGAEgASgJUgR4cHViEiAKC2ZpbmdlcnByaW50GAIgAS'
+        'gJUgtmaW5nZXJwcmludBIfCgtvcmlnaW5fcGF0aBgDIAEoCVIKb3JpZ2luUGF0aBISCgR4cHJ2'
+        'GAQgASgJUgR4cHJ2');
 
 @$core.Deprecated('Use parseMultisigConfigResponseDescriptor instead')
 const ParseMultisigConfigResponse$json = {
@@ -975,10 +989,10 @@ const ParseMultisigConfigResponse$json = {
 };
 
 /// Descriptor for `ParseMultisigConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List parseMultisigConfigResponseDescriptor = $convert.base64Decode(
-    'ChtQYXJzZU11bHRpc2lnQ29uZmlnUmVzcG9uc2USDAoBbRgBIAEoDVIBbRIMCgFuGAIgASgNUg'
-    'FuEh8KC3NjcmlwdF90eXBlGAMgASgJUgpzY3JpcHRUeXBlEj4KCWNvc2lnbmVycxgEIAMoCzIg'
-    'LndhbGxldG1hbmFnZXIudjEuUGFyc2VkQ29zaWduZXJSCWNvc2lnbmVycw==');
+final $typed_data.Uint8List parseMultisigConfigResponseDescriptor =
+    $convert.base64Decode('ChtQYXJzZU11bHRpc2lnQ29uZmlnUmVzcG9uc2USDAoBbRgBIAEoDVIBbRIMCgFuGAIgASgNUg'
+        'FuEh8KC3NjcmlwdF90eXBlGAMgASgJUgpzY3JpcHRUeXBlEj4KCWNvc2lnbmVycxgEIAMoCzIg'
+        'LndhbGxldG1hbmFnZXIudjEuUGFyc2VkQ29zaWduZXJSCWNvc2lnbmVycw==');
 
 @$core.Deprecated('Use validateDescriptorRequestDescriptor instead')
 const ValidateDescriptorRequest$json = {
@@ -989,9 +1003,9 @@ const ValidateDescriptorRequest$json = {
 };
 
 /// Descriptor for `ValidateDescriptorRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List validateDescriptorRequestDescriptor = $convert.base64Decode(
-    'ChlWYWxpZGF0ZURlc2NyaXB0b3JSZXF1ZXN0Eh4KCmRlc2NyaXB0b3IYASABKAlSCmRlc2NyaX'
-    'B0b3I=');
+final $typed_data.Uint8List validateDescriptorRequestDescriptor =
+    $convert.base64Decode('ChlWYWxpZGF0ZURlc2NyaXB0b3JSZXF1ZXN0Eh4KCmRlc2NyaXB0b3IYASABKAlSCmRlc2NyaX'
+        'B0b3I=');
 
 @$core.Deprecated('Use validateDerivationPathRequestDescriptor instead')
 const ValidateDerivationPathRequest$json = {
@@ -1003,9 +1017,9 @@ const ValidateDerivationPathRequest$json = {
 };
 
 /// Descriptor for `ValidateDerivationPathRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List validateDerivationPathRequestDescriptor = $convert.base64Decode(
-    'Ch1WYWxpZGF0ZURlcml2YXRpb25QYXRoUmVxdWVzdBISCgRwYXRoGAEgASgJUgRwYXRoEhoKCG'
-    '11bHRpc2lnGAIgASgIUghtdWx0aXNpZw==');
+final $typed_data.Uint8List validateDerivationPathRequestDescriptor =
+    $convert.base64Decode('Ch1WYWxpZGF0ZURlcml2YXRpb25QYXRoUmVxdWVzdBISCgRwYXRoGAEgASgJUgRwYXRoEhoKCG'
+        '11bHRpc2lnGAIgASgIUghtdWx0aXNpZw==');
 
 @$core.Deprecated('Use validateDerivationPathResponseDescriptor instead')
 const ValidateDerivationPathResponse$json = {
@@ -1017,9 +1031,9 @@ const ValidateDerivationPathResponse$json = {
 };
 
 /// Descriptor for `ValidateDerivationPathResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List validateDerivationPathResponseDescriptor = $convert.base64Decode(
-    'Ch5WYWxpZGF0ZURlcml2YXRpb25QYXRoUmVzcG9uc2USHgoKbm9ybWFsaXplZBgBIAEoCVIKbm'
-    '9ybWFsaXplZBIfCgtzY3JpcHRfdHlwZRgCIAEoCVIKc2NyaXB0VHlwZQ==');
+final $typed_data.Uint8List validateDerivationPathResponseDescriptor =
+    $convert.base64Decode('Ch5WYWxpZGF0ZURlcml2YXRpb25QYXRoUmVzcG9uc2USHgoKbm9ybWFsaXplZBgBIAEoCVIKbm'
+        '9ybWFsaXplZBIfCgtzY3JpcHRfdHlwZRgCIAEoCVIKc2NyaXB0VHlwZQ==');
 
 @$core.Deprecated('Use listDerivationPathsRequestDescriptor instead')
 const ListDerivationPathsRequest$json = {
@@ -1032,10 +1046,10 @@ const ListDerivationPathsRequest$json = {
 };
 
 /// Descriptor for `ListDerivationPathsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listDerivationPathsRequestDescriptor = $convert.base64Decode(
-    'ChpMaXN0RGVyaXZhdGlvblBhdGhzUmVxdWVzdBIfCgtzY3JpcHRfdHlwZRgBIAEoCVIKc2NyaX'
-    'B0VHlwZRIaCghtdWx0aXNpZxgCIAEoCFIIbXVsdGlzaWcSGAoHYWNjb3VudBgDIAEoDVIHYWNj'
-    'b3VudA==');
+final $typed_data.Uint8List listDerivationPathsRequestDescriptor =
+    $convert.base64Decode('ChpMaXN0RGVyaXZhdGlvblBhdGhzUmVxdWVzdBIfCgtzY3JpcHRfdHlwZRgBIAEoCVIKc2NyaX'
+        'B0VHlwZRIaCghtdWx0aXNpZxgCIAEoCFIIbXVsdGlzaWcSGAoHYWNjb3VudBgDIAEoDVIHYWNj'
+        'b3VudA==');
 
 @$core.Deprecated('Use derivationPathOptionDescriptor instead')
 const DerivationPathOption$json = {
@@ -1047,9 +1061,9 @@ const DerivationPathOption$json = {
 };
 
 /// Descriptor for `DerivationPathOption`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List derivationPathOptionDescriptor = $convert.base64Decode(
-    'ChREZXJpdmF0aW9uUGF0aE9wdGlvbhIUCgVsYWJlbBgBIAEoCVIFbGFiZWwSEgoEcGF0aBgCIA'
-    'EoCVIEcGF0aA==');
+final $typed_data.Uint8List derivationPathOptionDescriptor =
+    $convert.base64Decode('ChREZXJpdmF0aW9uUGF0aE9wdGlvbhIUCgVsYWJlbBgBIAEoCVIFbGFiZWwSEgoEcGF0aBgCIA'
+        'EoCVIEcGF0aA==');
 
 @$core.Deprecated('Use listDerivationPathsResponseDescriptor instead')
 const ListDerivationPathsResponse$json = {
@@ -1061,10 +1075,10 @@ const ListDerivationPathsResponse$json = {
 };
 
 /// Descriptor for `ListDerivationPathsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listDerivationPathsResponseDescriptor = $convert.base64Decode(
-    'ChtMaXN0RGVyaXZhdGlvblBhdGhzUmVzcG9uc2USQAoHb3B0aW9ucxgBIAMoCzImLndhbGxldG'
-    '1hbmFnZXIudjEuRGVyaXZhdGlvblBhdGhPcHRpb25SB29wdGlvbnMSIQoMZGVmYXVsdF9wYXRo'
-    'GAIgASgJUgtkZWZhdWx0UGF0aA==');
+final $typed_data.Uint8List listDerivationPathsResponseDescriptor =
+    $convert.base64Decode('ChtMaXN0RGVyaXZhdGlvblBhdGhzUmVzcG9uc2USQAoHb3B0aW9ucxgBIAMoCzImLndhbGxldG'
+        '1hbmFnZXIudjEuRGVyaXZhdGlvblBhdGhPcHRpb25SB29wdGlvbnMSIQoMZGVmYXVsdF9wYXRo'
+        'GAIgASgJUgtkZWZhdWx0UGF0aA==');
 
 @$core.Deprecated('Use validateDescriptorResponseDescriptor instead')
 const ValidateDescriptorResponse$json = {
@@ -1080,11 +1094,11 @@ const ValidateDescriptorResponse$json = {
 };
 
 /// Descriptor for `ValidateDescriptorResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List validateDescriptorResponseDescriptor = $convert.base64Decode(
-    'ChpWYWxpZGF0ZURlc2NyaXB0b3JSZXNwb25zZRIaCghtdWx0aXNpZxgBIAEoCFIIbXVsdGlzaW'
-    'cSHwoLc2NyaXB0X3R5cGUYAiABKAlSCnNjcmlwdFR5cGUSDAoBbRgDIAEoDVIBbRIMCgFuGAQg'
-    'ASgNUgFuEjQKBGtleXMYBSADKAsyIC53YWxsZXRtYW5hZ2VyLnYxLlBhcnNlZENvc2lnbmVyUg'
-    'RrZXlzEh4KCmRlc2NyaXB0b3IYBiABKAlSCmRlc2NyaXB0b3I=');
+final $typed_data.Uint8List validateDescriptorResponseDescriptor =
+    $convert.base64Decode('ChpWYWxpZGF0ZURlc2NyaXB0b3JSZXNwb25zZRIaCghtdWx0aXNpZxgBIAEoCFIIbXVsdGlzaW'
+        'cSHwoLc2NyaXB0X3R5cGUYAiABKAlSCnNjcmlwdFR5cGUSDAoBbRgDIAEoDVIBbRIMCgFuGAQg'
+        'ASgNUgFuEjQKBGtleXMYBSADKAsyIC53YWxsZXRtYW5hZ2VyLnYxLlBhcnNlZENvc2lnbmVyUg'
+        'RrZXlzEh4KCmRlc2NyaXB0b3IYBiABKAlSCmRlc2NyaXB0b3I=');
 
 @$core.Deprecated('Use createBitcoinCoreWalletRequestDescriptor instead')
 const CreateBitcoinCoreWalletRequest$json = {
@@ -1095,9 +1109,9 @@ const CreateBitcoinCoreWalletRequest$json = {
 };
 
 /// Descriptor for `CreateBitcoinCoreWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createBitcoinCoreWalletRequestDescriptor = $convert.base64Decode(
-    'Ch5DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YW'
-    'xsZXRJZA==');
+final $typed_data.Uint8List createBitcoinCoreWalletRequestDescriptor =
+    $convert.base64Decode('Ch5DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YW'
+        'xsZXRJZA==');
 
 @$core.Deprecated('Use createBitcoinCoreWalletResponseDescriptor instead')
 const CreateBitcoinCoreWalletResponse$json = {
@@ -1108,9 +1122,9 @@ const CreateBitcoinCoreWalletResponse$json = {
 };
 
 /// Descriptor for `CreateBitcoinCoreWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createBitcoinCoreWalletResponseDescriptor = $convert.base64Decode(
-    'Ch9DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlc3BvbnNlEigKEGNvcmVfd2FsbGV0X25hbWUYAS'
-    'ABKAlSDmNvcmVXYWxsZXROYW1l');
+final $typed_data.Uint8List createBitcoinCoreWalletResponseDescriptor =
+    $convert.base64Decode('Ch9DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlc3BvbnNlEigKEGNvcmVfd2FsbGV0X25hbWUYAS'
+        'ABKAlSDmNvcmVXYWxsZXROYW1l');
 
 @$core.Deprecated('Use ensureCoreWalletsRequestDescriptor instead')
 const EnsureCoreWalletsRequest$json = {
@@ -1118,8 +1132,8 @@ const EnsureCoreWalletsRequest$json = {
 };
 
 /// Descriptor for `EnsureCoreWalletsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List ensureCoreWalletsRequestDescriptor = $convert.base64Decode(
-    'ChhFbnN1cmVDb3JlV2FsbGV0c1JlcXVlc3Q=');
+final $typed_data.Uint8List ensureCoreWalletsRequestDescriptor =
+    $convert.base64Decode('ChhFbnN1cmVDb3JlV2FsbGV0c1JlcXVlc3Q=');
 
 @$core.Deprecated('Use ensureCoreWalletsResponseDescriptor instead')
 const EnsureCoreWalletsResponse$json = {
@@ -1130,9 +1144,9 @@ const EnsureCoreWalletsResponse$json = {
 };
 
 /// Descriptor for `EnsureCoreWalletsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List ensureCoreWalletsResponseDescriptor = $convert.base64Decode(
-    'ChlFbnN1cmVDb3JlV2FsbGV0c1Jlc3BvbnNlEiEKDHN5bmNlZF9jb3VudBgBIAEoBVILc3luY2'
-    'VkQ291bnQ=');
+final $typed_data.Uint8List ensureCoreWalletsResponseDescriptor =
+    $convert.base64Decode('ChlFbnN1cmVDb3JlV2FsbGV0c1Jlc3BvbnNlEiEKDHN5bmNlZF9jb3VudBgBIAEoBVILc3luY2'
+        'VkQ291bnQ=');
 
 @$core.Deprecated('Use getBalanceRequestDescriptor instead')
 const GetBalanceRequest$json = {
@@ -1143,8 +1157,8 @@ const GetBalanceRequest$json = {
 };
 
 /// Descriptor for `GetBalanceRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBalanceRequestDescriptor = $convert.base64Decode(
-    'ChFHZXRCYWxhbmNlUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+final $typed_data.Uint8List getBalanceRequestDescriptor =
+    $convert.base64Decode('ChFHZXRCYWxhbmNlUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
 
 @$core.Deprecated('Use rescanWalletRequestDescriptor instead')
 const RescanWalletRequest$json = {
@@ -1155,8 +1169,8 @@ const RescanWalletRequest$json = {
 };
 
 /// Descriptor for `RescanWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List rescanWalletRequestDescriptor = $convert.base64Decode(
-    'ChNSZXNjYW5XYWxsZXRSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQ=');
+final $typed_data.Uint8List rescanWalletRequestDescriptor =
+    $convert.base64Decode('ChNSZXNjYW5XYWxsZXRSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQ=');
 
 @$core.Deprecated('Use rescanWalletResponseDescriptor instead')
 const RescanWalletResponse$json = {
@@ -1164,8 +1178,7 @@ const RescanWalletResponse$json = {
 };
 
 /// Descriptor for `RescanWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List rescanWalletResponseDescriptor = $convert.base64Decode(
-    'ChRSZXNjYW5XYWxsZXRSZXNwb25zZQ==');
+final $typed_data.Uint8List rescanWalletResponseDescriptor = $convert.base64Decode('ChRSZXNjYW5XYWxsZXRSZXNwb25zZQ==');
 
 @$core.Deprecated('Use estimateFeeRequestDescriptor instead')
 const EstimateFeeRequest$json = {
@@ -1176,8 +1189,8 @@ const EstimateFeeRequest$json = {
 };
 
 /// Descriptor for `EstimateFeeRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List estimateFeeRequestDescriptor = $convert.base64Decode(
-    'ChJFc3RpbWF0ZUZlZVJlcXVlc3QSHwoLY29uZl90YXJnZXQYASABKAVSCmNvbmZUYXJnZXQ=');
+final $typed_data.Uint8List estimateFeeRequestDescriptor =
+    $convert.base64Decode('ChJFc3RpbWF0ZUZlZVJlcXVlc3QSHwoLY29uZl90YXJnZXQYASABKAVSCmNvbmZUYXJnZXQ=');
 
 @$core.Deprecated('Use estimateFeeResponseDescriptor instead')
 const EstimateFeeResponse$json = {
@@ -1188,9 +1201,9 @@ const EstimateFeeResponse$json = {
 };
 
 /// Descriptor for `EstimateFeeResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List estimateFeeResponseDescriptor = $convert.base64Decode(
-    'ChNFc3RpbWF0ZUZlZVJlc3BvbnNlEiIKDXNhdF9wZXJfdmJ5dGUYASABKAFSC3NhdFBlclZieX'
-    'Rl');
+final $typed_data.Uint8List estimateFeeResponseDescriptor =
+    $convert.base64Decode('ChNFc3RpbWF0ZUZlZVJlc3BvbnNlEiIKDXNhdF9wZXJfdmJ5dGUYASABKAFSC3NhdFBlclZieX'
+        'Rl');
 
 @$core.Deprecated('Use getBalanceResponseDescriptor instead')
 const GetBalanceResponse$json = {
@@ -1203,10 +1216,10 @@ const GetBalanceResponse$json = {
 };
 
 /// Descriptor for `GetBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode(
-    'ChJHZXRCYWxhbmNlUmVzcG9uc2USJQoOY29uZmlybWVkX3NhdHMYASABKAFSDWNvbmZpcm1lZF'
-    'NhdHMSKQoQdW5jb25maXJtZWRfc2F0cxgCIAEoAVIPdW5jb25maXJtZWRTYXRzEiMKDWltbWF0'
-    'dXJlX3NhdHMYAyABKAFSDGltbWF0dXJlU2F0cw==');
+final $typed_data.Uint8List getBalanceResponseDescriptor =
+    $convert.base64Decode('ChJHZXRCYWxhbmNlUmVzcG9uc2USJQoOY29uZmlybWVkX3NhdHMYASABKAFSDWNvbmZpcm1lZF'
+        'NhdHMSKQoQdW5jb25maXJtZWRfc2F0cxgCIAEoAVIPdW5jb25maXJtZWRTYXRzEiMKDWltbWF0'
+        'dXJlX3NhdHMYAyABKAFSDGltbWF0dXJlU2F0cw==');
 
 @$core.Deprecated('Use getNewAddressRequestDescriptor instead')
 const GetNewAddressRequest$json = {
@@ -1218,10 +1231,10 @@ const GetNewAddressRequest$json = {
 };
 
 /// Descriptor for `GetNewAddressRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getNewAddressRequestDescriptor = $convert.base64Decode(
-    'ChRHZXROZXdBZGRyZXNzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEkAKDG'
-    'FkZHJlc3NfdHlwZRgCIAEoDjIdLndhbGxldG1hbmFnZXIudjEuQWRkcmVzc1R5cGVSC2FkZHJl'
-    'c3NUeXBl');
+final $typed_data.Uint8List getNewAddressRequestDescriptor =
+    $convert.base64Decode('ChRHZXROZXdBZGRyZXNzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEkAKDG'
+        'FkZHJlc3NfdHlwZRgCIAEoDjIdLndhbGxldG1hbmFnZXIudjEuQWRkcmVzc1R5cGVSC2FkZHJl'
+        'c3NUeXBl');
 
 @$core.Deprecated('Use getNewAddressResponseDescriptor instead')
 const GetNewAddressResponse$json = {
@@ -1234,24 +1247,38 @@ const GetNewAddressResponse$json = {
 };
 
 /// Descriptor for `GetNewAddressResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getNewAddressResponseDescriptor = $convert.base64Decode(
-    'ChVHZXROZXdBZGRyZXNzUmVzcG9uc2USGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcxIUCgVpbm'
-    'RleBgCIAEoBVIFaW5kZXgSJwoPZGVyaXZhdGlvbl9wYXRoGAMgASgJUg5kZXJpdmF0aW9uUGF0'
-    'aA==');
+final $typed_data.Uint8List getNewAddressResponseDescriptor =
+    $convert.base64Decode('ChVHZXROZXdBZGRyZXNzUmVzcG9uc2USGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcxIUCgVpbm'
+        'RleBgCIAEoBVIFaW5kZXgSJwoPZGVyaXZhdGlvbl9wYXRoGAMgASgJUg5kZXJpdmF0aW9uUGF0'
+        'aA==');
 
 @$core.Deprecated('Use sendTransactionRequestDescriptor instead')
 const SendTransactionRequest$json = {
   '1': 'SendTransactionRequest',
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
-    {'1': 'destinations', '3': 2, '4': 3, '5': 11, '6': '.walletmanager.v1.SendTransactionRequest.DestinationsEntry', '10': 'destinations'},
+    {
+      '1': 'destinations',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.walletmanager.v1.SendTransactionRequest.DestinationsEntry',
+      '10': 'destinations'
+    },
     {'1': 'fee_rate_sat_per_vbyte', '3': 3, '4': 1, '5': 3, '10': 'feeRateSatPerVbyte'},
     {'1': 'subtract_fee_from_amount', '3': 4, '4': 1, '5': 8, '10': 'subtractFeeFromAmount'},
     {'1': 'op_return_hex', '3': 5, '4': 1, '5': 9, '10': 'opReturnHex'},
     {'1': 'fixed_fee_sats', '3': 6, '4': 1, '5': 3, '10': 'fixedFeeSats'},
     {'1': 'required_inputs', '3': 7, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'requiredInputs'},
     {'1': 'allow_replay', '3': 12, '4': 1, '5': 8, '10': 'allowReplay'},
-    {'1': 'notification_input', '3': 13, '4': 1, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'notificationInput'},
+    {
+      '1': 'notification_input',
+      '3': 13,
+      '4': 1,
+      '5': 11,
+      '6': '.walletmanager.v1.UnspentOutput',
+      '10': 'notificationInput'
+    },
     {'1': 'raw_outputs', '3': 9, '4': 3, '5': 11, '6': '.walletmanager.v1.RawOutput', '10': 'rawOutputs'},
     {'1': 'external_inputs', '3': 10, '4': 3, '5': 11, '6': '.walletmanager.v1.ExternalInput', '10': 'externalInputs'},
     {'1': 'replaceable', '3': 11, '4': 1, '5': 8, '10': 'replaceable'},
@@ -1274,26 +1301,26 @@ const SendTransactionRequest_DestinationsEntry$json = {
 };
 
 /// Descriptor for `SendTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64Decode(
-    'ChZTZW5kVHJhbnNhY3Rpb25SZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSXg'
-    'oMZGVzdGluYXRpb25zGAIgAygLMjoud2FsbGV0bWFuYWdlci52MS5TZW5kVHJhbnNhY3Rpb25S'
-    'ZXF1ZXN0LkRlc3RpbmF0aW9uc0VudHJ5UgxkZXN0aW5hdGlvbnMSMgoWZmVlX3JhdGVfc2F0X3'
-    'Blcl92Ynl0ZRgDIAEoA1ISZmVlUmF0ZVNhdFBlclZieXRlEjcKGHN1YnRyYWN0X2ZlZV9mcm9t'
-    'X2Ftb3VudBgEIAEoCFIVc3VidHJhY3RGZWVGcm9tQW1vdW50EiIKDW9wX3JldHVybl9oZXgYBS'
-    'ABKAlSC29wUmV0dXJuSGV4EiQKDmZpeGVkX2ZlZV9zYXRzGAYgASgDUgxmaXhlZEZlZVNhdHMS'
-    'SAoPcmVxdWlyZWRfaW5wdXRzGAcgAygLMh8ud2FsbGV0bWFuYWdlci52MS5VbnNwZW50T3V0cH'
-    'V0Ug5yZXF1aXJlZElucHV0cxIhCgxhbGxvd19yZXBsYXkYDCABKAhSC2FsbG93UmVwbGF5Ek4K'
-    'Em5vdGlmaWNhdGlvbl9pbnB1dBgNIAEoCzIfLndhbGxldG1hbmFnZXIudjEuVW5zcGVudE91dH'
-    'B1dFIRbm90aWZpY2F0aW9uSW5wdXQSPAoLcmF3X291dHB1dHMYCSADKAsyGy53YWxsZXRtYW5h'
-    'Z2VyLnYxLlJhd091dHB1dFIKcmF3T3V0cHV0cxJICg9leHRlcm5hbF9pbnB1dHMYCiADKAsyHy'
-    '53YWxsZXRtYW5hZ2VyLnYxLkV4dGVybmFsSW5wdXRSDmV4dGVybmFsSW5wdXRzEiAKC3JlcGxh'
-    'Y2VhYmxlGAsgASgIUgtyZXBsYWNlYWJsZRo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQCgNrZXkYAS'
-    'ABKAlSA2tleRIUCgV2YWx1ZRgCIAEoA1IFdmFsdWU6AjgBOpkCukiVAhqTAQoMc2VuZC5vdXRw'
-    'dXRzEix0aGUgcmVxdWVzdCBtdXN0IGluY2x1ZGUgYXQgbGVhc3Qgb25lIG91dHB1dBpVc2l6ZS'
-    'h0aGlzLmRlc3RpbmF0aW9ucykgPiAwIHx8IHRoaXMub3BfcmV0dXJuX2hleCAhPSAnJyB8fCBz'
-    'aXplKHRoaXMucmF3X291dHB1dHMpID4gMBp9CglzZW5kLmZlZXMSMnRoZSByZXF1ZXN0IGNhbm'
-    '5vdCBzZXQgYm90aCBmZWUgcmF0ZSBhbmQgZml4ZWQgZmVlGjx0aGlzLmZlZV9yYXRlX3NhdF9w'
-    'ZXJfdmJ5dGUgPD0gMCB8fCB0aGlzLmZpeGVkX2ZlZV9zYXRzIDw9IDBKBAgIEAk=');
+final $typed_data.Uint8List sendTransactionRequestDescriptor =
+    $convert.base64Decode('ChZTZW5kVHJhbnNhY3Rpb25SZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSXg'
+        'oMZGVzdGluYXRpb25zGAIgAygLMjoud2FsbGV0bWFuYWdlci52MS5TZW5kVHJhbnNhY3Rpb25S'
+        'ZXF1ZXN0LkRlc3RpbmF0aW9uc0VudHJ5UgxkZXN0aW5hdGlvbnMSMgoWZmVlX3JhdGVfc2F0X3'
+        'Blcl92Ynl0ZRgDIAEoA1ISZmVlUmF0ZVNhdFBlclZieXRlEjcKGHN1YnRyYWN0X2ZlZV9mcm9t'
+        'X2Ftb3VudBgEIAEoCFIVc3VidHJhY3RGZWVGcm9tQW1vdW50EiIKDW9wX3JldHVybl9oZXgYBS'
+        'ABKAlSC29wUmV0dXJuSGV4EiQKDmZpeGVkX2ZlZV9zYXRzGAYgASgDUgxmaXhlZEZlZVNhdHMS'
+        'SAoPcmVxdWlyZWRfaW5wdXRzGAcgAygLMh8ud2FsbGV0bWFuYWdlci52MS5VbnNwZW50T3V0cH'
+        'V0Ug5yZXF1aXJlZElucHV0cxIhCgxhbGxvd19yZXBsYXkYDCABKAhSC2FsbG93UmVwbGF5Ek4K'
+        'Em5vdGlmaWNhdGlvbl9pbnB1dBgNIAEoCzIfLndhbGxldG1hbmFnZXIudjEuVW5zcGVudE91dH'
+        'B1dFIRbm90aWZpY2F0aW9uSW5wdXQSPAoLcmF3X291dHB1dHMYCSADKAsyGy53YWxsZXRtYW5h'
+        'Z2VyLnYxLlJhd091dHB1dFIKcmF3T3V0cHV0cxJICg9leHRlcm5hbF9pbnB1dHMYCiADKAsyHy'
+        '53YWxsZXRtYW5hZ2VyLnYxLkV4dGVybmFsSW5wdXRSDmV4dGVybmFsSW5wdXRzEiAKC3JlcGxh'
+        'Y2VhYmxlGAsgASgIUgtyZXBsYWNlYWJsZRo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQCgNrZXkYAS'
+        'ABKAlSA2tleRIUCgV2YWx1ZRgCIAEoA1IFdmFsdWU6AjgBOpkCukiVAhqTAQoMc2VuZC5vdXRw'
+        'dXRzEix0aGUgcmVxdWVzdCBtdXN0IGluY2x1ZGUgYXQgbGVhc3Qgb25lIG91dHB1dBpVc2l6ZS'
+        'h0aGlzLmRlc3RpbmF0aW9ucykgPiAwIHx8IHRoaXMub3BfcmV0dXJuX2hleCAhPSAnJyB8fCBz'
+        'aXplKHRoaXMucmF3X291dHB1dHMpID4gMBp9CglzZW5kLmZlZXMSMnRoZSByZXF1ZXN0IGNhbm'
+        '5vdCBzZXQgYm90aCBmZWUgcmF0ZSBhbmQgZml4ZWQgZmVlGjx0aGlzLmZlZV9yYXRlX3NhdF9w'
+        'ZXJfdmJ5dGUgPD0gMCB8fCB0aGlzLmZpeGVkX2ZlZV9zYXRzIDw9IDBKBAgIEAk=');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {
@@ -1304,15 +1331,22 @@ const SendTransactionResponse$json = {
 };
 
 /// Descriptor for `SendTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sendTransactionResponseDescriptor = $convert.base64Decode(
-    'ChdTZW5kVHJhbnNhY3Rpb25SZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlk');
+final $typed_data.Uint8List sendTransactionResponseDescriptor =
+    $convert.base64Decode('ChdTZW5kVHJhbnNhY3Rpb25SZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlk');
 
 @$core.Deprecated('Use previewSendRequestDescriptor instead')
 const PreviewSendRequest$json = {
   '1': 'PreviewSendRequest',
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
-    {'1': 'destinations', '3': 2, '4': 3, '5': 11, '6': '.walletmanager.v1.PreviewSendRequest.DestinationsEntry', '10': 'destinations'},
+    {
+      '1': 'destinations',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.walletmanager.v1.PreviewSendRequest.DestinationsEntry',
+      '10': 'destinations'
+    },
     {'1': 'fee_rate_sat_per_vbyte', '3': 3, '4': 1, '5': 3, '10': 'feeRateSatPerVbyte'},
     {'1': 'subtract_fee_from_amount', '3': 4, '4': 1, '5': 8, '10': 'subtractFeeFromAmount'},
     {'1': 'required_inputs', '3': 5, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'requiredInputs'},
@@ -1332,15 +1366,15 @@ const PreviewSendRequest_DestinationsEntry$json = {
 };
 
 /// Descriptor for `PreviewSendRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List previewSendRequestDescriptor = $convert.base64Decode(
-    'ChJQcmV2aWV3U2VuZFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBJaCgxkZX'
-    'N0aW5hdGlvbnMYAiADKAsyNi53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdTZW5kUmVxdWVzdC5E'
-    'ZXN0aW5hdGlvbnNFbnRyeVIMZGVzdGluYXRpb25zEjIKFmZlZV9yYXRlX3NhdF9wZXJfdmJ5dG'
-    'UYAyABKANSEmZlZVJhdGVTYXRQZXJWYnl0ZRI3ChhzdWJ0cmFjdF9mZWVfZnJvbV9hbW91bnQY'
-    'BCABKAhSFXN1YnRyYWN0RmVlRnJvbUFtb3VudBJICg9yZXF1aXJlZF9pbnB1dHMYBSADKAsyHy'
-    '53YWxsZXRtYW5hZ2VyLnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcmVkSW5wdXRzEiEKDGFsbG93'
-    'X3JlcGxheRgGIAEoCFILYWxsb3dSZXBsYXkaPwoRRGVzdGluYXRpb25zRW50cnkSEAoDa2V5GA'
-    'EgASgJUgNrZXkSFAoFdmFsdWUYAiABKANSBXZhbHVlOgI4AQ==');
+final $typed_data.Uint8List previewSendRequestDescriptor =
+    $convert.base64Decode('ChJQcmV2aWV3U2VuZFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBJaCgxkZX'
+        'N0aW5hdGlvbnMYAiADKAsyNi53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdTZW5kUmVxdWVzdC5E'
+        'ZXN0aW5hdGlvbnNFbnRyeVIMZGVzdGluYXRpb25zEjIKFmZlZV9yYXRlX3NhdF9wZXJfdmJ5dG'
+        'UYAyABKANSEmZlZVJhdGVTYXRQZXJWYnl0ZRI3ChhzdWJ0cmFjdF9mZWVfZnJvbV9hbW91bnQY'
+        'BCABKAhSFXN1YnRyYWN0RmVlRnJvbUFtb3VudBJICg9yZXF1aXJlZF9pbnB1dHMYBSADKAsyHy'
+        '53YWxsZXRtYW5hZ2VyLnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcmVkSW5wdXRzEiEKDGFsbG93'
+        'X3JlcGxheRgGIAEoCFILYWxsb3dSZXBsYXkaPwoRRGVzdGluYXRpb25zRW50cnkSEAoDa2V5GA'
+        'EgASgJUgNrZXkSFAoFdmFsdWUYAiABKANSBXZhbHVlOgI4AQ==');
 
 @$core.Deprecated('Use previewSendResponseDescriptor instead')
 const PreviewSendResponse$json = {
@@ -1350,19 +1384,26 @@ const PreviewSendResponse$json = {
     {'1': 'vsize_vbytes', '3': 2, '4': 1, '5': 3, '10': 'vsizeVbytes'},
     {'1': 'inputs', '3': 3, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'inputs'},
     {'1': 'notification_fee_sats', '3': 4, '4': 1, '5': 3, '10': 'notificationFeeSats'},
-    {'1': 'notification_input', '3': 5, '4': 1, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'notificationInput'},
+    {
+      '1': 'notification_input',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.walletmanager.v1.UnspentOutput',
+      '10': 'notificationInput'
+    },
     {'1': 'fee_is_estimate', '3': 6, '4': 1, '5': 8, '10': 'feeIsEstimate'},
   ],
 };
 
 /// Descriptor for `PreviewSendResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List previewSendResponseDescriptor = $convert.base64Decode(
-    'ChNQcmV2aWV3U2VuZFJlc3BvbnNlEhkKCGZlZV9zYXRzGAEgASgDUgdmZWVTYXRzEiEKDHZzaX'
-    'plX3ZieXRlcxgCIAEoA1ILdnNpemVWYnl0ZXMSNwoGaW5wdXRzGAMgAygLMh8ud2FsbGV0bWFu'
-    'YWdlci52MS5VbnNwZW50T3V0cHV0UgZpbnB1dHMSMgoVbm90aWZpY2F0aW9uX2ZlZV9zYXRzGA'
-    'QgASgDUhNub3RpZmljYXRpb25GZWVTYXRzEk4KEm5vdGlmaWNhdGlvbl9pbnB1dBgFIAEoCzIf'
-    'LndhbGxldG1hbmFnZXIudjEuVW5zcGVudE91dHB1dFIRbm90aWZpY2F0aW9uSW5wdXQSJgoPZm'
-    'VlX2lzX2VzdGltYXRlGAYgASgIUg1mZWVJc0VzdGltYXRl');
+final $typed_data.Uint8List previewSendResponseDescriptor =
+    $convert.base64Decode('ChNQcmV2aWV3U2VuZFJlc3BvbnNlEhkKCGZlZV9zYXRzGAEgASgDUgdmZWVTYXRzEiEKDHZzaX'
+        'plX3ZieXRlcxgCIAEoA1ILdnNpemVWYnl0ZXMSNwoGaW5wdXRzGAMgAygLMh8ud2FsbGV0bWFu'
+        'YWdlci52MS5VbnNwZW50T3V0cHV0UgZpbnB1dHMSMgoVbm90aWZpY2F0aW9uX2ZlZV9zYXRzGA'
+        'QgASgDUhNub3RpZmljYXRpb25GZWVTYXRzEk4KEm5vdGlmaWNhdGlvbl9pbnB1dBgFIAEoCzIf'
+        'LndhbGxldG1hbmFnZXIudjEuVW5zcGVudE91dHB1dFIRbm90aWZpY2F0aW9uSW5wdXQSJgoPZm'
+        'VlX2lzX2VzdGltYXRlGAYgASgIUg1mZWVJc0VzdGltYXRl');
 
 @$core.Deprecated('Use setFrozenCoinsRequestDescriptor instead')
 const SetFrozenCoinsRequest$json = {
@@ -1373,9 +1414,9 @@ const SetFrozenCoinsRequest$json = {
 };
 
 /// Descriptor for `SetFrozenCoinsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setFrozenCoinsRequestDescriptor = $convert.base64Decode(
-    'ChVTZXRGcm96ZW5Db2luc1JlcXVlc3QSPgoJb3V0cG9pbnRzGAEgAygLMiAud2FsbGV0bWFuYW'
-    'dlci52MS5Gcm96ZW5PdXRwb2ludFIJb3V0cG9pbnRz');
+final $typed_data.Uint8List setFrozenCoinsRequestDescriptor =
+    $convert.base64Decode('ChVTZXRGcm96ZW5Db2luc1JlcXVlc3QSPgoJb3V0cG9pbnRzGAEgAygLMiAud2FsbGV0bWFuYW'
+        'dlci52MS5Gcm96ZW5PdXRwb2ludFIJb3V0cG9pbnRz');
 
 @$core.Deprecated('Use frozenOutpointDescriptor instead')
 const FrozenOutpoint$json = {
@@ -1387,9 +1428,9 @@ const FrozenOutpoint$json = {
 };
 
 /// Descriptor for `FrozenOutpoint`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List frozenOutpointDescriptor = $convert.base64Decode(
-    'Cg5Gcm96ZW5PdXRwb2ludBISCgR0eGlkGAEgASgJUgR0eGlkEhIKBHZvdXQYAiABKAVSBHZvdX'
-    'Q=');
+final $typed_data.Uint8List frozenOutpointDescriptor =
+    $convert.base64Decode('Cg5Gcm96ZW5PdXRwb2ludBISCgR0eGlkGAEgASgJUgR0eGlkEhIKBHZvdXQYAiABKAVSBHZvdX'
+        'Q=');
 
 @$core.Deprecated('Use rawOutputDescriptor instead')
 const RawOutput$json = {
@@ -1401,9 +1442,9 @@ const RawOutput$json = {
 };
 
 /// Descriptor for `RawOutput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List rawOutputDescriptor = $convert.base64Decode(
-    'CglSYXdPdXRwdXQSHQoKdmFsdWVfc2F0cxgBIAEoA1IJdmFsdWVTYXRzEh0KCnNjcmlwdF9oZX'
-    'gYAiABKAlSCXNjcmlwdEhleA==');
+final $typed_data.Uint8List rawOutputDescriptor =
+    $convert.base64Decode('CglSYXdPdXRwdXQSHQoKdmFsdWVfc2F0cxgBIAEoA1IJdmFsdWVTYXRzEh0KCnNjcmlwdF9oZX'
+        'gYAiABKAlSCXNjcmlwdEhleA==');
 
 @$core.Deprecated('Use externalInputDescriptor instead')
 const ExternalInput$json = {
@@ -1417,17 +1458,24 @@ const ExternalInput$json = {
 };
 
 /// Descriptor for `ExternalInput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List externalInputDescriptor = $convert.base64Decode(
-    'Cg1FeHRlcm5hbElucHV0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm91dB'
-    'IdCgp2YWx1ZV9zYXRzGAMgASgDUgl2YWx1ZVNhdHMSKgoRc2NyaXB0X3B1YmtleV9oZXgYBCAB'
-    'KAlSD3NjcmlwdFB1YmtleUhleA==');
+final $typed_data.Uint8List externalInputDescriptor =
+    $convert.base64Decode('Cg1FeHRlcm5hbElucHV0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm91dB'
+        'IdCgp2YWx1ZV9zYXRzGAMgASgDUgl2YWx1ZVNhdHMSKgoRc2NyaXB0X3B1YmtleV9oZXgYBCAB'
+        'KAlSD3NjcmlwdFB1YmtleUhleA==');
 
 @$core.Deprecated('Use createPsbtRequestDescriptor instead')
 const CreatePsbtRequest$json = {
   '1': 'CreatePsbtRequest',
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
-    {'1': 'destinations', '3': 2, '4': 3, '5': 11, '6': '.walletmanager.v1.CreatePsbtRequest.DestinationsEntry', '10': 'destinations'},
+    {
+      '1': 'destinations',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.walletmanager.v1.CreatePsbtRequest.DestinationsEntry',
+      '10': 'destinations'
+    },
     {'1': 'fee_rate_sat_per_vbyte', '3': 3, '4': 1, '5': 3, '10': 'feeRateSatPerVbyte'},
     {'1': 'subtract_fee_from_amount', '3': 4, '4': 1, '5': 8, '10': 'subtractFeeFromAmount'},
     {'1': 'op_return_hex', '3': 5, '4': 1, '5': 9, '10': 'opReturnHex'},
@@ -1454,19 +1502,19 @@ const CreatePsbtRequest_DestinationsEntry$json = {
 };
 
 /// Descriptor for `CreatePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createPsbtRequestDescriptor = $convert.base64Decode(
-    'ChFDcmVhdGVQc2J0UmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkElkKDGRlc3'
-    'RpbmF0aW9ucxgCIAMoCzI1LndhbGxldG1hbmFnZXIudjEuQ3JlYXRlUHNidFJlcXVlc3QuRGVz'
-    'dGluYXRpb25zRW50cnlSDGRlc3RpbmF0aW9ucxIyChZmZWVfcmF0ZV9zYXRfcGVyX3ZieXRlGA'
-    'MgASgDUhJmZWVSYXRlU2F0UGVyVmJ5dGUSNwoYc3VidHJhY3RfZmVlX2Zyb21fYW1vdW50GAQg'
-    'ASgIUhVzdWJ0cmFjdEZlZUZyb21BbW91bnQSIgoNb3BfcmV0dXJuX2hleBgFIAEoCVILb3BSZX'
-    'R1cm5IZXgSJAoOZml4ZWRfZmVlX3NhdHMYBiABKANSDGZpeGVkRmVlU2F0cxJICg9yZXF1aXJl'
-    'ZF9pbnB1dHMYByADKAsyHy53YWxsZXRtYW5hZ2VyLnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcm'
-    'VkSW5wdXRzEjwKC3Jhd19vdXRwdXRzGAggAygLMhsud2FsbGV0bWFuYWdlci52MS5SYXdPdXRw'
-    'dXRSCnJhd091dHB1dHMSSAoPZXh0ZXJuYWxfaW5wdXRzGAkgAygLMh8ud2FsbGV0bWFuYWdlci'
-    '52MS5FeHRlcm5hbElucHV0Ug5leHRlcm5hbElucHV0cxIhCgxhbGxvd19yZXBsYXkYCyABKAhS'
-    'C2FsbG93UmVwbGF5Gj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBX'
-    'ZhbHVlGAIgASgDUgV2YWx1ZToCOAFKBAgKEAs=');
+final $typed_data.Uint8List createPsbtRequestDescriptor =
+    $convert.base64Decode('ChFDcmVhdGVQc2J0UmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkElkKDGRlc3'
+        'RpbmF0aW9ucxgCIAMoCzI1LndhbGxldG1hbmFnZXIudjEuQ3JlYXRlUHNidFJlcXVlc3QuRGVz'
+        'dGluYXRpb25zRW50cnlSDGRlc3RpbmF0aW9ucxIyChZmZWVfcmF0ZV9zYXRfcGVyX3ZieXRlGA'
+        'MgASgDUhJmZWVSYXRlU2F0UGVyVmJ5dGUSNwoYc3VidHJhY3RfZmVlX2Zyb21fYW1vdW50GAQg'
+        'ASgIUhVzdWJ0cmFjdEZlZUZyb21BbW91bnQSIgoNb3BfcmV0dXJuX2hleBgFIAEoCVILb3BSZX'
+        'R1cm5IZXgSJAoOZml4ZWRfZmVlX3NhdHMYBiABKANSDGZpeGVkRmVlU2F0cxJICg9yZXF1aXJl'
+        'ZF9pbnB1dHMYByADKAsyHy53YWxsZXRtYW5hZ2VyLnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcm'
+        'VkSW5wdXRzEjwKC3Jhd19vdXRwdXRzGAggAygLMhsud2FsbGV0bWFuYWdlci52MS5SYXdPdXRw'
+        'dXRSCnJhd091dHB1dHMSSAoPZXh0ZXJuYWxfaW5wdXRzGAkgAygLMh8ud2FsbGV0bWFuYWdlci'
+        '52MS5FeHRlcm5hbElucHV0Ug5leHRlcm5hbElucHV0cxIhCgxhbGxvd19yZXBsYXkYCyABKAhS'
+        'C2FsbG93UmVwbGF5Gj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBX'
+        'ZhbHVlGAIgASgDUgV2YWx1ZToCOAFKBAgKEAs=');
 
 @$core.Deprecated('Use createPsbtResponseDescriptor instead')
 const CreatePsbtResponse$json = {
@@ -1477,8 +1525,8 @@ const CreatePsbtResponse$json = {
 };
 
 /// Descriptor for `CreatePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createPsbtResponseDescriptor = $convert.base64Decode(
-    'ChJDcmVhdGVQc2J0UmVzcG9uc2USHwoLcHNidF9iYXNlNjQYASABKAlSCnBzYnRCYXNlNjQ=');
+final $typed_data.Uint8List createPsbtResponseDescriptor =
+    $convert.base64Decode('ChJDcmVhdGVQc2J0UmVzcG9uc2USHwoLcHNidF9iYXNlNjQYASABKAlSCnBzYnRCYXNlNjQ=');
 
 @$core.Deprecated('Use signPsbtRequestDescriptor instead')
 const SignPsbtRequest$json = {
@@ -1490,9 +1538,9 @@ const SignPsbtRequest$json = {
 };
 
 /// Descriptor for `SignPsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List signPsbtRequestDescriptor = $convert.base64Decode(
-    'Cg9TaWduUHNidFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBIfCgtwc2J0X2'
-    'Jhc2U2NBgCIAEoCVIKcHNidEJhc2U2NA==');
+final $typed_data.Uint8List signPsbtRequestDescriptor =
+    $convert.base64Decode('Cg9TaWduUHNidFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBIfCgtwc2J0X2'
+        'Jhc2U2NBgCIAEoCVIKcHNidEJhc2U2NA==');
 
 @$core.Deprecated('Use signPsbtResponseDescriptor instead')
 const SignPsbtResponse$json = {
@@ -1503,8 +1551,8 @@ const SignPsbtResponse$json = {
 };
 
 /// Descriptor for `SignPsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List signPsbtResponseDescriptor = $convert.base64Decode(
-    'ChBTaWduUHNidFJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
+final $typed_data.Uint8List signPsbtResponseDescriptor =
+    $convert.base64Decode('ChBTaWduUHNidFJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
 
 @$core.Deprecated('Use signPsbtWithCosignerRequestDescriptor instead')
 const SignPsbtWithCosignerRequest$json = {
@@ -1517,10 +1565,10 @@ const SignPsbtWithCosignerRequest$json = {
 };
 
 /// Descriptor for `SignPsbtWithCosignerRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List signPsbtWithCosignerRequestDescriptor = $convert.base64Decode(
-    'ChtTaWduUHNidFdpdGhDb3NpZ25lclJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
-    'RJZBIfCgtwc2J0X2Jhc2U2NBgCIAEoCVIKcHNidEJhc2U2NBIjCg1jb3NpZ25lcl94cHViGAMg'
-    'ASgJUgxjb3NpZ25lclhwdWI=');
+final $typed_data.Uint8List signPsbtWithCosignerRequestDescriptor =
+    $convert.base64Decode('ChtTaWduUHNidFdpdGhDb3NpZ25lclJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+        'RJZBIfCgtwc2J0X2Jhc2U2NBgCIAEoCVIKcHNidEJhc2U2NBIjCg1jb3NpZ25lcl94cHViGAMg'
+        'ASgJUgxjb3NpZ25lclhwdWI=');
 
 @$core.Deprecated('Use signPsbtWithCosignerResponseDescriptor instead')
 const SignPsbtWithCosignerResponse$json = {
@@ -1531,9 +1579,9 @@ const SignPsbtWithCosignerResponse$json = {
 };
 
 /// Descriptor for `SignPsbtWithCosignerResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List signPsbtWithCosignerResponseDescriptor = $convert.base64Decode(
-    'ChxTaWduUHNidFdpdGhDb3NpZ25lclJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2'
-    'J0QmFzZTY0');
+final $typed_data.Uint8List signPsbtWithCosignerResponseDescriptor =
+    $convert.base64Decode('ChxTaWduUHNidFdpdGhDb3NpZ25lclJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2'
+        'J0QmFzZTY0');
 
 @$core.Deprecated('Use combinePsbtRequestDescriptor instead')
 const CombinePsbtRequest$json = {
@@ -1544,8 +1592,8 @@ const CombinePsbtRequest$json = {
 };
 
 /// Descriptor for `CombinePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List combinePsbtRequestDescriptor = $convert.base64Decode(
-    'ChJDb21iaW5lUHNidFJlcXVlc3QSHwoLcHNidF9iYXNlNjQYASADKAlSCnBzYnRCYXNlNjQ=');
+final $typed_data.Uint8List combinePsbtRequestDescriptor =
+    $convert.base64Decode('ChJDb21iaW5lUHNidFJlcXVlc3QSHwoLcHNidF9iYXNlNjQYASADKAlSCnBzYnRCYXNlNjQ=');
 
 @$core.Deprecated('Use combinePsbtResponseDescriptor instead')
 const CombinePsbtResponse$json = {
@@ -1556,8 +1604,8 @@ const CombinePsbtResponse$json = {
 };
 
 /// Descriptor for `CombinePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List combinePsbtResponseDescriptor = $convert.base64Decode(
-    'ChNDb21iaW5lUHNidFJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
+final $typed_data.Uint8List combinePsbtResponseDescriptor =
+    $convert.base64Decode('ChNDb21iaW5lUHNidFJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
 
 @$core.Deprecated('Use finalizePsbtRequestDescriptor instead')
 const FinalizePsbtRequest$json = {
@@ -1568,8 +1616,8 @@ const FinalizePsbtRequest$json = {
 };
 
 /// Descriptor for `FinalizePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List finalizePsbtRequestDescriptor = $convert.base64Decode(
-    'ChNGaW5hbGl6ZVBzYnRSZXF1ZXN0Eh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
+final $typed_data.Uint8List finalizePsbtRequestDescriptor =
+    $convert.base64Decode('ChNGaW5hbGl6ZVBzYnRSZXF1ZXN0Eh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
 
 @$core.Deprecated('Use finalizePsbtResponseDescriptor instead')
 const FinalizePsbtResponse$json = {
@@ -1580,8 +1628,8 @@ const FinalizePsbtResponse$json = {
 };
 
 /// Descriptor for `FinalizePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List finalizePsbtResponseDescriptor = $convert.base64Decode(
-    'ChRGaW5hbGl6ZVBzYnRSZXNwb25zZRIcCgpyYXdfdHhfaGV4GAEgASgJUghyYXdUeEhleA==');
+final $typed_data.Uint8List finalizePsbtResponseDescriptor =
+    $convert.base64Decode('ChRGaW5hbGl6ZVBzYnRSZXNwb25zZRIcCgpyYXdfdHhfaGV4GAEgASgJUghyYXdUeEhleA==');
 
 @$core.Deprecated('Use multisigPsbtStatusRequestDescriptor instead')
 const MultisigPsbtStatusRequest$json = {
@@ -1593,9 +1641,9 @@ const MultisigPsbtStatusRequest$json = {
 };
 
 /// Descriptor for `MultisigPsbtStatusRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List multisigPsbtStatusRequestDescriptor = $convert.base64Decode(
-    'ChlNdWx0aXNpZ1BzYnRTdGF0dXNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SW'
-    'QSHwoLcHNidF9iYXNlNjQYAiABKAlSCnBzYnRCYXNlNjQ=');
+final $typed_data.Uint8List multisigPsbtStatusRequestDescriptor =
+    $convert.base64Decode('ChlNdWx0aXNpZ1BzYnRTdGF0dXNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SW'
+        'QSHwoLcHNidF9iYXNlNjQYAiABKAlSCnBzYnRCYXNlNjQ=');
 
 @$core.Deprecated('Use multisigPsbtStatusResponseDescriptor instead')
 const MultisigPsbtStatusResponse$json = {
@@ -1609,10 +1657,10 @@ const MultisigPsbtStatusResponse$json = {
 };
 
 /// Descriptor for `MultisigPsbtStatusResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List multisigPsbtStatusResponseDescriptor = $convert.base64Decode(
-    'ChpNdWx0aXNpZ1BzYnRTdGF0dXNSZXNwb25zZRIcCgl0aHJlc2hvbGQYASABKA1SCXRocmVzaG'
-    '9sZBIeCgpzaWduYXR1cmVzGAIgASgNUgpzaWduYXR1cmVzEiAKC2ZpbmFsaXphYmxlGAMgASgI'
-    'UgtmaW5hbGl6YWJsZRInCg9jb3NpZ25lcl9zaWduZWQYBCADKAhSDmNvc2lnbmVyU2lnbmVk');
+final $typed_data.Uint8List multisigPsbtStatusResponseDescriptor =
+    $convert.base64Decode('ChpNdWx0aXNpZ1BzYnRTdGF0dXNSZXNwb25zZRIcCgl0aHJlc2hvbGQYASABKA1SCXRocmVzaG'
+        '9sZBIeCgpzaWduYXR1cmVzGAIgASgNUgpzaWduYXR1cmVzEiAKC2ZpbmFsaXphYmxlGAMgASgI'
+        'UgtmaW5hbGl6YWJsZRInCg9jb3NpZ25lcl9zaWduZWQYBCADKAhSDmNvc2lnbmVyU2lnbmVk');
 
 @$core.Deprecated('Use broadcastTransactionRequestDescriptor instead')
 const BroadcastTransactionRequest$json = {
@@ -1624,9 +1672,9 @@ const BroadcastTransactionRequest$json = {
 };
 
 /// Descriptor for `BroadcastTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List broadcastTransactionRequestDescriptor = $convert.base64Decode(
-    'ChtCcm9hZGNhc3RUcmFuc2FjdGlvblJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
-    'RJZBIVCgZ0eF9oZXgYAiABKAlSBXR4SGV4');
+final $typed_data.Uint8List broadcastTransactionRequestDescriptor =
+    $convert.base64Decode('ChtCcm9hZGNhc3RUcmFuc2FjdGlvblJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+        'RJZBIVCgZ0eF9oZXgYAiABKAlSBXR4SGV4');
 
 @$core.Deprecated('Use broadcastTransactionResponseDescriptor instead')
 const BroadcastTransactionResponse$json = {
@@ -1637,8 +1685,8 @@ const BroadcastTransactionResponse$json = {
 };
 
 /// Descriptor for `BroadcastTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List broadcastTransactionResponseDescriptor = $convert.base64Decode(
-    'ChxCcm9hZGNhc3RUcmFuc2FjdGlvblJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
+final $typed_data.Uint8List broadcastTransactionResponseDescriptor =
+    $convert.base64Decode('ChxCcm9hZGNhc3RUcmFuc2FjdGlvblJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
 
 @$core.Deprecated('Use getAddressUnspentRequestDescriptor instead')
 const GetAddressUnspentRequest$json = {
@@ -1649,8 +1697,8 @@ const GetAddressUnspentRequest$json = {
 };
 
 /// Descriptor for `GetAddressUnspentRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getAddressUnspentRequestDescriptor = $convert.base64Decode(
-    'ChhHZXRBZGRyZXNzVW5zcGVudFJlcXVlc3QSGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcw==');
+final $typed_data.Uint8List getAddressUnspentRequestDescriptor =
+    $convert.base64Decode('ChhHZXRBZGRyZXNzVW5zcGVudFJlcXVlc3QSGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcw==');
 
 @$core.Deprecated('Use addressUnspentOutputDescriptor instead')
 const AddressUnspentOutput$json = {
@@ -1665,10 +1713,10 @@ const AddressUnspentOutput$json = {
 };
 
 /// Descriptor for `AddressUnspentOutput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List addressUnspentOutputDescriptor = $convert.base64Decode(
-    'ChRBZGRyZXNzVW5zcGVudE91dHB1dBISCgR0eGlkGAEgASgJUgR0eGlkEhIKBHZvdXQYAiABKA'
-    'VSBHZvdXQSHQoKdmFsdWVfc2F0cxgDIAEoA1IJdmFsdWVTYXRzEiQKDWNvbmZpcm1hdGlvbnMY'
-    'BCABKAVSDWNvbmZpcm1hdGlvbnMSHQoKYmxvY2tfdGltZRgFIAEoA1IJYmxvY2tUaW1l');
+final $typed_data.Uint8List addressUnspentOutputDescriptor =
+    $convert.base64Decode('ChRBZGRyZXNzVW5zcGVudE91dHB1dBISCgR0eGlkGAEgASgJUgR0eGlkEhIKBHZvdXQYAiABKA'
+        'VSBHZvdXQSHQoKdmFsdWVfc2F0cxgDIAEoA1IJdmFsdWVTYXRzEiQKDWNvbmZpcm1hdGlvbnMY'
+        'BCABKAVSDWNvbmZpcm1hdGlvbnMSHQoKYmxvY2tfdGltZRgFIAEoA1IJYmxvY2tUaW1l');
 
 @$core.Deprecated('Use getAddressUnspentResponseDescriptor instead')
 const GetAddressUnspentResponse$json = {
@@ -1680,10 +1728,10 @@ const GetAddressUnspentResponse$json = {
 };
 
 /// Descriptor for `GetAddressUnspentResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getAddressUnspentResponseDescriptor = $convert.base64Decode(
-    'ChlHZXRBZGRyZXNzVW5zcGVudFJlc3BvbnNlEjwKBXV0eG9zGAEgAygLMiYud2FsbGV0bWFuYW'
-    'dlci52MS5BZGRyZXNzVW5zcGVudE91dHB1dFIFdXR4b3MSHQoKdGlwX2hlaWdodBgCIAEoBVIJ'
-    'dGlwSGVpZ2h0');
+final $typed_data.Uint8List getAddressUnspentResponseDescriptor =
+    $convert.base64Decode('ChlHZXRBZGRyZXNzVW5zcGVudFJlc3BvbnNlEjwKBXV0eG9zGAEgAygLMiYud2FsbGV0bWFuYW'
+        'dlci52MS5BZGRyZXNzVW5zcGVudE91dHB1dFIFdXR4b3MSHQoKdGlwX2hlaWdodBgCIAEoBVIJ'
+        'dGlwSGVpZ2h0');
 
 @$core.Deprecated('Use broadcastElectrumTransactionRequestDescriptor instead')
 const BroadcastElectrumTransactionRequest$json = {
@@ -1694,9 +1742,9 @@ const BroadcastElectrumTransactionRequest$json = {
 };
 
 /// Descriptor for `BroadcastElectrumTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List broadcastElectrumTransactionRequestDescriptor = $convert.base64Decode(
-    'CiNCcm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uUmVxdWVzdBIVCgZ0eF9oZXgYASABKAlSBX'
-    'R4SGV4');
+final $typed_data.Uint8List broadcastElectrumTransactionRequestDescriptor =
+    $convert.base64Decode('CiNCcm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uUmVxdWVzdBIVCgZ0eF9oZXgYASABKAlSBX'
+        'R4SGV4');
 
 @$core.Deprecated('Use broadcastElectrumTransactionResponseDescriptor instead')
 const BroadcastElectrumTransactionResponse$json = {
@@ -1707,9 +1755,9 @@ const BroadcastElectrumTransactionResponse$json = {
 };
 
 /// Descriptor for `BroadcastElectrumTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List broadcastElectrumTransactionResponseDescriptor = $convert.base64Decode(
-    'CiRCcm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdH'
-    'hpZA==');
+final $typed_data.Uint8List broadcastElectrumTransactionResponseDescriptor =
+    $convert.base64Decode('CiRCcm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdH'
+        'hpZA==');
 
 @$core.Deprecated('Use hardwareDeviceDescriptor instead')
 const HardwareDevice$json = {
@@ -1728,12 +1776,12 @@ const HardwareDevice$json = {
 };
 
 /// Descriptor for `HardwareDevice`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List hardwareDeviceDescriptor = $convert.base64Decode(
-    'Cg5IYXJkd2FyZURldmljZRISCgR0eXBlGAEgASgJUgR0eXBlEhQKBW1vZGVsGAIgASgJUgVtb2'
-    'RlbBIUCgVsYWJlbBgDIAEoCVIFbGFiZWwSEgoEcGF0aBgEIAEoCVIEcGF0aBIgCgtmaW5nZXJw'
-    'cmludBgFIAEoCVILZmluZ2VycHJpbnQSGwoJbmVlZHNfcGluGAYgASgIUghuZWVkc1BpbhIpCh'
-    'BuZWVkc19wYXNzcGhyYXNlGAcgASgIUg9uZWVkc1Bhc3NwaHJhc2USFAoFZXJyb3IYCCABKAlS'
-    'BWVycm9yEh0KCmVycm9yX2NvZGUYCSABKAVSCWVycm9yQ29kZQ==');
+final $typed_data.Uint8List hardwareDeviceDescriptor =
+    $convert.base64Decode('Cg5IYXJkd2FyZURldmljZRISCgR0eXBlGAEgASgJUgR0eXBlEhQKBW1vZGVsGAIgASgJUgVtb2'
+        'RlbBIUCgVsYWJlbBgDIAEoCVIFbGFiZWwSEgoEcGF0aBgEIAEoCVIEcGF0aBIgCgtmaW5nZXJw'
+        'cmludBgFIAEoCVILZmluZ2VycHJpbnQSGwoJbmVlZHNfcGluGAYgASgIUghuZWVkc1BpbhIpCh'
+        'BuZWVkc19wYXNzcGhyYXNlGAcgASgIUg9uZWVkc1Bhc3NwaHJhc2USFAoFZXJyb3IYCCABKAlS'
+        'BWVycm9yEh0KCmVycm9yX2NvZGUYCSABKAVSCWVycm9yQ29kZQ==');
 
 @$core.Deprecated('Use hardwareDeviceSelectorDescriptor instead')
 const HardwareDeviceSelector$json = {
@@ -1747,10 +1795,10 @@ const HardwareDeviceSelector$json = {
 };
 
 /// Descriptor for `HardwareDeviceSelector`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List hardwareDeviceSelectorDescriptor = $convert.base64Decode(
-    'ChZIYXJkd2FyZURldmljZVNlbGVjdG9yEhIKBHR5cGUYASABKAlSBHR5cGUSEgoEcGF0aBgCIA'
-    'EoCVIEcGF0aBIgCgtmaW5nZXJwcmludBgDIAEoCVILZmluZ2VycHJpbnQSHgoKcGFzc3BocmFz'
-    'ZRgEIAEoCVIKcGFzc3BocmFzZQ==');
+final $typed_data.Uint8List hardwareDeviceSelectorDescriptor =
+    $convert.base64Decode('ChZIYXJkd2FyZURldmljZVNlbGVjdG9yEhIKBHR5cGUYASABKAlSBHR5cGUSEgoEcGF0aBgCIA'
+        'EoCVIEcGF0aBIgCgtmaW5nZXJwcmludBgDIAEoCVILZmluZ2VycHJpbnQSHgoKcGFzc3BocmFz'
+        'ZRgEIAEoCVIKcGFzc3BocmFzZQ==');
 
 @$core.Deprecated('Use enumerateHardwareDevicesRequestDescriptor instead')
 const EnumerateHardwareDevicesRequest$json = {
@@ -1761,9 +1809,9 @@ const EnumerateHardwareDevicesRequest$json = {
 };
 
 /// Descriptor for `EnumerateHardwareDevicesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List enumerateHardwareDevicesRequestDescriptor = $convert.base64Decode(
-    'Ch9FbnVtZXJhdGVIYXJkd2FyZURldmljZXNSZXF1ZXN0Eh4KCnBhc3NwaHJhc2UYASABKAlSCn'
-    'Bhc3NwaHJhc2U=');
+final $typed_data.Uint8List enumerateHardwareDevicesRequestDescriptor =
+    $convert.base64Decode('Ch9FbnVtZXJhdGVIYXJkd2FyZURldmljZXNSZXF1ZXN0Eh4KCnBhc3NwaHJhc2UYASABKAlSCn'
+        'Bhc3NwaHJhc2U=');
 
 @$core.Deprecated('Use enumerateHardwareDevicesResponseDescriptor instead')
 const EnumerateHardwareDevicesResponse$json = {
@@ -1774,9 +1822,9 @@ const EnumerateHardwareDevicesResponse$json = {
 };
 
 /// Descriptor for `EnumerateHardwareDevicesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List enumerateHardwareDevicesResponseDescriptor = $convert.base64Decode(
-    'CiBFbnVtZXJhdGVIYXJkd2FyZURldmljZXNSZXNwb25zZRI6CgdkZXZpY2VzGAEgAygLMiAud2'
-    'FsbGV0bWFuYWdlci52MS5IYXJkd2FyZURldmljZVIHZGV2aWNlcw==');
+final $typed_data.Uint8List enumerateHardwareDevicesResponseDescriptor =
+    $convert.base64Decode('CiBFbnVtZXJhdGVIYXJkd2FyZURldmljZXNSZXNwb25zZRI6CgdkZXZpY2VzGAEgAygLMiAud2'
+        'FsbGV0bWFuYWdlci52MS5IYXJkd2FyZURldmljZVIHZGV2aWNlcw==');
 
 @$core.Deprecated('Use getHardwareXpubRequestDescriptor instead')
 const GetHardwareXpubRequest$json = {
@@ -1788,10 +1836,10 @@ const GetHardwareXpubRequest$json = {
 };
 
 /// Descriptor for `GetHardwareXpubRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getHardwareXpubRequestDescriptor = $convert.base64Decode(
-    'ChZHZXRIYXJkd2FyZVhwdWJSZXF1ZXN0EkAKBmRldmljZRgBIAEoCzIoLndhbGxldG1hbmFnZX'
-    'IudjEuSGFyZHdhcmVEZXZpY2VTZWxlY3RvclIGZGV2aWNlEicKD2Rlcml2YXRpb25fcGF0aBgC'
-    'IAEoCVIOZGVyaXZhdGlvblBhdGg=');
+final $typed_data.Uint8List getHardwareXpubRequestDescriptor =
+    $convert.base64Decode('ChZHZXRIYXJkd2FyZVhwdWJSZXF1ZXN0EkAKBmRldmljZRgBIAEoCzIoLndhbGxldG1hbmFnZX'
+        'IudjEuSGFyZHdhcmVEZXZpY2VTZWxlY3RvclIGZGV2aWNlEicKD2Rlcml2YXRpb25fcGF0aBgC'
+        'IAEoCVIOZGVyaXZhdGlvblBhdGg=');
 
 @$core.Deprecated('Use getHardwareXpubResponseDescriptor instead')
 const GetHardwareXpubResponse$json = {
@@ -1802,8 +1850,8 @@ const GetHardwareXpubResponse$json = {
 };
 
 /// Descriptor for `GetHardwareXpubResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getHardwareXpubResponseDescriptor = $convert.base64Decode(
-    'ChdHZXRIYXJkd2FyZVhwdWJSZXNwb25zZRISCgR4cHViGAEgASgJUgR4cHVi');
+final $typed_data.Uint8List getHardwareXpubResponseDescriptor =
+    $convert.base64Decode('ChdHZXRIYXJkd2FyZVhwdWJSZXNwb25zZRISCgR4cHViGAEgASgJUgR4cHVi');
 
 @$core.Deprecated('Use signPsbtWithDeviceRequestDescriptor instead')
 const SignPsbtWithDeviceRequest$json = {
@@ -1815,10 +1863,10 @@ const SignPsbtWithDeviceRequest$json = {
 };
 
 /// Descriptor for `SignPsbtWithDeviceRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List signPsbtWithDeviceRequestDescriptor = $convert.base64Decode(
-    'ChlTaWduUHNidFdpdGhEZXZpY2VSZXF1ZXN0EkAKBmRldmljZRgBIAEoCzIoLndhbGxldG1hbm'
-    'FnZXIudjEuSGFyZHdhcmVEZXZpY2VTZWxlY3RvclIGZGV2aWNlEh8KC3BzYnRfYmFzZTY0GAIg'
-    'ASgJUgpwc2J0QmFzZTY0');
+final $typed_data.Uint8List signPsbtWithDeviceRequestDescriptor =
+    $convert.base64Decode('ChlTaWduUHNidFdpdGhEZXZpY2VSZXF1ZXN0EkAKBmRldmljZRgBIAEoCzIoLndhbGxldG1hbm'
+        'FnZXIudjEuSGFyZHdhcmVEZXZpY2VTZWxlY3RvclIGZGV2aWNlEh8KC3BzYnRfYmFzZTY0GAIg'
+        'ASgJUgpwc2J0QmFzZTY0');
 
 @$core.Deprecated('Use signPsbtWithDeviceResponseDescriptor instead')
 const SignPsbtWithDeviceResponse$json = {
@@ -1829,9 +1877,9 @@ const SignPsbtWithDeviceResponse$json = {
 };
 
 /// Descriptor for `SignPsbtWithDeviceResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List signPsbtWithDeviceResponseDescriptor = $convert.base64Decode(
-    'ChpTaWduUHNidFdpdGhEZXZpY2VSZXNwb25zZRIfCgtwc2J0X2Jhc2U2NBgBIAEoCVIKcHNidE'
-    'Jhc2U2NA==');
+final $typed_data.Uint8List signPsbtWithDeviceResponseDescriptor =
+    $convert.base64Decode('ChpTaWduUHNidFdpdGhEZXZpY2VSZXNwb25zZRIfCgtwc2J0X2Jhc2U2NBgBIAEoCVIKcHNidE'
+        'Jhc2U2NA==');
 
 @$core.Deprecated('Use promptDevicePinRequestDescriptor instead')
 const PromptDevicePinRequest$json = {
@@ -1842,9 +1890,9 @@ const PromptDevicePinRequest$json = {
 };
 
 /// Descriptor for `PromptDevicePinRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List promptDevicePinRequestDescriptor = $convert.base64Decode(
-    'ChZQcm9tcHREZXZpY2VQaW5SZXF1ZXN0EkAKBmRldmljZRgBIAEoCzIoLndhbGxldG1hbmFnZX'
-    'IudjEuSGFyZHdhcmVEZXZpY2VTZWxlY3RvclIGZGV2aWNl');
+final $typed_data.Uint8List promptDevicePinRequestDescriptor =
+    $convert.base64Decode('ChZQcm9tcHREZXZpY2VQaW5SZXF1ZXN0EkAKBmRldmljZRgBIAEoCzIoLndhbGxldG1hbmFnZX'
+        'IudjEuSGFyZHdhcmVEZXZpY2VTZWxlY3RvclIGZGV2aWNl');
 
 @$core.Deprecated('Use promptDevicePinResponseDescriptor instead')
 const PromptDevicePinResponse$json = {
@@ -1852,8 +1900,8 @@ const PromptDevicePinResponse$json = {
 };
 
 /// Descriptor for `PromptDevicePinResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List promptDevicePinResponseDescriptor = $convert.base64Decode(
-    'ChdQcm9tcHREZXZpY2VQaW5SZXNwb25zZQ==');
+final $typed_data.Uint8List promptDevicePinResponseDescriptor =
+    $convert.base64Decode('ChdQcm9tcHREZXZpY2VQaW5SZXNwb25zZQ==');
 
 @$core.Deprecated('Use sendDevicePinRequestDescriptor instead')
 const SendDevicePinRequest$json = {
@@ -1865,9 +1913,9 @@ const SendDevicePinRequest$json = {
 };
 
 /// Descriptor for `SendDevicePinRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sendDevicePinRequestDescriptor = $convert.base64Decode(
-    'ChRTZW5kRGV2aWNlUGluUmVxdWVzdBJACgZkZXZpY2UYASABKAsyKC53YWxsZXRtYW5hZ2VyLn'
-    'YxLkhhcmR3YXJlRGV2aWNlU2VsZWN0b3JSBmRldmljZRIQCgNwaW4YAiABKAlSA3Bpbg==');
+final $typed_data.Uint8List sendDevicePinRequestDescriptor =
+    $convert.base64Decode('ChRTZW5kRGV2aWNlUGluUmVxdWVzdBJACgZkZXZpY2UYASABKAsyKC53YWxsZXRtYW5hZ2VyLn'
+        'YxLkhhcmR3YXJlRGV2aWNlU2VsZWN0b3JSBmRldmljZRIQCgNwaW4YAiABKAlSA3Bpbg==');
 
 @$core.Deprecated('Use sendDevicePinResponseDescriptor instead')
 const SendDevicePinResponse$json = {
@@ -1875,8 +1923,7 @@ const SendDevicePinResponse$json = {
 };
 
 /// Descriptor for `SendDevicePinResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sendDevicePinResponseDescriptor = $convert.base64Decode(
-    'ChVTZW5kRGV2aWNlUGluUmVzcG9uc2U=');
+final $typed_data.Uint8List sendDevicePinResponseDescriptor = $convert.base64Decode('ChVTZW5kRGV2aWNlUGluUmVzcG9uc2U=');
 
 @$core.Deprecated('Use closeDeviceRequestDescriptor instead')
 const CloseDeviceRequest$json = {
@@ -1887,9 +1934,9 @@ const CloseDeviceRequest$json = {
 };
 
 /// Descriptor for `CloseDeviceRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List closeDeviceRequestDescriptor = $convert.base64Decode(
-    'ChJDbG9zZURldmljZVJlcXVlc3QSQAoGZGV2aWNlGAEgASgLMigud2FsbGV0bWFuYWdlci52MS'
-    '5IYXJkd2FyZURldmljZVNlbGVjdG9yUgZkZXZpY2U=');
+final $typed_data.Uint8List closeDeviceRequestDescriptor =
+    $convert.base64Decode('ChJDbG9zZURldmljZVJlcXVlc3QSQAoGZGV2aWNlGAEgASgLMigud2FsbGV0bWFuYWdlci52MS'
+        '5IYXJkd2FyZURldmljZVNlbGVjdG9yUgZkZXZpY2U=');
 
 @$core.Deprecated('Use closeDeviceResponseDescriptor instead')
 const CloseDeviceResponse$json = {
@@ -1897,8 +1944,7 @@ const CloseDeviceResponse$json = {
 };
 
 /// Descriptor for `CloseDeviceResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List closeDeviceResponseDescriptor = $convert.base64Decode(
-    'ChNDbG9zZURldmljZVJlc3BvbnNl');
+final $typed_data.Uint8List closeDeviceResponseDescriptor = $convert.base64Decode('ChNDbG9zZURldmljZVJlc3BvbnNl');
 
 @$core.Deprecated('Use deriveKeystoreRequestDescriptor instead')
 const DeriveKeystoreRequest$json = {
@@ -1916,13 +1962,13 @@ const DeriveKeystoreRequest$json = {
 };
 
 /// Descriptor for `DeriveKeystoreRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deriveKeystoreRequestDescriptor = $convert.base64Decode(
-    'ChVEZXJpdmVLZXlzdG9yZVJlcXVlc3QSGgoIbW5lbW9uaWMYASABKAlSCG1uZW1vbmljEh4KCn'
-    'Bhc3NwaHJhc2UYAiABKAlSCnBhc3NwaHJhc2USQAoGZGV2aWNlGAMgASgLMigud2FsbGV0bWFu'
-    'YWdlci52MS5IYXJkd2FyZURldmljZVNlbGVjdG9yUgZkZXZpY2USFwoHcmF3X2tleRgEIAEoCV'
-    'IGcmF3S2V5Eh8KC3NjcmlwdF90eXBlGAUgASgJUgpzY3JpcHRUeXBlEhoKCG11bHRpc2lnGAYg'
-    'ASgIUghtdWx0aXNpZxIYCgdhY2NvdW50GAcgASgNUgdhY2NvdW50EicKD2Rlcml2YXRpb25fcG'
-    'F0aBgIIAEoCVIOZGVyaXZhdGlvblBhdGg=');
+final $typed_data.Uint8List deriveKeystoreRequestDescriptor =
+    $convert.base64Decode('ChVEZXJpdmVLZXlzdG9yZVJlcXVlc3QSGgoIbW5lbW9uaWMYASABKAlSCG1uZW1vbmljEh4KCn'
+        'Bhc3NwaHJhc2UYAiABKAlSCnBhc3NwaHJhc2USQAoGZGV2aWNlGAMgASgLMigud2FsbGV0bWFu'
+        'YWdlci52MS5IYXJkd2FyZURldmljZVNlbGVjdG9yUgZkZXZpY2USFwoHcmF3X2tleRgEIAEoCV'
+        'IGcmF3S2V5Eh8KC3NjcmlwdF90eXBlGAUgASgJUgpzY3JpcHRUeXBlEhoKCG11bHRpc2lnGAYg'
+        'ASgIUghtdWx0aXNpZxIYCgdhY2NvdW50GAcgASgNUgdhY2NvdW50EicKD2Rlcml2YXRpb25fcG'
+        'F0aBgIIAEoCVIOZGVyaXZhdGlvblBhdGg=');
 
 @$core.Deprecated('Use deriveKeystoreResponseDescriptor instead')
 const DeriveKeystoreResponse$json = {
@@ -1936,10 +1982,10 @@ const DeriveKeystoreResponse$json = {
 };
 
 /// Descriptor for `DeriveKeystoreResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deriveKeystoreResponseDescriptor = $convert.base64Decode(
-    'ChZEZXJpdmVLZXlzdG9yZVJlc3BvbnNlEhIKBHhwdWIYASABKAlSBHhwdWISIAoLZmluZ2VycH'
-    'JpbnQYAiABKAlSC2ZpbmdlcnByaW50Eh8KC29yaWdpbl9wYXRoGAMgASgJUgpvcmlnaW5QYXRo'
-    'Eh4KCmRlc2NyaXB0b3IYBCABKAlSCmRlc2NyaXB0b3I=');
+final $typed_data.Uint8List deriveKeystoreResponseDescriptor =
+    $convert.base64Decode('ChZEZXJpdmVLZXlzdG9yZVJlc3BvbnNlEhIKBHhwdWIYASABKAlSBHhwdWISIAoLZmluZ2VycH'
+        'JpbnQYAiABKAlSC2ZpbmdlcnByaW50Eh8KC29yaWdpbl9wYXRoGAMgASgJUgpvcmlnaW5QYXRo'
+        'Eh4KCmRlc2NyaXB0b3IYBCABKAlSCmRlc2NyaXB0b3I=');
 
 @$core.Deprecated('Use exploreSeedRequestDescriptor instead')
 const ExploreSeedRequest$json = {
@@ -1954,10 +2000,10 @@ const ExploreSeedRequest$json = {
 };
 
 /// Descriptor for `ExploreSeedRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List exploreSeedRequestDescriptor = $convert.base64Decode(
-    'ChJFeHBsb3JlU2VlZFJlcXVlc3QSGgoIbW5lbW9uaWMYASABKAlSCG1uZW1vbmljEh4KCnBhc3'
-    'NwaHJhc2UYAiABKAlSCnBhc3NwaHJhc2USGwoJYmFzZV9wYXRoGAMgASgJUghiYXNlUGF0aBIf'
-    'CgtzdGFydF9pbmRleBgEIAEoDVIKc3RhcnRJbmRleBIUCgVjb3VudBgFIAEoDVIFY291bnQ=');
+final $typed_data.Uint8List exploreSeedRequestDescriptor =
+    $convert.base64Decode('ChJFeHBsb3JlU2VlZFJlcXVlc3QSGgoIbW5lbW9uaWMYASABKAlSCG1uZW1vbmljEh4KCnBhc3'
+        'NwaHJhc2UYAiABKAlSCnBhc3NwaHJhc2USGwoJYmFzZV9wYXRoGAMgASgJUghiYXNlUGF0aBIf'
+        'CgtzdGFydF9pbmRleBgEIAEoDVIKc3RhcnRJbmRleBIUCgVjb3VudBgFIAEoDVIFY291bnQ=');
 
 @$core.Deprecated('Use exploredKeyDescriptor instead')
 const ExploredKey$json = {
@@ -1971,9 +2017,9 @@ const ExploredKey$json = {
 };
 
 /// Descriptor for `ExploredKey`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List exploredKeyDescriptor = $convert.base64Decode(
-    'CgtFeHBsb3JlZEtleRISCgRwYXRoGAEgASgJUgRwYXRoEhgKB2FkZHJlc3MYAiABKAlSB2FkZH'
-    'Jlc3MSHQoKcHVibGljX2tleRgDIAEoCVIJcHVibGljS2V5EhAKA3dpZhgEIAEoCVIDd2lm');
+final $typed_data.Uint8List exploredKeyDescriptor =
+    $convert.base64Decode('CgtFeHBsb3JlZEtleRISCgRwYXRoGAEgASgJUgRwYXRoEhgKB2FkZHJlc3MYAiABKAlSB2FkZH'
+        'Jlc3MSHQoKcHVibGljX2tleRgDIAEoCVIJcHVibGljS2V5EhAKA3dpZhgEIAEoCVIDd2lm');
 
 @$core.Deprecated('Use exploreSeedResponseDescriptor instead')
 const ExploreSeedResponse$json = {
@@ -1988,11 +2034,11 @@ const ExploreSeedResponse$json = {
 };
 
 /// Descriptor for `ExploreSeedResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List exploreSeedResponseDescriptor = $convert.base64Decode(
-    'ChNFeHBsb3JlU2VlZFJlc3BvbnNlEhkKCHNlZWRfaGV4GAEgASgJUgdzZWVkSGV4EhIKBHhwcn'
-    'YYAiABKAlSBHhwcnYSEgoEeHB1YhgDIAEoCVIEeHB1YhIsChJiaXA0N19wYXltZW50X2NvZGUY'
-    'BCABKAlSEGJpcDQ3UGF5bWVudENvZGUSMQoEa2V5cxgFIAMoCzIdLndhbGxldG1hbmFnZXIudj'
-    'EuRXhwbG9yZWRLZXlSBGtleXM=');
+final $typed_data.Uint8List exploreSeedResponseDescriptor =
+    $convert.base64Decode('ChNFeHBsb3JlU2VlZFJlc3BvbnNlEhkKCHNlZWRfaGV4GAEgASgJUgdzZWVkSGV4EhIKBHhwcn'
+        'YYAiABKAlSBHhwcnYSEgoEeHB1YhgDIAEoCVIEeHB1YhIsChJiaXA0N19wYXltZW50X2NvZGUY'
+        'BCABKAlSEGJpcDQ3UGF5bWVudENvZGUSMQoEa2V5cxgFIAMoCzIdLndhbGxldG1hbmFnZXIudj'
+        'EuRXhwbG9yZWRLZXlSBGtleXM=');
 
 @$core.Deprecated('Use generateMnemonicRequestDescriptor instead')
 const GenerateMnemonicRequest$json = {
@@ -2000,8 +2046,8 @@ const GenerateMnemonicRequest$json = {
 };
 
 /// Descriptor for `GenerateMnemonicRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateMnemonicRequestDescriptor = $convert.base64Decode(
-    'ChdHZW5lcmF0ZU1uZW1vbmljUmVxdWVzdA==');
+final $typed_data.Uint8List generateMnemonicRequestDescriptor =
+    $convert.base64Decode('ChdHZW5lcmF0ZU1uZW1vbmljUmVxdWVzdA==');
 
 @$core.Deprecated('Use generateMnemonicResponseDescriptor instead')
 const GenerateMnemonicResponse$json = {
@@ -2012,8 +2058,8 @@ const GenerateMnemonicResponse$json = {
 };
 
 /// Descriptor for `GenerateMnemonicResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateMnemonicResponseDescriptor = $convert.base64Decode(
-    'ChhHZW5lcmF0ZU1uZW1vbmljUmVzcG9uc2USGgoIbW5lbW9uaWMYASABKAlSCG1uZW1vbmlj');
+final $typed_data.Uint8List generateMnemonicResponseDescriptor =
+    $convert.base64Decode('ChhHZW5lcmF0ZU1uZW1vbmljUmVzcG9uc2USGgoIbW5lbW9uaWMYASABKAlSCG1uZW1vbmlj');
 
 @$core.Deprecated('Use validateMnemonicRequestDescriptor instead')
 const ValidateMnemonicRequest$json = {
@@ -2024,8 +2070,8 @@ const ValidateMnemonicRequest$json = {
 };
 
 /// Descriptor for `ValidateMnemonicRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List validateMnemonicRequestDescriptor = $convert.base64Decode(
-    'ChdWYWxpZGF0ZU1uZW1vbmljUmVxdWVzdBIaCghtbmVtb25pYxgBIAEoCVIIbW5lbW9uaWM=');
+final $typed_data.Uint8List validateMnemonicRequestDescriptor =
+    $convert.base64Decode('ChdWYWxpZGF0ZU1uZW1vbmljUmVxdWVzdBIaCghtbmVtb25pYxgBIAEoCVIIbW5lbW9uaWM=');
 
 @$core.Deprecated('Use validateMnemonicResponseDescriptor instead')
 const ValidateMnemonicResponse$json = {
@@ -2036,9 +2082,9 @@ const ValidateMnemonicResponse$json = {
 };
 
 /// Descriptor for `ValidateMnemonicResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List validateMnemonicResponseDescriptor = $convert.base64Decode(
-    'ChhWYWxpZGF0ZU1uZW1vbmljUmVzcG9uc2USMgoEa2luZBgBIAEoDjIeLndhbGxldG1hbmFnZX'
-    'IudjEuTW5lbW9uaWNLaW5kUgRraW5k');
+final $typed_data.Uint8List validateMnemonicResponseDescriptor =
+    $convert.base64Decode('ChhWYWxpZGF0ZU1uZW1vbmljUmVzcG9uc2USMgoEa2luZBgBIAEoDjIeLndhbGxldG1hbmFnZX'
+        'IudjEuTW5lbW9uaWNLaW5kUgRraW5k');
 
 @$core.Deprecated('Use listTransactionsRequestDescriptor instead')
 const ListTransactionsRequest$json = {
@@ -2050,9 +2096,9 @@ const ListTransactionsRequest$json = {
 };
 
 /// Descriptor for `ListTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listTransactionsRequestDescriptor = $convert.base64Decode(
-    'ChdMaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEh'
-    'QKBWNvdW50GAIgASgFUgVjb3VudA==');
+final $typed_data.Uint8List listTransactionsRequestDescriptor =
+    $convert.base64Decode('ChdMaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEh'
+        'QKBWNvdW50GAIgASgFUgVjb3VudA==');
 
 @$core.Deprecated('Use transactionEntryDescriptor instead')
 const TransactionEntry$json = {
@@ -2073,22 +2119,29 @@ const TransactionEntry$json = {
     {'1': 'wallet_id', '3': 13, '4': 1, '5': 9, '10': 'walletId'},
     {'1': 'bmm_bid', '3': 14, '4': 1, '5': 11, '6': '.walletmanager.v1.BmmBid', '10': 'bmmBid'},
     {'1': 'warning_message', '3': 15, '4': 1, '5': 9, '10': 'warningMessage'},
-    {'1': 'sidechain_deposit', '3': 16, '4': 1, '5': 11, '6': '.walletmanager.v1.SidechainDeposit', '10': 'sidechainDeposit'},
+    {
+      '1': 'sidechain_deposit',
+      '3': 16,
+      '4': 1,
+      '5': 11,
+      '6': '.walletmanager.v1.SidechainDeposit',
+      '10': 'sidechainDeposit'
+    },
   ],
 };
 
 /// Descriptor for `TransactionEntry`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List transactionEntryDescriptor = $convert.base64Decode(
-    'ChBUcmFuc2FjdGlvbkVudHJ5EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm'
-    '91dBIYCgdhZGRyZXNzGAMgASgJUgdhZGRyZXNzEhoKCGNhdGVnb3J5GAQgASgJUghjYXRlZ29y'
-    'eRIWCgZhbW91bnQYBSABKAFSBmFtb3VudBIfCgthbW91bnRfc2F0cxgGIAEoA1IKYW1vdW50U2'
-    'F0cxIkCg1jb25maXJtYXRpb25zGAcgASgFUg1jb25maXJtYXRpb25zEh0KCmJsb2NrX3RpbWUY'
-    'CCABKANSCWJsb2NrVGltZRISCgR0aW1lGAkgASgDUgR0aW1lEhQKBWxhYmVsGAogASgJUgVsYW'
-    'JlbBIQCgNmZWUYCyABKAFSA2ZlZRIoChByZXBsYWNlZF9ieV90eGlkGAwgASgIUg5yZXBsYWNl'
-    'ZEJ5VHhpZBIbCgl3YWxsZXRfaWQYDSABKAlSCHdhbGxldElkEjEKB2JtbV9iaWQYDiABKAsyGC'
-    '53YWxsZXRtYW5hZ2VyLnYxLkJtbUJpZFIGYm1tQmlkEicKD3dhcm5pbmdfbWVzc2FnZRgPIAEo'
-    'CVIOd2FybmluZ01lc3NhZ2USTwoRc2lkZWNoYWluX2RlcG9zaXQYECABKAsyIi53YWxsZXRtYW'
-    '5hZ2VyLnYxLlNpZGVjaGFpbkRlcG9zaXRSEHNpZGVjaGFpbkRlcG9zaXQ=');
+final $typed_data.Uint8List transactionEntryDescriptor =
+    $convert.base64Decode('ChBUcmFuc2FjdGlvbkVudHJ5EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm'
+        '91dBIYCgdhZGRyZXNzGAMgASgJUgdhZGRyZXNzEhoKCGNhdGVnb3J5GAQgASgJUghjYXRlZ29y'
+        'eRIWCgZhbW91bnQYBSABKAFSBmFtb3VudBIfCgthbW91bnRfc2F0cxgGIAEoA1IKYW1vdW50U2'
+        'F0cxIkCg1jb25maXJtYXRpb25zGAcgASgFUg1jb25maXJtYXRpb25zEh0KCmJsb2NrX3RpbWUY'
+        'CCABKANSCWJsb2NrVGltZRISCgR0aW1lGAkgASgDUgR0aW1lEhQKBWxhYmVsGAogASgJUgVsYW'
+        'JlbBIQCgNmZWUYCyABKAFSA2ZlZRIoChByZXBsYWNlZF9ieV90eGlkGAwgASgIUg5yZXBsYWNl'
+        'ZEJ5VHhpZBIbCgl3YWxsZXRfaWQYDSABKAlSCHdhbGxldElkEjEKB2JtbV9iaWQYDiABKAsyGC'
+        '53YWxsZXRtYW5hZ2VyLnYxLkJtbUJpZFIGYm1tQmlkEicKD3dhcm5pbmdfbWVzc2FnZRgPIAEo'
+        'CVIOd2FybmluZ01lc3NhZ2USTwoRc2lkZWNoYWluX2RlcG9zaXQYECABKAsyIi53YWxsZXRtYW'
+        '5hZ2VyLnYxLlNpZGVjaGFpbkRlcG9zaXRSEHNpZGVjaGFpbkRlcG9zaXQ=');
 
 @$core.Deprecated('Use bmmBidDescriptor instead')
 const BmmBid$json = {
@@ -2102,10 +2155,10 @@ const BmmBid$json = {
 };
 
 /// Descriptor for `BmmBid`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List bmmBidDescriptor = $convert.base64Decode(
-    'CgZCbW1CaWQSEgoEc2xvdBgBIAEoDVIEc2xvdBIjCg1jcml0aWNhbF9oYXNoGAIgASgJUgxjcm'
-    'l0aWNhbEhhc2gSJAoOcHJldl9tYWluX2hhc2gYAyABKAlSDHByZXZNYWluSGFzaBISCgRsb3N0'
-    'GAQgASgIUgRsb3N0');
+final $typed_data.Uint8List bmmBidDescriptor =
+    $convert.base64Decode('CgZCbW1CaWQSEgoEc2xvdBgBIAEoDVIEc2xvdBIjCg1jcml0aWNhbF9oYXNoGAIgASgJUgxjcm'
+        'l0aWNhbEhhc2gSJAoOcHJldl9tYWluX2hhc2gYAyABKAlSDHByZXZNYWluSGFzaBISCgRsb3N0'
+        'GAQgASgIUgRsb3N0');
 
 @$core.Deprecated('Use listTransactionsResponseDescriptor instead')
 const ListTransactionsResponse$json = {
@@ -2116,9 +2169,9 @@ const ListTransactionsResponse$json = {
 };
 
 /// Descriptor for `ListTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listTransactionsResponseDescriptor = $convert.base64Decode(
-    'ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USRgoMdHJhbnNhY3Rpb25zGAEgAygLMiIud2FsbG'
-    'V0bWFuYWdlci52MS5UcmFuc2FjdGlvbkVudHJ5Ugx0cmFuc2FjdGlvbnM=');
+final $typed_data.Uint8List listTransactionsResponseDescriptor =
+    $convert.base64Decode('ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USRgoMdHJhbnNhY3Rpb25zGAEgAygLMiIud2FsbG'
+        'V0bWFuYWdlci52MS5UcmFuc2FjdGlvbkVudHJ5Ugx0cmFuc2FjdGlvbnM=');
 
 @$core.Deprecated('Use listUnspentRequestDescriptor instead')
 const ListUnspentRequest$json = {
@@ -2129,8 +2182,8 @@ const ListUnspentRequest$json = {
 };
 
 /// Descriptor for `ListUnspentRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listUnspentRequestDescriptor = $convert.base64Decode(
-    'ChJMaXN0VW5zcGVudFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZA==');
+final $typed_data.Uint8List listUnspentRequestDescriptor =
+    $convert.base64Decode('ChJMaXN0VW5zcGVudFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZA==');
 
 @$core.Deprecated('Use unspentOutputDescriptor instead')
 const UnspentOutput$json = {
@@ -2157,16 +2210,16 @@ const UnspentOutput$json = {
 };
 
 /// Descriptor for `UnspentOutput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
-    'Cg1VbnNwZW50T3V0cHV0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm91dB'
-    'IYCgdhZGRyZXNzGAMgASgJUgdhZGRyZXNzEhYKBmFtb3VudBgEIAEoAVIGYW1vdW50Eh8KC2Ft'
-    'b3VudF9zYXRzGAUgASgDUgphbW91bnRTYXRzEiQKDWNvbmZpcm1hdGlvbnMYBiABKAVSDWNvbm'
-    'Zpcm1hdGlvbnMSFAoFbGFiZWwYByABKAlSBWxhYmVsEhwKCXNwZW5kYWJsZRgIIAEoCFIJc3Bl'
-    'bmRhYmxlEhoKCHNvbHZhYmxlGAkgASgIUghzb2x2YWJsZRIbCgl3YWxsZXRfaWQYCiABKAlSCH'
-    'dhbGxldElkEjsKC3JlY2VpdmVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFt'
-    'cFIKcmVjZWl2ZWRBdBInCg9kZXJpdmF0aW9uX3BhdGgYDCABKAlSDmRlcml2YXRpb25QYXRoEi'
-    'MKCnNwbGl0dGFibGUYDSABKAhIAFIKc3BsaXR0YWJsZYgBARIsChJpbnB1dF93ZWlnaHRfdW5p'
-    'dHMYDiABKAVSEGlucHV0V2VpZ2h0VW5pdHNCDQoLX3NwbGl0dGFibGU=');
+final $typed_data.Uint8List unspentOutputDescriptor =
+    $convert.base64Decode('Cg1VbnNwZW50T3V0cHV0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm91dB'
+        'IYCgdhZGRyZXNzGAMgASgJUgdhZGRyZXNzEhYKBmFtb3VudBgEIAEoAVIGYW1vdW50Eh8KC2Ft'
+        'b3VudF9zYXRzGAUgASgDUgphbW91bnRTYXRzEiQKDWNvbmZpcm1hdGlvbnMYBiABKAVSDWNvbm'
+        'Zpcm1hdGlvbnMSFAoFbGFiZWwYByABKAlSBWxhYmVsEhwKCXNwZW5kYWJsZRgIIAEoCFIJc3Bl'
+        'bmRhYmxlEhoKCHNvbHZhYmxlGAkgASgIUghzb2x2YWJsZRIbCgl3YWxsZXRfaWQYCiABKAlSCH'
+        'dhbGxldElkEjsKC3JlY2VpdmVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFt'
+        'cFIKcmVjZWl2ZWRBdBInCg9kZXJpdmF0aW9uX3BhdGgYDCABKAlSDmRlcml2YXRpb25QYXRoEi'
+        'MKCnNwbGl0dGFibGUYDSABKAhIAFIKc3BsaXR0YWJsZYgBARIsChJpbnB1dF93ZWlnaHRfdW5p'
+        'dHMYDiABKAVSEGlucHV0V2VpZ2h0VW5pdHNCDQoLX3NwbGl0dGFibGU=');
 
 @$core.Deprecated('Use listUnspentResponseDescriptor instead')
 const ListUnspentResponse$json = {
@@ -2177,9 +2230,9 @@ const ListUnspentResponse$json = {
 };
 
 /// Descriptor for `ListUnspentResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listUnspentResponseDescriptor = $convert.base64Decode(
-    'ChNMaXN0VW5zcGVudFJlc3BvbnNlEjUKBXV0eG9zGAEgAygLMh8ud2FsbGV0bWFuYWdlci52MS'
-    '5VbnNwZW50T3V0cHV0UgV1dHhvcw==');
+final $typed_data.Uint8List listUnspentResponseDescriptor =
+    $convert.base64Decode('ChNMaXN0VW5zcGVudFJlc3BvbnNlEjUKBXV0eG9zGAEgAygLMh8ud2FsbGV0bWFuYWdlci52MS'
+        '5VbnNwZW50T3V0cHV0UgV1dHhvcw==');
 
 @$core.Deprecated('Use listReceiveAddressesRequestDescriptor instead')
 const ListReceiveAddressesRequest$json = {
@@ -2190,9 +2243,9 @@ const ListReceiveAddressesRequest$json = {
 };
 
 /// Descriptor for `ListReceiveAddressesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listReceiveAddressesRequestDescriptor = $convert.base64Decode(
-    'ChtMaXN0UmVjZWl2ZUFkZHJlc3Nlc1JlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
-    'RJZA==');
+final $typed_data.Uint8List listReceiveAddressesRequestDescriptor =
+    $convert.base64Decode('ChtMaXN0UmVjZWl2ZUFkZHJlc3Nlc1JlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+        'RJZA==');
 
 @$core.Deprecated('Use receiveAddressDescriptor instead')
 const ReceiveAddress$json = {
@@ -2210,13 +2263,13 @@ const ReceiveAddress$json = {
 };
 
 /// Descriptor for `ReceiveAddress`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List receiveAddressDescriptor = $convert.base64Decode(
-    'Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhYKBmFtb3VudBgCIA'
-    'EoAVIGYW1vdW50Eh8KC2Ftb3VudF9zYXRzGAMgASgDUgphbW91bnRTYXRzEhQKBWxhYmVsGAQg'
-    'ASgJUgVsYWJlbBIZCgh0eF9jb3VudBgFIAEoBVIHdHhDb3VudBIbCglpc19jaGFuZ2UYBiABKA'
-    'hSCGlzQ2hhbmdlEicKD2Rlcml2YXRpb25fcGF0aBgHIAEoCVIOZGVyaXZhdGlvblBhdGgSPAoM'
-    'bGFzdF91c2VkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIKbGFzdFVzZW'
-    'RBdA==');
+final $typed_data.Uint8List receiveAddressDescriptor =
+    $convert.base64Decode('Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhYKBmFtb3VudBgCIA'
+        'EoAVIGYW1vdW50Eh8KC2Ftb3VudF9zYXRzGAMgASgDUgphbW91bnRTYXRzEhQKBWxhYmVsGAQg'
+        'ASgJUgVsYWJlbBIZCgh0eF9jb3VudBgFIAEoBVIHdHhDb3VudBIbCglpc19jaGFuZ2UYBiABKA'
+        'hSCGlzQ2hhbmdlEicKD2Rlcml2YXRpb25fcGF0aBgHIAEoCVIOZGVyaXZhdGlvblBhdGgSPAoM'
+        'bGFzdF91c2VkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIKbGFzdFVzZW'
+        'RBdA==');
 
 @$core.Deprecated('Use listReceiveAddressesResponseDescriptor instead')
 const ListReceiveAddressesResponse$json = {
@@ -2227,9 +2280,9 @@ const ListReceiveAddressesResponse$json = {
 };
 
 /// Descriptor for `ListReceiveAddressesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listReceiveAddressesResponseDescriptor = $convert.base64Decode(
-    'ChxMaXN0UmVjZWl2ZUFkZHJlc3Nlc1Jlc3BvbnNlEj4KCWFkZHJlc3NlcxgBIAMoCzIgLndhbG'
-    'xldG1hbmFnZXIudjEuUmVjZWl2ZUFkZHJlc3NSCWFkZHJlc3Nlcw==');
+final $typed_data.Uint8List listReceiveAddressesResponseDescriptor =
+    $convert.base64Decode('ChxMaXN0UmVjZWl2ZUFkZHJlc3Nlc1Jlc3BvbnNlEj4KCWFkZHJlc3NlcxgBIAMoCzIgLndhbG'
+        'xldG1hbmFnZXIudjEuUmVjZWl2ZUFkZHJlc3NSCWFkZHJlc3Nlcw==');
 
 @$core.Deprecated('Use getTransactionDetailsRequestDescriptor instead')
 const GetTransactionDetailsRequest$json = {
@@ -2241,9 +2294,9 @@ const GetTransactionDetailsRequest$json = {
 };
 
 /// Descriptor for `GetTransactionDetailsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getTransactionDetailsRequestDescriptor = $convert.base64Decode(
-    'ChxHZXRUcmFuc2FjdGlvbkRldGFpbHNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
-    'V0SWQSEgoEdHhpZBgCIAEoCVIEdHhpZA==');
+final $typed_data.Uint8List getTransactionDetailsRequestDescriptor =
+    $convert.base64Decode('ChxHZXRUcmFuc2FjdGlvbkRldGFpbHNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
+        'V0SWQSEgoEdHhpZBgCIAEoCVIEdHhpZA==');
 
 @$core.Deprecated('Use getTransactionDetailsResponseDescriptor instead')
 const GetTransactionDetailsResponse$json = {
@@ -2269,19 +2322,19 @@ const GetTransactionDetailsResponse$json = {
 };
 
 /// Descriptor for `GetTransactionDetailsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getTransactionDetailsResponseDescriptor = $convert.base64Decode(
-    'Ch1HZXRUcmFuc2FjdGlvbkRldGFpbHNSZXNwb25zZRJECgt0cmFuc2FjdGlvbhgBIAEoCzIiLn'
-    'dhbGxldG1hbmFnZXIudjEuVHJhbnNhY3Rpb25FbnRyeVILdHJhbnNhY3Rpb24SFwoHcmF3X2hl'
-    'eBgCIAEoCVIGcmF3SGV4EhwKCWJsb2NraGFzaBgDIAEoCVIJYmxvY2toYXNoEiQKDWNvbmZpcm'
-    '1hdGlvbnMYBCABKAVSDWNvbmZpcm1hdGlvbnMSHQoKYmxvY2tfdGltZRgFIAEoA1IJYmxvY2tU'
-    'aW1lEhgKB3ZlcnNpb24YBiABKAVSB3ZlcnNpb24SGgoIbG9ja3RpbWUYByABKAVSCGxvY2t0aW'
-    '1lEh0KCnNpemVfYnl0ZXMYCCABKAVSCXNpemVCeXRlcxIhCgx2c2l6ZV92Ynl0ZXMYCSABKAVS'
-    'C3ZzaXplVmJ5dGVzEhsKCXdlaWdodF93dRgKIAEoBVIId2VpZ2h0V3USGQoIZmVlX3NhdHMYCy'
-    'ABKANSB2ZlZVNhdHMSJQoPZmVlX3JhdGVfc2F0X3ZiGAwgASgBUgxmZWVSYXRlU2F0VmISOgoG'
-    'aW5wdXRzGA0gAygLMiIud2FsbGV0bWFuYWdlci52MS5UcmFuc2FjdGlvbklucHV0UgZpbnB1dH'
-    'MSKAoQdG90YWxfaW5wdXRfc2F0cxgOIAEoA1IOdG90YWxJbnB1dFNhdHMSPQoHb3V0cHV0cxgP'
-    'IAMoCzIjLndhbGxldG1hbmFnZXIudjEuVHJhbnNhY3Rpb25PdXRwdXRSB291dHB1dHMSKgoRdG'
-    '90YWxfb3V0cHV0X3NhdHMYECABKANSD3RvdGFsT3V0cHV0U2F0cw==');
+final $typed_data.Uint8List getTransactionDetailsResponseDescriptor =
+    $convert.base64Decode('Ch1HZXRUcmFuc2FjdGlvbkRldGFpbHNSZXNwb25zZRJECgt0cmFuc2FjdGlvbhgBIAEoCzIiLn'
+        'dhbGxldG1hbmFnZXIudjEuVHJhbnNhY3Rpb25FbnRyeVILdHJhbnNhY3Rpb24SFwoHcmF3X2hl'
+        'eBgCIAEoCVIGcmF3SGV4EhwKCWJsb2NraGFzaBgDIAEoCVIJYmxvY2toYXNoEiQKDWNvbmZpcm'
+        '1hdGlvbnMYBCABKAVSDWNvbmZpcm1hdGlvbnMSHQoKYmxvY2tfdGltZRgFIAEoA1IJYmxvY2tU'
+        'aW1lEhgKB3ZlcnNpb24YBiABKAVSB3ZlcnNpb24SGgoIbG9ja3RpbWUYByABKAVSCGxvY2t0aW'
+        '1lEh0KCnNpemVfYnl0ZXMYCCABKAVSCXNpemVCeXRlcxIhCgx2c2l6ZV92Ynl0ZXMYCSABKAVS'
+        'C3ZzaXplVmJ5dGVzEhsKCXdlaWdodF93dRgKIAEoBVIId2VpZ2h0V3USGQoIZmVlX3NhdHMYCy'
+        'ABKANSB2ZlZVNhdHMSJQoPZmVlX3JhdGVfc2F0X3ZiGAwgASgBUgxmZWVSYXRlU2F0VmISOgoG'
+        'aW5wdXRzGA0gAygLMiIud2FsbGV0bWFuYWdlci52MS5UcmFuc2FjdGlvbklucHV0UgZpbnB1dH'
+        'MSKAoQdG90YWxfaW5wdXRfc2F0cxgOIAEoA1IOdG90YWxJbnB1dFNhdHMSPQoHb3V0cHV0cxgP'
+        'IAMoCzIjLndhbGxldG1hbmFnZXIudjEuVHJhbnNhY3Rpb25PdXRwdXRSB291dHB1dHMSKgoRdG'
+        '90YWxfb3V0cHV0X3NhdHMYECABKANSD3RvdGFsT3V0cHV0U2F0cw==');
 
 @$core.Deprecated('Use transactionInputDescriptor instead')
 const TransactionInput$json = {
@@ -2301,13 +2354,13 @@ const TransactionInput$json = {
 };
 
 /// Descriptor for `TransactionInput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List transactionInputDescriptor = $convert.base64Decode(
-    'ChBUcmFuc2FjdGlvbklucHV0EhQKBWluZGV4GAEgASgFUgVpbmRleBIbCglwcmV2X3R4aWQYAi'
-    'ABKAlSCHByZXZUeGlkEhsKCXByZXZfdm91dBgDIAEoBVIIcHJldlZvdXQSGAoHYWRkcmVzcxgE'
-    'IAEoCVIHYWRkcmVzcxIdCgp2YWx1ZV9zYXRzGAUgASgDUgl2YWx1ZVNhdHMSJAoOc2NyaXB0X3'
-    'NpZ19hc20YBiABKAlSDHNjcmlwdFNpZ0FzbRIkCg5zY3JpcHRfc2lnX2hleBgHIAEoCVIMc2Ny'
-    'aXB0U2lnSGV4EhgKB3dpdG5lc3MYCCADKAlSB3dpdG5lc3MSGgoIc2VxdWVuY2UYCSABKANSCH'
-    'NlcXVlbmNlEh8KC2lzX2NvaW5iYXNlGAogASgIUgppc0NvaW5iYXNl');
+final $typed_data.Uint8List transactionInputDescriptor =
+    $convert.base64Decode('ChBUcmFuc2FjdGlvbklucHV0EhQKBWluZGV4GAEgASgFUgVpbmRleBIbCglwcmV2X3R4aWQYAi'
+        'ABKAlSCHByZXZUeGlkEhsKCXByZXZfdm91dBgDIAEoBVIIcHJldlZvdXQSGAoHYWRkcmVzcxgE'
+        'IAEoCVIHYWRkcmVzcxIdCgp2YWx1ZV9zYXRzGAUgASgDUgl2YWx1ZVNhdHMSJAoOc2NyaXB0X3'
+        'NpZ19hc20YBiABKAlSDHNjcmlwdFNpZ0FzbRIkCg5zY3JpcHRfc2lnX2hleBgHIAEoCVIMc2Ny'
+        'aXB0U2lnSGV4EhgKB3dpdG5lc3MYCCADKAlSB3dpdG5lc3MSGgoIc2VxdWVuY2UYCSABKANSCH'
+        'NlcXVlbmNlEh8KC2lzX2NvaW5iYXNlGAogASgIUgppc0NvaW5iYXNl');
 
 @$core.Deprecated('Use transactionOutputDescriptor instead')
 const TransactionOutput$json = {
@@ -2325,12 +2378,12 @@ const TransactionOutput$json = {
 };
 
 /// Descriptor for `TransactionOutput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List transactionOutputDescriptor = $convert.base64Decode(
-    'ChFUcmFuc2FjdGlvbk91dHB1dBIUCgVpbmRleBgBIAEoBVIFaW5kZXgSHQoKdmFsdWVfc2F0cx'
-    'gCIAEoA1IJdmFsdWVTYXRzEhgKB2FkZHJlc3MYAyABKAlSB2FkZHJlc3MSHwoLc2NyaXB0X3R5'
-    'cGUYBCABKAlSCnNjcmlwdFR5cGUSKgoRc2NyaXB0X3B1YmtleV9hc20YBSABKAlSD3NjcmlwdF'
-    'B1YmtleUFzbRIqChFzY3JpcHRfcHVia2V5X2hleBgGIAEoCVIPc2NyaXB0UHVia2V5SGV4EhsK'
-    'CWlzX2NoYW5nZRgHIAEoCFIIaXNDaGFuZ2USFwoHaXNfbWluZRgIIAEoCFIGaXNNaW5l');
+final $typed_data.Uint8List transactionOutputDescriptor =
+    $convert.base64Decode('ChFUcmFuc2FjdGlvbk91dHB1dBIUCgVpbmRleBgBIAEoBVIFaW5kZXgSHQoKdmFsdWVfc2F0cx'
+        'gCIAEoA1IJdmFsdWVTYXRzEhgKB2FkZHJlc3MYAyABKAlSB2FkZHJlc3MSHwoLc2NyaXB0X3R5'
+        'cGUYBCABKAlSCnNjcmlwdFR5cGUSKgoRc2NyaXB0X3B1YmtleV9hc20YBSABKAlSD3NjcmlwdF'
+        'B1YmtleUFzbRIqChFzY3JpcHRfcHVia2V5X2hleBgGIAEoCVIPc2NyaXB0UHVia2V5SGV4EhsK'
+        'CWlzX2NoYW5nZRgHIAEoCFIIaXNDaGFuZ2USFwoHaXNfbWluZRgIIAEoCFIGaXNNaW5l');
 
 @$core.Deprecated('Use decodeTransactionRequestDescriptor instead')
 const DecodeTransactionRequest$json = {
@@ -2343,10 +2396,10 @@ const DecodeTransactionRequest$json = {
 };
 
 /// Descriptor for `DecodeTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List decodeTransactionRequestDescriptor = $convert.base64Decode(
-    'ChhEZWNvZGVUcmFuc2FjdGlvblJlcXVlc3QSFAoFaW5wdXQYASABKAlSBWlucHV0EhsKCXdhbG'
-    'xldF9pZBgCIAEoCVIId2FsbGV0SWQSJwoPY2hlY2tfb3duZXJzaGlwGAMgASgIUg5jaGVja093'
-    'bmVyc2hpcA==');
+final $typed_data.Uint8List decodeTransactionRequestDescriptor =
+    $convert.base64Decode('ChhEZWNvZGVUcmFuc2FjdGlvblJlcXVlc3QSFAoFaW5wdXQYASABKAlSBWlucHV0EhsKCXdhbG'
+        'xldF9pZBgCIAEoCVIId2FsbGV0SWQSJwoPY2hlY2tfb3duZXJzaGlwGAMgASgIUg5jaGVja093'
+        'bmVyc2hpcA==');
 
 @$core.Deprecated('Use decodeTransactionResponseDescriptor instead')
 const DecodeTransactionResponse$json = {
@@ -2375,20 +2428,20 @@ const DecodeTransactionResponse$json = {
 };
 
 /// Descriptor for `DecodeTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List decodeTransactionResponseDescriptor = $convert.base64Decode(
-    'ChlEZWNvZGVUcmFuc2FjdGlvblJlc3BvbnNlEjEKBGZvcm0YASABKA4yHS53YWxsZXRtYW5hZ2'
-    'VyLnYxLkRlY29kZWRGb3JtUgRmb3JtEhIKBHR4aWQYAiABKAlSBHR4aWQSGAoHdmVyc2lvbhgD'
-    'IAEoBVIHdmVyc2lvbhIaCghsb2NrdGltZRgEIAEoBVIIbG9ja3RpbWUSHQoKc2l6ZV9ieXRlcx'
-    'gFIAEoBVIJc2l6ZUJ5dGVzEiEKDHZzaXplX3ZieXRlcxgGIAEoBVILdnNpemVWYnl0ZXMSGwoJ'
-    'd2VpZ2h0X3d1GAcgASgFUgh3ZWlnaHRXdRI6CgZpbnB1dHMYCCADKAsyIi53YWxsZXRtYW5hZ2'
-    'VyLnYxLlRyYW5zYWN0aW9uSW5wdXRSBmlucHV0cxI9CgdvdXRwdXRzGAkgAygLMiMud2FsbGV0'
-    'bWFuYWdlci52MS5UcmFuc2FjdGlvbk91dHB1dFIHb3V0cHV0cxIoChB0b3RhbF9pbnB1dF9zYX'
-    'RzGAogASgDUg50b3RhbElucHV0U2F0cxImCg9oYXNfdG90YWxfaW5wdXQYCyABKAhSDWhhc1Rv'
-    'dGFsSW5wdXQSKgoRdG90YWxfb3V0cHV0X3NhdHMYDCABKANSD3RvdGFsT3V0cHV0U2F0cxIZCg'
-    'hmZWVfc2F0cxgNIAEoA1IHZmVlU2F0cxIXCgdoYXNfZmVlGA4gASgIUgZoYXNGZWUSJQoPZmVl'
-    'X3JhdGVfc2F0X3ZiGA8gASgBUgxmZWVSYXRlU2F0VmISFwoHaXNfcHNidBgQIAEoCFIGaXNQc2'
-    'J0EiMKDXNpZ25lZF9pbnB1dHMYESABKAVSDHNpZ25lZElucHV0cxIQCgNyYXcYEiABKAlSA3Jh'
-    'dxInCg93YXJuaW5nX21lc3NhZ2UYEyABKAlSDndhcm5pbmdNZXNzYWdl');
+final $typed_data.Uint8List decodeTransactionResponseDescriptor =
+    $convert.base64Decode('ChlEZWNvZGVUcmFuc2FjdGlvblJlc3BvbnNlEjEKBGZvcm0YASABKA4yHS53YWxsZXRtYW5hZ2'
+        'VyLnYxLkRlY29kZWRGb3JtUgRmb3JtEhIKBHR4aWQYAiABKAlSBHR4aWQSGAoHdmVyc2lvbhgD'
+        'IAEoBVIHdmVyc2lvbhIaCghsb2NrdGltZRgEIAEoBVIIbG9ja3RpbWUSHQoKc2l6ZV9ieXRlcx'
+        'gFIAEoBVIJc2l6ZUJ5dGVzEiEKDHZzaXplX3ZieXRlcxgGIAEoBVILdnNpemVWYnl0ZXMSGwoJ'
+        'd2VpZ2h0X3d1GAcgASgFUgh3ZWlnaHRXdRI6CgZpbnB1dHMYCCADKAsyIi53YWxsZXRtYW5hZ2'
+        'VyLnYxLlRyYW5zYWN0aW9uSW5wdXRSBmlucHV0cxI9CgdvdXRwdXRzGAkgAygLMiMud2FsbGV0'
+        'bWFuYWdlci52MS5UcmFuc2FjdGlvbk91dHB1dFIHb3V0cHV0cxIoChB0b3RhbF9pbnB1dF9zYX'
+        'RzGAogASgDUg50b3RhbElucHV0U2F0cxImCg9oYXNfdG90YWxfaW5wdXQYCyABKAhSDWhhc1Rv'
+        'dGFsSW5wdXQSKgoRdG90YWxfb3V0cHV0X3NhdHMYDCABKANSD3RvdGFsT3V0cHV0U2F0cxIZCg'
+        'hmZWVfc2F0cxgNIAEoA1IHZmVlU2F0cxIXCgdoYXNfZmVlGA4gASgIUgZoYXNGZWUSJQoPZmVl'
+        'X3JhdGVfc2F0X3ZiGA8gASgBUgxmZWVSYXRlU2F0VmISFwoHaXNfcHNidBgQIAEoCFIGaXNQc2'
+        'J0EiMKDXNpZ25lZF9pbnB1dHMYESABKAVSDHNpZ25lZElucHV0cxIQCgNyYXcYEiABKAlSA3Jh'
+        'dxInCg93YXJuaW5nX21lc3NhZ2UYEyABKAlSDndhcm5pbmdNZXNzYWdl');
 
 @$core.Deprecated('Use bumpFeeRequestDescriptor instead')
 const BumpFeeRequest$json = {
@@ -2405,10 +2458,10 @@ const BumpFeeRequest$json = {
 };
 
 /// Descriptor for `BumpFeeRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List bumpFeeRequestDescriptor = $convert.base64Decode(
-    'Cg5CdW1wRmVlUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEhIKBHR4aWQYAi'
-    'ABKAlSBHR4aWQSIAoMbmV3X2ZlZV9yYXRlGAMgASgDUgpuZXdGZWVSYXRlEicKDWZlZV9mcm9t'
-    'X3ZvdXQYBCABKAVIAFILZmVlRnJvbVZvdXSIAQFCEAoOX2ZlZV9mcm9tX3ZvdXQ=');
+final $typed_data.Uint8List bumpFeeRequestDescriptor =
+    $convert.base64Decode('Cg5CdW1wRmVlUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEhIKBHR4aWQYAi'
+        'ABKAlSBHR4aWQSIAoMbmV3X2ZlZV9yYXRlGAMgASgDUgpuZXdGZWVSYXRlEicKDWZlZV9mcm9t'
+        'X3ZvdXQYBCABKAVIAFILZmVlRnJvbVZvdXSIAQFCEAoOX2ZlZV9mcm9tX3ZvdXQ=');
 
 @$core.Deprecated('Use bumpFeeResponseDescriptor instead')
 const BumpFeeResponse$json = {
@@ -2420,9 +2473,9 @@ const BumpFeeResponse$json = {
 };
 
 /// Descriptor for `BumpFeeResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List bumpFeeResponseDescriptor = $convert.base64Decode(
-    'Cg9CdW1wRmVlUmVzcG9uc2USGQoIbmV3X3R4aWQYASABKAlSB25ld1R4aWQSMQoEcGxhbhgCIA'
-    'EoCzIdLndhbGxldG1hbmFnZXIudjEuQnVtcEZlZVBsYW5SBHBsYW4=');
+final $typed_data.Uint8List bumpFeeResponseDescriptor =
+    $convert.base64Decode('Cg9CdW1wRmVlUmVzcG9uc2USGQoIbmV3X3R4aWQYASABKAlSB25ld1R4aWQSMQoEcGxhbhgCIA'
+        'EoCzIdLndhbGxldG1hbmFnZXIudjEuQnVtcEZlZVBsYW5SBHBsYW4=');
 
 @$core.Deprecated('Use previewBumpFeeRequestDescriptor instead')
 const PreviewBumpFeeRequest$json = {
@@ -2439,10 +2492,10 @@ const PreviewBumpFeeRequest$json = {
 };
 
 /// Descriptor for `PreviewBumpFeeRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List previewBumpFeeRequestDescriptor = $convert.base64Decode(
-    'ChVQcmV2aWV3QnVtcEZlZVJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBISCg'
-    'R0eGlkGAIgASgJUgR0eGlkEiAKDG5ld19mZWVfcmF0ZRgDIAEoA1IKbmV3RmVlUmF0ZRInCg1m'
-    'ZWVfZnJvbV92b3V0GAQgASgFSABSC2ZlZUZyb21Wb3V0iAEBQhAKDl9mZWVfZnJvbV92b3V0');
+final $typed_data.Uint8List previewBumpFeeRequestDescriptor =
+    $convert.base64Decode('ChVQcmV2aWV3QnVtcEZlZVJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBISCg'
+        'R0eGlkGAIgASgJUgR0eGlkEiAKDG5ld19mZWVfcmF0ZRgDIAEoA1IKbmV3RmVlUmF0ZRInCg1m'
+        'ZWVfZnJvbV92b3V0GAQgASgFSABSC2ZlZUZyb21Wb3V0iAEBQhAKDl9mZWVfZnJvbV92b3V0');
 
 @$core.Deprecated('Use previewBumpFeeResponseDescriptor instead')
 const PreviewBumpFeeResponse$json = {
@@ -2465,17 +2518,17 @@ const PreviewBumpFeeResponse$json = {
 };
 
 /// Descriptor for `PreviewBumpFeeResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List previewBumpFeeResponseDescriptor = $convert.base64Decode(
-    'ChZQcmV2aWV3QnVtcEZlZVJlc3BvbnNlEh8KC2lucHV0X2NvdW50GAEgASgFUgppbnB1dENvdW'
-    '50EiEKDHZzaXplX3ZieXRlcxgCIAEoA1ILdnNpemVWYnl0ZXMSIAoMb2xkX2ZlZV9zYXRzGAMg'
-    'ASgDUgpvbGRGZWVTYXRzEiwKE29sZF9mZWVfcmF0ZV9zYXRfdmIYBCABKAFSD29sZEZlZVJhdG'
-    'VTYXRWYhIsChJzdWdnZXN0ZWRfZmVlX3JhdGUYBSABKANSEHN1Z2dlc3RlZEZlZVJhdGUSOQoH'
-    'b3V0cHV0cxgGIAMoCzIfLndhbGxldG1hbmFnZXIudjEuQnVtcEZlZU91dHB1dFIHb3V0cHV0cx'
-    'IxCgRwbGFuGAcgASgLMh0ud2FsbGV0bWFuYWdlci52MS5CdW1wRmVlUGxhblIEcGxhbhIWCgZy'
-    'ZWFzb24YCCABKAlSBnJlYXNvbhIfCgtjYW5fcmVwbGFjZRgJIAEoCFIKY2FuUmVwbGFjZRIbCg'
-    'loYXNfY2hpbGQYCiABKAhSCGhhc0NoaWxkEh8KC2FkZHNfaW5wdXRzGAsgASgIUgphZGRzSW5w'
-    'dXRzEjQKBmNhbmNlbBgMIAEoCzIcLndhbGxldG1hbmFnZXIudjEuQ2FuY2VsUGxhblIGY2FuY2'
-    'VsEiMKDWNhbmNlbF9yZWFzb24YDSABKAlSDGNhbmNlbFJlYXNvbg==');
+final $typed_data.Uint8List previewBumpFeeResponseDescriptor =
+    $convert.base64Decode('ChZQcmV2aWV3QnVtcEZlZVJlc3BvbnNlEh8KC2lucHV0X2NvdW50GAEgASgFUgppbnB1dENvdW'
+        '50EiEKDHZzaXplX3ZieXRlcxgCIAEoA1ILdnNpemVWYnl0ZXMSIAoMb2xkX2ZlZV9zYXRzGAMg'
+        'ASgDUgpvbGRGZWVTYXRzEiwKE29sZF9mZWVfcmF0ZV9zYXRfdmIYBCABKAFSD29sZEZlZVJhdG'
+        'VTYXRWYhIsChJzdWdnZXN0ZWRfZmVlX3JhdGUYBSABKANSEHN1Z2dlc3RlZEZlZVJhdGUSOQoH'
+        'b3V0cHV0cxgGIAMoCzIfLndhbGxldG1hbmFnZXIudjEuQnVtcEZlZU91dHB1dFIHb3V0cHV0cx'
+        'IxCgRwbGFuGAcgASgLMh0ud2FsbGV0bWFuYWdlci52MS5CdW1wRmVlUGxhblIEcGxhbhIWCgZy'
+        'ZWFzb24YCCABKAlSBnJlYXNvbhIfCgtjYW5fcmVwbGFjZRgJIAEoCFIKY2FuUmVwbGFjZRIbCg'
+        'loYXNfY2hpbGQYCiABKAhSCGhhc0NoaWxkEh8KC2FkZHNfaW5wdXRzGAsgASgIUgphZGRzSW5w'
+        'dXRzEjQKBmNhbmNlbBgMIAEoCzIcLndhbGxldG1hbmFnZXIudjEuQ2FuY2VsUGxhblIGY2FuY2'
+        'VsEiMKDWNhbmNlbF9yZWFzb24YDSABKAlSDGNhbmNlbFJlYXNvbg==');
 
 @$core.Deprecated('Use cancelPlanDescriptor instead')
 const CancelPlan$json = {
@@ -2487,9 +2540,9 @@ const CancelPlan$json = {
 };
 
 /// Descriptor for `CancelPlan`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List cancelPlanDescriptor = $convert.base64Decode(
-    'CgpDYW5jZWxQbGFuEiUKDnJlY292ZXJlZF9zYXRzGAEgASgDUg1yZWNvdmVyZWRTYXRzEhkKCG'
-    'ZlZV9zYXRzGAIgASgDUgdmZWVTYXRz');
+final $typed_data.Uint8List cancelPlanDescriptor =
+    $convert.base64Decode('CgpDYW5jZWxQbGFuEiUKDnJlY292ZXJlZF9zYXRzGAEgASgDUg1yZWNvdmVyZWRTYXRzEhkKCG'
+        'ZlZV9zYXRzGAIgASgDUgdmZWVTYXRz');
 
 @$core.Deprecated('Use bumpFeeOutputDescriptor instead')
 const BumpFeeOutput$json = {
@@ -2505,11 +2558,11 @@ const BumpFeeOutput$json = {
 };
 
 /// Descriptor for `BumpFeeOutput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List bumpFeeOutputDescriptor = $convert.base64Decode(
-    'Cg1CdW1wRmVlT3V0cHV0EhIKBHZvdXQYASABKAVSBHZvdXQSHwoLYW1vdW50X3NhdHMYAiABKA'
-    'NSCmFtb3VudFNhdHMSGAoHYWRkcmVzcxgDIAEoCVIHYWRkcmVzcxIbCglpc19jaGFuZ2UYBCAB'
-    'KAhSCGlzQ2hhbmdlEhsKCWR1c3Rfc2F0cxgFIAEoA1IIZHVzdFNhdHMSFwoHaXNfbWluZRgGIA'
-    'EoCFIGaXNNaW5l');
+final $typed_data.Uint8List bumpFeeOutputDescriptor =
+    $convert.base64Decode('Cg1CdW1wRmVlT3V0cHV0EhIKBHZvdXQYASABKAVSBHZvdXQSHwoLYW1vdW50X3NhdHMYAiABKA'
+        'NSCmFtb3VudFNhdHMSGAoHYWRkcmVzcxgDIAEoCVIHYWRkcmVzcxIbCglpc19jaGFuZ2UYBCAB'
+        'KAhSCGlzQ2hhbmdlEhsKCWR1c3Rfc2F0cxgFIAEoA1IIZHVzdFNhdHMSFwoHaXNfbWluZRgGIA'
+        'EoCFIGaXNNaW5l');
 
 @$core.Deprecated('Use bumpFeePlanDescriptor instead')
 const BumpFeePlan$json = {
@@ -2528,14 +2581,14 @@ const BumpFeePlan$json = {
 };
 
 /// Descriptor for `BumpFeePlan`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List bumpFeePlanDescriptor = $convert.base64Decode(
-    'CgtCdW1wRmVlUGxhbhIgCgxvbGRfZmVlX3NhdHMYASABKANSCm9sZEZlZVNhdHMSIAoMbmV3X2'
-    'ZlZV9zYXRzGAIgASgDUgpuZXdGZWVTYXRzEiQKDmV4dHJhX2ZlZV9zYXRzGAMgASgDUgxleHRy'
-    'YUZlZVNhdHMSLAoTbmV3X2ZlZV9yYXRlX3NhdF92YhgEIAEoAVIPbmV3RmVlUmF0ZVNhdFZiEi'
-    'IKDWZlZV9mcm9tX3ZvdXQYBSABKAVSC2ZlZUZyb21Wb3V0EiwKEmFtb3VudF9iZWZvcmVfc2F0'
-    'cxgGIAEoA1IQYW1vdW50QmVmb3JlU2F0cxIqChFhbW91bnRfYWZ0ZXJfc2F0cxgHIAEoA1IPYW'
-    '1vdW50QWZ0ZXJTYXRzEiUKDm91dHB1dF9yZW1vdmVkGAggASgIUg1vdXRwdXRSZW1vdmVkEicK'
-    'D3JlZHVjZXNfcGF5bWVudBgJIAEoCFIOcmVkdWNlc1BheW1lbnQ=');
+final $typed_data.Uint8List bumpFeePlanDescriptor =
+    $convert.base64Decode('CgtCdW1wRmVlUGxhbhIgCgxvbGRfZmVlX3NhdHMYASABKANSCm9sZEZlZVNhdHMSIAoMbmV3X2'
+        'ZlZV9zYXRzGAIgASgDUgpuZXdGZWVTYXRzEiQKDmV4dHJhX2ZlZV9zYXRzGAMgASgDUgxleHRy'
+        'YUZlZVNhdHMSLAoTbmV3X2ZlZV9yYXRlX3NhdF92YhgEIAEoAVIPbmV3RmVlUmF0ZVNhdFZiEi'
+        'IKDWZlZV9mcm9tX3ZvdXQYBSABKAVSC2ZlZUZyb21Wb3V0EiwKEmFtb3VudF9iZWZvcmVfc2F0'
+        'cxgGIAEoA1IQYW1vdW50QmVmb3JlU2F0cxIqChFhbW91bnRfYWZ0ZXJfc2F0cxgHIAEoA1IPYW'
+        '1vdW50QWZ0ZXJTYXRzEiUKDm91dHB1dF9yZW1vdmVkGAggASgIUg1vdXRwdXRSZW1vdmVkEicK'
+        'D3JlZHVjZXNfcGF5bWVudBgJIAEoCFIOcmVkdWNlc1BheW1lbnQ=');
 
 @$core.Deprecated('Use cancelTransactionRequestDescriptor instead')
 const CancelTransactionRequest$json = {
@@ -2548,9 +2601,9 @@ const CancelTransactionRequest$json = {
 };
 
 /// Descriptor for `CancelTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List cancelTransactionRequestDescriptor = $convert.base64Decode(
-    'ChhDYW5jZWxUcmFuc2FjdGlvblJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZB'
-    'ISCgR0eGlkGAIgASgJUgR0eGlkEiAKDG1heF9mZWVfc2F0cxgDIAEoA1IKbWF4RmVlU2F0cw==');
+final $typed_data.Uint8List cancelTransactionRequestDescriptor =
+    $convert.base64Decode('ChhDYW5jZWxUcmFuc2FjdGlvblJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZB'
+        'ISCgR0eGlkGAIgASgJUgR0eGlkEiAKDG1heF9mZWVfc2F0cxgDIAEoA1IKbWF4RmVlU2F0cw==');
 
 @$core.Deprecated('Use cancelTransactionResponseDescriptor instead')
 const CancelTransactionResponse$json = {
@@ -2563,10 +2616,10 @@ const CancelTransactionResponse$json = {
 };
 
 /// Descriptor for `CancelTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List cancelTransactionResponseDescriptor = $convert.base64Decode(
-    'ChlDYW5jZWxUcmFuc2FjdGlvblJlc3BvbnNlEikKEHJlcGxhY2VtZW50X3R4aWQYASABKAlSD3'
-    'JlcGxhY2VtZW50VHhpZBIlCg5yZWNvdmVyZWRfc2F0cxgCIAEoA1INcmVjb3ZlcmVkU2F0cxIZ'
-    'CghmZWVfc2F0cxgDIAEoA1IHZmVlU2F0cw==');
+final $typed_data.Uint8List cancelTransactionResponseDescriptor =
+    $convert.base64Decode('ChlDYW5jZWxUcmFuc2FjdGlvblJlc3BvbnNlEikKEHJlcGxhY2VtZW50X3R4aWQYASABKAlSD3'
+        'JlcGxhY2VtZW50VHhpZBIlCg5yZWNvdmVyZWRfc2F0cxgCIAEoA1INcmVjb3ZlcmVkU2F0cxIZ'
+        'CghmZWVfc2F0cxgDIAEoA1IHZmVlU2F0cw==');
 
 @$core.Deprecated('Use createCpfpRequestDescriptor instead')
 const CreateCpfpRequest$json = {
@@ -2580,10 +2633,10 @@ const CreateCpfpRequest$json = {
 };
 
 /// Descriptor for `CreateCpfpRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createCpfpRequestDescriptor = $convert.base64Decode(
-    'ChFDcmVhdGVDcGZwUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEh8KC3Bhcm'
-    'VudF90eGlkGAIgASgJUgpwYXJlbnRUeGlkEh8KC3BhcmVudF92b3V0GAMgASgFUgpwYXJlbnRW'
-    'b3V0EiYKD3RhcmdldF9mZWVfcmF0ZRgEIAEoA1INdGFyZ2V0RmVlUmF0ZQ==');
+final $typed_data.Uint8List createCpfpRequestDescriptor =
+    $convert.base64Decode('ChFDcmVhdGVDcGZwUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEh8KC3Bhcm'
+        'VudF90eGlkGAIgASgJUgpwYXJlbnRUeGlkEh8KC3BhcmVudF92b3V0GAMgASgFUgpwYXJlbnRW'
+        'b3V0EiYKD3RhcmdldF9mZWVfcmF0ZRgEIAEoA1INdGFyZ2V0RmVlUmF0ZQ==');
 
 @$core.Deprecated('Use createCpfpResponseDescriptor instead')
 const CreateCpfpResponse$json = {
@@ -2594,8 +2647,8 @@ const CreateCpfpResponse$json = {
 };
 
 /// Descriptor for `CreateCpfpResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createCpfpResponseDescriptor = $convert.base64Decode(
-    'ChJDcmVhdGVDcGZwUmVzcG9uc2USHQoKY2hpbGRfdHhpZBgBIAEoCVIJY2hpbGRUeGlk');
+final $typed_data.Uint8List createCpfpResponseDescriptor =
+    $convert.base64Decode('ChJDcmVhdGVDcGZwUmVzcG9uc2USHQoKY2hpbGRfdHhpZBgBIAEoCVIJY2hpbGRUeGlk');
 
 @$core.Deprecated('Use deriveAddressesRequestDescriptor instead')
 const DeriveAddressesRequest$json = {
@@ -2608,9 +2661,9 @@ const DeriveAddressesRequest$json = {
 };
 
 /// Descriptor for `DeriveAddressesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deriveAddressesRequestDescriptor = $convert.base64Decode(
-    'ChZEZXJpdmVBZGRyZXNzZXNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSHw'
-    'oLc3RhcnRfaW5kZXgYAiABKAVSCnN0YXJ0SW5kZXgSFAoFY291bnQYAyABKAVSBWNvdW50');
+final $typed_data.Uint8List deriveAddressesRequestDescriptor =
+    $convert.base64Decode('ChZEZXJpdmVBZGRyZXNzZXNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSHw'
+        'oLc3RhcnRfaW5kZXgYAiABKAVSCnN0YXJ0SW5kZXgSFAoFY291bnQYAyABKAVSBWNvdW50');
 
 @$core.Deprecated('Use deriveAddressesResponseDescriptor instead')
 const DeriveAddressesResponse$json = {
@@ -2621,9 +2674,9 @@ const DeriveAddressesResponse$json = {
 };
 
 /// Descriptor for `DeriveAddressesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deriveAddressesResponseDescriptor = $convert.base64Decode(
-    'ChdEZXJpdmVBZGRyZXNzZXNSZXNwb25zZRIcCglhZGRyZXNzZXMYASADKAlSCWFkZHJlc3Nlcw'
-    '==');
+final $typed_data.Uint8List deriveAddressesResponseDescriptor =
+    $convert.base64Decode('ChdEZXJpdmVBZGRyZXNzZXNSZXNwb25zZRIcCglhZGRyZXNzZXMYASADKAlSCWFkZHJlc3Nlcw'
+        '==');
 
 @$core.Deprecated('Use listEcxBurnsRequestDescriptor instead')
 const ListEcxBurnsRequest$json = {
@@ -2636,10 +2689,10 @@ const ListEcxBurnsRequest$json = {
 };
 
 /// Descriptor for `ListEcxBurnsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listEcxBurnsRequestDescriptor = $convert.base64Decode(
-    'ChNMaXN0RWN4QnVybnNSZXF1ZXN0Eh0KCm5ldHdvcmtfaWQYASABKAlSCW5ldHdvcmtJZBIZCg'
-    'hjb3JlX3VybBgCIAEoCVIHY29yZVVybBIoChBjb3JlX2Nvb2tpZV9wYXRoGAMgASgJUg5jb3Jl'
-    'Q29va2llUGF0aA==');
+final $typed_data.Uint8List listEcxBurnsRequestDescriptor =
+    $convert.base64Decode('ChNMaXN0RWN4QnVybnNSZXF1ZXN0Eh0KCm5ldHdvcmtfaWQYASABKAlSCW5ldHdvcmtJZBIZCg'
+        'hjb3JlX3VybBgCIAEoCVIHY29yZVVybBIoChBjb3JlX2Nvb2tpZV9wYXRoGAMgASgJUg5jb3Jl'
+        'Q29va2llUGF0aA==');
 
 @$core.Deprecated('Use ecxBurnDescriptor instead')
 const EcxBurn$json = {
@@ -2654,10 +2707,10 @@ const EcxBurn$json = {
 };
 
 /// Descriptor for `EcxBurn`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List ecxBurnDescriptor = $convert.base64Decode(
-    'CgdFY3hCdXJuEhIKBHR4aWQYASABKAlSBHR4aWQSFgoGaGVpZ2h0GAIgASgDUgZoZWlnaHQSGw'
-    'oJYnVybl9zYXRzGAMgASgDUghidXJuU2F0cxIlCg5wYXlvdXRfYWRkcmVzcxgEIAEoCVINcGF5'
-    'b3V0QWRkcmVzcxIfCgtwYXlvdXRfc2F0cxgFIAEoA1IKcGF5b3V0U2F0cw==');
+final $typed_data.Uint8List ecxBurnDescriptor =
+    $convert.base64Decode('CgdFY3hCdXJuEhIKBHR4aWQYASABKAlSBHR4aWQSFgoGaGVpZ2h0GAIgASgDUgZoZWlnaHQSGw'
+        'oJYnVybl9zYXRzGAMgASgDUghidXJuU2F0cxIlCg5wYXlvdXRfYWRkcmVzcxgEIAEoCVINcGF5'
+        'b3V0QWRkcmVzcxIfCgtwYXlvdXRfc2F0cxgFIAEoA1IKcGF5b3V0U2F0cw==');
 
 @$core.Deprecated('Use listEcxBurnsResponseDescriptor instead')
 const ListEcxBurnsResponse$json = {
@@ -2672,12 +2725,12 @@ const ListEcxBurnsResponse$json = {
 };
 
 /// Descriptor for `ListEcxBurnsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listEcxBurnsResponseDescriptor = $convert.base64Decode(
-    'ChRMaXN0RWN4QnVybnNSZXNwb25zZRIvCgVidXJucxgBIAMoCzIZLndhbGxldG1hbmFnZXIudj'
-    'EuRWN4QnVyblIFYnVybnMSJgoPdG90YWxfYnVybl9zYXRzGAIgASgDUg10b3RhbEJ1cm5TYXRz'
-    'EioKEXRvdGFsX3BheW91dF9zYXRzGAMgASgDUg90b3RhbFBheW91dFNhdHMSMAoUcGF5b3V0X2'
-    'FkZHJlc3NfY291bnQYBCABKANSEnBheW91dEFkZHJlc3NDb3VudBIQCgNjc3YYBSABKAlSA2Nz'
-    'dg==');
+final $typed_data.Uint8List listEcxBurnsResponseDescriptor =
+    $convert.base64Decode('ChRMaXN0RWN4QnVybnNSZXNwb25zZRIvCgVidXJucxgBIAMoCzIZLndhbGxldG1hbmFnZXIudj'
+        'EuRWN4QnVyblIFYnVybnMSJgoPdG90YWxfYnVybl9zYXRzGAIgASgDUg10b3RhbEJ1cm5TYXRz'
+        'EioKEXRvdGFsX3BheW91dF9zYXRzGAMgASgDUg90b3RhbFBheW91dFNhdHMSMAoUcGF5b3V0X2'
+        'FkZHJlc3NfY291bnQYBCABKANSEnBheW91dEFkZHJlc3NDb3VudBIQCgNjc3YYBSABKAlSA2Nz'
+        'dg==');
 
 @$core.Deprecated('Use previewWalletFromEntropyRequestDescriptor instead')
 const PreviewWalletFromEntropyRequest$json = {
@@ -2692,11 +2745,11 @@ const PreviewWalletFromEntropyRequest$json = {
 };
 
 /// Descriptor for `PreviewWalletFromEntropyRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List previewWalletFromEntropyRequestDescriptor = $convert.base64Decode(
-    'Ch9QcmV2aWV3V2FsbGV0RnJvbUVudHJvcHlSZXF1ZXN0EhgKB2VudHJvcHkYASABKAxSB2VudH'
-    'JvcHkSHwoLc291cmNlX3RleHQYAiABKAlSCnNvdXJjZVRleHQSHQoKd29yZF9jb3VudBgDIAEo'
-    'DVIJd29yZENvdW50Eh4KCnBhc3NwaHJhc2UYBCABKAlSCnBhc3NwaHJhc2USIwoNZXh0cmFfZW'
-    '50cm9weRgFIAEoDFIMZXh0cmFFbnRyb3B5');
+final $typed_data.Uint8List previewWalletFromEntropyRequestDescriptor =
+    $convert.base64Decode('Ch9QcmV2aWV3V2FsbGV0RnJvbUVudHJvcHlSZXF1ZXN0EhgKB2VudHJvcHkYASABKAxSB2VudH'
+        'JvcHkSHwoLc291cmNlX3RleHQYAiABKAlSCnNvdXJjZVRleHQSHQoKd29yZF9jb3VudBgDIAEo'
+        'DVIJd29yZENvdW50Eh4KCnBhc3NwaHJhc2UYBCABKAlSCnBhc3NwaHJhc2USIwoNZXh0cmFfZW'
+        '50cm9weRgFIAEoDFIMZXh0cmFFbnRyb3B5');
 
 @$core.Deprecated('Use previewWalletFromEntropyResponseDescriptor instead')
 const PreviewWalletFromEntropyResponse$json = {
@@ -2714,13 +2767,13 @@ const PreviewWalletFromEntropyResponse$json = {
 };
 
 /// Descriptor for `PreviewWalletFromEntropyResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List previewWalletFromEntropyResponseDescriptor = $convert.base64Decode(
-    'CiBQcmV2aWV3V2FsbGV0RnJvbUVudHJvcHlSZXNwb25zZRIfCgtlbnRyb3B5X2hleBgIIAEoCV'
-    'IKZW50cm9weUhleBIaCghtbmVtb25pYxgBIAEoCVIIbW5lbW9uaWMSGQoIc2VlZF9oZXgYAiAB'
-    'KAlSB3NlZWRIZXgSHQoKbWFzdGVyX2tleRgDIAEoCVIJbWFzdGVyS2V5Eh0KCmNoYWluX2NvZG'
-    'UYBCABKAlSCWNoYWluQ29kZRIhCgxiaXAzOV9iaW5hcnkYBSABKAlSC2JpcDM5QmluYXJ5EiUK'
-    'DmJpcDM5X2NoZWNrc3VtGAYgASgJUg1iaXAzOUNoZWNrc3VtEiwKEmJpcDM5X2NoZWNrc3VtX2'
-    'hleBgHIAEoCVIQYmlwMzlDaGVja3N1bUhleA==');
+final $typed_data.Uint8List previewWalletFromEntropyResponseDescriptor =
+    $convert.base64Decode('CiBQcmV2aWV3V2FsbGV0RnJvbUVudHJvcHlSZXNwb25zZRIfCgtlbnRyb3B5X2hleBgIIAEoCV'
+        'IKZW50cm9weUhleBIaCghtbmVtb25pYxgBIAEoCVIIbW5lbW9uaWMSGQoIc2VlZF9oZXgYAiAB'
+        'KAlSB3NlZWRIZXgSHQoKbWFzdGVyX2tleRgDIAEoCVIJbWFzdGVyS2V5Eh0KCmNoYWluX2NvZG'
+        'UYBCABKAlSCWNoYWluQ29kZRIhCgxiaXAzOV9iaW5hcnkYBSABKAlSC2JpcDM5QmluYXJ5EiUK'
+        'DmJpcDM5X2NoZWNrc3VtGAYgASgJUg1iaXAzOUNoZWNrc3VtEiwKEmJpcDM5X2NoZWNrc3VtX2'
+        'hleBgHIAEoCVIQYmlwMzlDaGVja3N1bUhleA==');
 
 @$core.Deprecated('Use getWalletSeedRequestDescriptor instead')
 const GetWalletSeedRequest$json = {
@@ -2731,8 +2784,8 @@ const GetWalletSeedRequest$json = {
 };
 
 /// Descriptor for `GetWalletSeedRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getWalletSeedRequestDescriptor = $convert.base64Decode(
-    'ChRHZXRXYWxsZXRTZWVkUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+final $typed_data.Uint8List getWalletSeedRequestDescriptor =
+    $convert.base64Decode('ChRHZXRXYWxsZXRTZWVkUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
 
 @$core.Deprecated('Use getWalletSeedResponseDescriptor instead')
 const GetWalletSeedResponse$json = {
@@ -2744,9 +2797,9 @@ const GetWalletSeedResponse$json = {
 };
 
 /// Descriptor for `GetWalletSeedResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getWalletSeedResponseDescriptor = $convert.base64Decode(
-    'ChVHZXRXYWxsZXRTZWVkUmVzcG9uc2USGQoIc2VlZF9oZXgYASABKAlSB3NlZWRIZXgSGgoIbW'
-    '5lbW9uaWMYAiABKAlSCG1uZW1vbmlj');
+final $typed_data.Uint8List getWalletSeedResponseDescriptor =
+    $convert.base64Decode('ChVHZXRXYWxsZXRTZWVkUmVzcG9uc2USGQoIc2VlZF9oZXgYASABKAlSB3NlZWRIZXgSGgoIbW'
+        '5lbW9uaWMYAiABKAlSCG1uZW1vbmlj');
 
 @$core.Deprecated('Use listCoreVariantsRequestDescriptor instead')
 const ListCoreVariantsRequest$json = {
@@ -2754,8 +2807,8 @@ const ListCoreVariantsRequest$json = {
 };
 
 /// Descriptor for `ListCoreVariantsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listCoreVariantsRequestDescriptor = $convert.base64Decode(
-    'ChdMaXN0Q29yZVZhcmlhbnRzUmVxdWVzdA==');
+final $typed_data.Uint8List listCoreVariantsRequestDescriptor =
+    $convert.base64Decode('ChdMaXN0Q29yZVZhcmlhbnRzUmVxdWVzdA==');
 
 @$core.Deprecated('Use coreVariantDescriptor instead')
 const CoreVariant$json = {
@@ -2768,9 +2821,9 @@ const CoreVariant$json = {
 };
 
 /// Descriptor for `CoreVariant`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List coreVariantDescriptor = $convert.base64Decode(
-    'CgtDb3JlVmFyaWFudBIOCgJpZBgBIAEoCVICaWQSIQoMZGlzcGxheV9uYW1lGAIgASgJUgtkaX'
-    'NwbGF5TmFtZRIcCglpbnN0YWxsZWQYAyABKAhSCWluc3RhbGxlZA==');
+final $typed_data.Uint8List coreVariantDescriptor =
+    $convert.base64Decode('CgtDb3JlVmFyaWFudBIOCgJpZBgBIAEoCVICaWQSIQoMZGlzcGxheV9uYW1lGAIgASgJUgtkaX'
+        'NwbGF5TmFtZRIcCglpbnN0YWxsZWQYAyABKAhSCWluc3RhbGxlZA==');
 
 @$core.Deprecated('Use listCoreVariantsResponseDescriptor instead')
 const ListCoreVariantsResponse$json = {
@@ -2782,10 +2835,10 @@ const ListCoreVariantsResponse$json = {
 };
 
 /// Descriptor for `ListCoreVariantsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listCoreVariantsResponseDescriptor = $convert.base64Decode(
-    'ChhMaXN0Q29yZVZhcmlhbnRzUmVzcG9uc2USOQoIdmFyaWFudHMYASADKAsyHS53YWxsZXRtYW'
-    '5hZ2VyLnYxLkNvcmVWYXJpYW50Ugh2YXJpYW50cxIbCglhY3RpdmVfaWQYAiABKAlSCGFjdGl2'
-    'ZUlk');
+final $typed_data.Uint8List listCoreVariantsResponseDescriptor =
+    $convert.base64Decode('ChhMaXN0Q29yZVZhcmlhbnRzUmVzcG9uc2USOQoIdmFyaWFudHMYASADKAsyHS53YWxsZXRtYW'
+        '5hZ2VyLnYxLkNvcmVWYXJpYW50Ugh2YXJpYW50cxIbCglhY3RpdmVfaWQYAiABKAlSCGFjdGl2'
+        'ZUlk');
 
 @$core.Deprecated('Use getCoreVariantRequestDescriptor instead')
 const GetCoreVariantRequest$json = {
@@ -2793,8 +2846,7 @@ const GetCoreVariantRequest$json = {
 };
 
 /// Descriptor for `GetCoreVariantRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getCoreVariantRequestDescriptor = $convert.base64Decode(
-    'ChVHZXRDb3JlVmFyaWFudFJlcXVlc3Q=');
+final $typed_data.Uint8List getCoreVariantRequestDescriptor = $convert.base64Decode('ChVHZXRDb3JlVmFyaWFudFJlcXVlc3Q=');
 
 @$core.Deprecated('Use getCoreVariantResponseDescriptor instead')
 const GetCoreVariantResponse$json = {
@@ -2805,8 +2857,8 @@ const GetCoreVariantResponse$json = {
 };
 
 /// Descriptor for `GetCoreVariantResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getCoreVariantResponseDescriptor = $convert.base64Decode(
-    'ChZHZXRDb3JlVmFyaWFudFJlc3BvbnNlEg4KAmlkGAEgASgJUgJpZA==');
+final $typed_data.Uint8List getCoreVariantResponseDescriptor =
+    $convert.base64Decode('ChZHZXRDb3JlVmFyaWFudFJlc3BvbnNlEg4KAmlkGAEgASgJUgJpZA==');
 
 @$core.Deprecated('Use setCoreVariantRequestDescriptor instead')
 const SetCoreVariantRequest$json = {
@@ -2817,8 +2869,8 @@ const SetCoreVariantRequest$json = {
 };
 
 /// Descriptor for `SetCoreVariantRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setCoreVariantRequestDescriptor = $convert.base64Decode(
-    'ChVTZXRDb3JlVmFyaWFudFJlcXVlc3QSDgoCaWQYASABKAlSAmlk');
+final $typed_data.Uint8List setCoreVariantRequestDescriptor =
+    $convert.base64Decode('ChVTZXRDb3JlVmFyaWFudFJlcXVlc3QSDgoCaWQYASABKAlSAmlk');
 
 @$core.Deprecated('Use setCoreVariantResponseDescriptor instead')
 const SetCoreVariantResponse$json = {
@@ -2826,8 +2878,8 @@ const SetCoreVariantResponse$json = {
 };
 
 /// Descriptor for `SetCoreVariantResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setCoreVariantResponseDescriptor = $convert.base64Decode(
-    'ChZTZXRDb3JlVmFyaWFudFJlc3BvbnNl');
+final $typed_data.Uint8List setCoreVariantResponseDescriptor =
+    $convert.base64Decode('ChZTZXRDb3JlVmFyaWFudFJlc3BvbnNl');
 
 @$core.Deprecated('Use getElectrumServerRequestDescriptor instead')
 const GetElectrumServerRequest$json = {
@@ -2835,8 +2887,8 @@ const GetElectrumServerRequest$json = {
 };
 
 /// Descriptor for `GetElectrumServerRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getElectrumServerRequestDescriptor = $convert.base64Decode(
-    'ChhHZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3Q=');
+final $typed_data.Uint8List getElectrumServerRequestDescriptor =
+    $convert.base64Decode('ChhHZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3Q=');
 
 @$core.Deprecated('Use getElectrumServerResponseDescriptor instead')
 const GetElectrumServerResponse$json = {
@@ -2849,9 +2901,9 @@ const GetElectrumServerResponse$json = {
 };
 
 /// Descriptor for `GetElectrumServerResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getElectrumServerResponseDescriptor = $convert.base64Decode(
-    'ChlHZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEhAKA3VybBgBIAEoCVIDdXJsEh8KC2lzX292ZX'
-    'JyaWRlGAIgASgIUgppc092ZXJyaWRlEh8KC2RlZmF1bHRfdXJsGAMgASgJUgpkZWZhdWx0VXJs');
+final $typed_data.Uint8List getElectrumServerResponseDescriptor =
+    $convert.base64Decode('ChlHZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEhAKA3VybBgBIAEoCVIDdXJsEh8KC2lzX292ZX'
+        'JyaWRlGAIgASgIUgppc092ZXJyaWRlEh8KC2RlZmF1bHRfdXJsGAMgASgJUgpkZWZhdWx0VXJs');
 
 @$core.Deprecated('Use setElectrumServerRequestDescriptor instead')
 const SetElectrumServerRequest$json = {
@@ -2862,8 +2914,8 @@ const SetElectrumServerRequest$json = {
 };
 
 /// Descriptor for `SetElectrumServerRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setElectrumServerRequestDescriptor = $convert.base64Decode(
-    'ChhTZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3QSEAoDdXJsGAEgASgJUgN1cmw=');
+final $typed_data.Uint8List setElectrumServerRequestDescriptor =
+    $convert.base64Decode('ChhTZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3QSEAoDdXJsGAEgASgJUgN1cmw=');
 
 @$core.Deprecated('Use setElectrumServerResponseDescriptor instead')
 const SetElectrumServerResponse$json = {
@@ -2875,9 +2927,9 @@ const SetElectrumServerResponse$json = {
 };
 
 /// Descriptor for `SetElectrumServerResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setElectrumServerResponseDescriptor = $convert.base64Decode(
-    'ChlTZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEhAKA3VybBgBIAEoCVIDdXJsEh0KCnRpcF9oZW'
-    'lnaHQYAiABKANSCXRpcEhlaWdodA==');
+final $typed_data.Uint8List setElectrumServerResponseDescriptor =
+    $convert.base64Decode('ChlTZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEhAKA3VybBgBIAEoCVIDdXJsEh0KCnRpcF9oZW'
+        'lnaHQYAiABKANSCXRpcEhlaWdodA==');
 
 @$core.Deprecated('Use getTorConfigRequestDescriptor instead')
 const GetTorConfigRequest$json = {
@@ -2885,8 +2937,7 @@ const GetTorConfigRequest$json = {
 };
 
 /// Descriptor for `GetTorConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getTorConfigRequestDescriptor = $convert.base64Decode(
-    'ChNHZXRUb3JDb25maWdSZXF1ZXN0');
+final $typed_data.Uint8List getTorConfigRequestDescriptor = $convert.base64Decode('ChNHZXRUb3JDb25maWdSZXF1ZXN0');
 
 @$core.Deprecated('Use getTorConfigResponseDescriptor instead')
 const GetTorConfigResponse$json = {
@@ -2899,9 +2950,9 @@ const GetTorConfigResponse$json = {
 };
 
 /// Descriptor for `GetTorConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getTorConfigResponseDescriptor = $convert.base64Decode(
-    'ChRHZXRUb3JDb25maWdSZXNwb25zZRIYCgdlbmFibGVkGAEgASgIUgdlbmFibGVkEhQKBXByb3'
-    'h5GAIgASgJUgVwcm94eRIjCg1kZWZhdWx0X3Byb3h5GAMgASgJUgxkZWZhdWx0UHJveHk=');
+final $typed_data.Uint8List getTorConfigResponseDescriptor =
+    $convert.base64Decode('ChRHZXRUb3JDb25maWdSZXNwb25zZRIYCgdlbmFibGVkGAEgASgIUgdlbmFibGVkEhQKBXByb3'
+        'h5GAIgASgJUgVwcm94eRIjCg1kZWZhdWx0X3Byb3h5GAMgASgJUgxkZWZhdWx0UHJveHk=');
 
 @$core.Deprecated('Use setTorConfigRequestDescriptor instead')
 const SetTorConfigRequest$json = {
@@ -2913,9 +2964,9 @@ const SetTorConfigRequest$json = {
 };
 
 /// Descriptor for `SetTorConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setTorConfigRequestDescriptor = $convert.base64Decode(
-    'ChNTZXRUb3JDb25maWdSZXF1ZXN0EhgKB2VuYWJsZWQYASABKAhSB2VuYWJsZWQSFAoFcHJveH'
-    'kYAiABKAlSBXByb3h5');
+final $typed_data.Uint8List setTorConfigRequestDescriptor =
+    $convert.base64Decode('ChNTZXRUb3JDb25maWdSZXF1ZXN0EhgKB2VuYWJsZWQYASABKAhSB2VuYWJsZWQSFAoFcHJveH'
+        'kYAiABKAlSBXByb3h5');
 
 @$core.Deprecated('Use setTorConfigResponseDescriptor instead')
 const SetTorConfigResponse$json = {
@@ -2928,9 +2979,9 @@ const SetTorConfigResponse$json = {
 };
 
 /// Descriptor for `SetTorConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setTorConfigResponseDescriptor = $convert.base64Decode(
-    'ChRTZXRUb3JDb25maWdSZXNwb25zZRIYCgdlbmFibGVkGAEgASgIUgdlbmFibGVkEhQKBXByb3'
-    'h5GAIgASgJUgVwcm94eRIdCgp0aXBfaGVpZ2h0GAMgASgDUgl0aXBIZWlnaHQ=');
+final $typed_data.Uint8List setTorConfigResponseDescriptor =
+    $convert.base64Decode('ChRTZXRUb3JDb25maWdSZXNwb25zZRIYCgdlbmFibGVkGAEgASgIUgdlbmFibGVkEhQKBXByb3'
+        'h5GAIgASgJUgVwcm94eRIdCgp0aXBfaGVpZ2h0GAMgASgDUgl0aXBIZWlnaHQ=');
 
 @$core.Deprecated('Use watchWalletDataResponseDescriptor instead')
 const WatchWalletDataResponse$json = {
@@ -2964,15 +3015,15 @@ const WatchWalletDataResponse$json = {
 };
 
 /// Descriptor for `WatchWalletDataResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List watchWalletDataResponseDescriptor = $convert.base64Decode(
-    'ChdXYXRjaFdhbGxldERhdGFSZXNwb25zZRIhCgpoYXNfd2FsbGV0GAEgASgIQgIYAVIJaGFzV2'
-    'FsbGV0EhwKCWVuY3J5cHRlZBgCIAEoCFIJZW5jcnlwdGVkEh4KCHVubG9ja2VkGAMgASgIQgIY'
-    'AVIIdW5sb2NrZWQSKAoQYWN0aXZlX3dhbGxldF9pZBgEIAEoCVIOYWN0aXZlV2FsbGV0SWQSOg'
-    'oHd2FsbGV0cxgFIAMoCzIgLndhbGxldG1hbmFnZXIudjEuV2FsbGV0TWV0YWRhdGFSB3dhbGxl'
-    'dHMSJQoOY29uZmlybWVkX3NhdHMYBiABKAFSDWNvbmZpcm1lZFNhdHMSKQoQdW5jb25maXJtZW'
-    'Rfc2F0cxgHIAEoAVIPdW5jb25maXJtZWRTYXRzEhAKA3NlcRgIIAEoA1IDc2VxEhwKCWhlYXJ0'
-    'YmVhdBgJIAEoCFIJaGVhcnRiZWF0EjMKBXN0YXRlGAogASgOMh0ud2FsbGV0bWFuYWdlci52MS'
-    '5XYWxsZXRTdGF0ZVIFc3RhdGU=');
+final $typed_data.Uint8List watchWalletDataResponseDescriptor =
+    $convert.base64Decode('ChdXYXRjaFdhbGxldERhdGFSZXNwb25zZRIhCgpoYXNfd2FsbGV0GAEgASgIQgIYAVIJaGFzV2'
+        'FsbGV0EhwKCWVuY3J5cHRlZBgCIAEoCFIJZW5jcnlwdGVkEh4KCHVubG9ja2VkGAMgASgIQgIY'
+        'AVIIdW5sb2NrZWQSKAoQYWN0aXZlX3dhbGxldF9pZBgEIAEoCVIOYWN0aXZlV2FsbGV0SWQSOg'
+        'oHd2FsbGV0cxgFIAMoCzIgLndhbGxldG1hbmFnZXIudjEuV2FsbGV0TWV0YWRhdGFSB3dhbGxl'
+        'dHMSJQoOY29uZmlybWVkX3NhdHMYBiABKAFSDWNvbmZpcm1lZFNhdHMSKQoQdW5jb25maXJtZW'
+        'Rfc2F0cxgHIAEoAVIPdW5jb25maXJtZWRTYXRzEhAKA3NlcRgIIAEoA1IDc2VxEhwKCWhlYXJ0'
+        'YmVhdBgJIAEoCFIJaGVhcnRiZWF0EjMKBXN0YXRlGAogASgOMh0ud2FsbGV0bWFuYWdlci52MS'
+        '5XYWxsZXRTdGF0ZVIFc3RhdGU=');
 
 @$core.Deprecated('Use createDepositRequestDescriptor instead')
 const CreateDepositRequest$json = {
@@ -2987,10 +3038,10 @@ const CreateDepositRequest$json = {
 };
 
 /// Descriptor for `CreateDepositRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createDepositRequestDescriptor = $convert.base64Decode(
-    'ChRDcmVhdGVEZXBvc2l0UmVxdWVzdBISCgRzbG90GAEgASgFUgRzbG90EhsKCXdhbGxldF9pZB'
-    'gCIAEoCVIId2FsbGV0SWQSIAoLZGVzdGluYXRpb24YAyABKAlSC2Rlc3RpbmF0aW9uEh8KC2Ft'
-    'b3VudF9zYXRzGAQgASgDUgphbW91bnRTYXRzEhkKCGZlZV9zYXRzGAUgASgDUgdmZWVTYXRz');
+final $typed_data.Uint8List createDepositRequestDescriptor =
+    $convert.base64Decode('ChRDcmVhdGVEZXBvc2l0UmVxdWVzdBISCgRzbG90GAEgASgFUgRzbG90EhsKCXdhbGxldF9pZB'
+        'gCIAEoCVIId2FsbGV0SWQSIAoLZGVzdGluYXRpb24YAyABKAlSC2Rlc3RpbmF0aW9uEh8KC2Ft'
+        'b3VudF9zYXRzGAQgASgDUgphbW91bnRTYXRzEhkKCGZlZV9zYXRzGAUgASgDUgdmZWVTYXRz');
 
 @$core.Deprecated('Use createDepositResponseDescriptor instead')
 const CreateDepositResponse$json = {
@@ -3005,89 +3056,299 @@ const CreateDepositResponse$json = {
 };
 
 /// Descriptor for `CreateDepositResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createDepositResponseDescriptor = $convert.base64Decode(
-    'ChVDcmVhdGVEZXBvc2l0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZEoECAIQA1INdHJlYX'
-    'N1cnlfc2F0cw==');
+final $typed_data.Uint8List createDepositResponseDescriptor =
+    $convert.base64Decode('ChVDcmVhdGVEZXBvc2l0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZEoECAIQA1INdHJlYX'
+        'N1cnlfc2F0cw==');
 
 const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
   '1': 'WalletManagerService',
   '2': [
-    {'1': 'GetWalletStatus', '2': '.walletmanager.v1.GetWalletStatusRequest', '3': '.walletmanager.v1.GetWalletStatusResponse'},
-    {'1': 'ListSidechainDeposits', '2': '.walletmanager.v1.ListSidechainDepositsRequest', '3': '.walletmanager.v1.ListSidechainDepositsResponse'},
-    {'1': 'GetSidechainDepositTotals', '2': '.walletmanager.v1.GetSidechainDepositTotalsRequest', '3': '.walletmanager.v1.GetSidechainDepositTotalsResponse'},
+    {
+      '1': 'GetWalletStatus',
+      '2': '.walletmanager.v1.GetWalletStatusRequest',
+      '3': '.walletmanager.v1.GetWalletStatusResponse'
+    },
+    {
+      '1': 'ListSidechainDeposits',
+      '2': '.walletmanager.v1.ListSidechainDepositsRequest',
+      '3': '.walletmanager.v1.ListSidechainDepositsResponse'
+    },
+    {
+      '1': 'GetSidechainDepositTotals',
+      '2': '.walletmanager.v1.GetSidechainDepositTotalsRequest',
+      '3': '.walletmanager.v1.GetSidechainDepositTotalsResponse'
+    },
     {'1': 'GetNodeMode', '2': '.walletmanager.v1.GetNodeModeRequest', '3': '.walletmanager.v1.GetNodeModeResponse'},
     {'1': 'SetNodeMode', '2': '.walletmanager.v1.SetNodeModeRequest', '3': '.walletmanager.v1.SetNodeModeResponse'},
-    {'1': 'GenerateWallet', '2': '.walletmanager.v1.GenerateWalletRequest', '3': '.walletmanager.v1.GenerateWalletResponse'},
+    {
+      '1': 'GenerateWallet',
+      '2': '.walletmanager.v1.GenerateWalletRequest',
+      '3': '.walletmanager.v1.GenerateWalletResponse'
+    },
     {'1': 'UnlockWallet', '2': '.walletmanager.v1.UnlockWalletRequest', '3': '.walletmanager.v1.UnlockWalletResponse'},
     {'1': 'LockWallet', '2': '.walletmanager.v1.LockWalletRequest', '3': '.walletmanager.v1.LockWalletResponse'},
-    {'1': 'EncryptWallet', '2': '.walletmanager.v1.EncryptWalletRequest', '3': '.walletmanager.v1.EncryptWalletResponse'},
-    {'1': 'ChangePassword', '2': '.walletmanager.v1.ChangePasswordRequest', '3': '.walletmanager.v1.ChangePasswordResponse'},
-    {'1': 'RemoveEncryption', '2': '.walletmanager.v1.RemoveEncryptionRequest', '3': '.walletmanager.v1.RemoveEncryptionResponse'},
+    {
+      '1': 'EncryptWallet',
+      '2': '.walletmanager.v1.EncryptWalletRequest',
+      '3': '.walletmanager.v1.EncryptWalletResponse'
+    },
+    {
+      '1': 'ChangePassword',
+      '2': '.walletmanager.v1.ChangePasswordRequest',
+      '3': '.walletmanager.v1.ChangePasswordResponse'
+    },
+    {
+      '1': 'RemoveEncryption',
+      '2': '.walletmanager.v1.RemoveEncryptionRequest',
+      '3': '.walletmanager.v1.RemoveEncryptionResponse'
+    },
     {'1': 'ListWallets', '2': '.walletmanager.v1.ListWalletsRequest', '3': '.walletmanager.v1.ListWalletsResponse'},
     {'1': 'SwitchWallet', '2': '.walletmanager.v1.SwitchWalletRequest', '3': '.walletmanager.v1.SwitchWalletResponse'},
-    {'1': 'UpdateWalletMetadata', '2': '.walletmanager.v1.UpdateWalletMetadataRequest', '3': '.walletmanager.v1.UpdateWalletMetadataResponse'},
+    {
+      '1': 'UpdateWalletMetadata',
+      '2': '.walletmanager.v1.UpdateWalletMetadataRequest',
+      '3': '.walletmanager.v1.UpdateWalletMetadataResponse'
+    },
     {'1': 'DeleteWallet', '2': '.walletmanager.v1.DeleteWalletRequest', '3': '.walletmanager.v1.DeleteWalletResponse'},
-    {'1': 'DeleteAllWallets', '2': '.walletmanager.v1.DeleteAllWalletsRequest', '3': '.walletmanager.v1.DeleteAllWalletsResponse'},
-    {'1': 'ListWalletBackups', '2': '.walletmanager.v1.ListWalletBackupsRequest', '3': '.walletmanager.v1.ListWalletBackupsResponse'},
-    {'1': 'RestoreWalletBackup', '2': '.walletmanager.v1.RestoreWalletBackupRequest', '3': '.walletmanager.v1.RestoreWalletBackupResponse'},
-    {'1': 'RestoreWalletBackupStream', '2': '.walletmanager.v1.RestoreWalletBackupRequest', '3': '.walletmanager.v1.RestoreWalletBackupProgressResponse', '6': true},
-    {'1': 'CreateWatchOnlyWallet', '2': '.walletmanager.v1.CreateWatchOnlyWalletRequest', '3': '.walletmanager.v1.CreateWatchOnlyWalletResponse'},
-    {'1': 'CreateElectrumWallet', '2': '.walletmanager.v1.CreateElectrumWalletRequest', '3': '.walletmanager.v1.CreateElectrumWalletResponse'},
-    {'1': 'CreateMultisigWallet', '2': '.walletmanager.v1.CreateMultisigWalletRequest', '3': '.walletmanager.v1.CreateMultisigWalletResponse'},
-    {'1': 'ParseMultisigConfig', '2': '.walletmanager.v1.ParseMultisigConfigRequest', '3': '.walletmanager.v1.ParseMultisigConfigResponse'},
-    {'1': 'ValidateDescriptor', '2': '.walletmanager.v1.ValidateDescriptorRequest', '3': '.walletmanager.v1.ValidateDescriptorResponse'},
-    {'1': 'ValidateDerivationPath', '2': '.walletmanager.v1.ValidateDerivationPathRequest', '3': '.walletmanager.v1.ValidateDerivationPathResponse'},
-    {'1': 'ListDerivationPaths', '2': '.walletmanager.v1.ListDerivationPathsRequest', '3': '.walletmanager.v1.ListDerivationPathsResponse'},
-    {'1': 'CreateBitcoinCoreWallet', '2': '.walletmanager.v1.CreateBitcoinCoreWalletRequest', '3': '.walletmanager.v1.CreateBitcoinCoreWalletResponse'},
-    {'1': 'EnsureCoreWallets', '2': '.walletmanager.v1.EnsureCoreWalletsRequest', '3': '.walletmanager.v1.EnsureCoreWalletsResponse'},
+    {
+      '1': 'DeleteAllWallets',
+      '2': '.walletmanager.v1.DeleteAllWalletsRequest',
+      '3': '.walletmanager.v1.DeleteAllWalletsResponse'
+    },
+    {
+      '1': 'ListWalletBackups',
+      '2': '.walletmanager.v1.ListWalletBackupsRequest',
+      '3': '.walletmanager.v1.ListWalletBackupsResponse'
+    },
+    {
+      '1': 'RestoreWalletBackup',
+      '2': '.walletmanager.v1.RestoreWalletBackupRequest',
+      '3': '.walletmanager.v1.RestoreWalletBackupResponse'
+    },
+    {
+      '1': 'RestoreWalletBackupStream',
+      '2': '.walletmanager.v1.RestoreWalletBackupRequest',
+      '3': '.walletmanager.v1.RestoreWalletBackupProgressResponse',
+      '6': true
+    },
+    {
+      '1': 'CreateWatchOnlyWallet',
+      '2': '.walletmanager.v1.CreateWatchOnlyWalletRequest',
+      '3': '.walletmanager.v1.CreateWatchOnlyWalletResponse'
+    },
+    {
+      '1': 'CreateElectrumWallet',
+      '2': '.walletmanager.v1.CreateElectrumWalletRequest',
+      '3': '.walletmanager.v1.CreateElectrumWalletResponse'
+    },
+    {
+      '1': 'CreateMultisigWallet',
+      '2': '.walletmanager.v1.CreateMultisigWalletRequest',
+      '3': '.walletmanager.v1.CreateMultisigWalletResponse'
+    },
+    {
+      '1': 'ParseMultisigConfig',
+      '2': '.walletmanager.v1.ParseMultisigConfigRequest',
+      '3': '.walletmanager.v1.ParseMultisigConfigResponse'
+    },
+    {
+      '1': 'ValidateDescriptor',
+      '2': '.walletmanager.v1.ValidateDescriptorRequest',
+      '3': '.walletmanager.v1.ValidateDescriptorResponse'
+    },
+    {
+      '1': 'ValidateDerivationPath',
+      '2': '.walletmanager.v1.ValidateDerivationPathRequest',
+      '3': '.walletmanager.v1.ValidateDerivationPathResponse'
+    },
+    {
+      '1': 'ListDerivationPaths',
+      '2': '.walletmanager.v1.ListDerivationPathsRequest',
+      '3': '.walletmanager.v1.ListDerivationPathsResponse'
+    },
+    {
+      '1': 'CreateBitcoinCoreWallet',
+      '2': '.walletmanager.v1.CreateBitcoinCoreWalletRequest',
+      '3': '.walletmanager.v1.CreateBitcoinCoreWalletResponse'
+    },
+    {
+      '1': 'EnsureCoreWallets',
+      '2': '.walletmanager.v1.EnsureCoreWalletsRequest',
+      '3': '.walletmanager.v1.EnsureCoreWalletsResponse'
+    },
     {'1': 'GetBalance', '2': '.walletmanager.v1.GetBalanceRequest', '3': '.walletmanager.v1.GetBalanceResponse'},
     {'1': 'RescanWallet', '2': '.walletmanager.v1.RescanWalletRequest', '3': '.walletmanager.v1.RescanWalletResponse'},
     {'1': 'EstimateFee', '2': '.walletmanager.v1.EstimateFeeRequest', '3': '.walletmanager.v1.EstimateFeeResponse'},
-    {'1': 'GetNewAddress', '2': '.walletmanager.v1.GetNewAddressRequest', '3': '.walletmanager.v1.GetNewAddressResponse'},
-    {'1': 'SendTransaction', '2': '.walletmanager.v1.SendTransactionRequest', '3': '.walletmanager.v1.SendTransactionResponse'},
+    {
+      '1': 'GetNewAddress',
+      '2': '.walletmanager.v1.GetNewAddressRequest',
+      '3': '.walletmanager.v1.GetNewAddressResponse'
+    },
+    {
+      '1': 'SendTransaction',
+      '2': '.walletmanager.v1.SendTransactionRequest',
+      '3': '.walletmanager.v1.SendTransactionResponse'
+    },
     {'1': 'PreviewSend', '2': '.walletmanager.v1.PreviewSendRequest', '3': '.walletmanager.v1.PreviewSendResponse'},
     {'1': 'SetFrozenCoins', '2': '.walletmanager.v1.SetFrozenCoinsRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'CreateDeposit', '2': '.walletmanager.v1.CreateDepositRequest', '3': '.walletmanager.v1.CreateDepositResponse'},
-    {'1': 'ListTransactions', '2': '.walletmanager.v1.ListTransactionsRequest', '3': '.walletmanager.v1.ListTransactionsResponse'},
+    {
+      '1': 'CreateDeposit',
+      '2': '.walletmanager.v1.CreateDepositRequest',
+      '3': '.walletmanager.v1.CreateDepositResponse'
+    },
+    {
+      '1': 'ListTransactions',
+      '2': '.walletmanager.v1.ListTransactionsRequest',
+      '3': '.walletmanager.v1.ListTransactionsResponse'
+    },
     {'1': 'ListUnspent', '2': '.walletmanager.v1.ListUnspentRequest', '3': '.walletmanager.v1.ListUnspentResponse'},
-    {'1': 'ListReceiveAddresses', '2': '.walletmanager.v1.ListReceiveAddressesRequest', '3': '.walletmanager.v1.ListReceiveAddressesResponse'},
-    {'1': 'GetTransactionDetails', '2': '.walletmanager.v1.GetTransactionDetailsRequest', '3': '.walletmanager.v1.GetTransactionDetailsResponse'},
-    {'1': 'DecodeTransaction', '2': '.walletmanager.v1.DecodeTransactionRequest', '3': '.walletmanager.v1.DecodeTransactionResponse'},
+    {
+      '1': 'ListReceiveAddresses',
+      '2': '.walletmanager.v1.ListReceiveAddressesRequest',
+      '3': '.walletmanager.v1.ListReceiveAddressesResponse'
+    },
+    {
+      '1': 'GetTransactionDetails',
+      '2': '.walletmanager.v1.GetTransactionDetailsRequest',
+      '3': '.walletmanager.v1.GetTransactionDetailsResponse'
+    },
+    {
+      '1': 'DecodeTransaction',
+      '2': '.walletmanager.v1.DecodeTransactionRequest',
+      '3': '.walletmanager.v1.DecodeTransactionResponse'
+    },
     {'1': 'BumpFee', '2': '.walletmanager.v1.BumpFeeRequest', '3': '.walletmanager.v1.BumpFeeResponse'},
-    {'1': 'PreviewBumpFee', '2': '.walletmanager.v1.PreviewBumpFeeRequest', '3': '.walletmanager.v1.PreviewBumpFeeResponse'},
+    {
+      '1': 'PreviewBumpFee',
+      '2': '.walletmanager.v1.PreviewBumpFeeRequest',
+      '3': '.walletmanager.v1.PreviewBumpFeeResponse'
+    },
     {'1': 'CreateCpfp', '2': '.walletmanager.v1.CreateCpfpRequest', '3': '.walletmanager.v1.CreateCpfpResponse'},
-    {'1': 'CancelTransaction', '2': '.walletmanager.v1.CancelTransactionRequest', '3': '.walletmanager.v1.CancelTransactionResponse'},
-    {'1': 'DeriveAddresses', '2': '.walletmanager.v1.DeriveAddressesRequest', '3': '.walletmanager.v1.DeriveAddressesResponse'},
+    {
+      '1': 'CancelTransaction',
+      '2': '.walletmanager.v1.CancelTransactionRequest',
+      '3': '.walletmanager.v1.CancelTransactionResponse'
+    },
+    {
+      '1': 'DeriveAddresses',
+      '2': '.walletmanager.v1.DeriveAddressesRequest',
+      '3': '.walletmanager.v1.DeriveAddressesResponse'
+    },
     {'1': 'ListEcxBurns', '2': '.walletmanager.v1.ListEcxBurnsRequest', '3': '.walletmanager.v1.ListEcxBurnsResponse'},
     {'1': 'CreatePsbt', '2': '.walletmanager.v1.CreatePsbtRequest', '3': '.walletmanager.v1.CreatePsbtResponse'},
     {'1': 'SignPsbt', '2': '.walletmanager.v1.SignPsbtRequest', '3': '.walletmanager.v1.SignPsbtResponse'},
-    {'1': 'SignPsbtWithCosigner', '2': '.walletmanager.v1.SignPsbtWithCosignerRequest', '3': '.walletmanager.v1.SignPsbtWithCosignerResponse'},
+    {
+      '1': 'SignPsbtWithCosigner',
+      '2': '.walletmanager.v1.SignPsbtWithCosignerRequest',
+      '3': '.walletmanager.v1.SignPsbtWithCosignerResponse'
+    },
     {'1': 'CombinePsbt', '2': '.walletmanager.v1.CombinePsbtRequest', '3': '.walletmanager.v1.CombinePsbtResponse'},
     {'1': 'FinalizePsbt', '2': '.walletmanager.v1.FinalizePsbtRequest', '3': '.walletmanager.v1.FinalizePsbtResponse'},
-    {'1': 'MultisigPsbtStatus', '2': '.walletmanager.v1.MultisigPsbtStatusRequest', '3': '.walletmanager.v1.MultisigPsbtStatusResponse'},
-    {'1': 'BroadcastTransaction', '2': '.walletmanager.v1.BroadcastTransactionRequest', '3': '.walletmanager.v1.BroadcastTransactionResponse'},
-    {'1': 'GetAddressUnspent', '2': '.walletmanager.v1.GetAddressUnspentRequest', '3': '.walletmanager.v1.GetAddressUnspentResponse'},
-    {'1': 'BroadcastElectrumTransaction', '2': '.walletmanager.v1.BroadcastElectrumTransactionRequest', '3': '.walletmanager.v1.BroadcastElectrumTransactionResponse'},
-    {'1': 'EnumerateHardwareDevices', '2': '.walletmanager.v1.EnumerateHardwareDevicesRequest', '3': '.walletmanager.v1.EnumerateHardwareDevicesResponse'},
-    {'1': 'GetHardwareXpub', '2': '.walletmanager.v1.GetHardwareXpubRequest', '3': '.walletmanager.v1.GetHardwareXpubResponse'},
-    {'1': 'SignPsbtWithDevice', '2': '.walletmanager.v1.SignPsbtWithDeviceRequest', '3': '.walletmanager.v1.SignPsbtWithDeviceResponse'},
-    {'1': 'PromptDevicePin', '2': '.walletmanager.v1.PromptDevicePinRequest', '3': '.walletmanager.v1.PromptDevicePinResponse'},
-    {'1': 'SendDevicePin', '2': '.walletmanager.v1.SendDevicePinRequest', '3': '.walletmanager.v1.SendDevicePinResponse'},
+    {
+      '1': 'MultisigPsbtStatus',
+      '2': '.walletmanager.v1.MultisigPsbtStatusRequest',
+      '3': '.walletmanager.v1.MultisigPsbtStatusResponse'
+    },
+    {
+      '1': 'BroadcastTransaction',
+      '2': '.walletmanager.v1.BroadcastTransactionRequest',
+      '3': '.walletmanager.v1.BroadcastTransactionResponse'
+    },
+    {
+      '1': 'GetAddressUnspent',
+      '2': '.walletmanager.v1.GetAddressUnspentRequest',
+      '3': '.walletmanager.v1.GetAddressUnspentResponse'
+    },
+    {
+      '1': 'BroadcastElectrumTransaction',
+      '2': '.walletmanager.v1.BroadcastElectrumTransactionRequest',
+      '3': '.walletmanager.v1.BroadcastElectrumTransactionResponse'
+    },
+    {
+      '1': 'EnumerateHardwareDevices',
+      '2': '.walletmanager.v1.EnumerateHardwareDevicesRequest',
+      '3': '.walletmanager.v1.EnumerateHardwareDevicesResponse'
+    },
+    {
+      '1': 'GetHardwareXpub',
+      '2': '.walletmanager.v1.GetHardwareXpubRequest',
+      '3': '.walletmanager.v1.GetHardwareXpubResponse'
+    },
+    {
+      '1': 'SignPsbtWithDevice',
+      '2': '.walletmanager.v1.SignPsbtWithDeviceRequest',
+      '3': '.walletmanager.v1.SignPsbtWithDeviceResponse'
+    },
+    {
+      '1': 'PromptDevicePin',
+      '2': '.walletmanager.v1.PromptDevicePinRequest',
+      '3': '.walletmanager.v1.PromptDevicePinResponse'
+    },
+    {
+      '1': 'SendDevicePin',
+      '2': '.walletmanager.v1.SendDevicePinRequest',
+      '3': '.walletmanager.v1.SendDevicePinResponse'
+    },
     {'1': 'CloseDevice', '2': '.walletmanager.v1.CloseDeviceRequest', '3': '.walletmanager.v1.CloseDeviceResponse'},
-    {'1': 'DeriveKeystore', '2': '.walletmanager.v1.DeriveKeystoreRequest', '3': '.walletmanager.v1.DeriveKeystoreResponse'},
+    {
+      '1': 'DeriveKeystore',
+      '2': '.walletmanager.v1.DeriveKeystoreRequest',
+      '3': '.walletmanager.v1.DeriveKeystoreResponse'
+    },
     {'1': 'ExploreSeed', '2': '.walletmanager.v1.ExploreSeedRequest', '3': '.walletmanager.v1.ExploreSeedResponse'},
-    {'1': 'GenerateMnemonic', '2': '.walletmanager.v1.GenerateMnemonicRequest', '3': '.walletmanager.v1.GenerateMnemonicResponse'},
-    {'1': 'ValidateMnemonic', '2': '.walletmanager.v1.ValidateMnemonicRequest', '3': '.walletmanager.v1.ValidateMnemonicResponse'},
-    {'1': 'PreviewWalletFromEntropy', '2': '.walletmanager.v1.PreviewWalletFromEntropyRequest', '3': '.walletmanager.v1.PreviewWalletFromEntropyResponse'},
-    {'1': 'GetWalletSeed', '2': '.walletmanager.v1.GetWalletSeedRequest', '3': '.walletmanager.v1.GetWalletSeedResponse'},
-    {'1': 'ListCoreVariants', '2': '.walletmanager.v1.ListCoreVariantsRequest', '3': '.walletmanager.v1.ListCoreVariantsResponse'},
-    {'1': 'GetCoreVariant', '2': '.walletmanager.v1.GetCoreVariantRequest', '3': '.walletmanager.v1.GetCoreVariantResponse'},
-    {'1': 'SetCoreVariant', '2': '.walletmanager.v1.SetCoreVariantRequest', '3': '.walletmanager.v1.SetCoreVariantResponse'},
-    {'1': 'GetElectrumServer', '2': '.walletmanager.v1.GetElectrumServerRequest', '3': '.walletmanager.v1.GetElectrumServerResponse'},
-    {'1': 'SetElectrumServer', '2': '.walletmanager.v1.SetElectrumServerRequest', '3': '.walletmanager.v1.SetElectrumServerResponse'},
+    {
+      '1': 'GenerateMnemonic',
+      '2': '.walletmanager.v1.GenerateMnemonicRequest',
+      '3': '.walletmanager.v1.GenerateMnemonicResponse'
+    },
+    {
+      '1': 'ValidateMnemonic',
+      '2': '.walletmanager.v1.ValidateMnemonicRequest',
+      '3': '.walletmanager.v1.ValidateMnemonicResponse'
+    },
+    {
+      '1': 'PreviewWalletFromEntropy',
+      '2': '.walletmanager.v1.PreviewWalletFromEntropyRequest',
+      '3': '.walletmanager.v1.PreviewWalletFromEntropyResponse'
+    },
+    {
+      '1': 'GetWalletSeed',
+      '2': '.walletmanager.v1.GetWalletSeedRequest',
+      '3': '.walletmanager.v1.GetWalletSeedResponse'
+    },
+    {
+      '1': 'ListCoreVariants',
+      '2': '.walletmanager.v1.ListCoreVariantsRequest',
+      '3': '.walletmanager.v1.ListCoreVariantsResponse'
+    },
+    {
+      '1': 'GetCoreVariant',
+      '2': '.walletmanager.v1.GetCoreVariantRequest',
+      '3': '.walletmanager.v1.GetCoreVariantResponse'
+    },
+    {
+      '1': 'SetCoreVariant',
+      '2': '.walletmanager.v1.SetCoreVariantRequest',
+      '3': '.walletmanager.v1.SetCoreVariantResponse'
+    },
+    {
+      '1': 'GetElectrumServer',
+      '2': '.walletmanager.v1.GetElectrumServerRequest',
+      '3': '.walletmanager.v1.GetElectrumServerResponse'
+    },
+    {
+      '1': 'SetElectrumServer',
+      '2': '.walletmanager.v1.SetElectrumServerRequest',
+      '3': '.walletmanager.v1.SetElectrumServerResponse'
+    },
     {'1': 'GetTorConfig', '2': '.walletmanager.v1.GetTorConfigRequest', '3': '.walletmanager.v1.GetTorConfigResponse'},
     {'1': 'SetTorConfig', '2': '.walletmanager.v1.SetTorConfigRequest', '3': '.walletmanager.v1.SetTorConfigResponse'},
-    {'1': 'WatchWalletData', '2': '.google.protobuf.Empty', '3': '.walletmanager.v1.WatchWalletDataResponse', '6': true},
+    {
+      '1': 'WatchWalletData',
+      '2': '.google.protobuf.Empty',
+      '3': '.walletmanager.v1.WatchWalletDataResponse',
+      '6': true
+    },
   ],
 };
 
@@ -3133,7 +3394,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletBackupsRequest': ListWalletBackupsRequest$json,
   '.walletmanager.v1.ListWalletBackupsResponse': ListWalletBackupsResponse$json,
   '.walletmanager.v1.WalletBackup': WalletBackup$json,
-  '.google.protobuf.Timestamp': $14.Timestamp$json,
+  '.google.protobuf.Timestamp': $0.Timestamp$json,
   '.walletmanager.v1.BackupWalletSummary': BackupWalletSummary$json,
   '.walletmanager.v1.BalanceSnapshot': BalanceSnapshot$json,
   '.walletmanager.v1.RestoreWalletBackupRequest': RestoreWalletBackupRequest$json,
@@ -3181,7 +3442,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.PreviewSendResponse': PreviewSendResponse$json,
   '.walletmanager.v1.SetFrozenCoinsRequest': SetFrozenCoinsRequest$json,
   '.walletmanager.v1.FrozenOutpoint': FrozenOutpoint$json,
-  '.google.protobuf.Empty': $21.Empty$json,
+  '.google.protobuf.Empty': $1.Empty$json,
   '.walletmanager.v1.CreateDepositRequest': CreateDepositRequest$json,
   '.walletmanager.v1.CreateDepositResponse': CreateDepositResponse$json,
   '.walletmanager.v1.ListTransactionsRequest': ListTransactionsRequest$json,
@@ -3281,150 +3542,149 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
 };
 
 /// Descriptor for `WalletManagerService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Decode(
-    'ChRXYWxsZXRNYW5hZ2VyU2VydmljZRJmCg9HZXRXYWxsZXRTdGF0dXMSKC53YWxsZXRtYW5hZ2'
-    'VyLnYxLkdldFdhbGxldFN0YXR1c1JlcXVlc3QaKS53YWxsZXRtYW5hZ2VyLnYxLkdldFdhbGxl'
-    'dFN0YXR1c1Jlc3BvbnNlEngKFUxpc3RTaWRlY2hhaW5EZXBvc2l0cxIuLndhbGxldG1hbmFnZX'
-    'IudjEuTGlzdFNpZGVjaGFpbkRlcG9zaXRzUmVxdWVzdBovLndhbGxldG1hbmFnZXIudjEuTGlz'
-    'dFNpZGVjaGFpbkRlcG9zaXRzUmVzcG9uc2UShAEKGUdldFNpZGVjaGFpbkRlcG9zaXRUb3RhbH'
-    'MSMi53YWxsZXRtYW5hZ2VyLnYxLkdldFNpZGVjaGFpbkRlcG9zaXRUb3RhbHNSZXF1ZXN0GjMu'
-    'd2FsbGV0bWFuYWdlci52MS5HZXRTaWRlY2hhaW5EZXBvc2l0VG90YWxzUmVzcG9uc2USWgoLR2'
-    'V0Tm9kZU1vZGUSJC53YWxsZXRtYW5hZ2VyLnYxLkdldE5vZGVNb2RlUmVxdWVzdBolLndhbGxl'
-    'dG1hbmFnZXIudjEuR2V0Tm9kZU1vZGVSZXNwb25zZRJaCgtTZXROb2RlTW9kZRIkLndhbGxldG'
-    '1hbmFnZXIudjEuU2V0Tm9kZU1vZGVSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52MS5TZXROb2Rl'
-    'TW9kZVJlc3BvbnNlEmMKDkdlbmVyYXRlV2FsbGV0Eicud2FsbGV0bWFuYWdlci52MS5HZW5lcm'
-    'F0ZVdhbGxldFJlcXVlc3QaKC53YWxsZXRtYW5hZ2VyLnYxLkdlbmVyYXRlV2FsbGV0UmVzcG9u'
-    'c2USXQoMVW5sb2NrV2FsbGV0EiUud2FsbGV0bWFuYWdlci52MS5VbmxvY2tXYWxsZXRSZXF1ZX'
-    'N0GiYud2FsbGV0bWFuYWdlci52MS5VbmxvY2tXYWxsZXRSZXNwb25zZRJXCgpMb2NrV2FsbGV0'
-    'EiMud2FsbGV0bWFuYWdlci52MS5Mb2NrV2FsbGV0UmVxdWVzdBokLndhbGxldG1hbmFnZXIudj'
-    'EuTG9ja1dhbGxldFJlc3BvbnNlEmAKDUVuY3J5cHRXYWxsZXQSJi53YWxsZXRtYW5hZ2VyLnYx'
-    'LkVuY3J5cHRXYWxsZXRSZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5FbmNyeXB0V2FsbGV0Um'
-    'VzcG9uc2USYwoOQ2hhbmdlUGFzc3dvcmQSJy53YWxsZXRtYW5hZ2VyLnYxLkNoYW5nZVBhc3N3'
-    'b3JkUmVxdWVzdBooLndhbGxldG1hbmFnZXIudjEuQ2hhbmdlUGFzc3dvcmRSZXNwb25zZRJpCh'
-    'BSZW1vdmVFbmNyeXB0aW9uEikud2FsbGV0bWFuYWdlci52MS5SZW1vdmVFbmNyeXB0aW9uUmVx'
-    'dWVzdBoqLndhbGxldG1hbmFnZXIudjEuUmVtb3ZlRW5jcnlwdGlvblJlc3BvbnNlEloKC0xpc3'
-    'RXYWxsZXRzEiQud2FsbGV0bWFuYWdlci52MS5MaXN0V2FsbGV0c1JlcXVlc3QaJS53YWxsZXRt'
-    'YW5hZ2VyLnYxLkxpc3RXYWxsZXRzUmVzcG9uc2USXQoMU3dpdGNoV2FsbGV0EiUud2FsbGV0bW'
-    'FuYWdlci52MS5Td2l0Y2hXYWxsZXRSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52MS5Td2l0Y2hX'
-    'YWxsZXRSZXNwb25zZRJ1ChRVcGRhdGVXYWxsZXRNZXRhZGF0YRItLndhbGxldG1hbmFnZXIudj'
-    'EuVXBkYXRlV2FsbGV0TWV0YWRhdGFSZXF1ZXN0Gi4ud2FsbGV0bWFuYWdlci52MS5VcGRhdGVX'
-    'YWxsZXRNZXRhZGF0YVJlc3BvbnNlEl0KDERlbGV0ZVdhbGxldBIlLndhbGxldG1hbmFnZXIudj'
-    'EuRGVsZXRlV2FsbGV0UmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuRGVsZXRlV2FsbGV0UmVz'
-    'cG9uc2USaQoQRGVsZXRlQWxsV2FsbGV0cxIpLndhbGxldG1hbmFnZXIudjEuRGVsZXRlQWxsV2'
-    'FsbGV0c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkRlbGV0ZUFsbFdhbGxldHNSZXNwb25z'
-    'ZRJsChFMaXN0V2FsbGV0QmFja3VwcxIqLndhbGxldG1hbmFnZXIudjEuTGlzdFdhbGxldEJhY2'
-    't1cHNSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5MaXN0V2FsbGV0QmFja3Vwc1Jlc3BvbnNl'
-    'EnIKE1Jlc3RvcmVXYWxsZXRCYWNrdXASLC53YWxsZXRtYW5hZ2VyLnYxLlJlc3RvcmVXYWxsZX'
-    'RCYWNrdXBSZXF1ZXN0Gi0ud2FsbGV0bWFuYWdlci52MS5SZXN0b3JlV2FsbGV0QmFja3VwUmVz'
-    'cG9uc2USggEKGVJlc3RvcmVXYWxsZXRCYWNrdXBTdHJlYW0SLC53YWxsZXRtYW5hZ2VyLnYxLl'
-    'Jlc3RvcmVXYWxsZXRCYWNrdXBSZXF1ZXN0GjUud2FsbGV0bWFuYWdlci52MS5SZXN0b3JlV2Fs'
-    'bGV0QmFja3VwUHJvZ3Jlc3NSZXNwb25zZTABEngKFUNyZWF0ZVdhdGNoT25seVdhbGxldBIuLn'
-    'dhbGxldG1hbmFnZXIudjEuQ3JlYXRlV2F0Y2hPbmx5V2FsbGV0UmVxdWVzdBovLndhbGxldG1h'
-    'bmFnZXIudjEuQ3JlYXRlV2F0Y2hPbmx5V2FsbGV0UmVzcG9uc2USdQoUQ3JlYXRlRWxlY3RydW'
-    '1XYWxsZXQSLS53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZUVsZWN0cnVtV2FsbGV0UmVxdWVzdBou'
-    'LndhbGxldG1hbmFnZXIudjEuQ3JlYXRlRWxlY3RydW1XYWxsZXRSZXNwb25zZRJ1ChRDcmVhdG'
-    'VNdWx0aXNpZ1dhbGxldBItLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlTXVsdGlzaWdXYWxsZXRS'
-    'ZXF1ZXN0Gi4ud2FsbGV0bWFuYWdlci52MS5DcmVhdGVNdWx0aXNpZ1dhbGxldFJlc3BvbnNlEn'
-    'IKE1BhcnNlTXVsdGlzaWdDb25maWcSLC53YWxsZXRtYW5hZ2VyLnYxLlBhcnNlTXVsdGlzaWdD'
-    'b25maWdSZXF1ZXN0Gi0ud2FsbGV0bWFuYWdlci52MS5QYXJzZU11bHRpc2lnQ29uZmlnUmVzcG'
-    '9uc2USbwoSVmFsaWRhdGVEZXNjcmlwdG9yEisud2FsbGV0bWFuYWdlci52MS5WYWxpZGF0ZURl'
-    'c2NyaXB0b3JSZXF1ZXN0Giwud2FsbGV0bWFuYWdlci52MS5WYWxpZGF0ZURlc2NyaXB0b3JSZX'
-    'Nwb25zZRJ7ChZWYWxpZGF0ZURlcml2YXRpb25QYXRoEi8ud2FsbGV0bWFuYWdlci52MS5WYWxp'
-    'ZGF0ZURlcml2YXRpb25QYXRoUmVxdWVzdBowLndhbGxldG1hbmFnZXIudjEuVmFsaWRhdGVEZX'
-    'JpdmF0aW9uUGF0aFJlc3BvbnNlEnIKE0xpc3REZXJpdmF0aW9uUGF0aHMSLC53YWxsZXRtYW5h'
-    'Z2VyLnYxLkxpc3REZXJpdmF0aW9uUGF0aHNSZXF1ZXN0Gi0ud2FsbGV0bWFuYWdlci52MS5MaX'
-    'N0RGVyaXZhdGlvblBhdGhzUmVzcG9uc2USfgoXQ3JlYXRlQml0Y29pbkNvcmVXYWxsZXQSMC53'
-    'YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZUJpdGNvaW5Db3JlV2FsbGV0UmVxdWVzdBoxLndhbGxldG'
-    '1hbmFnZXIudjEuQ3JlYXRlQml0Y29pbkNvcmVXYWxsZXRSZXNwb25zZRJsChFFbnN1cmVDb3Jl'
-    'V2FsbGV0cxIqLndhbGxldG1hbmFnZXIudjEuRW5zdXJlQ29yZVdhbGxldHNSZXF1ZXN0Gisud2'
-    'FsbGV0bWFuYWdlci52MS5FbnN1cmVDb3JlV2FsbGV0c1Jlc3BvbnNlElcKCkdldEJhbGFuY2US'
-    'Iy53YWxsZXRtYW5hZ2VyLnYxLkdldEJhbGFuY2VSZXF1ZXN0GiQud2FsbGV0bWFuYWdlci52MS'
-    '5HZXRCYWxhbmNlUmVzcG9uc2USXQoMUmVzY2FuV2FsbGV0EiUud2FsbGV0bWFuYWdlci52MS5S'
-    'ZXNjYW5XYWxsZXRSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52MS5SZXNjYW5XYWxsZXRSZXNwb2'
-    '5zZRJaCgtFc3RpbWF0ZUZlZRIkLndhbGxldG1hbmFnZXIudjEuRXN0aW1hdGVGZWVSZXF1ZXN0'
-    'GiUud2FsbGV0bWFuYWdlci52MS5Fc3RpbWF0ZUZlZVJlc3BvbnNlEmAKDUdldE5ld0FkZHJlc3'
-    'MSJi53YWxsZXRtYW5hZ2VyLnYxLkdldE5ld0FkZHJlc3NSZXF1ZXN0Gicud2FsbGV0bWFuYWdl'
-    'ci52MS5HZXROZXdBZGRyZXNzUmVzcG9uc2USZgoPU2VuZFRyYW5zYWN0aW9uEigud2FsbGV0bW'
-    'FuYWdlci52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZXN0Gikud2FsbGV0bWFuYWdlci52MS5TZW5k'
-    'VHJhbnNhY3Rpb25SZXNwb25zZRJaCgtQcmV2aWV3U2VuZBIkLndhbGxldG1hbmFnZXIudjEuUH'
-    'Jldmlld1NlbmRSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52MS5QcmV2aWV3U2VuZFJlc3BvbnNl'
-    'ElEKDlNldEZyb3plbkNvaW5zEicud2FsbGV0bWFuYWdlci52MS5TZXRGcm96ZW5Db2luc1JlcX'
-    'Vlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSYAoNQ3JlYXRlRGVwb3NpdBImLndhbGxldG1h'
-    'bmFnZXIudjEuQ3JlYXRlRGVwb3NpdFJlcXVlc3QaJy53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZU'
-    'RlcG9zaXRSZXNwb25zZRJpChBMaXN0VHJhbnNhY3Rpb25zEikud2FsbGV0bWFuYWdlci52MS5M'
-    'aXN0VHJhbnNhY3Rpb25zUmVxdWVzdBoqLndhbGxldG1hbmFnZXIudjEuTGlzdFRyYW5zYWN0aW'
-    '9uc1Jlc3BvbnNlEloKC0xpc3RVbnNwZW50EiQud2FsbGV0bWFuYWdlci52MS5MaXN0VW5zcGVu'
-    'dFJlcXVlc3QaJS53YWxsZXRtYW5hZ2VyLnYxLkxpc3RVbnNwZW50UmVzcG9uc2USdQoUTGlzdF'
-    'JlY2VpdmVBZGRyZXNzZXMSLS53YWxsZXRtYW5hZ2VyLnYxLkxpc3RSZWNlaXZlQWRkcmVzc2Vz'
-    'UmVxdWVzdBouLndhbGxldG1hbmFnZXIudjEuTGlzdFJlY2VpdmVBZGRyZXNzZXNSZXNwb25zZR'
-    'J4ChVHZXRUcmFuc2FjdGlvbkRldGFpbHMSLi53YWxsZXRtYW5hZ2VyLnYxLkdldFRyYW5zYWN0'
-    'aW9uRGV0YWlsc1JlcXVlc3QaLy53YWxsZXRtYW5hZ2VyLnYxLkdldFRyYW5zYWN0aW9uRGV0YW'
-    'lsc1Jlc3BvbnNlEmwKEURlY29kZVRyYW5zYWN0aW9uEioud2FsbGV0bWFuYWdlci52MS5EZWNv'
-    'ZGVUcmFuc2FjdGlvblJlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLkRlY29kZVRyYW5zYWN0aW'
-    '9uUmVzcG9uc2USTgoHQnVtcEZlZRIgLndhbGxldG1hbmFnZXIudjEuQnVtcEZlZVJlcXVlc3Qa'
-    'IS53YWxsZXRtYW5hZ2VyLnYxLkJ1bXBGZWVSZXNwb25zZRJjCg5QcmV2aWV3QnVtcEZlZRInLn'
-    'dhbGxldG1hbmFnZXIudjEuUHJldmlld0J1bXBGZWVSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52'
-    'MS5QcmV2aWV3QnVtcEZlZVJlc3BvbnNlElcKCkNyZWF0ZUNwZnASIy53YWxsZXRtYW5hZ2VyLn'
-    'YxLkNyZWF0ZUNwZnBSZXF1ZXN0GiQud2FsbGV0bWFuYWdlci52MS5DcmVhdGVDcGZwUmVzcG9u'
-    'c2USbAoRQ2FuY2VsVHJhbnNhY3Rpb24SKi53YWxsZXRtYW5hZ2VyLnYxLkNhbmNlbFRyYW5zYW'
-    'N0aW9uUmVxdWVzdBorLndhbGxldG1hbmFnZXIudjEuQ2FuY2VsVHJhbnNhY3Rpb25SZXNwb25z'
-    'ZRJmCg9EZXJpdmVBZGRyZXNzZXMSKC53YWxsZXRtYW5hZ2VyLnYxLkRlcml2ZUFkZHJlc3Nlc1'
-    'JlcXVlc3QaKS53YWxsZXRtYW5hZ2VyLnYxLkRlcml2ZUFkZHJlc3Nlc1Jlc3BvbnNlEl0KDExp'
-    'c3RFY3hCdXJucxIlLndhbGxldG1hbmFnZXIudjEuTGlzdEVjeEJ1cm5zUmVxdWVzdBomLndhbG'
-    'xldG1hbmFnZXIudjEuTGlzdEVjeEJ1cm5zUmVzcG9uc2USVwoKQ3JlYXRlUHNidBIjLndhbGxl'
-    'dG1hbmFnZXIudjEuQ3JlYXRlUHNidFJlcXVlc3QaJC53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZV'
-    'BzYnRSZXNwb25zZRJRCghTaWduUHNidBIhLndhbGxldG1hbmFnZXIudjEuU2lnblBzYnRSZXF1'
-    'ZXN0GiIud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFJlc3BvbnNlEnUKFFNpZ25Qc2J0V2l0aE'
-    'Nvc2lnbmVyEi0ud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFdpdGhDb3NpZ25lclJlcXVlc3Qa'
-    'Li53YWxsZXRtYW5hZ2VyLnYxLlNpZ25Qc2J0V2l0aENvc2lnbmVyUmVzcG9uc2USWgoLQ29tYm'
-    'luZVBzYnQSJC53YWxsZXRtYW5hZ2VyLnYxLkNvbWJpbmVQc2J0UmVxdWVzdBolLndhbGxldG1h'
-    'bmFnZXIudjEuQ29tYmluZVBzYnRSZXNwb25zZRJdCgxGaW5hbGl6ZVBzYnQSJS53YWxsZXRtYW'
-    '5hZ2VyLnYxLkZpbmFsaXplUHNidFJlcXVlc3QaJi53YWxsZXRtYW5hZ2VyLnYxLkZpbmFsaXpl'
-    'UHNidFJlc3BvbnNlEm8KEk11bHRpc2lnUHNidFN0YXR1cxIrLndhbGxldG1hbmFnZXIudjEuTX'
-    'VsdGlzaWdQc2J0U3RhdHVzUmVxdWVzdBosLndhbGxldG1hbmFnZXIudjEuTXVsdGlzaWdQc2J0'
-    'U3RhdHVzUmVzcG9uc2USdQoUQnJvYWRjYXN0VHJhbnNhY3Rpb24SLS53YWxsZXRtYW5hZ2VyLn'
-    'YxLkJyb2FkY2FzdFRyYW5zYWN0aW9uUmVxdWVzdBouLndhbGxldG1hbmFnZXIudjEuQnJvYWRj'
-    'YXN0VHJhbnNhY3Rpb25SZXNwb25zZRJsChFHZXRBZGRyZXNzVW5zcGVudBIqLndhbGxldG1hbm'
-    'FnZXIudjEuR2V0QWRkcmVzc1Vuc3BlbnRSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5HZXRB'
-    'ZGRyZXNzVW5zcGVudFJlc3BvbnNlEo0BChxCcm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uEj'
-    'Uud2FsbGV0bWFuYWdlci52MS5Ccm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uUmVxdWVzdBo2'
-    'LndhbGxldG1hbmFnZXIudjEuQnJvYWRjYXN0RWxlY3RydW1UcmFuc2FjdGlvblJlc3BvbnNlEo'
-    'EBChhFbnVtZXJhdGVIYXJkd2FyZURldmljZXMSMS53YWxsZXRtYW5hZ2VyLnYxLkVudW1lcmF0'
-    'ZUhhcmR3YXJlRGV2aWNlc1JlcXVlc3QaMi53YWxsZXRtYW5hZ2VyLnYxLkVudW1lcmF0ZUhhcm'
-    'R3YXJlRGV2aWNlc1Jlc3BvbnNlEmYKD0dldEhhcmR3YXJlWHB1YhIoLndhbGxldG1hbmFnZXIu'
-    'djEuR2V0SGFyZHdhcmVYcHViUmVxdWVzdBopLndhbGxldG1hbmFnZXIudjEuR2V0SGFyZHdhcm'
-    'VYcHViUmVzcG9uc2USbwoSU2lnblBzYnRXaXRoRGV2aWNlEisud2FsbGV0bWFuYWdlci52MS5T'
-    'aWduUHNidFdpdGhEZXZpY2VSZXF1ZXN0Giwud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFdpdG'
-    'hEZXZpY2VSZXNwb25zZRJmCg9Qcm9tcHREZXZpY2VQaW4SKC53YWxsZXRtYW5hZ2VyLnYxLlBy'
-    'b21wdERldmljZVBpblJlcXVlc3QaKS53YWxsZXRtYW5hZ2VyLnYxLlByb21wdERldmljZVBpbl'
-    'Jlc3BvbnNlEmAKDVNlbmREZXZpY2VQaW4SJi53YWxsZXRtYW5hZ2VyLnYxLlNlbmREZXZpY2VQ'
-    'aW5SZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5TZW5kRGV2aWNlUGluUmVzcG9uc2USWgoLQ2'
-    'xvc2VEZXZpY2USJC53YWxsZXRtYW5hZ2VyLnYxLkNsb3NlRGV2aWNlUmVxdWVzdBolLndhbGxl'
-    'dG1hbmFnZXIudjEuQ2xvc2VEZXZpY2VSZXNwb25zZRJjCg5EZXJpdmVLZXlzdG9yZRInLndhbG'
-    'xldG1hbmFnZXIudjEuRGVyaXZlS2V5c3RvcmVSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52MS5E'
-    'ZXJpdmVLZXlzdG9yZVJlc3BvbnNlEloKC0V4cGxvcmVTZWVkEiQud2FsbGV0bWFuYWdlci52MS'
-    '5FeHBsb3JlU2VlZFJlcXVlc3QaJS53YWxsZXRtYW5hZ2VyLnYxLkV4cGxvcmVTZWVkUmVzcG9u'
-    'c2USaQoQR2VuZXJhdGVNbmVtb25pYxIpLndhbGxldG1hbmFnZXIudjEuR2VuZXJhdGVNbmVtb2'
-    '5pY1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkdlbmVyYXRlTW5lbW9uaWNSZXNwb25zZRJp'
-    'ChBWYWxpZGF0ZU1uZW1vbmljEikud2FsbGV0bWFuYWdlci52MS5WYWxpZGF0ZU1uZW1vbmljUm'
-    'VxdWVzdBoqLndhbGxldG1hbmFnZXIudjEuVmFsaWRhdGVNbmVtb25pY1Jlc3BvbnNlEoEBChhQ'
-    'cmV2aWV3V2FsbGV0RnJvbUVudHJvcHkSMS53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdXYWxsZX'
-    'RGcm9tRW50cm9weVJlcXVlc3QaMi53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdXYWxsZXRGcm9t'
-    'RW50cm9weVJlc3BvbnNlEmAKDUdldFdhbGxldFNlZWQSJi53YWxsZXRtYW5hZ2VyLnYxLkdldF'
-    'dhbGxldFNlZWRSZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZWVkUmVzcG9u'
-    'c2USaQoQTGlzdENvcmVWYXJpYW50cxIpLndhbGxldG1hbmFnZXIudjEuTGlzdENvcmVWYXJpYW'
-    '50c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkxpc3RDb3JlVmFyaWFudHNSZXNwb25zZRJj'
-    'Cg5HZXRDb3JlVmFyaWFudBInLndhbGxldG1hbmFnZXIudjEuR2V0Q29yZVZhcmlhbnRSZXF1ZX'
-    'N0Gigud2FsbGV0bWFuYWdlci52MS5HZXRDb3JlVmFyaWFudFJlc3BvbnNlEmMKDlNldENvcmVW'
-    'YXJpYW50Eicud2FsbGV0bWFuYWdlci52MS5TZXRDb3JlVmFyaWFudFJlcXVlc3QaKC53YWxsZX'
-    'RtYW5hZ2VyLnYxLlNldENvcmVWYXJpYW50UmVzcG9uc2USbAoRR2V0RWxlY3RydW1TZXJ2ZXIS'
-    'Ki53YWxsZXRtYW5hZ2VyLnYxLkdldEVsZWN0cnVtU2VydmVyUmVxdWVzdBorLndhbGxldG1hbm'
-    'FnZXIudjEuR2V0RWxlY3RydW1TZXJ2ZXJSZXNwb25zZRJsChFTZXRFbGVjdHJ1bVNlcnZlchIq'
-    'LndhbGxldG1hbmFnZXIudjEuU2V0RWxlY3RydW1TZXJ2ZXJSZXF1ZXN0Gisud2FsbGV0bWFuYW'
-    'dlci52MS5TZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEl0KDEdldFRvckNvbmZpZxIlLndhbGxl'
-    'dG1hbmFnZXIudjEuR2V0VG9yQ29uZmlnUmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuR2V0VG'
-    '9yQ29uZmlnUmVzcG9uc2USXQoMU2V0VG9yQ29uZmlnEiUud2FsbGV0bWFuYWdlci52MS5TZXRU'
-    'b3JDb25maWdSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52MS5TZXRUb3JDb25maWdSZXNwb25zZR'
-    'JWCg9XYXRjaFdhbGxldERhdGESFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKS53YWxsZXRtYW5h'
-    'Z2VyLnYxLldhdGNoV2FsbGV0RGF0YVJlc3BvbnNlMAE=');
-
+final $typed_data.Uint8List walletManagerServiceDescriptor =
+    $convert.base64Decode('ChRXYWxsZXRNYW5hZ2VyU2VydmljZRJmCg9HZXRXYWxsZXRTdGF0dXMSKC53YWxsZXRtYW5hZ2'
+        'VyLnYxLkdldFdhbGxldFN0YXR1c1JlcXVlc3QaKS53YWxsZXRtYW5hZ2VyLnYxLkdldFdhbGxl'
+        'dFN0YXR1c1Jlc3BvbnNlEngKFUxpc3RTaWRlY2hhaW5EZXBvc2l0cxIuLndhbGxldG1hbmFnZX'
+        'IudjEuTGlzdFNpZGVjaGFpbkRlcG9zaXRzUmVxdWVzdBovLndhbGxldG1hbmFnZXIudjEuTGlz'
+        'dFNpZGVjaGFpbkRlcG9zaXRzUmVzcG9uc2UShAEKGUdldFNpZGVjaGFpbkRlcG9zaXRUb3RhbH'
+        'MSMi53YWxsZXRtYW5hZ2VyLnYxLkdldFNpZGVjaGFpbkRlcG9zaXRUb3RhbHNSZXF1ZXN0GjMu'
+        'd2FsbGV0bWFuYWdlci52MS5HZXRTaWRlY2hhaW5EZXBvc2l0VG90YWxzUmVzcG9uc2USWgoLR2'
+        'V0Tm9kZU1vZGUSJC53YWxsZXRtYW5hZ2VyLnYxLkdldE5vZGVNb2RlUmVxdWVzdBolLndhbGxl'
+        'dG1hbmFnZXIudjEuR2V0Tm9kZU1vZGVSZXNwb25zZRJaCgtTZXROb2RlTW9kZRIkLndhbGxldG'
+        '1hbmFnZXIudjEuU2V0Tm9kZU1vZGVSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52MS5TZXROb2Rl'
+        'TW9kZVJlc3BvbnNlEmMKDkdlbmVyYXRlV2FsbGV0Eicud2FsbGV0bWFuYWdlci52MS5HZW5lcm'
+        'F0ZVdhbGxldFJlcXVlc3QaKC53YWxsZXRtYW5hZ2VyLnYxLkdlbmVyYXRlV2FsbGV0UmVzcG9u'
+        'c2USXQoMVW5sb2NrV2FsbGV0EiUud2FsbGV0bWFuYWdlci52MS5VbmxvY2tXYWxsZXRSZXF1ZX'
+        'N0GiYud2FsbGV0bWFuYWdlci52MS5VbmxvY2tXYWxsZXRSZXNwb25zZRJXCgpMb2NrV2FsbGV0'
+        'EiMud2FsbGV0bWFuYWdlci52MS5Mb2NrV2FsbGV0UmVxdWVzdBokLndhbGxldG1hbmFnZXIudj'
+        'EuTG9ja1dhbGxldFJlc3BvbnNlEmAKDUVuY3J5cHRXYWxsZXQSJi53YWxsZXRtYW5hZ2VyLnYx'
+        'LkVuY3J5cHRXYWxsZXRSZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5FbmNyeXB0V2FsbGV0Um'
+        'VzcG9uc2USYwoOQ2hhbmdlUGFzc3dvcmQSJy53YWxsZXRtYW5hZ2VyLnYxLkNoYW5nZVBhc3N3'
+        'b3JkUmVxdWVzdBooLndhbGxldG1hbmFnZXIudjEuQ2hhbmdlUGFzc3dvcmRSZXNwb25zZRJpCh'
+        'BSZW1vdmVFbmNyeXB0aW9uEikud2FsbGV0bWFuYWdlci52MS5SZW1vdmVFbmNyeXB0aW9uUmVx'
+        'dWVzdBoqLndhbGxldG1hbmFnZXIudjEuUmVtb3ZlRW5jcnlwdGlvblJlc3BvbnNlEloKC0xpc3'
+        'RXYWxsZXRzEiQud2FsbGV0bWFuYWdlci52MS5MaXN0V2FsbGV0c1JlcXVlc3QaJS53YWxsZXRt'
+        'YW5hZ2VyLnYxLkxpc3RXYWxsZXRzUmVzcG9uc2USXQoMU3dpdGNoV2FsbGV0EiUud2FsbGV0bW'
+        'FuYWdlci52MS5Td2l0Y2hXYWxsZXRSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52MS5Td2l0Y2hX'
+        'YWxsZXRSZXNwb25zZRJ1ChRVcGRhdGVXYWxsZXRNZXRhZGF0YRItLndhbGxldG1hbmFnZXIudj'
+        'EuVXBkYXRlV2FsbGV0TWV0YWRhdGFSZXF1ZXN0Gi4ud2FsbGV0bWFuYWdlci52MS5VcGRhdGVX'
+        'YWxsZXRNZXRhZGF0YVJlc3BvbnNlEl0KDERlbGV0ZVdhbGxldBIlLndhbGxldG1hbmFnZXIudj'
+        'EuRGVsZXRlV2FsbGV0UmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuRGVsZXRlV2FsbGV0UmVz'
+        'cG9uc2USaQoQRGVsZXRlQWxsV2FsbGV0cxIpLndhbGxldG1hbmFnZXIudjEuRGVsZXRlQWxsV2'
+        'FsbGV0c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkRlbGV0ZUFsbFdhbGxldHNSZXNwb25z'
+        'ZRJsChFMaXN0V2FsbGV0QmFja3VwcxIqLndhbGxldG1hbmFnZXIudjEuTGlzdFdhbGxldEJhY2'
+        't1cHNSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5MaXN0V2FsbGV0QmFja3Vwc1Jlc3BvbnNl'
+        'EnIKE1Jlc3RvcmVXYWxsZXRCYWNrdXASLC53YWxsZXRtYW5hZ2VyLnYxLlJlc3RvcmVXYWxsZX'
+        'RCYWNrdXBSZXF1ZXN0Gi0ud2FsbGV0bWFuYWdlci52MS5SZXN0b3JlV2FsbGV0QmFja3VwUmVz'
+        'cG9uc2USggEKGVJlc3RvcmVXYWxsZXRCYWNrdXBTdHJlYW0SLC53YWxsZXRtYW5hZ2VyLnYxLl'
+        'Jlc3RvcmVXYWxsZXRCYWNrdXBSZXF1ZXN0GjUud2FsbGV0bWFuYWdlci52MS5SZXN0b3JlV2Fs'
+        'bGV0QmFja3VwUHJvZ3Jlc3NSZXNwb25zZTABEngKFUNyZWF0ZVdhdGNoT25seVdhbGxldBIuLn'
+        'dhbGxldG1hbmFnZXIudjEuQ3JlYXRlV2F0Y2hPbmx5V2FsbGV0UmVxdWVzdBovLndhbGxldG1h'
+        'bmFnZXIudjEuQ3JlYXRlV2F0Y2hPbmx5V2FsbGV0UmVzcG9uc2USdQoUQ3JlYXRlRWxlY3RydW'
+        '1XYWxsZXQSLS53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZUVsZWN0cnVtV2FsbGV0UmVxdWVzdBou'
+        'LndhbGxldG1hbmFnZXIudjEuQ3JlYXRlRWxlY3RydW1XYWxsZXRSZXNwb25zZRJ1ChRDcmVhdG'
+        'VNdWx0aXNpZ1dhbGxldBItLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlTXVsdGlzaWdXYWxsZXRS'
+        'ZXF1ZXN0Gi4ud2FsbGV0bWFuYWdlci52MS5DcmVhdGVNdWx0aXNpZ1dhbGxldFJlc3BvbnNlEn'
+        'IKE1BhcnNlTXVsdGlzaWdDb25maWcSLC53YWxsZXRtYW5hZ2VyLnYxLlBhcnNlTXVsdGlzaWdD'
+        'b25maWdSZXF1ZXN0Gi0ud2FsbGV0bWFuYWdlci52MS5QYXJzZU11bHRpc2lnQ29uZmlnUmVzcG'
+        '9uc2USbwoSVmFsaWRhdGVEZXNjcmlwdG9yEisud2FsbGV0bWFuYWdlci52MS5WYWxpZGF0ZURl'
+        'c2NyaXB0b3JSZXF1ZXN0Giwud2FsbGV0bWFuYWdlci52MS5WYWxpZGF0ZURlc2NyaXB0b3JSZX'
+        'Nwb25zZRJ7ChZWYWxpZGF0ZURlcml2YXRpb25QYXRoEi8ud2FsbGV0bWFuYWdlci52MS5WYWxp'
+        'ZGF0ZURlcml2YXRpb25QYXRoUmVxdWVzdBowLndhbGxldG1hbmFnZXIudjEuVmFsaWRhdGVEZX'
+        'JpdmF0aW9uUGF0aFJlc3BvbnNlEnIKE0xpc3REZXJpdmF0aW9uUGF0aHMSLC53YWxsZXRtYW5h'
+        'Z2VyLnYxLkxpc3REZXJpdmF0aW9uUGF0aHNSZXF1ZXN0Gi0ud2FsbGV0bWFuYWdlci52MS5MaX'
+        'N0RGVyaXZhdGlvblBhdGhzUmVzcG9uc2USfgoXQ3JlYXRlQml0Y29pbkNvcmVXYWxsZXQSMC53'
+        'YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZUJpdGNvaW5Db3JlV2FsbGV0UmVxdWVzdBoxLndhbGxldG'
+        '1hbmFnZXIudjEuQ3JlYXRlQml0Y29pbkNvcmVXYWxsZXRSZXNwb25zZRJsChFFbnN1cmVDb3Jl'
+        'V2FsbGV0cxIqLndhbGxldG1hbmFnZXIudjEuRW5zdXJlQ29yZVdhbGxldHNSZXF1ZXN0Gisud2'
+        'FsbGV0bWFuYWdlci52MS5FbnN1cmVDb3JlV2FsbGV0c1Jlc3BvbnNlElcKCkdldEJhbGFuY2US'
+        'Iy53YWxsZXRtYW5hZ2VyLnYxLkdldEJhbGFuY2VSZXF1ZXN0GiQud2FsbGV0bWFuYWdlci52MS'
+        '5HZXRCYWxhbmNlUmVzcG9uc2USXQoMUmVzY2FuV2FsbGV0EiUud2FsbGV0bWFuYWdlci52MS5S'
+        'ZXNjYW5XYWxsZXRSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52MS5SZXNjYW5XYWxsZXRSZXNwb2'
+        '5zZRJaCgtFc3RpbWF0ZUZlZRIkLndhbGxldG1hbmFnZXIudjEuRXN0aW1hdGVGZWVSZXF1ZXN0'
+        'GiUud2FsbGV0bWFuYWdlci52MS5Fc3RpbWF0ZUZlZVJlc3BvbnNlEmAKDUdldE5ld0FkZHJlc3'
+        'MSJi53YWxsZXRtYW5hZ2VyLnYxLkdldE5ld0FkZHJlc3NSZXF1ZXN0Gicud2FsbGV0bWFuYWdl'
+        'ci52MS5HZXROZXdBZGRyZXNzUmVzcG9uc2USZgoPU2VuZFRyYW5zYWN0aW9uEigud2FsbGV0bW'
+        'FuYWdlci52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZXN0Gikud2FsbGV0bWFuYWdlci52MS5TZW5k'
+        'VHJhbnNhY3Rpb25SZXNwb25zZRJaCgtQcmV2aWV3U2VuZBIkLndhbGxldG1hbmFnZXIudjEuUH'
+        'Jldmlld1NlbmRSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52MS5QcmV2aWV3U2VuZFJlc3BvbnNl'
+        'ElEKDlNldEZyb3plbkNvaW5zEicud2FsbGV0bWFuYWdlci52MS5TZXRGcm96ZW5Db2luc1JlcX'
+        'Vlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSYAoNQ3JlYXRlRGVwb3NpdBImLndhbGxldG1h'
+        'bmFnZXIudjEuQ3JlYXRlRGVwb3NpdFJlcXVlc3QaJy53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZU'
+        'RlcG9zaXRSZXNwb25zZRJpChBMaXN0VHJhbnNhY3Rpb25zEikud2FsbGV0bWFuYWdlci52MS5M'
+        'aXN0VHJhbnNhY3Rpb25zUmVxdWVzdBoqLndhbGxldG1hbmFnZXIudjEuTGlzdFRyYW5zYWN0aW'
+        '9uc1Jlc3BvbnNlEloKC0xpc3RVbnNwZW50EiQud2FsbGV0bWFuYWdlci52MS5MaXN0VW5zcGVu'
+        'dFJlcXVlc3QaJS53YWxsZXRtYW5hZ2VyLnYxLkxpc3RVbnNwZW50UmVzcG9uc2USdQoUTGlzdF'
+        'JlY2VpdmVBZGRyZXNzZXMSLS53YWxsZXRtYW5hZ2VyLnYxLkxpc3RSZWNlaXZlQWRkcmVzc2Vz'
+        'UmVxdWVzdBouLndhbGxldG1hbmFnZXIudjEuTGlzdFJlY2VpdmVBZGRyZXNzZXNSZXNwb25zZR'
+        'J4ChVHZXRUcmFuc2FjdGlvbkRldGFpbHMSLi53YWxsZXRtYW5hZ2VyLnYxLkdldFRyYW5zYWN0'
+        'aW9uRGV0YWlsc1JlcXVlc3QaLy53YWxsZXRtYW5hZ2VyLnYxLkdldFRyYW5zYWN0aW9uRGV0YW'
+        'lsc1Jlc3BvbnNlEmwKEURlY29kZVRyYW5zYWN0aW9uEioud2FsbGV0bWFuYWdlci52MS5EZWNv'
+        'ZGVUcmFuc2FjdGlvblJlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLkRlY29kZVRyYW5zYWN0aW'
+        '9uUmVzcG9uc2USTgoHQnVtcEZlZRIgLndhbGxldG1hbmFnZXIudjEuQnVtcEZlZVJlcXVlc3Qa'
+        'IS53YWxsZXRtYW5hZ2VyLnYxLkJ1bXBGZWVSZXNwb25zZRJjCg5QcmV2aWV3QnVtcEZlZRInLn'
+        'dhbGxldG1hbmFnZXIudjEuUHJldmlld0J1bXBGZWVSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52'
+        'MS5QcmV2aWV3QnVtcEZlZVJlc3BvbnNlElcKCkNyZWF0ZUNwZnASIy53YWxsZXRtYW5hZ2VyLn'
+        'YxLkNyZWF0ZUNwZnBSZXF1ZXN0GiQud2FsbGV0bWFuYWdlci52MS5DcmVhdGVDcGZwUmVzcG9u'
+        'c2USbAoRQ2FuY2VsVHJhbnNhY3Rpb24SKi53YWxsZXRtYW5hZ2VyLnYxLkNhbmNlbFRyYW5zYW'
+        'N0aW9uUmVxdWVzdBorLndhbGxldG1hbmFnZXIudjEuQ2FuY2VsVHJhbnNhY3Rpb25SZXNwb25z'
+        'ZRJmCg9EZXJpdmVBZGRyZXNzZXMSKC53YWxsZXRtYW5hZ2VyLnYxLkRlcml2ZUFkZHJlc3Nlc1'
+        'JlcXVlc3QaKS53YWxsZXRtYW5hZ2VyLnYxLkRlcml2ZUFkZHJlc3Nlc1Jlc3BvbnNlEl0KDExp'
+        'c3RFY3hCdXJucxIlLndhbGxldG1hbmFnZXIudjEuTGlzdEVjeEJ1cm5zUmVxdWVzdBomLndhbG'
+        'xldG1hbmFnZXIudjEuTGlzdEVjeEJ1cm5zUmVzcG9uc2USVwoKQ3JlYXRlUHNidBIjLndhbGxl'
+        'dG1hbmFnZXIudjEuQ3JlYXRlUHNidFJlcXVlc3QaJC53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZV'
+        'BzYnRSZXNwb25zZRJRCghTaWduUHNidBIhLndhbGxldG1hbmFnZXIudjEuU2lnblBzYnRSZXF1'
+        'ZXN0GiIud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFJlc3BvbnNlEnUKFFNpZ25Qc2J0V2l0aE'
+        'Nvc2lnbmVyEi0ud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFdpdGhDb3NpZ25lclJlcXVlc3Qa'
+        'Li53YWxsZXRtYW5hZ2VyLnYxLlNpZ25Qc2J0V2l0aENvc2lnbmVyUmVzcG9uc2USWgoLQ29tYm'
+        'luZVBzYnQSJC53YWxsZXRtYW5hZ2VyLnYxLkNvbWJpbmVQc2J0UmVxdWVzdBolLndhbGxldG1h'
+        'bmFnZXIudjEuQ29tYmluZVBzYnRSZXNwb25zZRJdCgxGaW5hbGl6ZVBzYnQSJS53YWxsZXRtYW'
+        '5hZ2VyLnYxLkZpbmFsaXplUHNidFJlcXVlc3QaJi53YWxsZXRtYW5hZ2VyLnYxLkZpbmFsaXpl'
+        'UHNidFJlc3BvbnNlEm8KEk11bHRpc2lnUHNidFN0YXR1cxIrLndhbGxldG1hbmFnZXIudjEuTX'
+        'VsdGlzaWdQc2J0U3RhdHVzUmVxdWVzdBosLndhbGxldG1hbmFnZXIudjEuTXVsdGlzaWdQc2J0'
+        'U3RhdHVzUmVzcG9uc2USdQoUQnJvYWRjYXN0VHJhbnNhY3Rpb24SLS53YWxsZXRtYW5hZ2VyLn'
+        'YxLkJyb2FkY2FzdFRyYW5zYWN0aW9uUmVxdWVzdBouLndhbGxldG1hbmFnZXIudjEuQnJvYWRj'
+        'YXN0VHJhbnNhY3Rpb25SZXNwb25zZRJsChFHZXRBZGRyZXNzVW5zcGVudBIqLndhbGxldG1hbm'
+        'FnZXIudjEuR2V0QWRkcmVzc1Vuc3BlbnRSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5HZXRB'
+        'ZGRyZXNzVW5zcGVudFJlc3BvbnNlEo0BChxCcm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uEj'
+        'Uud2FsbGV0bWFuYWdlci52MS5Ccm9hZGNhc3RFbGVjdHJ1bVRyYW5zYWN0aW9uUmVxdWVzdBo2'
+        'LndhbGxldG1hbmFnZXIudjEuQnJvYWRjYXN0RWxlY3RydW1UcmFuc2FjdGlvblJlc3BvbnNlEo'
+        'EBChhFbnVtZXJhdGVIYXJkd2FyZURldmljZXMSMS53YWxsZXRtYW5hZ2VyLnYxLkVudW1lcmF0'
+        'ZUhhcmR3YXJlRGV2aWNlc1JlcXVlc3QaMi53YWxsZXRtYW5hZ2VyLnYxLkVudW1lcmF0ZUhhcm'
+        'R3YXJlRGV2aWNlc1Jlc3BvbnNlEmYKD0dldEhhcmR3YXJlWHB1YhIoLndhbGxldG1hbmFnZXIu'
+        'djEuR2V0SGFyZHdhcmVYcHViUmVxdWVzdBopLndhbGxldG1hbmFnZXIudjEuR2V0SGFyZHdhcm'
+        'VYcHViUmVzcG9uc2USbwoSU2lnblBzYnRXaXRoRGV2aWNlEisud2FsbGV0bWFuYWdlci52MS5T'
+        'aWduUHNidFdpdGhEZXZpY2VSZXF1ZXN0Giwud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFdpdG'
+        'hEZXZpY2VSZXNwb25zZRJmCg9Qcm9tcHREZXZpY2VQaW4SKC53YWxsZXRtYW5hZ2VyLnYxLlBy'
+        'b21wdERldmljZVBpblJlcXVlc3QaKS53YWxsZXRtYW5hZ2VyLnYxLlByb21wdERldmljZVBpbl'
+        'Jlc3BvbnNlEmAKDVNlbmREZXZpY2VQaW4SJi53YWxsZXRtYW5hZ2VyLnYxLlNlbmREZXZpY2VQ'
+        'aW5SZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5TZW5kRGV2aWNlUGluUmVzcG9uc2USWgoLQ2'
+        'xvc2VEZXZpY2USJC53YWxsZXRtYW5hZ2VyLnYxLkNsb3NlRGV2aWNlUmVxdWVzdBolLndhbGxl'
+        'dG1hbmFnZXIudjEuQ2xvc2VEZXZpY2VSZXNwb25zZRJjCg5EZXJpdmVLZXlzdG9yZRInLndhbG'
+        'xldG1hbmFnZXIudjEuRGVyaXZlS2V5c3RvcmVSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52MS5E'
+        'ZXJpdmVLZXlzdG9yZVJlc3BvbnNlEloKC0V4cGxvcmVTZWVkEiQud2FsbGV0bWFuYWdlci52MS'
+        '5FeHBsb3JlU2VlZFJlcXVlc3QaJS53YWxsZXRtYW5hZ2VyLnYxLkV4cGxvcmVTZWVkUmVzcG9u'
+        'c2USaQoQR2VuZXJhdGVNbmVtb25pYxIpLndhbGxldG1hbmFnZXIudjEuR2VuZXJhdGVNbmVtb2'
+        '5pY1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkdlbmVyYXRlTW5lbW9uaWNSZXNwb25zZRJp'
+        'ChBWYWxpZGF0ZU1uZW1vbmljEikud2FsbGV0bWFuYWdlci52MS5WYWxpZGF0ZU1uZW1vbmljUm'
+        'VxdWVzdBoqLndhbGxldG1hbmFnZXIudjEuVmFsaWRhdGVNbmVtb25pY1Jlc3BvbnNlEoEBChhQ'
+        'cmV2aWV3V2FsbGV0RnJvbUVudHJvcHkSMS53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdXYWxsZX'
+        'RGcm9tRW50cm9weVJlcXVlc3QaMi53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdXYWxsZXRGcm9t'
+        'RW50cm9weVJlc3BvbnNlEmAKDUdldFdhbGxldFNlZWQSJi53YWxsZXRtYW5hZ2VyLnYxLkdldF'
+        'dhbGxldFNlZWRSZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZWVkUmVzcG9u'
+        'c2USaQoQTGlzdENvcmVWYXJpYW50cxIpLndhbGxldG1hbmFnZXIudjEuTGlzdENvcmVWYXJpYW'
+        '50c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkxpc3RDb3JlVmFyaWFudHNSZXNwb25zZRJj'
+        'Cg5HZXRDb3JlVmFyaWFudBInLndhbGxldG1hbmFnZXIudjEuR2V0Q29yZVZhcmlhbnRSZXF1ZX'
+        'N0Gigud2FsbGV0bWFuYWdlci52MS5HZXRDb3JlVmFyaWFudFJlc3BvbnNlEmMKDlNldENvcmVW'
+        'YXJpYW50Eicud2FsbGV0bWFuYWdlci52MS5TZXRDb3JlVmFyaWFudFJlcXVlc3QaKC53YWxsZX'
+        'RtYW5hZ2VyLnYxLlNldENvcmVWYXJpYW50UmVzcG9uc2USbAoRR2V0RWxlY3RydW1TZXJ2ZXIS'
+        'Ki53YWxsZXRtYW5hZ2VyLnYxLkdldEVsZWN0cnVtU2VydmVyUmVxdWVzdBorLndhbGxldG1hbm'
+        'FnZXIudjEuR2V0RWxlY3RydW1TZXJ2ZXJSZXNwb25zZRJsChFTZXRFbGVjdHJ1bVNlcnZlchIq'
+        'LndhbGxldG1hbmFnZXIudjEuU2V0RWxlY3RydW1TZXJ2ZXJSZXF1ZXN0Gisud2FsbGV0bWFuYW'
+        'dlci52MS5TZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEl0KDEdldFRvckNvbmZpZxIlLndhbGxl'
+        'dG1hbmFnZXIudjEuR2V0VG9yQ29uZmlnUmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuR2V0VG'
+        '9yQ29uZmlnUmVzcG9uc2USXQoMU2V0VG9yQ29uZmlnEiUud2FsbGV0bWFuYWdlci52MS5TZXRU'
+        'b3JDb25maWdSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52MS5TZXRUb3JDb25maWdSZXNwb25zZR'
+        'JWCg9XYXRjaFdhbGxldERhdGESFi5nb29nbGUucHJvdG9idWYuRW1wdHkaKS53YWxsZXRtYW5h'
+        'Z2VyLnYxLldhdGNoV2FsbGV0RGF0YVJlc3BvbnNlMAE=');

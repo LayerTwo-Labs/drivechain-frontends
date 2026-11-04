@@ -44,7 +44,7 @@ dependencies:
   auto_route: ^11.2.0
   fixnum: ^1.1.1
   get_it: ^8.3.0
-  protobuf: ^4.2.0
+  protobuf: ^6.1.0
   window_manager: ^0.5.2
   flutter_markdown:
     path: ../third_party/flutter_markdown
@@ -54,7 +54,7 @@ dependencies:
   crypto: ^3.0.8
   thirds:
     path: ../third_party/thirds
-  connectrpc: ^1.0.0
+  connectrpc: ^2.0.1
   desktop_multi_window:
     git:
       url: https://github.com/octobocto/flutter-plugins.git

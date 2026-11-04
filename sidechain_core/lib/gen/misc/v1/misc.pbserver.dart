@@ -1,21 +1,21 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: misc/v1/misc.proto
-//
-// @dart = 2.12
+// Generated from misc/v1/misc.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
+import 'package:protobuf/well_known_types/google/protobuf/empty.pb.dart' as $1;
 
-import '../../google/protobuf/empty.pb.dart' as $1;
 import 'misc.pb.dart' as $2;
 import 'misc.pbjson.dart';
 
@@ -36,39 +36,63 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'ListOPReturn': return $1.Empty();
-      case 'BroadcastNews': return $2.BroadcastNewsRequest();
-      case 'CreateTopic': return $2.CreateTopicRequest();
-      case 'ListTopics': return $1.Empty();
-      case 'ListCoinNews': return $2.ListCoinNewsRequest();
-      case 'CommentNews': return $2.CommentNewsRequest();
-      case 'ListComments': return $2.ListCommentsRequest();
-      case 'EstimateNewsFee': return $2.EstimateNewsFeeRequest();
-      case 'TimestampFile': return $2.TimestampFileRequest();
-      case 'ListTimestamps': return $1.Empty();
-      case 'VerifyTimestamp': return $2.VerifyTimestampRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'ListOPReturn':
+        return $1.Empty();
+      case 'BroadcastNews':
+        return $2.BroadcastNewsRequest();
+      case 'CreateTopic':
+        return $2.CreateTopicRequest();
+      case 'ListTopics':
+        return $1.Empty();
+      case 'ListCoinNews':
+        return $2.ListCoinNewsRequest();
+      case 'CommentNews':
+        return $2.CommentNewsRequest();
+      case 'ListComments':
+        return $2.ListCommentsRequest();
+      case 'EstimateNewsFee':
+        return $2.EstimateNewsFeeRequest();
+      case 'TimestampFile':
+        return $2.TimestampFileRequest();
+      case 'ListTimestamps':
+        return $1.Empty();
+      case 'VerifyTimestamp':
+        return $2.VerifyTimestampRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'ListOPReturn': return this.listOPReturn(ctx, request as $1.Empty);
-      case 'BroadcastNews': return this.broadcastNews(ctx, request as $2.BroadcastNewsRequest);
-      case 'CreateTopic': return this.createTopic(ctx, request as $2.CreateTopicRequest);
-      case 'ListTopics': return this.listTopics(ctx, request as $1.Empty);
-      case 'ListCoinNews': return this.listCoinNews(ctx, request as $2.ListCoinNewsRequest);
-      case 'CommentNews': return this.commentNews(ctx, request as $2.CommentNewsRequest);
-      case 'ListComments': return this.listComments(ctx, request as $2.ListCommentsRequest);
-      case 'EstimateNewsFee': return this.estimateNewsFee(ctx, request as $2.EstimateNewsFeeRequest);
-      case 'TimestampFile': return this.timestampFile(ctx, request as $2.TimestampFileRequest);
-      case 'ListTimestamps': return this.listTimestamps(ctx, request as $1.Empty);
-      case 'VerifyTimestamp': return this.verifyTimestamp(ctx, request as $2.VerifyTimestampRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'ListOPReturn':
+        return listOPReturn(ctx, request as $1.Empty);
+      case 'BroadcastNews':
+        return broadcastNews(ctx, request as $2.BroadcastNewsRequest);
+      case 'CreateTopic':
+        return createTopic(ctx, request as $2.CreateTopicRequest);
+      case 'ListTopics':
+        return listTopics(ctx, request as $1.Empty);
+      case 'ListCoinNews':
+        return listCoinNews(ctx, request as $2.ListCoinNewsRequest);
+      case 'CommentNews':
+        return commentNews(ctx, request as $2.CommentNewsRequest);
+      case 'ListComments':
+        return listComments(ctx, request as $2.ListCommentsRequest);
+      case 'EstimateNewsFee':
+        return estimateNewsFee(ctx, request as $2.EstimateNewsFeeRequest);
+      case 'TimestampFile':
+        return timestampFile(ctx, request as $2.TimestampFileRequest);
+      case 'ListTimestamps':
+        return listTimestamps(ctx, request as $1.Empty);
+      case 'VerifyTimestamp':
+        return verifyTimestamp(ctx, request as $2.VerifyTimestampRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => MiscServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => MiscServiceBase$messageJson;
 }
-

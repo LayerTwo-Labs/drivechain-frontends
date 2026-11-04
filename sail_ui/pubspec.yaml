@@ -11,7 +11,7 @@ dependencies:
   auto_route: ^11.2.0
   auto_updater: ^1.0.0
   collection: ^1.19.1
-  connectrpc: 1.0.0
+  connectrpc: ^2.0.1
   desktop_multi_window:
     git:
       url: https://github.com/octobocto/flutter-plugins.git

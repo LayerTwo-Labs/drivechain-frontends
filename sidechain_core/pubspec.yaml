@@ -10,7 +10,7 @@ environment:
 dependencies:
   auto_route: ^11.2.0
   collection: ^1.19.1
-  connectrpc: 1.0.0
+  connectrpc: ^2.0.1
   crypto: ^3.0.8
   desktop_multi_window:
     git:
@@ -26,7 +26,7 @@ dependencies:
   logger:
     path: ../third_party/logger
   path: ^1.9.1
-  protobuf: ^4.2.0
+  protobuf: ^6.1.0
   thirds:
     path: ../third_party/thirds
   web: ^1.1.2
