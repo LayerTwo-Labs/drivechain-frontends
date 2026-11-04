@@ -262,4 +262,94 @@ void main() {
       expect(utxo.withdrawal, isTrue);
     }
   });
+
+  test('each outpoint kind reads its own id and type', () {
+    final cases = {
+      'Regular': (
+        {
+          'Regular': {'txid': 'aa', 'vout': 1},
+        },
+        'aa:1',
+        OutpointType.regular,
+      ),
+      'Coinbase': (
+        {
+          'Coinbase': {'txid': 'cb', 'vout': 2},
+        },
+        'cb:2',
+        OutpointType.coinbase,
+      ),
+      'Payout': (
+        {
+          'Payout': {'hash': 'pp', 'vout': 3},
+        },
+        'pp:3',
+        OutpointType.payout,
+      ),
+      'Deposit': ({'Deposit': 'abcd:4'}, 'abcd:4', OutpointType.deposit),
+      'UnsuccessfulWithdrawal': (
+        {
+          'UnsuccessfulWithdrawal': {'m6id': 'm6', 'height': 40, 'vout': 5},
+        },
+        'm6:5',
+        OutpointType.unsuccessfulWithdrawal,
+      ),
+    };
+    for (final MapEntry(key: kind, value: (json, id, type)) in cases.entries) {
+      final outpoint = Outpoint.fromJson(json);
+      expect(outpoint.id, id, reason: kind);
+      expect(outpoint.type, type, reason: kind);
+    }
+  });
+
+  test('a wallet list that holds a recreated withdrawal coin reads in full', () {
+    final utxos = SidechainUTXO.fromJsonList([
+      {
+        'outpoint': outpoint,
+        'output': {
+          'address': 'mine',
+          'content': {'Value': 2000},
+        },
+      },
+      {
+        'outpoint': {
+          'UnsuccessfulWithdrawal': {'m6id': 'm6', 'height': 40, 'vout': 0},
+        },
+        'output': {
+          'address': 'mine',
+          'content': {
+            'Withdrawal': {'value_sats': 4000, 'main_fee_sats': 1000, 'main_address': 'bcrt1q'},
+          },
+        },
+      },
+    ]);
+
+    expect(utxos, hasLength(2));
+    expect(utxos[1].outpoint, 'm6:0');
+    expect(utxos[1].type, OutpointType.unsuccessfulWithdrawal);
+    expect(utxos[1].valueSats, 5000);
+    expect(utxos[1].withdrawal, isTrue);
+  });
+
+  test('an unknown outpoint kind fails with its name', () {
+    expect(
+      () => Outpoint.fromJson({
+        'Future': {'vout': 0},
+      }),
+      throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('Future'))),
+    );
+  });
+
+  test('a withdrawal bundle outpoint reads a recreated withdrawal coin', () {
+    final json = {
+      'UnsuccessfulWithdrawal': {'m6id': 'm6', 'height': 40, 'vout': 1},
+    };
+    final outPoint = PWBOutPoint.fromMap(json);
+
+    expect(outPoint.type, OutPointType.unsuccessfulWithdrawal);
+    expect(outPoint.unsuccessfulWithdrawal!.m6id, 'm6');
+    expect(outPoint.unsuccessfulWithdrawal!.height, 40);
+    expect(outPoint.unsuccessfulWithdrawal!.vout, 1);
+    expect(outPoint.toMap(), json);
+  });
 }

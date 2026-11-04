@@ -222,6 +222,24 @@ type bundleOutPoint struct {
 		Txid string `json:"txid"`
 		Vout uint32 `json:"vout"`
 	} `json:"Regular"`
+	// UnsuccessfulWithdrawal is a payout of a failed bundle that thunder made
+	// again. It names that bundle, because no transaction holds it.
+	UnsuccessfulWithdrawal *struct {
+		M6id string `json:"m6id"`
+		Vout uint32 `json:"vout"`
+	} `json:"UnsuccessfulWithdrawal"`
+}
+
+// id names the sidechain transaction or the failed bundle that holds the coin.
+func (o bundleOutPoint) id() (string, uint32, bool) {
+	switch {
+	case o.Regular != nil:
+		return o.Regular.Txid, o.Regular.Vout, true
+	case o.UnsuccessfulWithdrawal != nil:
+		return o.UnsuccessfulWithdrawal.M6id, o.UnsuccessfulWithdrawal.Vout, true
+	default:
+		return "", 0, false
+	}
 }
 
 // bitassets names the payout BitcoinWithdrawal; the other sidechains name it Withdrawal.
@@ -260,12 +278,13 @@ func (e *SidechainMonitorEngine) parseWithdrawalBundle(ctx context.Context, bund
 			if payout == nil {
 				payout = output.Content.BitcoinWithdrawal
 			}
-			if outPoint.Regular == nil || payout == nil {
+			txid, vout, ok := outPoint.id()
+			if !ok || payout == nil {
 				return fmt.Errorf("bundle spends a coin that is not a withdrawal: %s", pair[0])
 			}
 			withdrawals = append(withdrawals, DetectedWithdrawal{
-				Txid:        outPoint.Regular.Txid,
-				Vout:        outPoint.Regular.Vout,
+				Txid:        txid,
+				Vout:        vout,
 				Sidechain:   sidechainName,
 				Amount:      payout.ValueSats,
 				Destination: payout.MainAddress,

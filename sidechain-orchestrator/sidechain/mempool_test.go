@@ -256,21 +256,23 @@ func TestWithMempoolUTXOsReportsAMempoolFault(t *testing.T) {
 	}
 }
 
-// A wallet can hold a regular, a deposit and a coinbase coin, so each counts.
+// A wallet can hold a regular, a deposit, a coinbase and a recreated withdrawal
+// coin, so each counts.
 func TestSpendsNamesEveryCoinAnInputTakes(t *testing.T) {
 	node := &fakeNode{mempool: `[
 	  {"txid":"aa","size":10,"tx":{
 	     "inputs":[
 	       {"Regular":{"txid":"old","vout":2}},
 	       {"Deposit":"maintxid:0"},
-	       {"Coinbase":{"merkle_root":"mr","vout":0}}
+	       {"Coinbase":{"merkle_root":"mr","vout":0}},
+	       {"UnsuccessfulWithdrawal":{"m6id":"m6","height":40,"vout":3}}
 	     ],
 	     "outputs":[{"address":"mine","content":{"Value":10}}]}}
 	]`}
 
 	txs, err := Mempool(context.Background(), node)
 	require.NoError(t, err)
-	assert.Equal(t, []MempoolInput{{Key: "old:2"}, {Key: "maintxid:0"}, {Key: "mr:0"}}, txs[0].Inputs)
+	assert.Equal(t, []MempoolInput{{Key: "old:2"}, {Key: "maintxid:0"}, {Key: "mr:0"}, {Key: "m6:3"}}, txs[0].Inputs)
 }
 
 func TestOurCoinsKeysEachCoinByItsOutpoint(t *testing.T) {
@@ -473,6 +475,7 @@ func TestMempoolSpendOfEachOutpointKind(t *testing.T) {
 		"regular":                 `{"Regular":{"txid":"old","vout":0}}`,
 		"coinbase":                `{"Coinbase":{"txid":"cb","vout":0}}`,
 		"coinbase by merkle root": `{"Coinbase":{"merkle_root":"mr","vout":0}}`,
+		"unsuccessful withdrawal": `{"UnsuccessfulWithdrawal":{"m6id":"m6","height":40,"vout":0}}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			coins := `[

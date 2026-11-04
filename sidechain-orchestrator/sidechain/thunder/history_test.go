@@ -341,3 +341,49 @@ func TestLocalHistoryWithoutListMempool(t *testing.T) {
 		t.Errorf("aa = %d confirmed %v, want 10000 confirmed", aa.ValueSats, aa.Confirmed)
 	}
 }
+
+func TestOutPointNamesEachKind(t *testing.T) {
+	for name, tc := range map[string]struct {
+		outpoint string
+		id       string
+		vout     uint32
+		ok       bool
+	}{
+		"regular":                 {`{"Regular":{"txid":"aa","vout":1}}`, "aa", 1, true},
+		"coinbase":                {`{"Coinbase":{"txid":"cb","vout":2}}`, "cb", 2, true},
+		"deposit":                 {`{"Deposit":"main:3"}`, "main", 3, true},
+		"unsuccessful withdrawal": {`{"UnsuccessfulWithdrawal":{"m6id":"m6","height":40,"vout":4}}`, "m6", 4, true},
+		"unknown":                 {`{"Future":{"vout":5}}`, "", 0, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var o outPoint
+			if err := json.Unmarshal([]byte(tc.outpoint), &o); err != nil {
+				t.Fatalf("decode: %v", err)
+			}
+			id, vout, ok := o.id()
+			if id != tc.id || vout != tc.vout || ok != tc.ok {
+				t.Errorf("id = %q, %d, %v, want %q, %d, %v", id, vout, ok, tc.id, tc.vout, tc.ok)
+			}
+		})
+	}
+}
+
+// A failed bundle gives its withdrawal outputs back at new outpoints, and the
+// next bundle takes them again. The money left with the first transaction.
+func TestLocalHistoryLeavesOutARecreatedWithdrawal(t *testing.T) {
+	recreated := `{"UnsuccessfulWithdrawal":{"m6id":"m6","height":40,"vout":0}}`
+	withdrawal := `{"address":"alice","content":{"Withdrawal":{"value_sats":4000,
+		"main_fee_sats":1000,"main_address":"tb1q"}}}`
+	got := historyOf(t, map[string]string{
+		"get_wallet_addresses": `["alice"]`,
+		"get_utxos": `[{"outpoint":` + recreated + `,"output":` + withdrawal + `},
+			{"outpoint":{"Regular":{"txid":"aa","vout":0}},
+			 "output":{"address":"alice","content":{"Value":7000}}}]`,
+		"get_stxos": `[{"outpoint":` + recreated + `,
+			"output":{"output":` + withdrawal + `,"inpoint":{"Withdrawal":{"m6id":"m6b"}}}}]`,
+	})
+
+	if len(got) != 1 || got["aa"] == nil || got["aa"].ValueSats != 7000 {
+		t.Errorf("history = %v, want aa alone at 7000", got)
+	}
+}

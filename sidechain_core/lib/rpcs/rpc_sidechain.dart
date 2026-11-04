@@ -274,19 +274,21 @@ class BitcoinScriptPubKey {
   };
 }
 
-enum OutPointType { regular, coinbase, deposit }
+enum OutPointType { regular, coinbase, deposit, unsuccessfulWithdrawal }
 
 class PWBOutPoint {
   final OutPointType type;
   final RegularOutPoint? regular;
   final CoinbaseOutPoint? coinbase;
   final BitcoinOutPoint? deposit;
+  final UnsuccessfulWithdrawalOutPoint? unsuccessfulWithdrawal;
 
-  PWBOutPoint({required this.type, this.regular, this.coinbase, this.deposit})
+  PWBOutPoint({required this.type, this.regular, this.coinbase, this.deposit, this.unsuccessfulWithdrawal})
     : assert(
         (type == OutPointType.regular && regular != null) ||
             (type == OutPointType.coinbase && coinbase != null) ||
-            (type == OutPointType.deposit && deposit != null),
+            (type == OutPointType.deposit && deposit != null) ||
+            (type == OutPointType.unsuccessfulWithdrawal && unsuccessfulWithdrawal != null),
       );
 
   factory PWBOutPoint.fromMap(Map<String, dynamic> map) {
@@ -311,6 +313,13 @@ class PWBOutPoint {
           map['Deposit'] as Map<String, dynamic>,
         ),
       );
+    } else if (map.containsKey('UnsuccessfulWithdrawal')) {
+      return PWBOutPoint(
+        type: OutPointType.unsuccessfulWithdrawal,
+        unsuccessfulWithdrawal: UnsuccessfulWithdrawalOutPoint.fromMap(
+          map['UnsuccessfulWithdrawal'] as Map<String, dynamic>,
+        ),
+      );
     }
     throw ArgumentError('Invalid outpoint type');
   }
@@ -323,6 +332,8 @@ class PWBOutPoint {
         return {'Coinbase': coinbase!.toMap()};
       case OutPointType.deposit:
         return {'Deposit': deposit!.toMap()};
+      case OutPointType.unsuccessfulWithdrawal:
+        return {'UnsuccessfulWithdrawal': unsuccessfulWithdrawal!.toMap()};
     }
   }
 }
@@ -357,6 +368,24 @@ class CoinbaseOutPoint {
   }
 
   Map<String, dynamic> toMap() => {'merkle_root': merkleRoot, 'vout': vout};
+}
+
+class UnsuccessfulWithdrawalOutPoint {
+  final String m6id;
+  final int height;
+  final int vout;
+
+  UnsuccessfulWithdrawalOutPoint({required this.m6id, required this.height, required this.vout});
+
+  factory UnsuccessfulWithdrawalOutPoint.fromMap(Map<String, dynamic> map) {
+    return UnsuccessfulWithdrawalOutPoint(
+      m6id: map['m6id'] as String,
+      height: map['height'] as int,
+      vout: map['vout'] as int,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {'m6id': m6id, 'height': height, 'vout': vout};
 }
 
 class PWBOutput {

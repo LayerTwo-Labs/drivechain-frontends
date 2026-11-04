@@ -178,6 +178,9 @@ class WithdrawalsPage extends StatelessWidget {
       case OutPointType.deposit:
         final deposit = outPoint.deposit!;
         return 'deposit:${deposit.txid}:${deposit.vout}';
+      case OutPointType.unsuccessfulWithdrawal:
+        final unsuccessfulWithdrawal = outPoint.unsuccessfulWithdrawal!;
+        return 'unsuccessful-withdrawal:${unsuccessfulWithdrawal.m6id}:${unsuccessfulWithdrawal.vout}';
     }
   }
 

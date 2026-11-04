@@ -44,6 +44,13 @@ type outPoint struct {
 		Vout       uint32 `json:"vout"`
 	} `json:"Coinbase,omitempty"`
 	Deposit *string `json:"Deposit,omitempty"`
+	// UnsuccessfulWithdrawal is an output of a failed or dropped bundle that
+	// the chain made again, so it names the bundle and its place there.
+	UnsuccessfulWithdrawal *struct {
+		M6id   string `json:"m6id"`
+		Height uint32 `json:"height"`
+		Vout   uint32 `json:"vout"`
+	} `json:"UnsuccessfulWithdrawal,omitempty"`
 }
 
 // id names the transaction, block or mainchain outpoint that made the output,
@@ -70,6 +77,8 @@ func (o outPoint) id() (string, uint32, bool) {
 			return txid, 0, true
 		}
 		return txid, uint32(vout), true
+	case o.UnsuccessfulWithdrawal != nil:
+		return o.UnsuccessfulWithdrawal.M6id, o.UnsuccessfulWithdrawal.Vout, true
 	default:
 		return "", 0, false
 	}
