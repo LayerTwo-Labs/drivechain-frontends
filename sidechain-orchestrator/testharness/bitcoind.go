@@ -2,9 +2,11 @@ package testharness
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -60,9 +62,7 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 
 	// Check if already downloaded and working.
 	if _, err := os.Stat(orchPath); err == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := exec.CommandContext(ctx, orchPath, "--version").Run(); err == nil {
+		if err := runVersion(orchPath); err == nil {
 			log.Info().Str("path", orchPath).Msg("found working bitcoind via orchestrator")
 			return orchPath
 		}
@@ -125,12 +125,29 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 		t.Fatalf("testharness: bitcoind not found at %s after download", orchPath)
 	}
 
-	verifyCtx, verifyCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer verifyCancel()
-	if err := exec.CommandContext(verifyCtx, orchPath, "--version").Run(); err != nil {
-		t.Fatalf("testharness: bitcoind downloaded to %s but won't execute: %v (is Rosetta installed?)", orchPath, err)
+	if err := runVersion(orchPath); err != nil {
+		hint := ""
+		if runtime.GOOS == "darwin" {
+			hint = " (is Rosetta installed?)"
+		}
+		t.Fatalf("testharness: bitcoind downloaded to %s but won't execute: %v%s", orchPath, err, hint)
 	}
 
 	log.Info().Str("path", orchPath).Msg("bitcoind ready")
 	return orchPath
+}
+
+// versionTimeout covers the first start of a new binary, which Windows Defender scans.
+const versionTimeout = 60 * time.Second
+
+func runVersion(path string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), versionTimeout)
+	defer cancel()
+	if err := exec.CommandContext(ctx, path, "--version").Run(); err != nil {
+		if ctx.Err() != nil {
+			return fmt.Errorf("--version took more than %s: %w", versionTimeout, err)
+		}
+		return err
+	}
+	return nil
 }
