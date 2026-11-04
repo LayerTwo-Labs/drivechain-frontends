@@ -21,7 +21,7 @@ dependencies:
   logger:
     path: ../third_party/logger
   auto_route: ^11.2.0
-  get_it: ^8.3.0
+  get_it: ^9.3.0
   collection: ^1.19.1
   connectrpc: ^2.0.1
   path: ^1.9.1
