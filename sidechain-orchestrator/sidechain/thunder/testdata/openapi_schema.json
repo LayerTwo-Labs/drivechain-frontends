@@ -1117,6 +1117,42 @@
                                         "$ref": "#/components/schemas/bitcoin.OutPoint"
                                       }
                                     }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                                    "required": [
+                                      "UnsuccessfulWithdrawal"
+                                    ],
+                                    "properties": {
+                                      "UnsuccessfulWithdrawal": {
+                                        "type": "object",
+                                        "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                                        "required": [
+                                          "m6id",
+                                          "height",
+                                          "vout"
+                                        ],
+                                        "properties": {
+                                          "height": {
+                                            "type": "integer",
+                                            "format": "u-int32",
+                                            "description": "Sidechain block height at which the outputs were recreated",
+                                            "minimum": 0
+                                          },
+                                          "m6id": {
+                                            "$ref": "#/components/schemas/M6id",
+                                            "description": "M6ID of the unsuccessful withdrawal bundle"
+                                          },
+                                          "vout": {
+                                            "type": "integer",
+                                            "format": "u-int32",
+                                            "description": "Index of the spent output within the bundle's spend_utxos",
+                                            "minimum": 0
+                                          }
+                                        }
+                                      }
+                                    }
                                   }
                                 ]
                               },
@@ -1319,6 +1355,42 @@
                                   "properties": {
                                     "Deposit": {
                                       "$ref": "#/components/schemas/bitcoin.OutPoint"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                                  "required": [
+                                    "UnsuccessfulWithdrawal"
+                                  ],
+                                  "properties": {
+                                    "UnsuccessfulWithdrawal": {
+                                      "type": "object",
+                                      "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                                      "required": [
+                                        "m6id",
+                                        "height",
+                                        "vout"
+                                      ],
+                                      "properties": {
+                                        "height": {
+                                          "type": "integer",
+                                          "format": "u-int32",
+                                          "description": "Sidechain block height at which the outputs were recreated",
+                                          "minimum": 0
+                                        },
+                                        "m6id": {
+                                          "$ref": "#/components/schemas/M6id",
+                                          "description": "M6ID of the unsuccessful withdrawal bundle"
+                                        },
+                                        "vout": {
+                                          "type": "integer",
+                                          "format": "u-int32",
+                                          "description": "Index of the spent output within the bundle's spend_utxos",
+                                          "minimum": 0
+                                        }
+                                      }
                                     }
                                   }
                                 }
@@ -1703,6 +1775,42 @@
                 "$ref": "#/components/schemas/bitcoin.OutPoint"
               }
             }
+          },
+          {
+            "type": "object",
+            "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+            "required": [
+              "UnsuccessfulWithdrawal"
+            ],
+            "properties": {
+              "UnsuccessfulWithdrawal": {
+                "type": "object",
+                "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                "required": [
+                  "m6id",
+                  "height",
+                  "vout"
+                ],
+                "properties": {
+                  "height": {
+                    "type": "integer",
+                    "format": "u-int32",
+                    "description": "Sidechain block height at which the outputs were recreated",
+                    "minimum": 0
+                  },
+                  "m6id": {
+                    "$ref": "#/components/schemas/M6id",
+                    "description": "M6ID of the unsuccessful withdrawal bundle"
+                  },
+                  "vout": {
+                    "type": "integer",
+                    "format": "u-int32",
+                    "description": "Index of the spent output within the bundle's spend_utxos",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
           }
         ]
       },
@@ -1875,6 +1983,42 @@
                           "$ref": "#/components/schemas/bitcoin.OutPoint"
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                      "required": [
+                        "UnsuccessfulWithdrawal"
+                      ],
+                      "properties": {
+                        "UnsuccessfulWithdrawal": {
+                          "type": "object",
+                          "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                          "required": [
+                            "m6id",
+                            "height",
+                            "vout"
+                          ],
+                          "properties": {
+                            "height": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "description": "Sidechain block height at which the outputs were recreated",
+                              "minimum": 0
+                            },
+                            "m6id": {
+                              "$ref": "#/components/schemas/M6id",
+                              "description": "M6ID of the unsuccessful withdrawal bundle"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "description": "Index of the spent output within the bundle's spend_utxos",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
                     }
                   ]
                 },
@@ -1992,6 +2136,42 @@
                       "properties": {
                         "Deposit": {
                           "$ref": "#/components/schemas/bitcoin.OutPoint"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                      "required": [
+                        "UnsuccessfulWithdrawal"
+                      ],
+                      "properties": {
+                        "UnsuccessfulWithdrawal": {
+                          "type": "object",
+                          "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                          "required": [
+                            "m6id",
+                            "height",
+                            "vout"
+                          ],
+                          "properties": {
+                            "height": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "description": "Sidechain block height at which the outputs were recreated",
+                              "minimum": 0
+                            },
+                            "m6id": {
+                              "$ref": "#/components/schemas/M6id",
+                              "description": "M6ID of the unsuccessful withdrawal bundle"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "description": "Index of the spent output within the bundle's spend_utxos",
+                              "minimum": 0
+                            }
+                          }
                         }
                       }
                     }
@@ -2121,6 +2301,42 @@
                           "properties": {
                             "Deposit": {
                               "$ref": "#/components/schemas/bitcoin.OutPoint"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                          "required": [
+                            "UnsuccessfulWithdrawal"
+                          ],
+                          "properties": {
+                            "UnsuccessfulWithdrawal": {
+                              "type": "object",
+                              "description": "Created by recreating the outputs of an unsuccessful withdrawal\nbundle (one that failed, or a stale pending bundle that was\ndropped without ever being submitted).",
+                              "required": [
+                                "m6id",
+                                "height",
+                                "vout"
+                              ],
+                              "properties": {
+                                "height": {
+                                  "type": "integer",
+                                  "format": "u-int32",
+                                  "description": "Sidechain block height at which the outputs were recreated",
+                                  "minimum": 0
+                                },
+                                "m6id": {
+                                  "$ref": "#/components/schemas/M6id",
+                                  "description": "M6ID of the unsuccessful withdrawal bundle"
+                                },
+                                "vout": {
+                                  "type": "integer",
+                                  "format": "u-int32",
+                                  "description": "Index of the spent output within the bundle's spend_utxos",
+                                  "minimum": 0
+                                }
+                              }
                             }
                           }
                         }
