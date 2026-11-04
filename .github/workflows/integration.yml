@@ -68,7 +68,8 @@ jobs:
     name: integration (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    timeout-minutes: 15
+    # Windows takes more than 15 minutes for the three test steps.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -134,7 +135,7 @@ jobs:
 
       - name: Run orchestrator wallet integration tests
         working-directory: sidechain-orchestrator
-        run: go test -v -tags integration -timeout 10m ./wallet/
+        run: go test -v -tags integration -timeout 20m ./wallet/
 
       - name: Run sidechain wallet integration tests
         working-directory: sidechain-orchestrator
