@@ -149,3 +149,28 @@ func TestHandlerListsCoinsAsTheMempoolLeavesThem(t *testing.T) {
 	assert.Equal(t, "t-three", got[1]["output"].(map[string]any)["address"])
 	assert.Equal(t, false, got[1]["confirmed"])
 }
+
+// A failed bundle gives its coins back at new outpoints. A mempool spend of
+// one must drop it from the listing too.
+func TestHandlerDropsASpentRecreatedWithdrawal(t *testing.T) {
+	recreated := map[string]any{
+		"outpoint": map[string]any{"UnsuccessfulWithdrawal": map[string]any{"m6id": "m6", "height": 40, "vout": 0}},
+		"output":   map[string]any{"address": "t-two", "content": map[string]any{"Value": 2000}},
+	}
+	node := nodeServer(t, map[string]any{
+		"get_wallet_utxos":             []any{utxoJSON("aa", "t-one", 1000), recreated},
+		"get_wallet_utxos_unconfirmed": []any{},
+		"get_wallet_stxos_unconfirmed": []any{map[string]any{
+			"output":  recreated,
+			"inpoint": map[string]any{"Regular": map[string]any{"txid": "cc", "vin": 0}},
+		}},
+	})
+
+	resp, err := NewHandler(node.JSONRPCProxy).GetWalletUtxos(context.Background(), &pb.GetWalletUtxosRequest{})
+	require.NoError(t, err)
+
+	var got []map[string]any
+	require.NoError(t, json.Unmarshal([]byte(resp.UtxosJson), &got))
+	require.Len(t, got, 1)
+	assert.Equal(t, "t-one", got[0]["output"].(map[string]any)["address"])
+}
