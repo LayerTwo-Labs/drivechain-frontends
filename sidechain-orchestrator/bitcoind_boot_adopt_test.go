@@ -62,12 +62,13 @@ func writeCorePidFile(t *testing.T, o *Orchestrator, pid int) {
 // the PID checks read it as a bitcoind.
 func coreLookalike(t *testing.T, o *Orchestrator) int {
 	t.Helper()
-	sleepPath, err := exec.LookPath("sleep")
+	testBinary, err := os.Executable()
 	require.NoError(t, err)
 	link := filepath.Join(t.TempDir(), o.configs["bitcoind"].BinaryName)
-	require.NoError(t, os.Symlink(sleepPath, link))
+	require.NoError(t, os.Symlink(testBinary, link))
 
-	proc := exec.Command(link, "30")
+	proc := exec.Command(link)
+	proc.Env = append(os.Environ(), lookalikeEnv+"=1")
 	require.NoError(t, proc.Start())
 	t.Cleanup(func() {
 		_ = proc.Process.Kill()
