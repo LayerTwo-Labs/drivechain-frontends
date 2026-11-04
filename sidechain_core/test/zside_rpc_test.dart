@@ -135,6 +135,37 @@ void main() {
     expect(coins.single.amount, 0.0015);
   });
 
+  test('a coin that a failed bundle gives back does not stop the coins to shield', () async {
+    transport.answers['/zside.v1.ZSideService/GetWalletUtxos'] = pb.GetWalletUtxosResponse(
+      utxosJson: jsonEncode([
+        {
+          'outpoint': {
+            'Regular': {'txid': 'ab', 'vout': 1},
+          },
+          'output': {
+            'address': 'addr',
+            'content': {'Value': 150000},
+          },
+        },
+        {
+          'outpoint': {
+            'UnsuccessfulWithdrawal': {'m6id': 'm6', 'height': 40, 'vout': 0},
+          },
+          'output': {
+            'address': 'withdrawal-addr',
+            'content': {
+              'Withdrawal': {'value_sats': 5000000, 'main_fee_sats': 10000, 'main_address': 'bcrt1q'},
+            },
+          },
+        },
+      ]),
+    );
+
+    final coins = await rpc.listUnshieldedUTXOs();
+
+    expect(coins.single.txid, 'ab:1');
+  });
+
   test('a node with no pending withdrawal bundle answers null', () async {
     transport.answers['/zside.v1.ZSideService/GetPendingWithdrawalBundle'] = pb.GetPendingWithdrawalBundleResponse(
       bundleJson: 'null',
