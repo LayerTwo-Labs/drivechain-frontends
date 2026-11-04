@@ -14,5 +14,5 @@ gen-enforcer:
 
 gen: gen-enforcer
     buf generate --template ../buf.dart.gen.yaml ../bitwindow/server
-    buf generate --template ../buf.dart.gen.yaml https://github.com/barebitcoin/btc-buf.git
+    buf generate --template ../buf.dart.gen.yaml https://github.com/barebitcoin/btc-buf.git#ref=6294f598fc0f2dc55354ad467e4f9d523a806bdd
     buf generate --template ../buf.dart.gen.yaml ../sidechain-orchestrator
