@@ -23,10 +23,18 @@ func (n *Node) Mine(ctx context.Context, t *testing.T, blocks int) error {
 	return n.MineToAddress(ctx, blocks, resp.Address)
 }
 
+// mineChunk keeps one generatetoaddress call below the Core RPC client timeout on a slow runner.
+const mineChunk = 25
+
 // MineToAddress mines blocks to a specific address.
 func (n *Node) MineToAddress(ctx context.Context, blocks int, addr string) error {
-	_, err := n.CoreRPC.GenerateToAddress(ctx, blocks, addr)
-	return err
+	for left := blocks; left > 0; left -= mineChunk {
+		next := min(left, mineChunk)
+		if _, err := n.CoreRPC.GenerateToAddress(ctx, next, addr); err != nil {
+			return fmt.Errorf("mine %d of %d blocks: %w", next, blocks, err)
+		}
+	}
+	return nil
 }
 
 // FundWallet sets up the node with a funded bitcoinCore wallet.

@@ -55,18 +55,6 @@ func outpoint(txid string, vout int32) string {
 	return fmt.Sprintf("%s:%d", txid, vout)
 }
 
-// mineBlocks mines in chunks, because one generatetoaddress call for hundreds
-// of blocks passes the Core RPC client timeout.
-func mineBlocks(ctx context.Context, t *testing.T, node *testharness.Node, address string, blocks int) {
-	t.Helper()
-
-	const chunk = 100
-	for left := blocks; left > 0; left -= chunk {
-		next := min(left, chunk)
-		require.NoError(t, node.MineToAddress(ctx, next, address), "mine %d blocks", next)
-	}
-}
-
 // sendConsolidation merges every coin in inputs into one new address, the same
 // way ConsolidationProvider does: the fee comes out of the single output, and
 // Core adds no coin of its own.
@@ -117,8 +105,8 @@ func TestConsolidationIntegration(t *testing.T) {
 	taprootAddress := taprootResp.Address
 	require.NotEqual(t, segwitAddress, taprootAddress)
 
-	mineBlocks(ctx, t, node, taprootAddress, 450)
-	mineBlocks(ctx, t, node, segwitAddress, 449)
+	require.NoError(t, node.MineToAddress(ctx, 450, taprootAddress))
+	require.NoError(t, node.MineToAddress(ctx, 449, segwitAddress))
 	node.WaitForBalance(t)
 	miningAddress := segwitAddress
 
