@@ -129,6 +129,20 @@ func TestSidechainMonitorEngine_Monitor(t *testing.T) {
 		assert.Len(t, sink.sentEvents, 2)
 	})
 
+	t.Run("a payout of a failed bundle names that bundle", func(t *testing.T) {
+		t.Parallel()
+
+		engine := NewSidechainMonitorEngine(nil, nil, nil, nil, nil, nil, &MockNotificationEngine{})
+		require.NoError(t, poll(t, engine, `{"spend_utxos":[[{"UnsuccessfulWithdrawal":{"m6id":"m6","height":40,"vout":2}},{"address":"s","content":{"Withdrawal":{"value_sats":1000,"main_fee_sats":1,"main_address":"tb1q"}}}]],"tx":{}}`))
+
+		withdrawals, err := engine.GetDetectedWithdrawals(t.Context())
+		require.NoError(t, err)
+		require.Len(t, withdrawals, 1)
+		assert.Equal(t, "m6", withdrawals[0].Txid)
+		assert.Equal(t, uint32(2), withdrawals[0].Vout)
+		assert.Equal(t, int64(1000), withdrawals[0].Amount)
+	})
+
 	t.Run("a spend of a plain coin fails", func(t *testing.T) {
 		t.Parallel()
 

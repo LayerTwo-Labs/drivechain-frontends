@@ -5,6 +5,7 @@ enum OutpointType {
   deposit,
   regular,
   coinbase,
+  unsuccessfulWithdrawal,
 
   // truthcoin specific types
   payout,
@@ -40,7 +41,18 @@ class Outpoint {
     if (payout is Map<String, dynamic>) {
       return Outpoint('${payout['hash']}:${payout['vout']}', OutpointType.payout);
     }
-    return Outpoint(json['Deposit'] as String, OutpointType.deposit);
+    final unsuccessfulWithdrawal = json['UnsuccessfulWithdrawal'];
+    if (unsuccessfulWithdrawal is Map<String, dynamic>) {
+      return Outpoint(
+        '${unsuccessfulWithdrawal['m6id']}:${unsuccessfulWithdrawal['vout']}',
+        OutpointType.unsuccessfulWithdrawal,
+      );
+    }
+    final deposit = json['Deposit'];
+    if (deposit is String) {
+      return Outpoint(deposit, OutpointType.deposit);
+    }
+    throw FormatException('unknown outpoint kind: ${json.keys.join(', ')}');
   }
 }
 

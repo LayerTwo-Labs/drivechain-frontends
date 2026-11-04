@@ -141,7 +141,11 @@ type mempoolOutpoint struct {
 		MerkleRoot string `json:"merkle_root"`
 		Vout       uint32 `json:"vout"`
 	} `json:"Coinbase"`
-	Deposit *string `json:"Deposit"`
+	Deposit                *string `json:"Deposit"`
+	UnsuccessfulWithdrawal *struct {
+		M6id string `json:"m6id"`
+		Vout uint32 `json:"vout"`
+	} `json:"UnsuccessfulWithdrawal"`
 }
 
 // key names the coin in a coin map, as "txid:vout" for each outpoint kind.
@@ -156,6 +160,8 @@ func (p mempoolOutpoint) key() (string, bool) {
 		return fmt.Sprintf("%s:%d", p.Coinbase.MerkleRoot, p.Coinbase.Vout), true
 	case p.Deposit != nil:
 		return *p.Deposit, true
+	case p.UnsuccessfulWithdrawal != nil:
+		return fmt.Sprintf("%s:%d", p.UnsuccessfulWithdrawal.M6id, p.UnsuccessfulWithdrawal.Vout), true
 	}
 	return "", false
 }
