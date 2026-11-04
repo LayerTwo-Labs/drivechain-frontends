@@ -2,8 +2,7 @@ import 'dart:async';
 
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
-import 'package:sidechain_core/sidechain_core.dart';
-import 'package:stacked/stacked.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 /// How often the overview refreshes. A sidechain block arrives with a
 /// mainchain block, so this only has to beat a reader's patience.

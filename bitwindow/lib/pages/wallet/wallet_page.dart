@@ -29,7 +29,6 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 class WalletPageViewModel extends BaseViewModel {
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();

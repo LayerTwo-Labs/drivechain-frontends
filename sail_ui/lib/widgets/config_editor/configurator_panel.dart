@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 class ConfiguratorPanel extends ViewModelWidget<BitcoinConfigEditorViewModel> {
   const ConfiguratorPanel({super.key});

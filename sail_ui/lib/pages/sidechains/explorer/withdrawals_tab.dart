@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
-import 'package:stacked/stacked.dart';
 
 /// WithdrawalsTab reads the bundle the chain proposes to the mainchain, and
 /// the withdrawals inside it.

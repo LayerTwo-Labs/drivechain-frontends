@@ -6,7 +6,6 @@ import 'package:sail_ui/pages/sidechains/explorer/transaction_broadcast.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
 import 'package:sidechain_core/utils/explorer_url.dart';
-import 'package:stacked/stacked.dart';
 
 /// ChainExplorerTab is the explorer landing page: the newest blocks, what
 /// happened last, and what the treasury holds.

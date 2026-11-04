@@ -12,7 +12,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/shell/run_sidechain_app.dart';
 import 'package:sail_ui/shell/sidechain_module.dart';
 import 'package:sail_ui/shell/sidechain_settings_page.dart';
-import 'package:stacked/stacked.dart' show BaseViewModel, ViewModelBuilder;
 import 'package:window_manager/window_manager.dart';
 
 @RoutePage()

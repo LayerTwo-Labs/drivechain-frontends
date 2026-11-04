@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
-import 'package:stacked/stacked.dart';
 
 /// Renders a Cheque's created/funded/swept timestamp. Returns '-' for null
 /// or zero-valued proto Timestamps so unset DB timestamps don't surface as

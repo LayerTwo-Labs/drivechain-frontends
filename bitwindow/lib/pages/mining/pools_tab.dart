@@ -6,7 +6,6 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/stratum/v1/stratum.pb.dart';
-import 'package:stacked/stacked.dart';
 
 const _windows = [
   MiningPoolWindow.MINING_POOL_WINDOW_24H,

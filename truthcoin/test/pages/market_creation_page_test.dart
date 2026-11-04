@@ -4,7 +4,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
-import 'package:stacked/stacked.dart';
 import 'package:truthcoin/pages/market_creation_page.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/price_history_provider.dart';

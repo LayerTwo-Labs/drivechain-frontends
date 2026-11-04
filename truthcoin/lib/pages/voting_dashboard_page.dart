@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 import 'package:truthcoin/models/voting.dart';
 import 'package:truthcoin/providers/voting_provider.dart';
 import 'package:truthcoin/widgets/market_stat_tile.dart';

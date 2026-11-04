@@ -28,7 +28,6 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as pb;
 import 'package:sidechain_core/gen/wallet/v1/wallet.pbserver.dart' hide CoinSelectionStrategy;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 class SendTab extends ViewModelWidget<SendPageViewModel> {
   const SendTab({super.key});

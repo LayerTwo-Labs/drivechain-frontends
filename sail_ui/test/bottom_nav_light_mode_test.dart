@@ -8,7 +8,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart' as orchpb;
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/providers/price_provider.dart';
-import 'package:stacked/stacked.dart';
 
 class _Connection extends ChangeNotifier implements RPCConnection {
   _Connection(this.binary, {this.connected = true});

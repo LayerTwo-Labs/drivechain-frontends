@@ -5,7 +5,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 import 'package:truthcoin/models/address_position.dart';
 import 'package:truthcoin/models/market.dart';
 import 'package:truthcoin/models/voting.dart';

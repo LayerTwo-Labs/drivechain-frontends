@@ -33,7 +33,6 @@ dependencies:
     path: ../sidechain_core
   skeletonizer:
     path: ../third_party/skeletonizer
-  stacked: ^3.5.0
   window_manager: ^0.5.2
 
 dev_dependencies:

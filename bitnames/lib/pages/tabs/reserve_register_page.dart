@@ -9,7 +9,6 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/utils/commitment_validation.dart';
 import 'package:sidechain_core/utils/data_server_address.dart';
-import 'package:stacked/stacked.dart';
 import 'package:thirds/blake3.dart';
 
 @RoutePage()
