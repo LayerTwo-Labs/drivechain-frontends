@@ -51,6 +51,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpcmeter"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	bbcsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -650,42 +651,43 @@ func run(cctx *cli.Context) error {
 	rpc.RegisterSidechainConfServiceHandler(rpcServer, sidechainConfHandler)
 
 	// Per-sidechain typed RPC services (proxy to sidechain binary JSON-RPC)
+	sidechainServer := connect.NewServer(localauth.ServerInterceptor(authDir), sidechain.KeepErrorText())
 	for name, cfg := range orch.Configs() {
 		proxy := nodes.Proxy(name, cfg.RPCHost(), cfg.Port, config.Network(orch.Network))
 		switch name {
 		case "thunder":
 			h := thundersvc.NewHandlerWithIndex(proxy, cctx.String("thunder-esplora-url"))
-			thunderrpc.RegisterThunderServiceHandler(rpcServer, h)
+			thunderrpc.RegisterThunderServiceHandler(sidechainServer, h)
 			handler.SetSidechainBalance(name, h.WalletBalance)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitnames":
 			h := bitnamessvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			bitnamesrpc.RegisterBitnamesServiceHandler(rpcServer, h)
+			bitnamesrpc.RegisterBitnamesServiceHandler(sidechainServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitassets":
 			h := bitassetssvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			bitassetsrpc.RegisterBitAssetsServiceHandler(rpcServer, h)
+			bitassetsrpc.RegisterBitAssetsServiceHandler(sidechainServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "photon":
 			h := photonsvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			photonrpc.RegisterPhotonServiceHandler(rpcServer, h)
+			photonrpc.RegisterPhotonServiceHandler(sidechainServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "truthcoin":
 			h := truthcoinsvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			truthcoinrpc.RegisterTruthcoinServiceHandler(rpcServer, h)
+			truthcoinrpc.RegisterTruthcoinServiceHandler(sidechainServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "coinshift":
 			h := coinshiftsvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)
-			coinshiftrpc.RegisterCoinShiftServiceHandler(rpcServer, h)
+			coinshiftrpc.RegisterCoinShiftServiceHandler(sidechainServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "zside":
 			h := zsidesvc.NewHandler(proxy)
-			zsiderpc.RegisterZSideServiceHandler(rpcServer, h)
+			zsiderpc.RegisterZSideServiceHandler(sidechainServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bbc":
 			// Core derived: its own client, authenticated by the node's cookie.
@@ -696,12 +698,13 @@ func run(cctx *cli.Context) error {
 			}
 			cookie := filepath.Join(dirs.DatadirNetwork(config.Network(orch.Network), ""), ".cookie")
 			h := bbcsvc.NewHandler(bbcsvc.NewClient(cfg.RPCHost(), cfg.Port, cookie))
-			bbcrpc.RegisterBbcServiceHandler(rpcServer, h)
+			bbcrpc.RegisterBbcServiceHandler(sidechainServer, h)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		}
 	}
 
 	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
+	connecthttp.Mount(mux, sidechainServer, connecthttp.WithReadMaxBytes(0))
 
 	// h2c (HTTP/2 cleartext) via http.Server.Protocols — the ConnectRPC-blessed
 	// replacement for h2c.NewHandler. Carries Connect, gRPC and gRPC-Web on one
