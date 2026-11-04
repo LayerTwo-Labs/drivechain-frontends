@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 class SailConfigureHomePage extends StatefulWidget {
   final Map<String, HomepageWidgetInfo> widgetCatalog;

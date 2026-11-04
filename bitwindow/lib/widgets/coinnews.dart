@@ -14,7 +14,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get_it/get_it.dart';
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
   const CoinNewsView({super.key});

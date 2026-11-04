@@ -62,6 +62,7 @@ export 'theme/theme_data.dart';
 export 'theme/theme_registry.dart';
 export 'theme/win95_theme.dart';
 export 'viewmodels/bitcoin_config_editor_viewmodel.dart';
+export 'viewmodels/view_model.dart';
 export 'viewmodels/enforcer_config_editor_viewmodel.dart';
 export 'widgets/buttons/back_button.dart';
 export 'widgets/buttons/button.dart';

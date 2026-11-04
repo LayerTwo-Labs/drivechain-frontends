@@ -10,7 +10,6 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show GetBlockRequest;
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 /// Thrown when a transaction details lookup runs with no wallet selected.
 /// Lets [humanizeTransactionLoadError] distinguish "no wallet" from RPC

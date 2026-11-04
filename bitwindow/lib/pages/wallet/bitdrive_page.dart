@@ -8,7 +8,6 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 class BitDriveTab extends StatelessWidget {
   const BitDriveTab({super.key});

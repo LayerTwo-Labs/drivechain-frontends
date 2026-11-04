@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/bmm/v1/bmm.pb.dart' as bmmpb;
 import 'package:sidechain_core/utils/explorer_url.dart';
-import 'package:stacked/stacked.dart';
 
 /// What light mode reads for a bid, which the bid controls say out loud.
 const String bidSourceInLightMode =

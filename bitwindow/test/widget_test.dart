@@ -8,7 +8,7 @@
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stacked/stacked.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 import 'test_utils.dart';
 

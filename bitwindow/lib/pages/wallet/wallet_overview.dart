@@ -17,7 +17,6 @@ import 'package:logger/logger.dart';
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 String _formatTimeAgo(DateTime when) {
   final d = DateTime.now().difference(when);

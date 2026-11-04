@@ -8,7 +8,6 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 class MultisigKeyModal extends StatelessWidget {
   const MultisigKeyModal({super.key});
