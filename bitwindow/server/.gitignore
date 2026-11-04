@@ -1,4 +1,5 @@
 ./bitwindowd
+/server
 bin/
 .crates*
 /*.mdb
