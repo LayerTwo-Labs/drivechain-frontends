@@ -4,8 +4,10 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "bitdrive.pb.dart" as bitdrivev1bitdrive;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 abstract final class BitDriveService {
   /// Fully-qualified name of the BitDriveService service.

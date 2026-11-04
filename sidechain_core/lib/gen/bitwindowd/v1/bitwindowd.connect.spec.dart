@@ -4,8 +4,10 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "bitwindowd.pb.dart" as bitwindowdv1bitwindowd;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 abstract final class BitwindowdService {
   /// Fully-qualified name of the BitwindowdService service.

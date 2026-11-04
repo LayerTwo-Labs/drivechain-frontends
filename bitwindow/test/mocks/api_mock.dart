@@ -1,5 +1,4 @@
 import 'package:fixnum/src/int64.dart';
-import 'package:protobuf/protobuf.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart';
 import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;

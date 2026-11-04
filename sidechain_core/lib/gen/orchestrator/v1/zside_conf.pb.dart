@@ -1,48 +1,57 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: orchestrator/v1/zside_conf.proto
-//
-// @dart = 2.12
+// Generated from orchestrator/v1/zside_conf.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
 class GetZSideConfigRequest extends $pb.GeneratedMessage {
-  factory GetZSideConfigRequest() => create();
-  GetZSideConfigRequest._() : super();
-  factory GetZSideConfigRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetZSideConfigRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetZSideConfigRequest() => GetZSideConfigRequest._();
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetZSideConfigRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  GetZSideConfigRequest._();
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetZSideConfigRequest clone() => GetZSideConfigRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetZSideConfigRequest copyWith(void Function(GetZSideConfigRequest) updates) => super.copyWith((message) => updates(message as GetZSideConfigRequest)) as GetZSideConfigRequest;
+  factory GetZSideConfigRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      GetZSideConfigRequest()..mergeFromBuffer(data, registry);
+  factory GetZSideConfigRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      GetZSideConfigRequest()..mergeFromJson(json, registry);
 
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetZSideConfigRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: GetZSideConfigRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetZSideConfigRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetZSideConfigRequest copyWith(void Function(GetZSideConfigRequest) updates) =>
+      super.copyWith((message) => updates(message as GetZSideConfigRequest)) as GetZSideConfigRequest;
+
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use GetZSideConfigRequest() / GetZSideConfigRequest.new instead')
   static GetZSideConfigRequest create() => GetZSideConfigRequest._();
-  GetZSideConfigRequest createEmptyInstance() => create();
-  static $pb.PbList<GetZSideConfigRequest> createRepeated() => $pb.PbList<GetZSideConfigRequest>();
+  static $pb.GeneratedMessage $_createMessage() => GetZSideConfigRequest._();
+  @$core.override
+  GetZSideConfigRequest createEmptyInstance() => GetZSideConfigRequest._();
   @$core.pragma('dart2js:noInline')
-  static GetZSideConfigRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetZSideConfigRequest>(create);
+  static GetZSideConfigRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetZSideConfigRequest>(GetZSideConfigRequest.$_createMessage);
   static GetZSideConfigRequest? _defaultInstance;
 }
 
@@ -54,259 +63,287 @@ class GetZSideConfigResponse extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? cliArgs,
     $core.String? network,
   }) {
-    final $result = create();
-    if (configContent != null) {
-      $result.configContent = configContent;
-    }
-    if (configPath != null) {
-      $result.configPath = configPath;
-    }
-    if (defaultConfig != null) {
-      $result.defaultConfig = defaultConfig;
-    }
-    if (cliArgs != null) {
-      $result.cliArgs.addAll(cliArgs);
-    }
-    if (network != null) {
-      $result.network = network;
-    }
-    return $result;
+    final result = GetZSideConfigResponse._();
+    if (configContent != null) result.configContent = configContent;
+    if (configPath != null) result.configPath = configPath;
+    if (defaultConfig != null) result.defaultConfig = defaultConfig;
+    if (cliArgs != null) result.cliArgs.addAll(cliArgs);
+    if (network != null) result.network = network;
+    return result;
   }
-  GetZSideConfigResponse._() : super();
-  factory GetZSideConfigResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetZSideConfigResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetZSideConfigResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  GetZSideConfigResponse._();
+
+  factory GetZSideConfigResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      GetZSideConfigResponse()..mergeFromBuffer(data, registry);
+  factory GetZSideConfigResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      GetZSideConfigResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetZSideConfigResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: GetZSideConfigResponse.$_createMessage)
     ..aOS(1, _omitFieldNames ? '' : 'configContent')
     ..aOS(2, _omitFieldNames ? '' : 'configPath')
     ..aOS(3, _omitFieldNames ? '' : 'defaultConfig')
     ..pPS(4, _omitFieldNames ? '' : 'cliArgs')
     ..aOS(5, _omitFieldNames ? '' : 'network')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetZSideConfigResponse clone() => GetZSideConfigResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetZSideConfigResponse copyWith(void Function(GetZSideConfigResponse) updates) => super.copyWith((message) => updates(message as GetZSideConfigResponse)) as GetZSideConfigResponse;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetZSideConfigResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetZSideConfigResponse copyWith(void Function(GetZSideConfigResponse) updates) =>
+      super.copyWith((message) => updates(message as GetZSideConfigResponse)) as GetZSideConfigResponse;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use GetZSideConfigResponse() / GetZSideConfigResponse.new instead')
   static GetZSideConfigResponse create() => GetZSideConfigResponse._();
-  GetZSideConfigResponse createEmptyInstance() => create();
-  static $pb.PbList<GetZSideConfigResponse> createRepeated() => $pb.PbList<GetZSideConfigResponse>();
+  static $pb.GeneratedMessage $_createMessage() => GetZSideConfigResponse._();
+  @$core.override
+  GetZSideConfigResponse createEmptyInstance() => GetZSideConfigResponse._();
   @$core.pragma('dart2js:noInline')
-  static GetZSideConfigResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetZSideConfigResponse>(create);
+  static GetZSideConfigResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetZSideConfigResponse>(GetZSideConfigResponse.$_createMessage);
   static GetZSideConfigResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get configContent => $_getSZ(0);
   @$pb.TagNumber(1)
-  set configContent($core.String v) { $_setString(0, v); }
+  set configContent($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasConfigContent() => $_has(0);
   @$pb.TagNumber(1)
-  void clearConfigContent() => clearField(1);
+  void clearConfigContent() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get configPath => $_getSZ(1);
   @$pb.TagNumber(2)
-  set configPath($core.String v) { $_setString(1, v); }
+  set configPath($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasConfigPath() => $_has(1);
   @$pb.TagNumber(2)
-  void clearConfigPath() => clearField(2);
+  void clearConfigPath() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get defaultConfig => $_getSZ(2);
   @$pb.TagNumber(3)
-  set defaultConfig($core.String v) { $_setString(2, v); }
+  set defaultConfig($core.String value) => $_setString(2, value);
   @$pb.TagNumber(3)
   $core.bool hasDefaultConfig() => $_has(2);
   @$pb.TagNumber(3)
-  void clearDefaultConfig() => clearField(3);
+  void clearDefaultConfig() => $_clearField(3);
 
   @$pb.TagNumber(4)
-  $core.List<$core.String> get cliArgs => $_getList(3);
+  $pb.PbList<$core.String> get cliArgs => $_getList(3);
 
   @$pb.TagNumber(5)
   $core.String get network => $_getSZ(4);
   @$pb.TagNumber(5)
-  set network($core.String v) { $_setString(4, v); }
+  set network($core.String value) => $_setString(4, value);
   @$pb.TagNumber(5)
   $core.bool hasNetwork() => $_has(4);
   @$pb.TagNumber(5)
-  void clearNetwork() => clearField(5);
+  void clearNetwork() => $_clearField(5);
 }
 
 class WriteZSideConfigRequest extends $pb.GeneratedMessage {
   factory WriteZSideConfigRequest({
     $core.String? configContent,
   }) {
-    final $result = create();
-    if (configContent != null) {
-      $result.configContent = configContent;
-    }
-    return $result;
+    final result = WriteZSideConfigRequest._();
+    if (configContent != null) result.configContent = configContent;
+    return result;
   }
-  WriteZSideConfigRequest._() : super();
-  factory WriteZSideConfigRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory WriteZSideConfigRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WriteZSideConfigRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  WriteZSideConfigRequest._();
+
+  factory WriteZSideConfigRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WriteZSideConfigRequest()..mergeFromBuffer(data, registry);
+  factory WriteZSideConfigRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WriteZSideConfigRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WriteZSideConfigRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WriteZSideConfigRequest.$_createMessage)
     ..aOS(1, _omitFieldNames ? '' : 'configContent')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  WriteZSideConfigRequest clone() => WriteZSideConfigRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  WriteZSideConfigRequest copyWith(void Function(WriteZSideConfigRequest) updates) => super.copyWith((message) => updates(message as WriteZSideConfigRequest)) as WriteZSideConfigRequest;
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WriteZSideConfigRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WriteZSideConfigRequest copyWith(void Function(WriteZSideConfigRequest) updates) =>
+      super.copyWith((message) => updates(message as WriteZSideConfigRequest)) as WriteZSideConfigRequest;
 
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WriteZSideConfigRequest() / WriteZSideConfigRequest.new instead')
   static WriteZSideConfigRequest create() => WriteZSideConfigRequest._();
-  WriteZSideConfigRequest createEmptyInstance() => create();
-  static $pb.PbList<WriteZSideConfigRequest> createRepeated() => $pb.PbList<WriteZSideConfigRequest>();
+  static $pb.GeneratedMessage $_createMessage() => WriteZSideConfigRequest._();
+  @$core.override
+  WriteZSideConfigRequest createEmptyInstance() => WriteZSideConfigRequest._();
   @$core.pragma('dart2js:noInline')
-  static WriteZSideConfigRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WriteZSideConfigRequest>(create);
+  static WriteZSideConfigRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WriteZSideConfigRequest>(WriteZSideConfigRequest.$_createMessage);
   static WriteZSideConfigRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get configContent => $_getSZ(0);
   @$pb.TagNumber(1)
-  set configContent($core.String v) { $_setString(0, v); }
+  set configContent($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
   $core.bool hasConfigContent() => $_has(0);
   @$pb.TagNumber(1)
-  void clearConfigContent() => clearField(1);
+  void clearConfigContent() => $_clearField(1);
 }
 
 class WriteZSideConfigResponse extends $pb.GeneratedMessage {
-  factory WriteZSideConfigResponse() => create();
-  WriteZSideConfigResponse._() : super();
-  factory WriteZSideConfigResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory WriteZSideConfigResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory WriteZSideConfigResponse() => WriteZSideConfigResponse._();
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WriteZSideConfigResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  WriteZSideConfigResponse._();
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  WriteZSideConfigResponse clone() => WriteZSideConfigResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  WriteZSideConfigResponse copyWith(void Function(WriteZSideConfigResponse) updates) => super.copyWith((message) => updates(message as WriteZSideConfigResponse)) as WriteZSideConfigResponse;
+  factory WriteZSideConfigResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WriteZSideConfigResponse()..mergeFromBuffer(data, registry);
+  factory WriteZSideConfigResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WriteZSideConfigResponse()..mergeFromJson(json, registry);
 
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WriteZSideConfigResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WriteZSideConfigResponse.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WriteZSideConfigResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WriteZSideConfigResponse copyWith(void Function(WriteZSideConfigResponse) updates) =>
+      super.copyWith((message) => updates(message as WriteZSideConfigResponse)) as WriteZSideConfigResponse;
+
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WriteZSideConfigResponse() / WriteZSideConfigResponse.new instead')
   static WriteZSideConfigResponse create() => WriteZSideConfigResponse._();
-  WriteZSideConfigResponse createEmptyInstance() => create();
-  static $pb.PbList<WriteZSideConfigResponse> createRepeated() => $pb.PbList<WriteZSideConfigResponse>();
+  static $pb.GeneratedMessage $_createMessage() => WriteZSideConfigResponse._();
+  @$core.override
+  WriteZSideConfigResponse createEmptyInstance() => WriteZSideConfigResponse._();
   @$core.pragma('dart2js:noInline')
-  static WriteZSideConfigResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WriteZSideConfigResponse>(create);
+  static WriteZSideConfigResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WriteZSideConfigResponse>(WriteZSideConfigResponse.$_createMessage);
   static WriteZSideConfigResponse? _defaultInstance;
 }
 
 class ZSideSyncNetworkFromBitcoinConfRequest extends $pb.GeneratedMessage {
-  factory ZSideSyncNetworkFromBitcoinConfRequest() => create();
-  ZSideSyncNetworkFromBitcoinConfRequest._() : super();
-  factory ZSideSyncNetworkFromBitcoinConfRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ZSideSyncNetworkFromBitcoinConfRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ZSideSyncNetworkFromBitcoinConfRequest() => ZSideSyncNetworkFromBitcoinConfRequest._();
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ZSideSyncNetworkFromBitcoinConfRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  ZSideSyncNetworkFromBitcoinConfRequest._();
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ZSideSyncNetworkFromBitcoinConfRequest clone() => ZSideSyncNetworkFromBitcoinConfRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ZSideSyncNetworkFromBitcoinConfRequest copyWith(void Function(ZSideSyncNetworkFromBitcoinConfRequest) updates) => super.copyWith((message) => updates(message as ZSideSyncNetworkFromBitcoinConfRequest)) as ZSideSyncNetworkFromBitcoinConfRequest;
+  factory ZSideSyncNetworkFromBitcoinConfRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ZSideSyncNetworkFromBitcoinConfRequest()..mergeFromBuffer(data, registry);
+  factory ZSideSyncNetworkFromBitcoinConfRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ZSideSyncNetworkFromBitcoinConfRequest()..mergeFromJson(json, registry);
 
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ZSideSyncNetworkFromBitcoinConfRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: ZSideSyncNetworkFromBitcoinConfRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ZSideSyncNetworkFromBitcoinConfRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ZSideSyncNetworkFromBitcoinConfRequest copyWith(void Function(ZSideSyncNetworkFromBitcoinConfRequest) updates) =>
+      super.copyWith((message) => updates(message as ZSideSyncNetworkFromBitcoinConfRequest))
+          as ZSideSyncNetworkFromBitcoinConfRequest;
+
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ZSideSyncNetworkFromBitcoinConfRequest() / ZSideSyncNetworkFromBitcoinConfRequest.new instead')
   static ZSideSyncNetworkFromBitcoinConfRequest create() => ZSideSyncNetworkFromBitcoinConfRequest._();
-  ZSideSyncNetworkFromBitcoinConfRequest createEmptyInstance() => create();
-  static $pb.PbList<ZSideSyncNetworkFromBitcoinConfRequest> createRepeated() => $pb.PbList<ZSideSyncNetworkFromBitcoinConfRequest>();
+  static $pb.GeneratedMessage $_createMessage() => ZSideSyncNetworkFromBitcoinConfRequest._();
+  @$core.override
+  ZSideSyncNetworkFromBitcoinConfRequest createEmptyInstance() => ZSideSyncNetworkFromBitcoinConfRequest._();
   @$core.pragma('dart2js:noInline')
-  static ZSideSyncNetworkFromBitcoinConfRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ZSideSyncNetworkFromBitcoinConfRequest>(create);
+  static ZSideSyncNetworkFromBitcoinConfRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ZSideSyncNetworkFromBitcoinConfRequest>(
+          ZSideSyncNetworkFromBitcoinConfRequest.$_createMessage);
   static ZSideSyncNetworkFromBitcoinConfRequest? _defaultInstance;
 }
 
 class ZSideSyncNetworkFromBitcoinConfResponse extends $pb.GeneratedMessage {
-  factory ZSideSyncNetworkFromBitcoinConfResponse() => create();
-  ZSideSyncNetworkFromBitcoinConfResponse._() : super();
-  factory ZSideSyncNetworkFromBitcoinConfResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ZSideSyncNetworkFromBitcoinConfResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ZSideSyncNetworkFromBitcoinConfResponse() => ZSideSyncNetworkFromBitcoinConfResponse._();
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ZSideSyncNetworkFromBitcoinConfResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  ZSideSyncNetworkFromBitcoinConfResponse._();
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ZSideSyncNetworkFromBitcoinConfResponse clone() => ZSideSyncNetworkFromBitcoinConfResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ZSideSyncNetworkFromBitcoinConfResponse copyWith(void Function(ZSideSyncNetworkFromBitcoinConfResponse) updates) => super.copyWith((message) => updates(message as ZSideSyncNetworkFromBitcoinConfResponse)) as ZSideSyncNetworkFromBitcoinConfResponse;
+  factory ZSideSyncNetworkFromBitcoinConfResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ZSideSyncNetworkFromBitcoinConfResponse()..mergeFromBuffer(data, registry);
+  factory ZSideSyncNetworkFromBitcoinConfResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ZSideSyncNetworkFromBitcoinConfResponse()..mergeFromJson(json, registry);
 
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ZSideSyncNetworkFromBitcoinConfResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: ZSideSyncNetworkFromBitcoinConfResponse.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ZSideSyncNetworkFromBitcoinConfResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ZSideSyncNetworkFromBitcoinConfResponse copyWith(void Function(ZSideSyncNetworkFromBitcoinConfResponse) updates) =>
+      super.copyWith((message) => updates(message as ZSideSyncNetworkFromBitcoinConfResponse))
+          as ZSideSyncNetworkFromBitcoinConfResponse;
+
+  @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core
+      .Deprecated('Use ZSideSyncNetworkFromBitcoinConfResponse() / ZSideSyncNetworkFromBitcoinConfResponse.new instead')
   static ZSideSyncNetworkFromBitcoinConfResponse create() => ZSideSyncNetworkFromBitcoinConfResponse._();
-  ZSideSyncNetworkFromBitcoinConfResponse createEmptyInstance() => create();
-  static $pb.PbList<ZSideSyncNetworkFromBitcoinConfResponse> createRepeated() => $pb.PbList<ZSideSyncNetworkFromBitcoinConfResponse>();
+  static $pb.GeneratedMessage $_createMessage() => ZSideSyncNetworkFromBitcoinConfResponse._();
+  @$core.override
+  ZSideSyncNetworkFromBitcoinConfResponse createEmptyInstance() => ZSideSyncNetworkFromBitcoinConfResponse._();
   @$core.pragma('dart2js:noInline')
-  static ZSideSyncNetworkFromBitcoinConfResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ZSideSyncNetworkFromBitcoinConfResponse>(create);
+  static ZSideSyncNetworkFromBitcoinConfResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ZSideSyncNetworkFromBitcoinConfResponse>(
+          ZSideSyncNetworkFromBitcoinConfResponse.$_createMessage);
   static ZSideSyncNetworkFromBitcoinConfResponse? _defaultInstance;
 }
 
 class ZSideConfServiceApi {
-  $pb.RpcClient _client;
+  final $pb.RpcClient _client;
+
   ZSideConfServiceApi(this._client);
 
-  $async.Future<GetZSideConfigResponse> getZSideConfig($pb.ClientContext? ctx, GetZSideConfigRequest request) =>
-    _client.invoke<GetZSideConfigResponse>(ctx, 'ZSideConfService', 'GetZSideConfig', request, GetZSideConfigResponse())
-  ;
+  /// Get current ZSide sidechain configuration state.
+  $async.Future<GetZSideConfigResponse> getZSideConfig($pb.ClientContext? ctx, GetZSideConfigRequest request) => _client
+      .invoke<GetZSideConfigResponse>(ctx, 'ZSideConfService', 'GetZSideConfig', request, GetZSideConfigResponse());
+
+  /// Write ZSide configuration content.
   $async.Future<WriteZSideConfigResponse> writeZSideConfig($pb.ClientContext? ctx, WriteZSideConfigRequest request) =>
-    _client.invoke<WriteZSideConfigResponse>(ctx, 'ZSideConfService', 'WriteZSideConfig', request, WriteZSideConfigResponse())
-  ;
-  $async.Future<ZSideSyncNetworkFromBitcoinConfResponse> syncNetworkFromBitcoinConf($pb.ClientContext? ctx, ZSideSyncNetworkFromBitcoinConfRequest request) =>
-    _client.invoke<ZSideSyncNetworkFromBitcoinConfResponse>(ctx, 'ZSideConfService', 'SyncNetworkFromBitcoinConf', request, ZSideSyncNetworkFromBitcoinConfResponse())
-  ;
+      _client.invoke<WriteZSideConfigResponse>(
+          ctx, 'ZSideConfService', 'WriteZSideConfig', request, WriteZSideConfigResponse());
+
+  /// Sync network from Bitcoin Core config.
+  $async.Future<ZSideSyncNetworkFromBitcoinConfResponse> syncNetworkFromBitcoinConf(
+          $pb.ClientContext? ctx, ZSideSyncNetworkFromBitcoinConfRequest request) =>
+      _client.invoke<ZSideSyncNetworkFromBitcoinConfResponse>(
+          ctx, 'ZSideConfService', 'SyncNetworkFromBitcoinConf', request, ZSideSyncNetworkFromBitcoinConfResponse());
 }
 
-
-const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const $core.bool _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
+const $core.bool _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

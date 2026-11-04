@@ -1,14 +1,14 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: m4/v1/m4.proto
-//
-// @dart = 2.12
+// Generated from m4/v1/m4.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:async' as $async;
 import 'dart:core' as $core;
@@ -28,25 +28,35 @@ abstract class M4ServiceBase extends $pb.GeneratedService {
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetM4History': return $0.GetM4HistoryRequest();
-      case 'GetVotes': return $0.GetVotesRequest();
-      case 'SetBundleUpvote': return $0.SetBundleUpvoteRequest();
-      case 'SetVotePolicy': return $0.SetVotePolicyRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetM4History':
+        return $0.GetM4HistoryRequest();
+      case 'GetVotes':
+        return $0.GetVotesRequest();
+      case 'SetBundleUpvote':
+        return $0.SetBundleUpvoteRequest();
+      case 'SetVotePolicy':
+        return $0.SetVotePolicyRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetM4History': return this.getM4History(ctx, request as $0.GetM4HistoryRequest);
-      case 'GetVotes': return this.getVotes(ctx, request as $0.GetVotesRequest);
-      case 'SetBundleUpvote': return this.setBundleUpvote(ctx, request as $0.SetBundleUpvoteRequest);
-      case 'SetVotePolicy': return this.setVotePolicy(ctx, request as $0.SetVotePolicyRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetM4History':
+        return getM4History(ctx, request as $0.GetM4HistoryRequest);
+      case 'GetVotes':
+        return getVotes(ctx, request as $0.GetVotesRequest);
+      case 'SetBundleUpvote':
+        return setBundleUpvote(ctx, request as $0.SetBundleUpvoteRequest);
+      case 'SetVotePolicy':
+        return setVotePolicy(ctx, request as $0.SetVotePolicyRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => M4ServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => M4ServiceBase$messageJson;
 }
-

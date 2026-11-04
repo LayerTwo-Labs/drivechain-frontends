@@ -11,7 +11,7 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/bitcoin.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/env.dart';
-import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/providers/balance_provider.dart';

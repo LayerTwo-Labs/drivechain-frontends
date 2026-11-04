@@ -4,8 +4,10 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "wallet.pb.dart" as walletv1wallet;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 abstract final class WalletService {
   /// Fully-qualified name of the WalletService service.

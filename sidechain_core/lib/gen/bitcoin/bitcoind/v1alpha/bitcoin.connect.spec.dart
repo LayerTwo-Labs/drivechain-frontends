@@ -4,8 +4,10 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "bitcoin.pb.dart" as bitcoinbitcoindv1alphabitcoin;
-import "../../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 abstract final class BitcoinService {
   /// Fully-qualified name of the BitcoinService service.

@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
-import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
 import 'package:sidechain_core/sidechain_core.dart';
 

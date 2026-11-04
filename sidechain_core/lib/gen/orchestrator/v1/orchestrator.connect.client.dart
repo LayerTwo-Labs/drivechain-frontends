@@ -4,10 +4,11 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "orchestrator.pb.dart" as orchestratorv1orchestrator;
 import "orchestrator.connect.spec.dart" as specs;
 
-extension type OrchestratorServiceClient (connect.Transport _transport) {
+extension type OrchestratorServiceClient(connect.Transport _transport) {
   /// List all configured binaries and their status.
   Future<orchestratorv1orchestrator.ListBinariesResponse> listBinaries(
     orchestratorv1orchestrator.ListBinariesRequest input, {
@@ -141,11 +142,7 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
-  /// target). Fire-and-forget on the server: returns as soon as the boot
-  /// goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
-  /// download progress and connection state — never tied to this RPC's
-  /// lifetime, so a transport blip can't kill an in-flight download.
+  /// Start a binary and its L1 dependencies. The call returns at once unless wait is true.
   Future<orchestratorv1orchestrator.StartWithL1Response> startWithL1(
     orchestratorv1orchestrator.StartWithL1Request input, {
     connect.Headers? headers,

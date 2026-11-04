@@ -4,11 +4,13 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "wallet.pb.dart" as walletv1wallet;
 import "wallet.connect.spec.dart" as specs;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type WalletServiceClient (connect.Transport _transport) {
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+extension type WalletServiceClient(connect.Transport _transport) {
   Future<walletv1wallet.SendTransactionResponse> sendTransaction(
     walletv1wallet.SendTransactionRequest input, {
     connect.Headers? headers,

@@ -6,7 +6,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart' as wkt;
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart' as wkt;
 import 'package:sidechain_core/gen/stratum/v1/stratum.pb.dart';
 import 'package:sidechain_core/rpcs/orchestrator_stratum_rpc.dart';
 

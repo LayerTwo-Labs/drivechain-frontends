@@ -7,7 +7,7 @@ import 'package:connectrpc/connect.dart' show Code, ConnectException;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart' as tspb;
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart' as tspb;
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;
 import 'package:sidechain_core/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
@@ -1049,8 +1049,8 @@ class MultisigStorage {
               fingerprint: k.fingerprint ?? '',
               originPath: k.originPath ?? '',
               isWallet: k.isWallet,
-              activePsbts: k.activePSBTs ?? {},
-              initialPsbts: k.initialPSBTs ?? {},
+              activePsbts: k.activePSBTs?.entries,
+              initialPsbts: k.initialPSBTs?.entries,
             ),
           )
           .toList(),

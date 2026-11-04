@@ -174,7 +174,7 @@ class OrchestratorRPC {
     Map<String, String>? env,
   }) {
     return _unaryClient.startBinary(
-      StartBinaryRequest(name: name, extraArgs: extraArgs ?? [], env: env ?? {}),
+      StartBinaryRequest(name: name, extraArgs: extraArgs ?? [], env: env?.entries),
     );
   }
 
@@ -283,7 +283,7 @@ class OrchestratorRPC {
       StartWithL1Request(
         target: target,
         targetArgs: targetArgs ?? [],
-        targetEnv: targetEnv ?? {},
+        targetEnv: targetEnv?.entries,
         coreArgs: coreArgs ?? [],
         enforcerArgs: enforcerArgs ?? [],
         immediate: immediate,

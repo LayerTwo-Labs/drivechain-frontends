@@ -4,11 +4,13 @@
 //
 
 import "package:connectrpc/connect.dart" as connect;
+
 import "walletmanager.pb.dart" as walletmanagerv1walletmanager;
 import "walletmanager.connect.spec.dart" as specs;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type WalletManagerServiceClient (connect.Transport _transport) {
+import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
+
+extension type WalletManagerServiceClient(connect.Transport _transport) {
   /// Wallet lifecycle
   Future<walletmanagerv1walletmanager.GetWalletStatusResponse> getWalletStatus(
     walletmanagerv1walletmanager.GetWalletStatusRequest input, {

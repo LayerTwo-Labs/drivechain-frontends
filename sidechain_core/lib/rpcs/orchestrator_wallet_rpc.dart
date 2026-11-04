@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
-import 'package:sidechain_core/gen/google/protobuf/empty.pb.dart' as emptypb;
+import 'package:protobuf/well_known_types/google/protobuf/empty.pb.dart' as emptypb;
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.connect.client.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
@@ -367,9 +367,7 @@ class OrchestratorWalletRPC {
     return _unaryClient.sendTransaction(
       wmpb.SendTransactionRequest(
         walletId: walletId,
-        destinations: destinations.map(
-          (key, value) => MapEntry(key, Int64(value)),
-        ),
+        destinations: destinations.entries.map((e) => MapEntry(e.key, Int64(e.value))),
         feeRateSatPerVbyte: Int64(feeRateSatPerVbyte ?? 0),
         subtractFeeFromAmount: subtractFeeFromAmount,
         opReturnHex: resolvedOpReturnHex ?? '',
@@ -394,7 +392,7 @@ class OrchestratorWalletRPC {
     return _unaryClient.previewSend(
       wmpb.PreviewSendRequest(
         walletId: walletId,
-        destinations: destinations.map((key, value) => MapEntry(key, Int64(value))),
+        destinations: destinations.entries.map((e) => MapEntry(e.key, Int64(e.value))),
         feeRateSatPerVbyte: Int64(feeRateSatPerVbyte),
         subtractFeeFromAmount: subtractFeeFromAmount,
         requiredInputs: requiredInputs?.map(_mapRequiredInput).toList() ?? [],
@@ -422,9 +420,7 @@ class OrchestratorWalletRPC {
     final response = await _unaryClient.createPsbt(
       wmpb.CreatePsbtRequest(
         walletId: walletId,
-        destinations: destinations.map(
-          (key, value) => MapEntry(key, Int64(value)),
-        ),
+        destinations: destinations.entries.map((e) => MapEntry(e.key, Int64(e.value))),
         feeRateSatPerVbyte: Int64(feeRateSatPerVbyte ?? 0),
         subtractFeeFromAmount: subtractFeeFromAmount,
         opReturnHex: resolvedOpReturnHex ?? '',

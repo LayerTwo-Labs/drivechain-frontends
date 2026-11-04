@@ -1,19 +1,21 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: walletpsbt/v1/walletpsbt.proto
-//
-// @dart = 2.12
+// Generated from walletpsbt/v1/walletpsbt.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $1;
+import 'package:protobuf/well_known_types/google/protobuf/empty.pbjson.dart' as $0;
 
 @$core.Deprecated('Use psbtDraftDescriptor instead')
 const PsbtDraft$json = {
@@ -30,11 +32,11 @@ const PsbtDraft$json = {
 };
 
 /// Descriptor for `PsbtDraft`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List psbtDraftDescriptor = $convert.base64Decode(
-    'CglQc2J0RHJhZnQSDgoCaWQYASABKAlSAmlkEhsKCXdhbGxldF9pZBgCIAEoCVIId2FsbGV0SW'
-    'QSFAoFbGFiZWwYAyABKAlSBWxhYmVsEh8KC3BzYnRfYmFzZTY0GAQgASgJUgpwc2J0QmFzZTY0'
-    'Eh0KCmNyZWF0ZWRfYXQYBSABKANSCWNyZWF0ZWRBdBIdCgp1cGRhdGVkX2F0GAYgASgDUgl1cG'
-    'RhdGVkQXQSEgoEdHhpZBgHIAEoCVIEdHhpZA==');
+final $typed_data.Uint8List psbtDraftDescriptor =
+    $convert.base64Decode('CglQc2J0RHJhZnQSDgoCaWQYASABKAlSAmlkEhsKCXdhbGxldF9pZBgCIAEoCVIId2FsbGV0SW'
+        'QSFAoFbGFiZWwYAyABKAlSBWxhYmVsEh8KC3BzYnRfYmFzZTY0GAQgASgJUgpwc2J0QmFzZTY0'
+        'Eh0KCmNyZWF0ZWRfYXQYBSABKANSCWNyZWF0ZWRBdBIdCgp1cGRhdGVkX2F0GAYgASgDUgl1cG'
+        'RhdGVkQXQSEgoEdHhpZBgHIAEoCVIEdHhpZA==');
 
 @$core.Deprecated('Use listDraftsRequestDescriptor instead')
 const ListDraftsRequest$json = {
@@ -45,8 +47,8 @@ const ListDraftsRequest$json = {
 };
 
 /// Descriptor for `ListDraftsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listDraftsRequestDescriptor = $convert.base64Decode(
-    'ChFMaXN0RHJhZnRzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+final $typed_data.Uint8List listDraftsRequestDescriptor =
+    $convert.base64Decode('ChFMaXN0RHJhZnRzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
 
 @$core.Deprecated('Use listDraftsResponseDescriptor instead')
 const ListDraftsResponse$json = {
@@ -57,9 +59,9 @@ const ListDraftsResponse$json = {
 };
 
 /// Descriptor for `ListDraftsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listDraftsResponseDescriptor = $convert.base64Decode(
-    'ChJMaXN0RHJhZnRzUmVzcG9uc2USMAoGZHJhZnRzGAEgAygLMhgud2FsbGV0cHNidC52MS5Qc2'
-    'J0RHJhZnRSBmRyYWZ0cw==');
+final $typed_data.Uint8List listDraftsResponseDescriptor =
+    $convert.base64Decode('ChJMaXN0RHJhZnRzUmVzcG9uc2USMAoGZHJhZnRzGAEgAygLMhgud2FsbGV0cHNidC52MS5Qc2'
+        'J0RHJhZnRSBmRyYWZ0cw==');
 
 @$core.Deprecated('Use saveDraftRequestDescriptor instead')
 const SaveDraftRequest$json = {
@@ -70,9 +72,9 @@ const SaveDraftRequest$json = {
 };
 
 /// Descriptor for `SaveDraftRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List saveDraftRequestDescriptor = $convert.base64Decode(
-    'ChBTYXZlRHJhZnRSZXF1ZXN0Ei4KBWRyYWZ0GAEgASgLMhgud2FsbGV0cHNidC52MS5Qc2J0RH'
-    'JhZnRSBWRyYWZ0');
+final $typed_data.Uint8List saveDraftRequestDescriptor =
+    $convert.base64Decode('ChBTYXZlRHJhZnRSZXF1ZXN0Ei4KBWRyYWZ0GAEgASgLMhgud2FsbGV0cHNidC52MS5Qc2J0RH'
+        'JhZnRSBWRyYWZ0');
 
 @$core.Deprecated('Use saveDraftResponseDescriptor instead')
 const SaveDraftResponse$json = {
@@ -83,9 +85,9 @@ const SaveDraftResponse$json = {
 };
 
 /// Descriptor for `SaveDraftResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List saveDraftResponseDescriptor = $convert.base64Decode(
-    'ChFTYXZlRHJhZnRSZXNwb25zZRIuCgVkcmFmdBgBIAEoCzIYLndhbGxldHBzYnQudjEuUHNidE'
-    'RyYWZ0UgVkcmFmdA==');
+final $typed_data.Uint8List saveDraftResponseDescriptor =
+    $convert.base64Decode('ChFTYXZlRHJhZnRSZXNwb25zZRIuCgVkcmFmdBgBIAEoCzIYLndhbGxldHBzYnQudjEuUHNidE'
+        'RyYWZ0UgVkcmFmdA==');
 
 @$core.Deprecated('Use deleteDraftRequestDescriptor instead')
 const DeleteDraftRequest$json = {
@@ -96,8 +98,8 @@ const DeleteDraftRequest$json = {
 };
 
 /// Descriptor for `DeleteDraftRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteDraftRequestDescriptor = $convert.base64Decode(
-    'ChJEZWxldGVEcmFmdFJlcXVlc3QSDgoCaWQYASABKAlSAmlk');
+final $typed_data.Uint8List deleteDraftRequestDescriptor =
+    $convert.base64Decode('ChJEZWxldGVEcmFmdFJlcXVlc3QSDgoCaWQYASABKAlSAmlk');
 
 const $core.Map<$core.String, $core.dynamic> WalletPsbtServiceBase$json = {
   '1': 'WalletPsbtService',
@@ -116,14 +118,13 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletPsbt
   '.walletpsbt.v1.SaveDraftRequest': SaveDraftRequest$json,
   '.walletpsbt.v1.SaveDraftResponse': SaveDraftResponse$json,
   '.walletpsbt.v1.DeleteDraftRequest': DeleteDraftRequest$json,
-  '.google.protobuf.Empty': $1.Empty$json,
+  '.google.protobuf.Empty': $0.Empty$json,
 };
 
 /// Descriptor for `WalletPsbtService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List walletPsbtServiceDescriptor = $convert.base64Decode(
-    'ChFXYWxsZXRQc2J0U2VydmljZRJRCgpMaXN0RHJhZnRzEiAud2FsbGV0cHNidC52MS5MaXN0RH'
-    'JhZnRzUmVxdWVzdBohLndhbGxldHBzYnQudjEuTGlzdERyYWZ0c1Jlc3BvbnNlEk4KCVNhdmVE'
-    'cmFmdBIfLndhbGxldHBzYnQudjEuU2F2ZURyYWZ0UmVxdWVzdBogLndhbGxldHBzYnQudjEuU2'
-    'F2ZURyYWZ0UmVzcG9uc2USSAoLRGVsZXRlRHJhZnQSIS53YWxsZXRwc2J0LnYxLkRlbGV0ZURy'
-    'YWZ0UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eQ==');
-
+final $typed_data.Uint8List walletPsbtServiceDescriptor =
+    $convert.base64Decode('ChFXYWxsZXRQc2J0U2VydmljZRJRCgpMaXN0RHJhZnRzEiAud2FsbGV0cHNidC52MS5MaXN0RH'
+        'JhZnRzUmVxdWVzdBohLndhbGxldHBzYnQudjEuTGlzdERyYWZ0c1Jlc3BvbnNlEk4KCVNhdmVE'
+        'cmFmdBIfLndhbGxldHBzYnQudjEuU2F2ZURyYWZ0UmVxdWVzdBogLndhbGxldHBzYnQudjEuU2'
+        'F2ZURyYWZ0UmVzcG9uc2USSAoLRGVsZXRlRHJhZnQSIS53YWxsZXRwc2J0LnYxLkRlbGV0ZURy'
+        'YWZ0UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eQ==');
