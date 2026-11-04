@@ -44,7 +44,7 @@ dependencies:
   fixnum: ^1.1.1
   get_it: ^9.3.0
   protobuf: ^6.1.0
-  window_manager: ^0.5.2
+  window_manager: ^0.6.0
   flutter_markdown:
     path: ../third_party/flutter_markdown
   path: ^1.9.1

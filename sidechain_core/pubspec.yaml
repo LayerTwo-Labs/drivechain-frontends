@@ -30,7 +30,7 @@ dependencies:
   thirds:
     path: ../third_party/thirds
   web: ^1.1.2
-  window_manager: ^0.5.2
+  window_manager: ^0.6.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0
