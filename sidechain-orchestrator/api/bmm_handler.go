@@ -54,6 +54,7 @@ const (
 
 // bidWallet is the wallet surface a bid spends through.
 type bidWallet interface {
+	walletNeedsL1(walletID string) bool
 	// ResolveWalletID names the wallet an empty id means.
 	ResolveWalletID(walletID string) (string, error)
 	// HeldCoins names the coins the user froze, keyed txid:vout. A bid picks
@@ -115,6 +116,19 @@ func (h *BMMHandler) SetCoreCaller(c CoreRawCaller) { h.core = c }
 // SetEngine wires the background bidder, which calls back into this handler.
 func (h *BMMHandler) SetEngine(engine *engines.BmmEngine) {
 	h.engine = engine
+}
+
+// CanBid reports whether this install can spend a bid from walletID. Light mode
+// runs no local Bitcoin Core, so only an Electrum wallet can pay for a bid.
+func (h *BMMHandler) CanBid(walletID string) bool {
+	if h.runsLocalCore() || h.wallet == nil {
+		return true
+	}
+	// An id that does not resolve fails later, when the bid resolves it.
+	if resolved, err := h.wallet.ResolveWalletID(walletID); err == nil {
+		walletID = resolved
+	}
+	return !h.wallet.walletNeedsL1(walletID)
 }
 
 func (h *BMMHandler) runsLocalCore() bool {
@@ -213,6 +227,9 @@ func (h *BMMHandler) Start(
 	}
 	if req.MaxBidSats <= 0 {
 		return nil, connect.Errorf(connect.CodeInvalidArgument, "max_bid_sats must be positive")
+	}
+	if !h.CanBid(req.WalletId) {
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "light mode can bid only from an Electrum wallet")
 	}
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err

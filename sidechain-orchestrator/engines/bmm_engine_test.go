@@ -27,7 +27,9 @@ const testSidechain = pb.BinaryType_BINARY_TYPE_THUNDER
 type fakeBackend struct {
 	mu sync.Mutex
 
-	noMempool         bool
+	noMempool bool
+	// coreWallet names a wallet the backend cannot spend with no mempool read.
+	coreWallet        string
 	bids              int
 	connects          int
 	connected         bool
@@ -154,6 +156,12 @@ func (f *fakeBackend) ListBids(
 		bids = append(bids, bid)
 	}
 	return &bmmpb.ListBidsResponse{Bids: bids}, nil
+}
+
+func (f *fakeBackend) CanBid(walletID string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return !f.noMempool || f.coreWallet == "" || walletID != f.coreWallet
 }
 
 func (f *fakeBackend) MempoolTxids(_ context.Context, walletIDs []string) (map[string]bool, error) {

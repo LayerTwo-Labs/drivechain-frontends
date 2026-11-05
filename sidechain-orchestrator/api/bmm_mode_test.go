@@ -172,3 +172,23 @@ func TestBMMLightModeKeepsStopAndPaidHistory(t *testing.T) {
 	// Light mode still opens a bid, so it still reports the rate one opens at.
 	require.Positive(t, state.NextBlockFeeRateSatVb)
 }
+
+// Light mode runs no Bitcoin Core, so it refuses a bid from a Core wallet. An
+// empty id names the active wallet, and the check reads that one.
+func TestBMMLightModeRefusesACoreWallet(t *testing.T) {
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{coreWallet: "active"}
+	assert.True(t, h.CanBid("electrum"))
+
+	for _, walletID := range []string{"active", ""} {
+		assert.False(t, h.CanBid(walletID))
+		_, err := h.Start(context.Background(), &bmmpb.StartRequest{
+			Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER, WalletId: walletID, MaxBidSats: 30_000,
+		})
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		require.ErrorContains(t, err, "light mode can bid only from an Electrum wallet")
+	}
+
+	require.NoError(t, orchestrator.WriteNodeMode(h.orch.BitwindowDir, orchestrator.NodeModeFull))
+	assert.True(t, h.CanBid("active"))
+}

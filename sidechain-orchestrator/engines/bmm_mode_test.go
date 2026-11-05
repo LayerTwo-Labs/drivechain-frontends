@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -76,4 +77,56 @@ func TestBmmEngineRatesWithNoMempoolRead(t *testing.T) {
 
 	assert.Positive(t, engine.NextBlockRate(context.Background()))
 	assert.Equal(t, 1, fee.calls)
+}
+
+// A light install cannot spend from a Core wallet, so a start that names one
+// saves no target and bids nothing.
+func TestBmmEngineRefusesACoreWalletInLightMode(t *testing.T) {
+	engine, backend, _, store := newEngine(t)
+	backend.noMempool = true
+	backend.coreWallet = "core"
+	ctx := context.Background()
+
+	require.Error(t, engine.Start(ctx, testSidechain, "core", 30_000, false))
+
+	targets, err := store.Targets()
+	require.NoError(t, err)
+	assert.Empty(t, targets)
+	running, _, _ := engine.Running(testSidechain)
+	assert.False(t, running)
+	engine.tick(ctx)
+	assert.Zero(t, backend.bids)
+}
+
+// A target saved in full mode resumes after a switch to light mode. The engine
+// stops it when it names a Core wallet, and keeps bidding for an Electrum one.
+func TestBmmEngineStopsASavedCoreTargetInLightMode(t *testing.T) {
+	for walletID, keeps := range map[string]bool{"core": false, "electrum": true} {
+		t.Run(walletID, func(t *testing.T) {
+			engine, backend, tip, store := newEngine(t)
+			backend.coreWallet = "core"
+			ctx := context.Background()
+			require.NoError(t, engine.Start(ctx, testSidechain, walletID, 30_000, false))
+			engine.tick(ctx)
+			require.Equal(t, 1, backend.bids)
+
+			backend.noMempool = true
+			restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+			restarted.resumeTargets()
+			tip.set("block-2")
+			restarted.tick(ctx)
+
+			running, _, _ := restarted.Running(testSidechain)
+			assert.Equal(t, keeps, running)
+			targets, err := store.Targets()
+			require.NoError(t, err)
+			if keeps {
+				assert.Len(t, targets, 1)
+				assert.Equal(t, 2, backend.bids)
+			} else {
+				assert.Empty(t, targets)
+				assert.Equal(t, 1, backend.bids)
+			}
+		})
+	}
 }

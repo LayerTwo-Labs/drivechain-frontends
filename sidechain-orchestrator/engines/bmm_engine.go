@@ -95,6 +95,8 @@ type BmmBackend interface {
 	TemplateOnTip(ctx context.Context, sidechain pb.BinaryType, blockJSON string) (bool, error)
 	// TemplateWorth reports the fees a fresh block template collects, in sats.
 	TemplateWorth(ctx context.Context, sidechain pb.BinaryType) (int64, error)
+	// CanBid reports whether the install can spend a bid from walletID.
+	CanBid(walletID string) bool
 }
 
 // MainchainTip reports the mainchain tip the enforcer has validated, and the
@@ -191,6 +193,9 @@ func (e *BmmEngine) Start(
 ) error {
 	if maxBidSats <= 0 {
 		return fmt.Errorf("max_bid_sats must be positive")
+	}
+	if !e.backend.CanBid(walletID) {
+		return fmt.Errorf("light mode can bid only from an Electrum wallet")
 	}
 
 	e.mu.Lock()
@@ -606,6 +611,17 @@ func (e *BmmEngine) tick(ctx context.Context) {
 		targets[k] = v
 	}
 	e.mu.Unlock()
+
+	// A target saved in full mode can name a wallet that light mode cannot spend.
+	for sidechain, target := range targets {
+		if e.backend.CanBid(target.walletID) {
+			continue
+		}
+		delete(targets, sidechain)
+		if err := e.Stop(sidechain); err != nil {
+			e.log.Error().Err(err).Stringer("sidechain", sidechain).Msg("stop a bmm target light mode cannot spend")
+		}
+	}
 
 	pending := e.pendingSidechains()
 	if len(targets) == 0 && len(pending) == 0 {
