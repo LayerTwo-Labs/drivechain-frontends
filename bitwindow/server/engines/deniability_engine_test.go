@@ -67,12 +67,11 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	t.Run("handleAbortedDenials", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -112,6 +111,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("a finished denial stays finished when its tip is spent", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -141,6 +141,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("a wallet read failure holds its denials back", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -169,6 +170,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("a Core UTXO value rounds to whole sats", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -196,17 +198,18 @@ func TestDeniabilityEngine(t *testing.T) {
 		t.Parallel()
 
 		tests := []struct {
-			name          string
-			unspentTxid   string
-			wantCancelled bool
+			name        string
+			unspentTxid string
+			wantActive  bool
 		}{
-			{name: "tip spent is cancelled", unspentTxid: "different-txid", wantCancelled: true},
-			{name: "tip present stays active", unspentTxid: "test-txid", wantCancelled: false},
+			{name: "an unknown owner keeps the plan", unspentTxid: "different-txid", wantActive: false},
+			{name: "the owner keeps the plan active", unspentTxid: "test-txid", wantActive: true},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 				db := database.Test(t)
+				ctrl := gomock.NewController(t)
 				mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 				apitests.ExpectCoreWalletSetup(mockBitcoind)
 				bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -221,7 +224,7 @@ func TestDeniabilityEngine(t *testing.T) {
 
 				mockBitcoind.EXPECT().
 					ListUnspent(gomock.Any(), gomock.Any()).
-					Times(1).
+					AnyTimes().
 					Return(&connect.Response[corepb.ListUnspentResponse]{
 						Msg: &corepb.ListUnspentResponse{
 							Unspent: []*corepb.UnspentOutput{
@@ -235,20 +238,23 @@ func TestDeniabilityEngine(t *testing.T) {
 
 				active, err := deniability.List(ctx, db, deniability.WithExcludeCancelled())
 				require.NoError(t, err)
-				if tt.wantCancelled {
-					assert.Empty(t, active)
+				require.Len(t, active, 1)
+				assert.Equal(t, denial.ID, active[0].ID)
+				if tt.wantActive {
+					require.NotNil(t, active[0].WalletID)
+					assert.Equal(t, denialWalletID, *active[0].WalletID)
 				} else {
-					require.Len(t, active, 1)
-					assert.Equal(t, denial.ID, active[0].ID)
+					assert.Nil(t, active[0].WalletID)
 				}
+
 			})
 		}
 	})
 
 	t.Run("a denial saves one hop before its next execution", func(t *testing.T) {
 		t.Parallel()
-		ctrl := gomock.NewController(t)
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -321,6 +327,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("processUTXO with insufficient amount", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -350,6 +357,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("executeDenial finds an unconfirmed hop output", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -411,6 +419,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("processUTXO cancels when the split is dust", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -435,6 +444,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("processUTXO cancels a target size below dust", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -457,6 +467,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("processUTXO sends at least the dust limit", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -510,6 +521,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("processUTXO leaves change above the dust limit", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
@@ -559,6 +571,7 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("a frozen coin pauses its denial", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
+		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {

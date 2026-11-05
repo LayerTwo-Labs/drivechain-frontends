@@ -119,7 +119,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 		return nil, nil, fmt.Errorf("list denials: %w", err)
 	}
 	// A finished or paused denial has no next hop, so a spent tip does not cancel it.
-	denials = lo.Filter(denials, func(d deniability.Denial, _ int) bool { return d.NextExecution != nil })
+	denials = lo.Filter(denials, func(d deniability.Denial, _ int) bool { return d.NextExecution != nil || d.Pending != nil })
 
 	if len(denials) == 0 {
 		return nil, nil, nil
@@ -132,9 +132,6 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 	failedWallets := make(map[string]bool)
 
 	for _, denial := range denials {
-		// A denial from before wallet_id existed names none, so it runs on the
-		// active wallet. Erroring instead would mark it failed on every cycle
-		// and strand it forever.
 		walletID, err := e.resolveDenialWallet(ctx, denial)
 		if err != nil {
 			logger.Warn().Err(err).Int64("denial", denial.ID).Msg("deniability: no wallet for this denial, will retry")
@@ -161,6 +158,23 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 		}
 	}
 
+	for i, denial := range denials {
+		if denial.Pending == nil || denial.WalletID == nil {
+			continue
+		}
+		outputs := denialOutputs(walletUTXOs[*denial.WalletID], denial.Pending.ToTxID, denial.Pending.Destinations)
+		if len(outputs) == 0 {
+			continue
+		}
+		if err := deniability.CompletePending(ctx, e.db, denial.ID, lo.Map(outputs, func(u *UTXO, _ int) uint32 { return u.Vout })); err != nil {
+			return nil, nil, fmt.Errorf("complete pending denial: %w", err)
+		}
+		denials[i], err = deniability.Get(ctx, e.db, denial.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	// if any denial tips are missing from the wallet, we must abort them before moving on
 	if err := e.cancelIfUTXOIsGone(ctx, walletUTXOs, denials); err != nil {
 		return nil, nil, fmt.Errorf("handle aborted denials: %w", err)
@@ -175,7 +189,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 	denials = lo.Filter(denials, func(d deniability.Denial, _ int) bool {
 		walletID, err := e.resolveDenialWallet(ctx, d)
 		_, listed := walletUTXOs[walletID]
-		return err == nil && listed
+		return err == nil && listed && d.Pending == nil
 	})
 
 	// Flatten all UTXOs for ExecuteDenial (which will also re-verify)
@@ -188,6 +202,9 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs 
 	logger := zerolog.Ctx(ctx)
 
 	for _, denial := range denials {
+		if denial.Pending != nil {
+			continue
+		}
 		walletID, err := e.resolveDenialWallet(ctx, denial)
 		if err != nil {
 			continue
@@ -248,6 +265,13 @@ const denialDustLimit = 546
 var errDenialAmountTooSmall = errors.New("split amount is below the dust limit")
 
 func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial deniability.Denial) error {
+	pending, err := deniability.GetPending(ctx, e.db, denial.ID)
+	if err != nil {
+		return err
+	}
+	if pending != nil {
+		return fmt.Errorf("denial %d has pending transaction %s", denial.ID, pending.ToTxID)
+	}
 	logger := zerolog.Ctx(ctx).With().
 		Int64("denial_id", denial.ID).
 		Str("utxo_txid", utxo.Txid).
@@ -266,7 +290,6 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 	// Use the denial's stored wallet_id to determine routing
 	var walletType WalletType
 	var walletID string
-	var err error
 
 	walletID, err = e.resolveDenialWallet(ctx, denial)
 	if err != nil {
@@ -309,6 +332,12 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 		return fmt.Errorf("send transaction: %w", err)
 	}
 
+	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	err = deniability.SavePending(saveCtx, e.db, denial.ID, utxo.Txid, int32(utxo.Vout), txid, destinations)
+	cancel()
+	if err != nil {
+		return err
+	}
 	newUTXOs, err := e.waitForUTXOsToAppear(ctx, walletID, txid, destinations)
 	if err != nil {
 		return fmt.Errorf("wait for tx to appear: %w", err)
@@ -319,18 +348,9 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 			panic("DEVELOPER ERROR: returned UTXO txid did not match sent txid")
 		}
 
-		if err := deniability.RecordExecution(ctx, e.db, denial.ID,
-			utxo.Txid,
-			int32(utxo.Vout),
-			txid,
-			newUTXO.Vout,
-		); err != nil {
-			logger.Error().
-				Err(err).
-				Str("to_txid", txid).
-				Msg("record execution")
-			return fmt.Errorf("record execution: %w", err)
-		}
+	}
+	if err := deniability.CompletePending(ctx, e.db, denial.ID, lo.Map(newUTXOs, func(u *UTXO, _ int) uint32 { return u.Vout })); err != nil {
+		return fmt.Errorf("record execution: %w", err)
 	}
 
 	logger.Info().
@@ -430,16 +450,7 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 				continue
 			}
 
-			var foundUTXOs []*UTXO
-			for _, utxo := range utxos {
-				if utxo.Txid == txid {
-					// Check if this UTXO's address matches any of our destination addresses
-					if _, exists := destinations[utxo.Address]; exists {
-						foundUTXOs = append(foundUTXOs, utxo)
-					}
-					// any non-matched is change. We don't care about those
-				}
-			}
+			foundUTXOs := denialOutputs(utxos, txid, destinations)
 
 			if len(foundUTXOs) > 0 {
 				logger.Info().
@@ -458,6 +469,16 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 			}
 		}
 	}
+}
+
+func denialOutputs(utxos []*UTXO, txid string, destinations map[string]uint64) []*UTXO {
+	var outputs []*UTXO
+	for _, utxo := range utxos {
+		if _, ok := destinations[utxo.Address]; ok && utxo.Txid == txid {
+			outputs = append(outputs, utxo)
+		}
+	}
+	return outputs
 }
 
 // rejectWatchOnly returns an error if the wallet has no signing key.
@@ -622,20 +643,50 @@ func (e *DeniabilityEngine) getBitcoinCoreNewAddress(ctx context.Context, wallet
 	return resp.Msg.Address, nil
 }
 
-// resolveDenialWallet names the wallet a denial spends from: the one stored
-// with it, or the active wallet for a row from before wallet_id existed.
 func (e *DeniabilityEngine) resolveDenialWallet(ctx context.Context, denial deniability.Denial) (string, error) {
 	if denial.WalletID != nil && *denial.WalletID != "" {
 		return *denial.WalletID, nil
 	}
-	active, err := e.walletEngine.GetActiveWallet(ctx)
+	var stored sql.NullString
+	if err := e.db.QueryRowContext(ctx, `SELECT wallet_id FROM denials WHERE id = ?`, denial.ID).Scan(&stored); err != nil {
+		return "", fmt.Errorf("read denial wallet: %w", err)
+	}
+	if stored.Valid && stored.String != "" {
+		return stored.String, nil
+	}
+	wallets, err := e.walletEngine.GetAllWallets(ctx)
 	if err != nil {
-		return "", fmt.Errorf("get active wallet: %w", err)
+		return "", fmt.Errorf("list wallets for the legacy denial: %w", err)
 	}
-	if active.ID == "" {
-		return "", errors.New("no wallet is active")
+	var owner string
+	for _, wallet := range wallets {
+		if wallet.WatchOnly {
+			continue
+		}
+		utxos, err := e.listUTXOsForWallet(ctx, wallet.ID)
+		if err != nil {
+			return "", fmt.Errorf("read wallet %s for the legacy denial: %w", wallet.ID, err)
+		}
+		if !lo.ContainsBy(utxos, func(utxo *UTXO) bool {
+			return utxo.Txid == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
+		}) {
+			continue
+		}
+		if owner != "" {
+			return "", errors.New("more than one wallet holds the legacy denial tip")
+		}
+		owner = wallet.ID
 	}
-	return active.ID, nil
+	if owner == "" {
+		return "", errors.New("no wallet holds the legacy denial tip")
+	}
+	if err := e.db.QueryRowContext(ctx, `
+		UPDATE denials SET wallet_id = COALESCE(NULLIF(wallet_id, ''), ?)
+		WHERE id = ? RETURNING wallet_id
+	`, owner, denial.ID).Scan(&owner); err != nil {
+		return "", fmt.Errorf("save legacy denial wallet: %w", err)
+	}
+	return owner, nil
 }
 
 func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletID string) ([]*UTXO, error) {
