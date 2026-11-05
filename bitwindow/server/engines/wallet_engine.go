@@ -566,6 +566,15 @@ func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletID str
 	return resp.Transactions, nil
 }
 
+// GetTransactionDetails returns one wallet transaction with its outputs from the orchestrator.
+func (e *WalletEngine) GetTransactionDetails(ctx context.Context, walletID, txid string) (*orchpb.GetTransactionDetailsResponse, error) {
+	resp, err := e.orchClient.GetTransactionDetails(ctx, &orchpb.GetTransactionDetailsRequest{WalletId: walletID, Txid: txid})
+	if err != nil {
+		return nil, fmt.Errorf("get transaction details %s: %w", txid, err)
+	}
+	return resp, nil
+}
+
 // EnsureWatchOnlyWallet ensures a watch-only wallet exists in Bitcoin Core
 func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletID string) (string, error) {
 	// This path named the wallet watch_<prefix> before it was aligned with the
