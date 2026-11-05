@@ -295,6 +295,18 @@ void main() {
 
         expect(txid, 'new_market_txid');
       });
+
+      test('sends the listing fee the user saw as the cap', () async {
+        await marketProvider.createMarket(
+          title: 'Test Market',
+          description: 'Test description',
+          dimensions: '2',
+          feeSats: 1000,
+          maxListingFeeSats: 27,
+        );
+
+        expect(mockRpc.lastMarketCreateMaxListingFeeSats, 27);
+      });
     });
 
     group('notifyListeners', () {

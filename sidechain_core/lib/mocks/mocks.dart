@@ -718,6 +718,7 @@ class MockTruthcoinRPC extends TruthcoinRPC {
     List<String>? tags,
     List<String>? categoryTxids,
     List<String>? residualNames,
+    int? maxListingFeeSats,
   }) {
     return Future.value('market_create_1234');
   }

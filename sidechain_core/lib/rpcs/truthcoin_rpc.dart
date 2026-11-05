@@ -93,6 +93,7 @@ abstract class TruthcoinRPC extends SidechainRPC {
     List<String>? tags,
     List<String>? categoryTxids,
     List<String>? residualNames,
+    int? maxListingFeeSats,
   });
 
   /// List all markets
@@ -565,6 +566,7 @@ class TruthcoinLive extends TruthcoinRPC {
     List<String>? tags,
     List<String>? categoryTxids,
     List<String>? residualNames,
+    int? maxListingFeeSats,
   }) async {
     final resp = await _client.marketCreate(
       pb.MarketCreateRequest(
@@ -578,6 +580,7 @@ class TruthcoinLive extends TruthcoinRPC {
         tags: tags ?? [],
         categoryTxids: categoryTxids ?? [],
         residualNames: residualNames ?? [],
+        maxListingFeeSats: maxListingFeeSats != null ? Int64(maxListingFeeSats) : null,
       ),
     );
     return resp.txid;

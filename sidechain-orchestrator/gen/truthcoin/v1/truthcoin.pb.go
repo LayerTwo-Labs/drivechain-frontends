@@ -2576,19 +2576,20 @@ func (x *CalculateInitialLiquidityResponse) GetResultJson() string {
 }
 
 type MarketCreateRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Title            string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Description      string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Dimensions       string                 `protobuf:"bytes,3,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
-	FeeSats          int64                  `protobuf:"varint,4,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
-	Beta             *float64               `protobuf:"fixed64,5,opt,name=beta,proto3,oneof" json:"beta,omitempty"`
-	InitialLiquidity *int64                 `protobuf:"varint,6,opt,name=initial_liquidity,json=initialLiquidity,proto3,oneof" json:"initial_liquidity,omitempty"`
-	TradingFee       *float64               `protobuf:"fixed64,7,opt,name=trading_fee,json=tradingFee,proto3,oneof" json:"trading_fee,omitempty"`
-	Tags             []string               `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty"`
-	CategoryTxids    []string               `protobuf:"bytes,9,rep,name=category_txids,json=categoryTxids,proto3" json:"category_txids,omitempty"`
-	ResidualNames    []string               `protobuf:"bytes,10,rep,name=residual_names,json=residualNames,proto3" json:"residual_names,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Title             string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Description       string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Dimensions        string                 `protobuf:"bytes,3,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
+	FeeSats           int64                  `protobuf:"varint,4,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	Beta              *float64               `protobuf:"fixed64,5,opt,name=beta,proto3,oneof" json:"beta,omitempty"`
+	InitialLiquidity  *int64                 `protobuf:"varint,6,opt,name=initial_liquidity,json=initialLiquidity,proto3,oneof" json:"initial_liquidity,omitempty"`
+	TradingFee        *float64               `protobuf:"fixed64,7,opt,name=trading_fee,json=tradingFee,proto3,oneof" json:"trading_fee,omitempty"`
+	Tags              []string               `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty"`
+	CategoryTxids     []string               `protobuf:"bytes,9,rep,name=category_txids,json=categoryTxids,proto3" json:"category_txids,omitempty"`
+	ResidualNames     []string               `protobuf:"bytes,10,rep,name=residual_names,json=residualNames,proto3" json:"residual_names,omitempty"`
+	MaxListingFeeSats *int64                 `protobuf:"varint,11,opt,name=max_listing_fee_sats,json=maxListingFeeSats,proto3,oneof" json:"max_listing_fee_sats,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *MarketCreateRequest) Reset() {
@@ -2689,6 +2690,13 @@ func (x *MarketCreateRequest) GetResidualNames() []string {
 		return x.ResidualNames
 	}
 	return nil
+}
+
+func (x *MarketCreateRequest) GetMaxListingFeeSats() int64 {
+	if x != nil && x.MaxListingFeeSats != nil {
+		return *x.MaxListingFeeSats
+	}
+	return 0
 }
 
 type MarketCreateResponse struct {
@@ -5547,7 +5555,7 @@ const file_truthcoin_v1_truthcoin_proto_rawDesc = "" +
 	"\v_dimensions\"D\n" +
 	"!CalculateInitialLiquidityResponse\x12\x1f\n" +
 	"\vresult_json\x18\x01 \x01(\tR\n" +
-	"resultJson\"\x8a\x03\n" +
+	"resultJson\"\xd9\x03\n" +
 	"\x13MarketCreateRequest\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1e\n" +
@@ -5562,10 +5570,12 @@ const file_truthcoin_v1_truthcoin_proto_rawDesc = "" +
 	"\x04tags\x18\b \x03(\tR\x04tags\x12%\n" +
 	"\x0ecategory_txids\x18\t \x03(\tR\rcategoryTxids\x12%\n" +
 	"\x0eresidual_names\x18\n" +
-	" \x03(\tR\rresidualNamesB\a\n" +
+	" \x03(\tR\rresidualNames\x124\n" +
+	"\x14max_listing_fee_sats\x18\v \x01(\x03H\x03R\x11maxListingFeeSats\x88\x01\x01B\a\n" +
 	"\x05_betaB\x14\n" +
 	"\x12_initial_liquidityB\x0e\n" +
-	"\f_trading_fee\"*\n" +
+	"\f_trading_feeB\x17\n" +
+	"\x15_max_listing_fee_sats\"*\n" +
 	"\x14MarketCreateResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x13\n" +
 	"\x11MarketListRequest\"7\n" +

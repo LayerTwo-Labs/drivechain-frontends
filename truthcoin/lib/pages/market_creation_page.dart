@@ -952,6 +952,7 @@ class MarketCreationViewModel extends BaseViewModel {
           ? int.tryParse(liquidityController.text)
           : null,
       tradingFee: tradingFeePercent / 100,
+      maxListingFeeSats: usedNewDecisions.isEmpty ? null : listingFeeSats,
     );
 
     isCreating = false;

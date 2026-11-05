@@ -3063,6 +3063,7 @@ class MarketCreateRequest extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? tags,
     $core.Iterable<$core.String>? categoryTxids,
     $core.Iterable<$core.String>? residualNames,
+    $fixnum.Int64? maxListingFeeSats,
   }) {
     final result = MarketCreateRequest._();
     if (title != null) result.title = title;
@@ -3075,6 +3076,7 @@ class MarketCreateRequest extends $pb.GeneratedMessage {
     if (tags != null) result.tags.addAll(tags);
     if (categoryTxids != null) result.categoryTxids.addAll(categoryTxids);
     if (residualNames != null) result.residualNames.addAll(residualNames);
+    if (maxListingFeeSats != null) result.maxListingFeeSats = maxListingFeeSats;
     return result;
   }
 
@@ -3100,6 +3102,7 @@ class MarketCreateRequest extends $pb.GeneratedMessage {
     ..pPS(8, _omitFieldNames ? '' : 'tags')
     ..pPS(9, _omitFieldNames ? '' : 'categoryTxids')
     ..pPS(10, _omitFieldNames ? '' : 'residualNames')
+    ..aInt64(11, _omitFieldNames ? '' : 'maxListingFeeSats')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3193,6 +3196,15 @@ class MarketCreateRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(10)
   $pb.PbList<$core.String> get residualNames => $_getList(9);
+
+  @$pb.TagNumber(11)
+  $fixnum.Int64 get maxListingFeeSats => $_getI64(10);
+  @$pb.TagNumber(11)
+  set maxListingFeeSats($fixnum.Int64 value) => $_setInt64(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasMaxListingFeeSats() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearMaxListingFeeSats() => $_clearField(11);
 }
 
 class MarketCreateResponse extends $pb.GeneratedMessage {

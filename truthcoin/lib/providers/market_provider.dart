@@ -355,6 +355,7 @@ class MarketProvider extends ChangeNotifier {
     double? beta,
     int? initialLiquidity,
     double? tradingFee,
+    int? maxListingFeeSats,
   }) async {
     try {
       final txid = await _rpc.marketCreate(
@@ -365,6 +366,7 @@ class MarketProvider extends ChangeNotifier {
         beta: beta,
         initialLiquidity: initialLiquidity,
         tradingFee: tradingFee,
+        maxListingFeeSats: maxListingFeeSats,
       );
       _log.i('Created market: $txid');
       // Reload markets list
