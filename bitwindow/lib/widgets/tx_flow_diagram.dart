@@ -4,12 +4,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+/// What a band in the flow diagram carries. It sets the band color.
+enum FlowKind { input, payment, change, fee }
+
 /// One band in the flow diagram, in satoshis.
 class FlowSlot {
   final int sats;
-  final bool isFee;
+  final FlowKind kind;
 
-  const FlowSlot({required this.sats, this.isFee = false});
+  const FlowSlot({required this.sats, required this.kind});
+
+  bool get isFee => kind == FlowKind.fee;
 }
 
 /// A mempool.space-style sankey: input caps on the left, a trunk, then a
@@ -37,26 +42,92 @@ class TxFlowDiagram extends StatelessWidget {
         borderRadius: SailStyleValues.borderRadius,
         border: Border.all(color: theme.colors.divider),
       ),
-      child: CustomPaint(
-        size: Size.infinite,
-        painter: _SankeyPainter(inputs: inputs, outputs: outputs),
-      ),
+      child: TxFlowPlot(inputs: inputs, outputs: outputs),
     );
   }
 }
 
-class _SankeyPainter extends CustomPainter {
+/// The sankey alone, with no frame. It fills its parent.
+class TxFlowPlot extends StatelessWidget {
   final List<FlowSlot> inputs;
   final List<FlowSlot> outputs;
 
-  static const _gradientStart = Color(0xFF8B5CF6);
-  static const _gradientEnd = Color(0xFF3B82F6);
+  const TxFlowPlot({super.key, required this.inputs, required this.outputs});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size.infinite,
+      painter: SankeyPainter(inputs: inputs, outputs: outputs, colors: FlowColors.of(context)),
+    );
+  }
+}
+
+/// The band color for each [FlowKind], from the theme.
+class FlowColors {
+  final Color input;
+  final Color payment;
+  final Color change;
+  final Color fee;
+
+  const FlowColors({required this.input, required this.payment, required this.change, required this.fee});
+
+  factory FlowColors.of(BuildContext context) {
+    final colors = context.sailTheme.colors;
+    return FlowColors(
+      input: colors.textTertiary.withValues(alpha: 0.35),
+      payment: colors.orange.withValues(alpha: 0.85),
+      change: colors.success.withValues(alpha: 0.85),
+      fee: colors.textTertiary,
+    );
+  }
+
+  Color forKind(FlowKind kind) => switch (kind) {
+    FlowKind.input => input,
+    FlowKind.payment => payment,
+    FlowKind.change => change,
+    FlowKind.fee => fee,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is FlowColors &&
+      other.input == input &&
+      other.payment == payment &&
+      other.change == change &&
+      other.fee == fee;
+
+  @override
+  int get hashCode => Object.hash(input, payment, change, fee);
+}
+
+/// The vertical bands of [slots] in a plot of [height] pixels: the same
+/// layout the painter draws, so labels can sit at each band center.
+List<({double top, double height})> flowBandLayout(List<FlowSlot> slots, double height) {
+  if (slots.isEmpty) {
+    return const [];
+  }
+  final heights = SankeyPainter.bandHeights(slots, height);
+  var top = SankeyPainter.stackTop(heights, height);
+  final bands = <({double top, double height})>[];
+  for (final h in heights) {
+    bands.add((top: top, height: h));
+    top += h + SankeyPainter.gap;
+  }
+  return bands;
+}
+
+class SankeyPainter extends CustomPainter {
+  final List<FlowSlot> inputs;
+  final List<FlowSlot> outputs;
+  final FlowColors colors;
+
   static const _capWidth = 90.0;
   static const _arrowWidth = 24.0;
-  static const _gap = 10.0;
+  static const gap = 10.0;
   static const _minBand = 2.0;
 
-  _SankeyPainter({required this.inputs, required this.outputs});
+  SankeyPainter({required this.inputs, required this.outputs, required this.colors});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -64,29 +135,28 @@ class _SankeyPainter extends CustomPainter {
       return;
     }
 
-    final shader = LinearGradient(
-      colors: const [_gradientStart, _gradientEnd],
-    ).createShader(Offset.zero & size);
-    final paint = Paint()..shader = shader;
+    final paint = Paint()..color = colors.input;
 
-    final inHeights = _bandHeights(inputs, size.height, _gap);
-    final outHeights = _bandHeights(outputs, size.height, _gap);
+    final inHeights = bandHeights(inputs, size.height);
+    final outHeights = bandHeights(outputs, size.height);
     final trunkHeight = inHeights.reduce((a, b) => a + b);
     final trunkTop = (size.height - trunkHeight) / 2;
 
-    final capRight = _capWidth;
-    final trunkLeft = size.width * 0.45;
-    final trunkRight = size.width * 0.55;
-    final outCapLeft = size.width - _capWidth - _arrowWidth;
+    // A narrow plot puts the trunk against the input caps, to keep room for the split bands.
+    final compact = size.width < 500;
+    final capRight = compact ? size.width * 0.29 : _capWidth;
+    final trunkLeft = compact ? capRight : size.width * 0.45;
+    final trunkRight = size.width * (compact ? 0.5 : 0.55);
+    final outCapLeft = compact ? size.width * 0.82 : size.width - _capWidth - _arrowWidth;
 
     // Input caps and their merge bands into the trunk.
-    var slotTop = _stackTop(inHeights, size.height, _gap);
+    var slotTop = stackTop(inHeights, size.height);
     var trunkY = trunkTop;
     for (var i = 0; i < inputs.length; i++) {
       final h = inHeights[i];
       canvas.drawPath(_inputCap(slotTop, h, capRight), paint);
       _band(canvas, paint, capRight, slotTop, h, trunkLeft, trunkY, h);
-      slotTop += h + _gap;
+      slotTop += h + gap;
       trunkY += h;
     }
 
@@ -94,23 +164,24 @@ class _SankeyPainter extends CustomPainter {
     canvas.drawRect(Rect.fromLTWH(trunkLeft, trunkTop, trunkRight - trunkLeft, trunkHeight), paint);
 
     // Split bands out of the trunk, then the output caps.
-    slotTop = _stackTop(outHeights, size.height, _gap);
+    slotTop = stackTop(outHeights, size.height);
     trunkY = trunkTop;
     for (var i = 0; i < outputs.length; i++) {
       final h = outHeights[i];
-      _band(canvas, paint, trunkRight, trunkY, h, outCapLeft, slotTop, h);
+      final outPaint = Paint()..color = colors.forKind(outputs[i].kind);
+      _band(canvas, outPaint, trunkRight, trunkY, h, outCapLeft, slotTop, h);
       if (!outputs[i].isFee) {
-        canvas.drawPath(_outputCap(slotTop, h, outCapLeft, size.width), paint);
+        canvas.drawPath(_outputCap(slotTop, h, outCapLeft, size.width), outPaint);
       } else {
-        canvas.drawRect(Rect.fromLTWH(outCapLeft, slotTop, size.width - outCapLeft, h), paint);
+        canvas.drawRect(Rect.fromLTWH(outCapLeft, slotTop, size.width - outCapLeft, h), outPaint);
       }
-      slotTop += h + _gap;
+      slotTop += h + gap;
       trunkY += h;
     }
   }
 
   /// Proportional heights with a floor, so dust and the fee stay visible.
-  List<double> _bandHeights(List<FlowSlot> slots, double available, double gap) {
+  static List<double> bandHeights(List<FlowSlot> slots, double available) {
     final usable = available - gap * (slots.length - 1);
     final total = slots.fold<int>(0, (sum, s) => sum + max(s.sats, 0));
     if (total <= 0) {
@@ -119,7 +190,7 @@ class _SankeyPainter extends CustomPainter {
     return slots.map((s) => max(usable * s.sats / total, _minBand)).toList();
   }
 
-  double _stackTop(List<double> heights, double available, double gap) {
+  static double stackTop(List<double> heights, double available) {
     final total = heights.reduce((a, b) => a + b) + gap * (heights.length - 1);
     return (available - total) / 2;
   }
@@ -170,8 +241,32 @@ class _SankeyPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SankeyPainter oldDelegate) {
-    return !listEquals(oldDelegate.inputs.map((s) => s.sats).toList(), inputs.map((s) => s.sats).toList()) ||
+  bool shouldRepaint(SankeyPainter oldDelegate) {
+    return oldDelegate.colors != colors ||
+        !listEquals(oldDelegate.inputs.map((s) => s.kind).toList(), inputs.map((s) => s.kind).toList()) ||
+        !listEquals(oldDelegate.outputs.map((s) => s.kind).toList(), outputs.map((s) => s.kind).toList()) ||
+        !listEquals(oldDelegate.inputs.map((s) => s.sats).toList(), inputs.map((s) => s.sats).toList()) ||
         !listEquals(oldDelegate.outputs.map((s) => s.sats).toList(), outputs.map((s) => s.sats).toList());
+  }
+}
+
+/// A small colored tag, such as "payment" or "change".
+class FlowChip extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const FlowChip({super.key, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: SailText.secondary12(label, color: color),
+    );
   }
 }

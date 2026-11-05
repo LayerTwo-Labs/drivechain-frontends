@@ -313,11 +313,16 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
                 if (_showDiagram)
                   TxFlowDiagram(
                     inputs: [
-                      for (final input in decoded.details.inputs) FlowSlot(sats: input.valueSats.toInt()),
+                      for (final input in decoded.details.inputs)
+                        FlowSlot(sats: input.valueSats.toInt(), kind: FlowKind.input),
                     ],
                     outputs: [
-                      for (final output in decoded.details.outputs) FlowSlot(sats: output.valueSats.toInt()),
-                      if (decoded.hasFee) FlowSlot(sats: decoded.details.feeSats.toInt(), isFee: true),
+                      for (final output in decoded.details.outputs)
+                        FlowSlot(
+                          sats: output.valueSats.toInt(),
+                          kind: _isChange(output) ? FlowKind.change : FlowKind.payment,
+                        ),
+                      if (decoded.hasFee) FlowSlot(sats: decoded.details.feeSats.toInt(), kind: FlowKind.fee),
                     ],
                   ),
                 _flowLabels(context, decoded),
@@ -424,11 +429,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
   Widget _outputRow(BuildContext context, walletpb.TransactionOutput output) {
     final theme = context.sailTheme;
     final address = output.address;
-    // The PSBT derivation records mark the change output; a funded wallet
-    // address is a fallback for PSBTs from other builders.
-    final isChange =
-        (_decoded?.changeOutputIndexes.contains(output.index) ?? false) ||
-        (address.isNotEmpty && _walletAddresses.contains(address));
+    final isChange = _isChange(output);
     final bookName = _addressBookName(address);
 
     return Row(
@@ -447,15 +448,21 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
                 monospace: true,
               ),
               if (isChange)
-                _Chip(label: 'change · back to $_walletName', color: theme.colors.success)
+                FlowChip(label: 'change · back to $_walletName', color: theme.colors.success)
               else
-                _Chip(label: 'payment', color: theme.colors.orange),
+                FlowChip(label: 'payment', color: theme.colors.orange),
             ],
           ),
         ),
       ],
     );
   }
+
+  // The PSBT derivation records mark the change output; a funded wallet
+  // address is a fallback for PSBTs from other builders.
+  bool _isChange(walletpb.TransactionOutput output) =>
+      (_decoded?.changeOutputIndexes.contains(output.index) ?? false) ||
+      (output.address.isNotEmpty && _walletAddresses.contains(output.address));
 
   String? _addressBookName(String address) {
     for (final entry in _addressBook.entries) {
@@ -483,7 +490,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
       title: 'Keys',
       subtitle: '$_walletName needs ${multisig.m} of its ${multisig.n} keys.',
       error: _error ?? _drafts.modelError,
-      widgetHeaderEnd: _Chip(
+      widgetHeaderEnd: FlowChip(
         label: '$signatures of $threshold collected',
         color: (status?.finalizable ?? false) ? theme.colors.success : theme.colors.orange,
       ),
@@ -549,8 +556,8 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: signed
-                  ? _Chip(label: 'Signed', color: theme.colors.success)
-                  : _Chip(label: 'Awaiting signature', color: theme.colors.orange),
+                  ? FlowChip(label: 'Signed', color: theme.colors.success)
+                  : FlowChip(label: 'Awaiting signature', color: theme.colors.orange),
             ),
           ),
           Expanded(
@@ -615,7 +622,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
       return SailRow(
         spacing: SailStyleValues.padding08,
         children: [
-          _Chip(label: 'Broadcast', color: theme.colors.success),
+          FlowChip(label: 'Broadcast', color: theme.colors.success),
           Flexible(child: SailText.secondary13(draft.txid, monospace: true)),
           SailButton(
             label: 'View transaction',
@@ -743,26 +750,6 @@ Future<bool> confirmDeleteDraft(BuildContext context, PsbtDraft draft, DecodedTr
 /// server-generated draft id.
 String draftReference(PsbtDraft draft) {
   return draft.id.length <= 4 ? draft.id : draft.id.substring(0, 4);
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _Chip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: SailText.secondary12(label, color: color),
-    );
-  }
 }
 
 /// Small dialog to paste a base64 PSBT that another cosigner signed.
