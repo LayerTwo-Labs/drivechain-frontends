@@ -1,9 +1,10 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:window_manager/legacy.dart';
 
 class CrossPlatformMenuBar extends StatelessWidget {
   final List<PlatformMenuItem> menus;

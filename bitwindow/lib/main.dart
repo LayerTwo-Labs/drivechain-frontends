@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -67,7 +68,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:window_manager/legacy.dart';
 
 /// The accent the app wears on a network. It is the colour that network
 /// carries, so the picker and the app agree on what marks a chain.
