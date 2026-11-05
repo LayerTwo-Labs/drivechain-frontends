@@ -1254,7 +1254,7 @@ func TestListTransactions(t *testing.T) {
 		assert.Equal(t, uint64(300), resp.Transactions[0].FeeSats)
 	})
 
-	t.Run("core pages until a short page", func(t *testing.T) {
+	t.Run("core reads one complete history response", func(t *testing.T) {
 		t.Parallel()
 
 		page := func(n int, prefix string) *connectv1.Response[bitcoindv1alpha.ListTransactionsResponse] {
@@ -1264,16 +1264,16 @@ func TestListTransactions(t *testing.T) {
 			}
 			return connectv1.NewResponse(&bitcoindv1alpha.ListTransactionsResponse{Transactions: txs})
 		}
-		skip := func(n uint32) any {
+		count := func(n uint32) any {
 			return gomock.Cond(func(req *connectv1.Request[bitcoindv1alpha.ListTransactionsRequest]) bool {
-				return req.Msg.Count == 1000 && req.Msg.Skip == n
+				return req.Msg.Count == n && req.Msg.Skip == 0
 			})
 		}
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 		gomock.InOrder(
-			mockBitcoind.EXPECT().ListTransactions(gomock.Any(), skip(0)).Return(page(1000, "a"), nil),
-			mockBitcoind.EXPECT().ListTransactions(gomock.Any(), skip(1000)).Return(page(1000, "b"), nil),
-			mockBitcoind.EXPECT().ListTransactions(gomock.Any(), skip(2000)).Return(page(1, "c"), nil),
+			mockBitcoind.EXPECT().ListTransactions(gomock.Any(), count(1000)).Return(page(1000, "a"), nil),
+			mockBitcoind.EXPECT().ListTransactions(gomock.Any(), count(2000)).Return(page(2000, "a"), nil),
+			mockBitcoind.EXPECT().ListTransactions(gomock.Any(), count(4000)).Return(page(2001, "a"), nil),
 		)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, database.Test(t), apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))

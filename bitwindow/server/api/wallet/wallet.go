@@ -399,20 +399,9 @@ func (s *Server) listTransactions(ctx context.Context, walletID string) ([]*pb.W
 		return nil, fmt.Errorf("bitcoind: %w", err)
 	}
 
-	var coreTxs []*corepb.GetTransactionResponse
-	for skip := uint32(0); ; skip += coreTxPageSize {
-		page, err := bitcoind.ListTransactions(ctx, connectv1.NewRequest(&corepb.ListTransactionsRequest{
-			Wallet: coreWalletName,
-			Count:  coreTxPageSize,
-			Skip:   skip,
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("bitcoin core list transactions: %w", err)
-		}
-		coreTxs = append(coreTxs, page.Msg.Transactions...)
-		if len(page.Msg.Transactions) < coreTxPageSize {
-			break
-		}
+	coreTxs, err := engines.ReadCoreTransactions(ctx, bitcoind, coreWalletName, 0)
+	if err != nil {
+		return nil, err
 	}
 
 	tip := coreTipHeight(ctx, bitcoind, lo.SomeBy(coreTxs, func(tx *corepb.GetTransactionResponse) bool { return tx.Confirmations > 0 }))
@@ -458,8 +447,6 @@ func (s *Server) listTransactions(ctx context.Context, walletID string) ([]*pb.W
 	}
 	return mergeTxRows(rows), nil
 }
-
-const coreTxPageSize = 1000
 
 // txRow is one listtransactions entry. A transaction with more than one
 // output or input gives more than one row.
