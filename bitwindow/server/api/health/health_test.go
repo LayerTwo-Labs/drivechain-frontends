@@ -315,11 +315,13 @@ func refuse[T any](context.Context) (T, error) {
 func TestService_Watch(t *testing.T) {
 	t.Run("a connection change reaches the stream", func(t *testing.T) {
 		var enforcerUp atomic.Bool
+		validator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
+		validator.EXPECT().GetChainInfo(gomock.Any(), gomock.Any()).Return(&mainchainv1.GetChainInfoResponse{}, nil).AnyTimes()
 		enforcer := service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) {
 			if !enforcerUp.Load() {
 				return nil, errors.New("refused")
 			}
-			return nil, nil
+			return validator, nil
 		})
 		srv := api_health.New(database.Test(t),
 			service.New("bitcoind", refuse[corerpc.BitcoinServiceClient]),
@@ -376,4 +378,34 @@ func TestService_Watch(t *testing.T) {
 		}
 		t.Fatalf("the stream ended before the enforcer was serving: %v", streamErr)
 	})
+}
+
+func TestHealthFailureStaysVisible(t *testing.T) {
+	validator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
+	validator.EXPECT().GetChainInfo(gomock.Any(), gomock.Any()).Return(nil, connect.NewError(connect.CodeUnavailable, "node stopped")).AnyTimes()
+	enforcer := service.New("enforcer", func(context.Context) (validatorrpc.ValidatorServiceClient, error) { return validator, nil })
+	_, err := enforcer.Connect(t.Context())
+	require.NoError(t, err)
+	handler := api_health.New(database.Test(t), service.New("bitcoind", refuse[corerpc.BitcoinServiceClient]), enforcer, service.New("crypto", refuse[cryptorpc.CryptoServiceClient]))
+	server := connect.NewServer()
+	rpc.RegisterHealthServiceHandler(server, handler)
+	mux := http.NewServeMux()
+	connecthttp.Mount(mux, server)
+	httpServer := httptest.NewServer(mux)
+	t.Cleanup(httpServer.Close)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	client := rpc.NewHealthServiceClient(connect.NewClient(connecthttp.NewTransport(httpServer.Client(), httpServer.URL)))
+	stream, err := client.Watch(ctx, &emptypb.Empty{})
+	require.NoError(t, err)
+	defer func() { require.NoError(t, stream.Close()) }()
+	for i := 0; i < 4; i++ {
+		response, err := stream.Receive()
+		require.NoError(t, err)
+		for _, state := range response.ServiceStatuses {
+			if state.ServiceName == "enforcer" {
+				require.Equal(t, healthv1.CheckResponse_STATUS_NOT_SERVING, state.Status, "response %d hid the health error", i)
+			}
+		}
+	}
 }

@@ -11,7 +11,6 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
-	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -106,38 +105,25 @@ func (s *Server) Watch(ctx context.Context, _ *emptypb.Empty, stream rpc.HealthS
 		return err
 	}
 
-	statusMap := lo.KeyBy(statuses, func(st *healthv1.CheckResponse_ServiceStatus) string {
-		return st.ServiceName
-	})
-
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case event := <-myUpdateCh:
-			// a service status changed, pushing update on stream
-			statusMap[event.name].Status = connectedBoolToEnum(event.status)
 			zerolog.Ctx(ctx).Info().
 				Str("service", event.name).
 				Bool("connected", event.status).
 				Msg("service status changed")
 
-			var updated []*healthv1.CheckResponse_ServiceStatus
-			for _, st := range statusMap {
-				updated = append(updated, st)
+			updated, err := s.getServiceStatuses(ctx)
+			if err != nil {
+				return err
 			}
 			if err := stream.Send(&healthv1.CheckResponse{ServiceStatuses: updated}); err != nil {
 				return err
 			}
 		}
 	}
-}
-
-func connectedBoolToEnum(connected bool) healthv1.CheckResponse_Status {
-	if connected {
-		return healthv1.CheckResponse_STATUS_SERVING
-	}
-	return healthv1.CheckResponse_STATUS_NOT_SERVING
 }
 
 // Generic helper function for service health checks

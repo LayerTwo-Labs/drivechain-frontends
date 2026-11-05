@@ -236,7 +236,8 @@ func getSharedClient(ctx context.Context) *http.Client {
 			Transport: &http.Transport{
 				Protocols: protocols,
 				// Without explicit timeouts here, clients linger indefinitely
-				IdleConnTimeout: 15 * time.Second,
+				IdleConnTimeout:       15 * time.Second,
+				ResponseHeaderTimeout: 30 * time.Second,
 				HTTP2: &http.HTTP2Config{
 					SendPingTimeout:  30 * time.Second, // Close if no data received for 30s
 					PingTimeout:      15 * time.Second,
@@ -249,7 +250,6 @@ func getSharedClient(ctx context.Context) *http.Client {
 					},
 				},
 			},
-			Timeout: 30 * time.Second, // Overall request timeout
 		}
 	})
 	return sharedClient
