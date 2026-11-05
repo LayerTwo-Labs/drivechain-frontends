@@ -177,7 +177,7 @@ func TestParserM4PayoutOrder(t *testing.T) {
 				wantScoreA++
 			}
 			*tip = 109
-			expectM4PegRange(t, validator, blocks, from, 108, payout, nil)
+			expectM4PegRange(t, validator, blocks, from, 109, payout, nil)
 			require.NoError(t, p.applyPendingM4(t.Context()))
 			scoreA, _, statusA := bundleState(t, t.Context(), p.m4Engine, hashA)
 			require.Equal(t, wantScoreA, scoreA)
@@ -329,4 +329,48 @@ func TestParserM4PayoutRestoresOldProposalOrder(t *testing.T) {
 			require.Equal(t, test.voteHeight, voteHeight)
 		})
 	}
+}
+
+func TestPayoutWithoutLaterVote(t *testing.T) {
+	p, validator, tip := newM4PayoutParser(t)
+	blocks, raw, hash, _ := m4PayoutBlocks(t, false)
+	storeM4PayoutBlocks(t, p, blocks, 100, 107)
+	*tip = 106
+	expectM4PegRange(t, validator, blocks, 100, 106, nil, nil)
+	require.NoError(t, p.applyPendingM4(t.Context()))
+	_, _, status := bundleState(t, t.Context(), p.m4Engine, hash)
+	require.Equal(t, "approved", status)
+	*tip = 107
+	validator.EXPECT().GetTwoWayPegData(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, request *validatorpb.GetTwoWayPegDataRequest) (*validatorpb.GetTwoWayPegDataResponse, error) {
+			response := &validatorpb.GetTwoWayPegDataResponse{}
+			if request.GetSidechainId().GetValue() == 9 {
+				response.Blocks = []*validatorpb.GetTwoWayPegDataResponse_ResponseItem{m4PayoutEvent(blocks[107], 107, raw)}
+			}
+			return response, nil
+		}).AnyTimes()
+	require.NoError(t, p.applyPendingM4(t.Context()))
+	_, _, status = bundleState(t, t.Context(), p.m4Engine, hash)
+	require.Equal(t, "succeeded", status)
+}
+
+func TestParserM6PayoutScanSkipsReadBlocks(t *testing.T) {
+	p, validator, tip := newM4PayoutParser(t)
+	blocks, raw, hashA, _ := m4PayoutBlocks(t, false)
+	storeM4PayoutBlocks(t, p, blocks, 100, 109)
+
+	*tip = 106
+	expectM4PegRange(t, validator, blocks, 100, 106, nil, nil)
+	require.NoError(t, p.applyPendingM4(t.Context()))
+
+	*tip = 107
+	expectM4PegRange(t, validator, blocks, 106, 107, m4PayoutEvent(blocks[107], 107, raw), nil)
+	require.NoError(t, p.applyPendingM4(t.Context()))
+	require.NoError(t, p.applyPendingM4(t.Context()))
+	_, _, status := bundleState(t, t.Context(), p.m4Engine, hashA)
+	require.Equal(t, "succeeded", status)
+
+	*tip = 109
+	expectM4PegRange(t, validator, blocks, 106, 109, nil, nil)
+	require.NoError(t, p.applyPendingM4(t.Context()))
 }

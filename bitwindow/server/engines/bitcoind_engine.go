@@ -69,6 +69,9 @@ type Parser struct {
 	m4Engine *M4Engine
 	nodeMode *NodeMode
 
+	// payoutScanned is the last block whose M6 payouts the parser read.
+	payoutScanned *blocks.ProcessedBlock
+
 	// Dedicated sink for coinnews sync events. Nil => logging disabled.
 	coinnewsLog *zerolog.Logger
 }
@@ -612,58 +615,100 @@ func (p *Parser) applyPendingM4(ctx context.Context) error {
 		return fmt.Errorf("list pending M4: %w", err)
 	}
 	var payouts []m6Event
-	if len(pending) > 0 {
-		var startHash sql.NullString
-		if err := p.db.QueryRowContext(ctx, `
-			SELECT COALESCE(
-				(SELECT block_hash FROM m4_messages
-				 WHERE applied = 1 AND block_height <= ? ORDER BY block_height DESC LIMIT 1),
-				(SELECT block_hash FROM m3_messages
-				 WHERE block_height <= ? ORDER BY block_height LIMIT 1)
-			)
-		`, height, height).Scan(&startHash); err != nil {
-			return fmt.Errorf("get M4 replay start: %w", err)
+	var scanEnd *blocks.ProcessedBlock
+	var startHash sql.NullString
+	if err := p.db.QueryRowContext(ctx, `
+		SELECT COALESCE(
+			(SELECT block_hash FROM m4_messages
+			 WHERE applied = 1 AND block_height <= ? ORDER BY block_height DESC LIMIT 1),
+			(SELECT block_hash FROM m3_messages
+			 WHERE block_height <= ? ORDER BY block_height LIMIT 1)
+		)
+	`, height, height).Scan(&startHash); err != nil {
+		return fmt.Errorf("get M4 replay start: %w", err)
+	}
+	if startHash.Valid {
+		end, err := blocks.GetProcessedBlock(ctx, p.db, height)
+		if err != nil {
+			return fmt.Errorf("get M6 payout end block: %w", err)
 		}
-		if startHash.Valid {
-			end := pending[len(pending)-1]
-			for _, sidechain := range sidechains.GetSidechains() {
-				if sidechain.GetActivationHeight().GetValue() > end.BlockHeight {
-					continue
-				}
-				slot := sidechain.GetSidechainNumber().GetValue()
-				data, err := client.GetTwoWayPegData(ctx, &validatorpb.GetTwoWayPegDataRequest{
-					SidechainId:    wrapperspb.UInt32(slot),
-					StartBlockHash: &commonpb.ReverseHex{Hex: wrapperspb.String(startHash.String)},
-					EndBlockHash:   &commonpb.ReverseHex{Hex: wrapperspb.String(end.BlockHash)},
-				})
-				if err != nil {
-					return fmt.Errorf("get M4 payout events: %w", err)
-				}
-				for _, block := range data.GetBlocks() {
-					for _, event := range block.GetBlockInfo().GetEvents() {
-						bundle := event.GetWithdrawalBundle()
-						if bundle.GetEvent().GetSucceeded() == nil {
-							continue
-						}
-						raw, err := hex.DecodeString(bundle.GetM6Id().GetHex().GetValue())
-						if err != nil {
-							return fmt.Errorf("decode M6 payout hash: %w", err)
-						}
-						hash, err := chainhash.NewHash(raw)
-						if err != nil {
-							return fmt.Errorf("read M6 payout hash: %w", err)
-						}
-						payouts = append(payouts, m6Event{
-							height: block.GetBlockHeaderInfo().GetHeight(),
-							slot:   uint8(slot),
-							hash:   hash.String(),
-						})
+		scanEnd = &end
+		if len(pending) == 0 {
+			scanned, err := p.scannedPayoutBlock(ctx)
+			if err != nil {
+				return err
+			}
+			if scanned != nil && scanned.Height <= end.Height {
+				startHash.String = scanned.Hash.String()
+			}
+		}
+		if len(pending) == 0 && startHash.String == end.Hash.String() {
+			return p.m4Engine.ApplyPendingM4(ctx, height, sidechains.GetSidechains(), nil)
+		}
+		for _, sidechain := range sidechains.GetSidechains() {
+			if sidechain.GetActivationHeight().GetValue() > end.Height {
+				continue
+			}
+			slot := sidechain.GetSidechainNumber().GetValue()
+			data, err := client.GetTwoWayPegData(ctx, &validatorpb.GetTwoWayPegDataRequest{
+				SidechainId:    wrapperspb.UInt32(slot),
+				StartBlockHash: &commonpb.ReverseHex{Hex: wrapperspb.String(startHash.String)},
+				EndBlockHash:   &commonpb.ReverseHex{Hex: wrapperspb.String(end.Hash.String())},
+			})
+			if err != nil {
+				return fmt.Errorf("get M4 payout events: %w", err)
+			}
+			for _, block := range data.GetBlocks() {
+				for _, event := range block.GetBlockInfo().GetEvents() {
+					bundle := event.GetWithdrawalBundle()
+					if bundle.GetEvent().GetSucceeded() == nil {
+						continue
 					}
+					raw, err := hex.DecodeString(bundle.GetM6Id().GetHex().GetValue())
+					if err != nil {
+						return fmt.Errorf("decode M6 payout hash: %w", err)
+					}
+					hash, err := chainhash.NewHash(raw)
+					if err != nil {
+						return fmt.Errorf("read M6 payout hash: %w", err)
+					}
+					payouts = append(payouts, m6Event{
+						height: block.GetBlockHeaderInfo().GetHeight(),
+						slot:   uint8(slot),
+						hash:   hash.String(),
+					})
 				}
 			}
 		}
 	}
-	return p.m4Engine.ApplyPendingM4(ctx, height, sidechains.GetSidechains(), payouts)
+	if err := p.m4Engine.ApplyPendingM4(ctx, height, sidechains.GetSidechains(), payouts); err != nil {
+		return err
+	}
+	if scanEnd != nil {
+		p.payoutScanned = scanEnd
+	}
+	return nil
+}
+
+// scannedPayoutBlock returns the last block with read M6 payouts, or nil when
+// a reorg removed it from the processed chain.
+func (p *Parser) scannedPayoutBlock(ctx context.Context) (*blocks.ProcessedBlock, error) {
+	if p.payoutScanned == nil {
+		return nil, nil
+	}
+	current, err := blocks.GetProcessedBlock(ctx, p.db, p.payoutScanned.Height)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		p.payoutScanned = nil
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("get scanned M6 payout block: %w", err)
+	}
+	if current.Hash != p.payoutScanned.Hash {
+		p.payoutScanned = nil
+		return nil, nil
+	}
+	return p.payoutScanned, nil
 }
 
 // HandleNewRawTransaction can be called on a brand new transaction

@@ -174,7 +174,7 @@ func (e *M4Engine) ApplyPendingM4(
 	if err := e.updateBundleStates(ctx, height); err != nil {
 		return fmt.Errorf("update bundle states: %w", err)
 	}
-	return nil
+	return applyPayouts(height)
 }
 
 func (e *M4Engine) applyM3Proposals(ctx context.Context, height uint32) error {
@@ -239,10 +239,15 @@ const leadingBy50Margin = 50
 // m4Votes returns the votes of msg, with the hash of each upvote target. It
 // returns parsed false for an M4 that the enforcer takes no votes from.
 func (e *M4Engine) m4Votes(ctx context.Context, msg m4.M4Message, activeSlots []uint8) ([]m4.M4Vote, bool, error) {
-	var (
-		votes []m4.M4Vote
-		err   error
-	)
+	saved, err := e.getVotesForMessage(ctx, msg.ID)
+	if err != nil {
+		return nil, false, fmt.Errorf("read saved M4 votes: %w", err)
+	}
+	if len(saved) > 0 {
+		return saved, true, nil
+	}
+
+	var votes []m4.M4Vote
 	switch msg.Version {
 	case m4VersionRepeatPrevious:
 		votes, err = e.previousM4Votes(ctx, msg.BlockHeight)
