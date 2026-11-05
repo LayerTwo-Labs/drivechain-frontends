@@ -247,36 +247,7 @@ class OverviewTabViewModel extends BaseViewModel {
   final bitcoinAmountController = TextEditingController();
   final labelController = TextEditingController();
 
-  // Address type detection
-  bool _isValidBitcoinAddress(String address) {
-    if (address.isEmpty) return false;
-
-    // Bitcoin/transparent addresses typically:
-    // - Start with 1, 3, bc1, tb1, or t (for testnet transparent)
-    // - Have specific length ranges (25-62 for base58, up to 90 for bech32)
-    // - Use base58 or bech32 character sets
-
-    final validPrefixes = ['1', '3', 'bc1', 'tb1', 't'];
-    final hasValidPrefix = validPrefixes.any((prefix) => address.startsWith(prefix));
-
-    if (!hasValidPrefix) return false;
-
-    // Reasonable length check for Bitcoin addresses
-    if (address.length < 25 || address.length > 90) return false;
-
-    // Check for valid base58 or bech32 characters
-    final base58Regex = RegExp(r'^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$');
-    final bech32Regex = RegExp(r'^[a-z0-9]+$');
-
-    return base58Regex.hasMatch(address) || bech32Regex.hasMatch(address);
-  }
-
-  bool get isShieldedAddress {
-    final address = bitcoinAddressController.text.trim();
-    // If it looks like a valid Bitcoin/transparent address, it's transparent
-    // Otherwise assume it's shielded/private
-    return !_isValidBitcoinAddress(address) && address.isNotEmpty;
-  }
+  bool get isShieldedAddress => isZSideShieldedAddress(bitcoinAddressController.text);
 
   String get addressType {
     if (bitcoinAddressController.text.trim().isEmpty) return '';
