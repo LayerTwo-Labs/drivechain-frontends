@@ -20,8 +20,11 @@ class TransactionsProvider extends ChangeNotifier {
 
   TransactionsProvider() {
     rpc.addListener(fetch);
+    GetIt.I.get<SyncProvider>().onNewSidechainBlock(ZSide(), _onNewBlock);
     fetch();
   }
+
+  void _onNewBlock(int _) => fetch();
 
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
@@ -62,6 +65,7 @@ class TransactionsProvider extends ChangeNotifier {
   @override
   void dispose() {
     rpc.removeListener(fetch);
+    GetIt.I.get<SyncProvider>().offNewSidechainBlock(ZSide(), _onNewBlock);
     super.dispose();
   }
 }
