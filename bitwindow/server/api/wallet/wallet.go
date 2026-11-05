@@ -1338,8 +1338,18 @@ func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque, unlocked boo
 
 // SetUTXOMetadata implements walletv1connect.WalletServiceHandler.
 func (s *Server) SetUTXOMetadata(ctx context.Context, c *pb.SetUTXOMetadataRequest) (*emptypb.Empty, error) {
-	if c.Outpoint == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, "outpoint is required")
+	if _, _, ok := engines.SplitOutpoint(c.Outpoint); !ok {
+		invalid := connect.NewError(connect.CodeInvalidArgument, "outpoint must use txid:vout with a nonnegative int32 output index")
+		if c.IsFrozen == nil || *c.IsFrozen {
+			return nil, invalid
+		}
+		stored, err := utxometadata.Get(ctx, s.database, []string{c.Outpoint})
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, "read UTXO metadata").WithCause(err)
+		}
+		if _, ok := stored[c.Outpoint]; !ok {
+			return nil, invalid
+		}
 	}
 
 	if err := utxometadata.Set(ctx, s.database, c.Outpoint, c.IsFrozen, c.Label); err != nil {

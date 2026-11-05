@@ -162,7 +162,7 @@ func (e *WalletEngine) PushFrozenCoins(ctx context.Context) error {
 
 	coins := make([]*orchpb.FrozenOutpoint, 0, len(outpoints))
 	for _, outpoint := range outpoints {
-		txid, vout, ok := splitOutpoint(outpoint)
+		txid, vout, ok := SplitOutpoint(outpoint)
 		if !ok {
 			return fmt.Errorf("frozen coin %q is not a txid:vout", outpoint)
 		}
@@ -178,17 +178,17 @@ func (e *WalletEngine) PushFrozenCoins(ctx context.Context) error {
 	return nil
 }
 
-// splitOutpoint reads a txid:vout pair.
-func splitOutpoint(outpoint string) (string, int, bool) {
+// SplitOutpoint reads a txid:vout pair with a nonnegative int32 output index.
+func SplitOutpoint(outpoint string) (string, int, bool) {
 	txid, voutText, found := strings.Cut(outpoint, ":")
 	if !found || txid == "" {
 		return "", 0, false
 	}
-	vout, err := strconv.Atoi(voutText)
-	if err != nil || vout < 0 {
+	vout, err := strconv.ParseUint(voutText, 10, 31)
+	if err != nil {
 		return "", 0, false
 	}
-	return txid, vout, true
+	return txid, int(vout), true
 }
 
 // NodeMode hands out the shared node-mode source.
@@ -492,7 +492,7 @@ func (e *WalletEngine) refuseFrozenInputs(ctx context.Context, inputs []*orchpb.
 	}
 	held := make(map[string]bool, len(frozen))
 	for _, outpoint := range frozen {
-		txid, vout, ok := splitOutpoint(outpoint)
+		txid, vout, ok := SplitOutpoint(outpoint)
 		if !ok {
 			return fmt.Errorf("frozen coin %q is not a txid:vout", outpoint)
 		}
