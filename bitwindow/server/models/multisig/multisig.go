@@ -620,6 +620,38 @@ func (s *Store) SaveTransactionAtomic(ctx context.Context, p SaveTransactionAtom
 
 // ImportFromJSON imports groups + solo_keys from the old multisig.json format.
 func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
+	return s.ImportBackup(ctx, data, nil)
+}
+
+// ImportBackup imports groups and transactions in one database transaction.
+func (s *Store) ImportBackup(ctx context.Context, groups, transactions []byte) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin import: %w", err)
+	}
+	defer database.SafeDefer(ctx, tx.Rollback)
+	if err := ImportBackupTx(ctx, tx, groups, transactions); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// ImportBackupTx imports groups and transactions in the caller's database transaction.
+func ImportBackupTx(ctx context.Context, tx *sql.Tx, groups, transactions []byte) error {
+	if groups != nil {
+		if err := importGroupsJSON(ctx, tx, groups); err != nil {
+			return fmt.Errorf("import multisig data: %w", err)
+		}
+	}
+	if transactions != nil {
+		if err := importTransactionsJSON(ctx, tx, transactions); err != nil {
+			return fmt.Errorf("import transactions: %w", err)
+		}
+	}
+	return nil
+}
+
+func importGroupsJSON(ctx context.Context, tx *sql.Tx, data []byte) error {
 	var raw struct {
 		Groups   []json.RawMessage        `json:"groups"`
 		SoloKeys []map[string]interface{} `json:"solo_keys"`
@@ -627,12 +659,6 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("unmarshal json: %w", err)
 	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer database.SafeDefer(ctx, tx.Rollback)
 
 	for _, groupRaw := range raw.Groups {
 		var gj map[string]interface{}
@@ -756,7 +782,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func keyPSBTsFromJSON(kd map[string]interface{}) []KeyPSBT {
@@ -783,16 +809,14 @@ func parseImportTime(ctx context.Context, txID, field, value string) (int64, boo
 
 // ImportTransactionsFromJSON imports transactions from the old transactions.json format.
 func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) error {
+	return s.ImportBackup(ctx, nil, data)
+}
+
+func importTransactionsJSON(ctx context.Context, tx *sql.Tx, data []byte) error {
 	var txns []map[string]interface{}
 	if err := json.Unmarshal(data, &txns); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer database.SafeDefer(ctx, tx.Rollback)
 
 	statusMap := map[string]int{
 		"needsSignatures":     1,
@@ -917,7 +941,7 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 // ─── helpers ───────────────────────────────────────────────────────
