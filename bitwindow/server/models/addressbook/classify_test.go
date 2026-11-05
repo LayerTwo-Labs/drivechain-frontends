@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 )
@@ -59,7 +60,7 @@ func TestClassifyAddress(t *testing.T) {
 	goodChecksum := depositChecksum(0, mainnetP2PKH)
 	validDeposit := fmt.Sprintf("s0_%s_%s", mainnetP2PKH, goodChecksum)
 	badChecksumDeposit := fmt.Sprintf("s0_%s_deadbe", mainnetP2PKH)
-	depositWithJunkAddr := fmt.Sprintf("s0_notAnAddress_%s", depositChecksum(0, "notAnAddress"))
+	depositWithOpaqueBody := fmt.Sprintf("s0_notAnAddress_%s", depositChecksum(0, "notAnAddress"))
 	slotOnly := fmt.Sprintf("s9_%s", mainnetP2PKH)
 
 	cases := []struct {
@@ -83,7 +84,8 @@ func TestClassifyAddress(t *testing.T) {
 
 		{"valid 3-part deposit", validDeposit, pb.AddressType_ADDRESS_TYPE_DRIVECHAIN_DEPOSIT},
 		{"deposit with bad checksum", badChecksumDeposit, pb.AddressType_ADDRESS_TYPE_UNKNOWN},
-		{"deposit with non-address body", depositWithJunkAddr, pb.AddressType_ADDRESS_TYPE_UNKNOWN},
+		{"deposit with opaque body", depositWithOpaqueBody, pb.AddressType_ADDRESS_TYPE_DRIVECHAIN_DEPOSIT},
+		{"deposit with empty body", "s0__" + depositChecksum(0, ""), pb.AddressType_ADDRESS_TYPE_UNKNOWN},
 		{"slot-only no checksum", slotOnly, pb.AddressType_ADDRESS_TYPE_UNKNOWN},
 	}
 
@@ -188,4 +190,23 @@ func TestDelete(t *testing.T) {
 		err := addressbook.Delete(t.Context(), closed, 1)
 		require.ErrorContains(t, err, "database is closed")
 	})
+}
+
+func TestClassifySidechainDeposit(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		slot int
+		body string
+	}{
+		{name: "Thunder", slot: 9, body: "sBRLCn1Jw8Mdpyx6LqDnUffcMdk"},
+		{name: "Solana", slot: 8, body: "4Nd1mBQtrMJVYVfKf2PJy9NZUZdTAsp7D4xWLs4gDB4T"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			address := "s" + string(rune('0'+tc.slot)) + "_" + tc.body + "_" + depositChecksum(tc.slot, tc.body)
+			_, body, _, err := drivechain.DecodeDepositAddress(address)
+			require.NoError(t, err)
+			require.Equal(t, tc.body, body)
+			require.Equal(t, pb.AddressType_ADDRESS_TYPE_DRIVECHAIN_DEPOSIT, addressbook.ClassifyAddress(address))
+		})
+	}
 }
