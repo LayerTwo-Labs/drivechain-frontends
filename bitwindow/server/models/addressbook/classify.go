@@ -33,10 +33,8 @@ func ClassifyAddress(s string) pb.AddressType {
 
 	if strings.Count(s, "_") == 2 {
 		slot, addr, checksum, err := drivechain.DecodeDepositAddress(s)
-		if err == nil && slot != nil && checksum != nil {
-			if decodeL1Any(addr) {
-				return pb.AddressType_ADDRESS_TYPE_DRIVECHAIN_DEPOSIT
-			}
+		if err == nil && slot != nil && checksum != nil && addr != "" {
+			return pb.AddressType_ADDRESS_TYPE_DRIVECHAIN_DEPOSIT
 		}
 	}
 
