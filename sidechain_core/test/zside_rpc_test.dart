@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:connectrpc/connect.dart' as connect;
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -13,6 +14,9 @@ class _FakeTransport implements connect.Transport {
   final requests = <Object>[];
   final answers = <String, Object>{};
 
+  /// JSON results of the node methods that CallRaw reaches.
+  final nodeResults = <String, Object?>{};
+
   @override
   Future<connect.UnaryResponse<I, O>> unary<I extends Object, O extends Object>(
     connect.Spec<I, O> spec,
@@ -20,6 +24,10 @@ class _FakeTransport implements connect.Transport {
     connect.CallOptions? options,
   ]) async {
     requests.add(input);
+    if (input is pb.CallRawRequest) {
+      final answer = pb.CallRawResponse(resultJson: jsonEncode(nodeResults[input.method]));
+      return connect.UnaryResponse(spec, connect.Headers(), answer as O, connect.Headers());
+    }
     return connect.UnaryResponse(spec, connect.Headers(), answers[spec.procedure] as O, connect.Headers());
   }
 
@@ -172,5 +180,68 @@ void main() {
     );
 
     expect(await rpc.getPendingWithdrawalBundle(), isNull);
+  });
+
+  test('the private coins are the Orchard notes of the wallet', () async {
+    transport.nodeResults['get_wallet_orchard_notes'] = [
+      {'nullifier': 'n1', 'recipient': 'z-one', 'value_sats': 250000},
+    ];
+    transport.nodeResults['get_wallet_orchard_notes_unconfirmed'] = [
+      {'nullifier': 'n2', 'recipient': 'z-two', 'value_sats': 1000},
+    ];
+
+    final notes = await rpc.listShieldedUTXOs();
+
+    expect(notes.map((note) => note.txid), ['n1', 'n2']);
+    expect(notes.first.amount, 0.0025);
+    expect(notes.first.address, 'z-one');
+    expect(notes.first.spendable, isTrue);
+    expect(notes.last.spendable, isFalse, reason: 'an unconfirmed note cannot be spent yet');
+    expect(await rpc.listPrivateTransactions(), notes);
+  });
+
+  test('a node fault in the notes reaches the caller', () async {
+    transport.nodeResults['get_wallet_orchard_notes'] = 'not a list';
+    await expectLater(rpc.listShieldedUTXOs(), throwsA(isA<TypeError>()));
+  });
+
+  test('the transaction history maps each wallet entry to a core transaction', () async {
+    transport.answers['/zside.v1.ZSideService/ListWalletTransactions'] = pb.ListWalletTransactionsResponse(
+      transactions: [
+        pb.WalletTransaction(txid: 'deposit', valueSats: Int64(50000000), confirmed: true, vout: 2),
+        pb.WalletTransaction(txid: 'send', valueSats: Int64(-1000), confirmed: true),
+        pb.WalletTransaction(txid: 'pending', valueSats: Int64(3000)),
+      ],
+    );
+
+    final txs = await rpc.listTransactions();
+
+    expect(transport.requests.single, isA<pb.ListWalletTransactionsRequest>());
+    expect(txs.map((tx) => tx.txid), ['deposit', 'send', 'pending']);
+    expect(txs.map((tx) => tx.amount), [50000000, -1000, 3000]);
+    expect(txs.map((tx) => tx.category), ['receive', 'send', 'receive']);
+    expect(txs.map((tx) => tx.confirmations), [1, 1, 0]);
+    expect(txs.first.vout, 2);
+  });
+
+  test('a confirmed entry differs from its pending form', () async {
+    const procedure = '/zside.v1.ZSideService/ListWalletTransactions';
+    transport.answers[procedure] = pb.ListWalletTransactionsResponse(
+      transactions: [pb.WalletTransaction(txid: 'send', valueSats: Int64(-1000))],
+    );
+    final pending = await rpc.listTransactions();
+    transport.answers[procedure] = pb.ListWalletTransactionsResponse(
+      transactions: [pb.WalletTransaction(txid: 'send', valueSats: Int64(-1000), confirmed: true)],
+    );
+    final confirmed = await rpc.listTransactions();
+
+    expect(pending.single, isNot(confirmed.single));
+  });
+
+  test('a shielded address is the one with the t-shld prefix', () {
+    expect(isZSideShieldedAddress('t-shld1xasc5pa3u5z7azpy4ypmk786aa3sfket407slyasurfqsrkmr2m2hckls'), isTrue);
+    expect(isZSideShieldedAddress('yG8idPmC9WdSBYbTBQA95ao97y6'), isFalse);
+    expect(isZSideShieldedAddress('tG8idPmC9WdSBYbTBQA95ao97y6'), isFalse);
+    expect(isZSideShieldedAddress(''), isFalse);
   });
 }

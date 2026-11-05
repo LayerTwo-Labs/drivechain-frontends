@@ -3156,6 +3156,187 @@ class TransparentTransferResponse extends $pb.GeneratedMessage {
   void clearTxid() => $_clearField(1);
 }
 
+class ListWalletTransactionsRequest extends $pb.GeneratedMessage {
+  factory ListWalletTransactionsRequest() => ListWalletTransactionsRequest._();
+
+  ListWalletTransactionsRequest._();
+
+  factory ListWalletTransactionsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ListWalletTransactionsRequest()..mergeFromBuffer(data, registry);
+  factory ListWalletTransactionsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ListWalletTransactionsRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWalletTransactionsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'zside.v1'),
+      createEmptyInstance: ListWalletTransactionsRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListWalletTransactionsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListWalletTransactionsRequest copyWith(void Function(ListWalletTransactionsRequest) updates) =>
+      super.copyWith((message) => updates(message as ListWalletTransactionsRequest)) as ListWalletTransactionsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ListWalletTransactionsRequest() / ListWalletTransactionsRequest.new instead')
+  static ListWalletTransactionsRequest create() => ListWalletTransactionsRequest._();
+  static $pb.GeneratedMessage $_createMessage() => ListWalletTransactionsRequest._();
+  @$core.override
+  ListWalletTransactionsRequest createEmptyInstance() => ListWalletTransactionsRequest._();
+  @$core.pragma('dart2js:noInline')
+  static ListWalletTransactionsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListWalletTransactionsRequest>(ListWalletTransactionsRequest.$_createMessage);
+  static ListWalletTransactionsRequest? _defaultInstance;
+}
+
+class ListWalletTransactionsResponse extends $pb.GeneratedMessage {
+  factory ListWalletTransactionsResponse({
+    $core.Iterable<WalletTransaction>? transactions,
+  }) {
+    final result = ListWalletTransactionsResponse._();
+    if (transactions != null) result.transactions.addAll(transactions);
+    return result;
+  }
+
+  ListWalletTransactionsResponse._();
+
+  factory ListWalletTransactionsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ListWalletTransactionsResponse()..mergeFromBuffer(data, registry);
+  factory ListWalletTransactionsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ListWalletTransactionsResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWalletTransactionsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'zside.v1'),
+      createEmptyInstance: ListWalletTransactionsResponse.$_createMessage)
+    ..pPM<WalletTransaction>(1, _omitFieldNames ? '' : 'transactions', subBuilder: WalletTransaction.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListWalletTransactionsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListWalletTransactionsResponse copyWith(void Function(ListWalletTransactionsResponse) updates) =>
+      super.copyWith((message) => updates(message as ListWalletTransactionsResponse)) as ListWalletTransactionsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ListWalletTransactionsResponse() / ListWalletTransactionsResponse.new instead')
+  static ListWalletTransactionsResponse create() => ListWalletTransactionsResponse._();
+  static $pb.GeneratedMessage $_createMessage() => ListWalletTransactionsResponse._();
+  @$core.override
+  ListWalletTransactionsResponse createEmptyInstance() => ListWalletTransactionsResponse._();
+  @$core.pragma('dart2js:noInline')
+  static ListWalletTransactionsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListWalletTransactionsResponse>(ListWalletTransactionsResponse.$_createMessage);
+  static ListWalletTransactionsResponse? _defaultInstance;
+
+  /// Confirmed entries first, then the mempool entries.
+  @$pb.TagNumber(1)
+  $pb.PbList<WalletTransaction> get transactions => $_getList(0);
+}
+
+class WalletTransaction extends $pb.GeneratedMessage {
+  factory WalletTransaction({
+    $core.String? txid,
+    $fixnum.Int64? valueSats,
+    $core.bool? confirmed,
+    $core.int? vout,
+  }) {
+    final result = WalletTransaction._();
+    if (txid != null) result.txid = txid;
+    if (valueSats != null) result.valueSats = valueSats;
+    if (confirmed != null) result.confirmed = confirmed;
+    if (vout != null) result.vout = vout;
+    return result;
+  }
+
+  WalletTransaction._();
+
+  factory WalletTransaction.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WalletTransaction()..mergeFromBuffer(data, registry);
+  factory WalletTransaction.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WalletTransaction()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WalletTransaction',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'zside.v1'),
+      createEmptyInstance: WalletTransaction.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..aInt64(2, _omitFieldNames ? '' : 'valueSats')
+    ..aOB(3, _omitFieldNames ? '' : 'confirmed')
+    ..aI(4, _omitFieldNames ? '' : 'vout', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WalletTransaction clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WalletTransaction copyWith(void Function(WalletTransaction) updates) =>
+      super.copyWith((message) => updates(message as WalletTransaction)) as WalletTransaction;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WalletTransaction() / WalletTransaction.new instead')
+  static WalletTransaction create() => WalletTransaction._();
+  static $pb.GeneratedMessage $_createMessage() => WalletTransaction._();
+  @$core.override
+  WalletTransaction createEmptyInstance() => WalletTransaction._();
+  @$core.pragma('dart2js:noInline')
+  static WalletTransaction getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WalletTransaction>(WalletTransaction.$_createMessage);
+  static WalletTransaction? _defaultInstance;
+
+  /// The sidechain txid. A deposit names its mainchain txid, and a coin that a
+  /// failed withdrawal bundle gave back names the bundle M6ID.
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => $_clearField(1);
+
+  /// What the transparent wallet gained, or lost when negative.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get valueSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set valueSats($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasValueSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearValueSats() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get confirmed => $_getBF(2);
+  @$pb.TagNumber(3)
+  set confirmed($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasConfirmed() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearConfirmed() => $_clearField(3);
+
+  /// The lowest output index the wallet owns. Zero when the wallet owns no output.
+  @$pb.TagNumber(4)
+  $core.int get vout => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set vout($core.int value) => $_setUnsignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasVout() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearVout() => $_clearField(4);
+}
+
 class ZSideServiceApi {
   final $pb.RpcClient _client;
 
@@ -3307,6 +3488,12 @@ class ZSideServiceApi {
           $pb.ClientContext? ctx, TransparentTransferRequest request) =>
       _client.invoke<TransparentTransferResponse>(
           ctx, 'ZSideService', 'TransparentTransfer', request, TransparentTransferResponse());
+
+  /// List the transparent wallet history, one entry per transaction.
+  $async.Future<ListWalletTransactionsResponse> listWalletTransactions(
+          $pb.ClientContext? ctx, ListWalletTransactionsRequest request) =>
+      _client.invoke<ListWalletTransactionsResponse>(
+          ctx, 'ZSideService', 'ListWalletTransactions', request, ListWalletTransactionsResponse());
 }
 
 const $core.bool _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');

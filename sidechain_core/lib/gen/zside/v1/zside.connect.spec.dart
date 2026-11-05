@@ -249,4 +249,12 @@ abstract final class ZSideService {
     zsidev1zside.TransparentTransferRequest.new,
     zsidev1zside.TransparentTransferResponse.new,
   );
+
+  /// List the transparent wallet history, one entry per transaction.
+  static const listWalletTransactions = connect.Spec(
+    '/$name/ListWalletTransactions',
+    connect.StreamType.unary,
+    zsidev1zside.ListWalletTransactionsRequest.new,
+    zsidev1zside.ListWalletTransactionsResponse.new,
+  );
 }
