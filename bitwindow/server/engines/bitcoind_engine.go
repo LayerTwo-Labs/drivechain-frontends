@@ -403,6 +403,11 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		if p.conf.SyncToHeight > 0 {
 			batchEnd = min(batchEnd, p.conf.SyncToHeight)
 		}
+		if err := inTx(ctx, p.db, func(tx *sql.Tx) error {
+			return purgeChainDerivedAtOrAboveTx(ctx, tx, batchStart)
+		}); err != nil {
+			return fmt.Errorf("purge incomplete batch: %w", err)
+		}
 
 		// Make sure to not apply any timeouts here. Bitcoin Core can hang in
 		// instances of Core being busy processing blocks, where RPC requests
