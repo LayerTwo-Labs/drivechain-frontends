@@ -100,6 +100,9 @@ const (
 	// ZSideServiceTransparentTransferProcedure is the procedure name of the ZSideService's
 	// TransparentTransfer RPC.
 	ZSideServiceTransparentTransferProcedure = "/zside.v1.ZSideService/TransparentTransfer"
+	// ZSideServiceListWalletTransactionsProcedure is the procedure name of the ZSideService's
+	// ListWalletTransactions RPC.
+	ZSideServiceListWalletTransactionsProcedure = "/zside.v1.ZSideService/ListWalletTransactions"
 )
 
 var (
@@ -313,6 +316,13 @@ var (
 			Procedure:  ZSideServiceTransparentTransferProcedure,
 		}
 	})
+	zSideServiceListWalletTransactionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_zside_v1_zside_proto.Services().ByName("ZSideService").Methods().ByName("ListWalletTransactions"),
+			Procedure:  ZSideServiceListWalletTransactionsProcedure,
+		}
+	})
 )
 
 // ZSideServiceClient is a client for the zside.v1.ZSideService service.
@@ -377,6 +387,8 @@ type ZSideServiceClient interface {
 	ShieldedTransfer(context.Context, *v1.ShieldedTransferRequest) (*v1.ShieldedTransferResponse, error)
 	// Send a transparent transfer.
 	TransparentTransfer(context.Context, *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error)
+	// List the transparent wallet history, one entry per transaction.
+	ListWalletTransactions(context.Context, *v1.ListWalletTransactionsRequest) (*v1.ListWalletTransactionsResponse, error)
 }
 
 // NewZSideServiceClient constructs a client for the zside.v1.ZSideService service. Multiple service
@@ -447,6 +459,8 @@ type ZSideServiceHandler interface {
 	ShieldedTransfer(context.Context, *v1.ShieldedTransferRequest) (*v1.ShieldedTransferResponse, error)
 	// Send a transparent transfer.
 	TransparentTransfer(context.Context, *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error)
+	// List the transparent wallet history, one entry per transaction.
+	ListWalletTransactions(context.Context, *v1.ListWalletTransactionsRequest) (*v1.ListWalletTransactionsResponse, error)
 }
 
 // RegisterZSideServiceHandler registers svc as the zside.v1.ZSideService implementation on server.
@@ -483,6 +497,7 @@ func RegisterZSideServiceHandler(server *connect.Server, svc ZSideServiceHandler
 		connect.Method{Spec: zSideServiceUnshieldSpec(), Handler: adapter.unshield},
 		connect.Method{Spec: zSideServiceShieldedTransferSpec(), Handler: adapter.shieldedTransfer},
 		connect.Method{Spec: zSideServiceTransparentTransferSpec(), Handler: adapter.transparentTransfer},
+		connect.Method{Spec: zSideServiceListWalletTransactionsSpec(), Handler: adapter.listWalletTransactions},
 	)
 }
 
@@ -607,6 +622,10 @@ func (UnimplementedZSideServiceHandler) ShieldedTransfer(context.Context, *v1.Sh
 
 func (UnimplementedZSideServiceHandler) TransparentTransfer(context.Context, *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.TransparentTransfer is not implemented")
+}
+
+func (UnimplementedZSideServiceHandler) ListWalletTransactions(context.Context, *v1.ListWalletTransactionsRequest) (*v1.ListWalletTransactionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "zside.v1.ZSideService.ListWalletTransactions is not implemented")
 }
 
 type zSideServiceClient struct {
@@ -848,6 +867,14 @@ func (c *zSideServiceClient) ShieldedTransfer(ctx context.Context, req *v1.Shiel
 func (c *zSideServiceClient) TransparentTransfer(ctx context.Context, req *v1.TransparentTransferRequest) (*v1.TransparentTransferResponse, error) {
 	var res v1.TransparentTransferResponse
 	if err := c.client.CallUnary(ctx, zSideServiceTransparentTransferSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *zSideServiceClient) ListWalletTransactions(ctx context.Context, req *v1.ListWalletTransactionsRequest) (*v1.ListWalletTransactionsResponse, error) {
+	var res v1.ListWalletTransactionsResponse
+	if err := c.client.CallUnary(ctx, zSideServiceListWalletTransactionsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -1209,6 +1236,18 @@ func (h zSideServiceHandler) transparentTransfer(ctx context.Context, _ connect.
 		return err
 	}
 	res, err := h.svc.TransparentTransfer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h zSideServiceHandler) listWalletTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListWalletTransactionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListWalletTransactions(ctx, &req)
 	if err != nil {
 		return err
 	}

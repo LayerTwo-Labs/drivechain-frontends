@@ -344,3 +344,11 @@ func (h *Handler) TransparentTransfer(ctx context.Context, req *pb.TransparentTr
 	}
 	return &pb.TransparentTransferResponse{Txid: txid}, nil
 }
+
+func (h *Handler) ListWalletTransactions(ctx context.Context, req *pb.ListWalletTransactionsRequest) (*pb.ListWalletTransactionsResponse, error) {
+	transactions, err := h.listWalletTransactions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ListWalletTransactionsResponse{Transactions: transactions}, nil
+}

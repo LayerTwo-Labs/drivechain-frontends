@@ -94,6 +94,9 @@ service ZSideService {
 
   // Send a transparent transfer.
   rpc TransparentTransfer(TransparentTransferRequest) returns (TransparentTransferResponse);
+
+  // List the transparent wallet history, one entry per transaction.
+  rpc ListWalletTransactions(ListWalletTransactionsRequest) returns (ListWalletTransactionsResponse);
 }
 
 // GetBalance
@@ -375,4 +378,24 @@ message TransparentTransferRequest {
 
 message TransparentTransferResponse {
   string txid = 1;
+}
+
+// ListWalletTransactions
+
+message ListWalletTransactionsRequest {}
+
+message ListWalletTransactionsResponse {
+  // Confirmed entries first, then the mempool entries.
+  repeated WalletTransaction transactions = 1;
+}
+
+message WalletTransaction {
+  // The sidechain txid. A deposit names its mainchain txid, and a coin that a
+  // failed withdrawal bundle gave back names the bundle M6ID.
+  string txid = 1;
+  // What the transparent wallet gained, or lost when negative.
+  int64 value_sats = 2;
+  bool confirmed = 3;
+  // The lowest output index the wallet owns. Zero when the wallet owns no output.
+  uint32 vout = 4;
 }
