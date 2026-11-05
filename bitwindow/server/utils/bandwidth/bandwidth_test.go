@@ -3,6 +3,7 @@ package bandwidth_test
 import (
 	"net"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,12 +14,18 @@ import (
 
 func TestGetStats(t *testing.T) {
 	t.Run("no socket counts zero", func(t *testing.T) {
+		if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+			t.Skip("the platform has no bandwidth tracker")
+		}
 		stats, err := bandwidth.NewTracker().GetStats(os.Getpid(), "test")
 		require.NoError(t, err)
 		assert.Zero(t, stats.ConnectionCount)
 	})
 
 	t.Run("counts only the sockets of the process", func(t *testing.T) {
+		if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+			t.Skip("the platform has no bandwidth tracker")
+		}
 		listener, err := net.Listen("tcp", "127.0.0.1:0")
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, listener.Close()) })
@@ -34,4 +41,12 @@ func TestGetStats(t *testing.T) {
 		_, err := bandwidth.NewTracker().GetStats(0, "test")
 		require.ErrorContains(t, err, "invalid PID")
 	})
+}
+
+func TestUnsupportedPlatform(t *testing.T) {
+	if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+		t.Skip("the platform has a bandwidth tracker")
+	}
+	_, err := bandwidth.NewTracker().GetStats(os.Getpid(), "test")
+	require.ErrorContains(t, err, "unsupported platform")
 }
