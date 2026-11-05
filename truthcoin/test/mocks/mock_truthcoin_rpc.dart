@@ -48,6 +48,8 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   String marketCreateResponse = 'test_create_txid';
   String? lastMarketCreateDimensions;
   int? lastMarketCreateInitialLiquidity;
+  int? lastMarketCreateMaxListingFeeSats;
+  String? marketCreateError;
 
   List<Map<String, dynamic>> openPeriodsResponse = [];
 
@@ -242,9 +244,12 @@ class TestTruthcoinRPC extends TruthcoinRPC {
     List<String>? tags,
     List<String>? categoryTxids,
     List<String>? residualNames,
+    int? maxListingFeeSats,
   }) async {
     lastMarketCreateDimensions = dimensions;
     lastMarketCreateInitialLiquidity = initialLiquidity;
+    lastMarketCreateMaxListingFeeSats = maxListingFeeSats;
+    if (marketCreateError != null) throw Exception(marketCreateError);
     return marketCreateResponse;
   }
 

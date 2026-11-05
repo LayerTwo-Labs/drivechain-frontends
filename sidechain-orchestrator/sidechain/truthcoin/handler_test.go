@@ -74,6 +74,29 @@ func TestMarketCreateSendsRequestObject(t *testing.T) {
 	}]`, string((*params)[0]))
 }
 
+func TestMarketCreateSendsMaxListingFee(t *testing.T) {
+	h, params := capturingRPC(t, `{"txid":"txid123","market_id":"market1","claimed_decisions":[]}`)
+
+	maxListingFee := int64(156)
+	_, err := h.MarketCreate(context.Background(), &pb.MarketCreateRequest{
+		Title:             "Will it rain?",
+		Description:       "weather market",
+		Dimensions:        `[{"type":"new","period_index":21,"decision_type":"binary","header":"rain"}]`,
+		FeeSats:           1000,
+		MaxListingFeeSats: &maxListingFee,
+	})
+	require.NoError(t, err)
+
+	require.Len(t, *params, 1)
+	assert.JSONEq(t, `[{
+		"title": "Will it rain?",
+		"description": "weather market",
+		"dimensions": [{"type":"new","period_index":21,"decision_type":"binary","header":"rain"}],
+		"tx_fee_sats": 1000,
+		"max_listing_fee_sats": 156
+	}]`, string((*params)[0]))
+}
+
 func TestMarketCreateRejectsNonJSONDimensions(t *testing.T) {
 	h, _ := capturingRPC(t, `{"txid":"txid123","market_id":"market1","claimed_decisions":[]}`)
 

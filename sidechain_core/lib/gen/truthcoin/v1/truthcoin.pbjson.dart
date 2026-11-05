@@ -707,11 +707,13 @@ const MarketCreateRequest$json = {
     {'1': 'tags', '3': 8, '4': 3, '5': 9, '10': 'tags'},
     {'1': 'category_txids', '3': 9, '4': 3, '5': 9, '10': 'categoryTxids'},
     {'1': 'residual_names', '3': 10, '4': 3, '5': 9, '10': 'residualNames'},
+    {'1': 'max_listing_fee_sats', '3': 11, '4': 1, '5': 3, '9': 3, '10': 'maxListingFeeSats', '17': true},
   ],
   '8': [
     {'1': '_beta'},
     {'1': '_initial_liquidity'},
     {'1': '_trading_fee'},
+    {'1': '_max_listing_fee_sats'},
   ],
 };
 
@@ -723,8 +725,9 @@ final $typed_data.Uint8List marketCreateRequestDescriptor =
         '5pdGlhbF9saXF1aWRpdHkYBiABKANIAVIQaW5pdGlhbExpcXVpZGl0eYgBARIkCgt0cmFkaW5n'
         'X2ZlZRgHIAEoAUgCUgp0cmFkaW5nRmVliAEBEhIKBHRhZ3MYCCADKAlSBHRhZ3MSJQoOY2F0ZW'
         'dvcnlfdHhpZHMYCSADKAlSDWNhdGVnb3J5VHhpZHMSJQoOcmVzaWR1YWxfbmFtZXMYCiADKAlS'
-        'DXJlc2lkdWFsTmFtZXNCBwoFX2JldGFCFAoSX2luaXRpYWxfbGlxdWlkaXR5Qg4KDF90cmFkaW'
-        '5nX2ZlZQ==');
+        'DXJlc2lkdWFsTmFtZXMSNAoUbWF4X2xpc3RpbmdfZmVlX3NhdHMYCyABKANIA1IRbWF4TGlzdG'
+        'luZ0ZlZVNhdHOIAQFCBwoFX2JldGFCFAoSX2luaXRpYWxfbGlxdWlkaXR5Qg4KDF90cmFkaW5n'
+        'X2ZlZUIXChVfbWF4X2xpc3RpbmdfZmVlX3NhdHM=');
 
 @$core.Deprecated('Use marketCreateResponseDescriptor instead')
 const MarketCreateResponse$json = {

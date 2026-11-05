@@ -476,6 +476,7 @@ message MarketCreateRequest {
   repeated string tags = 8;
   repeated string category_txids = 9;
   repeated string residual_names = 10;
+  optional int64 max_listing_fee_sats = 11;
 }
 
 message MarketCreateResponse {

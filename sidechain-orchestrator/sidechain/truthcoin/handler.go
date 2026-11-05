@@ -315,6 +315,9 @@ func (h *Handler) MarketCreate(ctx context.Context, req *pb.MarketCreateRequest)
 	if req.InitialLiquidity != nil {
 		request["initial_liquidity"] = *req.InitialLiquidity
 	}
+	if req.MaxListingFeeSats != nil {
+		request["max_listing_fee_sats"] = *req.MaxListingFeeSats
+	}
 	var result struct {
 		Txid string `json:"txid"`
 	}

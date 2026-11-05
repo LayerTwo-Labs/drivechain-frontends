@@ -274,6 +274,38 @@ void main() {
       model.dispose();
     });
 
+    testWidgets('Create market caps the listing fee at the fee on the page', (tester) async {
+      await tester.pumpWidget(const SizedBox());
+      final model = await readyModel();
+      model.newDecisions.first.header.text = _daaHeader;
+      model.addNewDecision();
+      model.setDecisionPeriod(model.newDecisions.last, 23);
+      model.newDecisions.last.header.text = _blockTimeHeader;
+      mockRpc.marketCreateError = 'Listing fee 36 exceeds max_listing_fee_sats 27';
+
+      await model.createMarket(tester.element(find.byType(SizedBox)));
+
+      expect(mockRpc.lastMarketCreateMaxListingFeeSats, 27);
+      expect(model.createError, contains('Listing fee 36 exceeds max_listing_fee_sats 27'));
+
+      mockRpc.marketCreateError = null;
+      model.dispose();
+    });
+
+    testWidgets('Create market sends no cap without a new decision', (tester) async {
+      await tester.pumpWidget(const SizedBox());
+      final model = await readyModel();
+      model.addExistingDecision('002a0001');
+      mockRpc.marketCreateError = 'refused';
+
+      await model.createMarket(tester.element(find.byType(SizedBox)));
+
+      expect(mockRpc.lastMarketCreateMaxListingFeeSats, isNull);
+
+      mockRpc.marketCreateError = null;
+      model.dispose();
+    });
+
     test('a card with an error or no decision at all blocks the market', () async {
       final model = await readyModel();
       expect(model.canCreate, false);
