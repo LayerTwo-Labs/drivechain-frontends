@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'dart:io';
 
@@ -47,7 +48,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sail_routes;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:window_manager/legacy.dart';
 
 /// Opens a tab of the Mining page.
 void _openMining(String subtab) {

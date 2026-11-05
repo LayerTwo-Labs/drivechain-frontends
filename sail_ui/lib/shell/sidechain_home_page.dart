@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
@@ -12,7 +13,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/shell/run_sidechain_app.dart';
 import 'package:sail_ui/shell/sidechain_module.dart';
 import 'package:sail_ui/shell/sidechain_settings_page.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:window_manager/legacy.dart';
 
 @RoutePage()
 class SidechainHomePage extends StatefulWidget {

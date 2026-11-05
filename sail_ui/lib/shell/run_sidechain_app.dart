@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -18,7 +19,7 @@ import 'package:sail_ui/shell/chain_navigator.dart';
 import 'package:sail_ui/shell/sidechain_homepage_provider.dart';
 import 'package:sail_ui/shell/sidechain_module.dart';
 import 'package:sidechain_core/config/backend_sidechain_runtime.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:window_manager/legacy.dart';
 
 bool _signalShutdownInProgress = false;
 AppLifecycleListener? _appLifecycleListener;
