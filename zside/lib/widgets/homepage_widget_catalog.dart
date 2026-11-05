@@ -567,8 +567,10 @@ class TransactionTable extends StatefulWidget {
 }
 
 class _TransactionTableState extends State<TransactionTable> {
-  String sortColumn = 'date';
-  bool sortAscending = false;
+  static const _columns = ['status', 'amount', 'txid'];
+
+  String sortColumn = 'status';
+  bool sortAscending = true;
 
   void onSort(String column) {
     setState(() {
@@ -581,34 +583,23 @@ class _TransactionTableState extends State<TransactionTable> {
     });
   }
 
+  // The node records no time, so the given order breaks each tie.
   List<CoreTransaction> get sortedEntries {
-    final entries = List<CoreTransaction>.from(widget.entries);
-    entries.sort((a, b) {
-      dynamic aValue;
-      dynamic bValue;
-
-      switch (sortColumn) {
-        case 'height':
-          aValue = a.confirmations;
-          bValue = b.confirmations;
-          break;
-        case 'date':
-          aValue = a.time;
-          bValue = b.time;
-          break;
-        case 'txid':
-          aValue = a.txid;
-          bValue = b.txid;
-          break;
-        case 'amount':
-          aValue = a.amount;
-          bValue = b.amount;
-          break;
+    final indexed = widget.entries.indexed.toList();
+    indexed.sort((a, b) {
+      final (aIndex, aTx) = a;
+      final (bIndex, bTx) = b;
+      final order = switch (sortColumn) {
+        'status' => (aTx.confirmations == 0 ? 0 : 1).compareTo(bTx.confirmations == 0 ? 0 : 1),
+        'amount' => aTx.amount.compareTo(bTx.amount),
+        _ => aTx.txid.compareTo(bTx.txid),
+      };
+      if (order != 0) {
+        return sortAscending ? order : -order;
       }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+      return aIndex.compareTo(bIndex);
     });
-    return entries;
+    return indexed.map((entry) => entry.$2).toList();
   }
 
   @override
@@ -622,6 +613,9 @@ class _TransactionTableState extends State<TransactionTable> {
         builder: (BuildContext context, BoxConstraints constraints) {
           return SailCard(
             title: 'Wallet Transaction History',
+            subtitle:
+                'zSide records no time for a coin, so this list has no Date column. '
+                'Shielded transfers do not show here.',
             bottomPadding: false,
             child: Column(
               children: [
@@ -636,8 +630,8 @@ class _TransactionTableState extends State<TransactionTable> {
                     getRowId: (index) => entries[index].txid,
                     headerBuilder: (context) => [
                       SailTableHeaderCell(
-                        name: 'Conf Height',
-                        onSort: () => onSort('height'),
+                        name: 'Status',
+                        onSort: () => onSort('status'),
                       ),
                       SailTableHeaderCell(
                         name: 'Amount',
@@ -647,19 +641,13 @@ class _TransactionTableState extends State<TransactionTable> {
                         name: 'TxID',
                         onSort: () => onSort('txid'),
                       ),
-                      SailTableHeaderCell(
-                        name: 'Date',
-                        onSort: () => onSort('date'),
-                      ),
                     ],
                     rowBuilder: (context, row, selected) {
                       final entry = entries[row];
                       final amount = formatter.formatBTC(satoshiToBTC(entry.amount.toInt()));
 
                       return [
-                        SailTableCell(
-                          value: entry.confirmations == 0 ? 'Unconfirmed' : entry.confirmations.toString(),
-                        ),
+                        SailTableCell(value: _status(entry)),
                         SailTableCell(
                           value: amount,
                           monospace: true,
@@ -668,29 +656,21 @@ class _TransactionTableState extends State<TransactionTable> {
                           value: '${entry.txid.substring(0, 6)}..:${entry.vout}',
                           copyValue: '${entry.txid}:${entry.vout}',
                         ),
-                        SailTableCell(
-                          value: DateTime.fromMillisecondsSinceEpoch(entry.blocktime * 1000).toLocal().toString(),
-                        ),
                       ];
                     },
                     rowCount: entries.length,
                     emptyPlaceholder: 'No transactions yet',
                     drawGrid: true,
-                    sortColumnIndex: [
-                      'height',
-                      'amount',
-                      'txid',
-                      'date',
-                    ].indexOf(sortColumn),
+                    sortColumnIndex: _columns.indexOf(sortColumn),
                     sortAscending: sortAscending,
                     onSort: (columnIndex, ascending) {
-                      onSort(['height', 'amount', 'txid', 'date'][columnIndex]);
+                      onSort(_columns[columnIndex]);
                     },
                     onDoubleTap: (rowId) {
-                      final utxo = entries.firstWhere(
+                      final tx = entries.firstWhere(
                         (u) => u.txid == rowId,
                       );
-                      _showUtxoDetails(context, utxo);
+                      _showDetails(context, tx);
                     },
                   ),
                 ),
@@ -702,7 +682,9 @@ class _TransactionTableState extends State<TransactionTable> {
     );
   }
 
-  void _showUtxoDetails(BuildContext context, CoreTransaction utxo) {
+  static String _status(CoreTransaction tx) => tx.confirmations == 0 ? 'Unconfirmed' : 'Confirmed';
+
+  void _showDetails(BuildContext context, CoreTransaction tx) {
     final formatter = GetIt.I<FormatterProvider>();
     showThemedDialog(
       context: context,
@@ -710,16 +692,14 @@ class _TransactionTableState extends State<TransactionTable> {
         constraints: const BoxConstraints(maxWidth: 800),
         child: SailCard(
           title: 'Transaction Details',
-          subtitle: 'Details of the selected transaction',
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DetailRow(label: 'TxID', value: utxo.txid),
-                DetailRow(label: 'Amount', value: formatter.formatBTC(satoshiToBTC(utxo.amount.toInt()))),
-                DetailRow(label: 'Date', value: utxo.time.toLocal().format()),
-                DetailRow(label: 'Confirmation Height', value: utxo.confirmations.toString()),
+                DetailRow(label: 'TxID', value: '${tx.txid}:${tx.vout}'),
+                DetailRow(label: 'Amount', value: formatter.formatBTC(satoshiToBTC(tx.amount.toInt()))),
+                DetailRow(label: 'Status', value: _status(tx)),
               ],
             ),
           ),
