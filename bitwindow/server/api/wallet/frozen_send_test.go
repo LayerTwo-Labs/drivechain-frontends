@@ -15,10 +15,49 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
+
+func TestRejectedFrozenOutpointKeepsValidSends(t *testing.T) {
+	db := database.Test(t)
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	apitests.ExpectOrchestratorReads(orch)
+	orch.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).Return(
+		&orchpb.SendTransactionResponse{Txid: "sent"}, nil,
+	).Times(1)
+	cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithOrchestrator(orch)))
+	frozen := true
+	for _, outpoint := range []string{"", "bad-outpoint", ":0", "tx:-1", "tx:x", "tx:2147483648"} {
+		_, err := cli.SetUTXOMetadata(t.Context(), &walletv1.SetUTXOMetadataRequest{
+			Outpoint: outpoint,
+			IsFrozen: &frozen,
+		})
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	}
+	stored, err := utxometadata.Get(t.Context(), db, nil)
+	require.NoError(t, err)
+	require.Empty(t, stored)
+	label := "keep this label"
+	require.NoError(t, utxometadata.Set(t.Context(), db, "old-invalid", &frozen, &label))
+	frozen = false
+	_, err = cli.SetUTXOMetadata(t.Context(), &walletv1.SetUTXOMetadataRequest{
+		Outpoint: "old-invalid",
+		IsFrozen: &frozen,
+	})
+	require.NoError(t, err)
+	stored, err = utxometadata.Get(t.Context(), db, []string{"old-invalid"})
+	require.NoError(t, err)
+	require.False(t, stored["old-invalid"].IsFrozen)
+	require.Equal(t, label, stored["old-invalid"].Label)
+	_, err = cli.SendTransaction(t.Context(), &walletv1.SendTransactionRequest{
+		WalletId:     testWalletID,
+		Destinations: map[string]uint64{fixtureSegwitAddress(t, 1): 50000},
+	})
+	require.NoError(t, err)
+}
 
 // A send that names its inputs spends exactly those coins, so no lock reaches
 // them. A frozen one has to stop the send.
