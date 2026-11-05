@@ -78,6 +78,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Conf Height'), findsOneWidget);
+    expect(find.text('Date'), findsOneWidget);
+    expect(find.text('Status'), findsNothing);
 
     await tester.tap(find.text('Amount'));
     await tester.pumpAndSettle();
