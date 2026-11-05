@@ -2639,6 +2639,159 @@ func (x *TransparentTransferResponse) GetTxid() string {
 	return ""
 }
 
+type ListWalletTransactionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWalletTransactionsRequest) Reset() {
+	*x = ListWalletTransactionsRequest{}
+	mi := &file_zside_v1_zside_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWalletTransactionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWalletTransactionsRequest) ProtoMessage() {}
+
+func (x *ListWalletTransactionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_zside_v1_zside_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWalletTransactionsRequest.ProtoReflect.Descriptor instead.
+func (*ListWalletTransactionsRequest) Descriptor() ([]byte, []int) {
+	return file_zside_v1_zside_proto_rawDescGZIP(), []int{60}
+}
+
+type ListWalletTransactionsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Confirmed entries first, then the mempool entries.
+	Transactions  []*WalletTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWalletTransactionsResponse) Reset() {
+	*x = ListWalletTransactionsResponse{}
+	mi := &file_zside_v1_zside_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWalletTransactionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWalletTransactionsResponse) ProtoMessage() {}
+
+func (x *ListWalletTransactionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_zside_v1_zside_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWalletTransactionsResponse.ProtoReflect.Descriptor instead.
+func (*ListWalletTransactionsResponse) Descriptor() ([]byte, []int) {
+	return file_zside_v1_zside_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *ListWalletTransactionsResponse) GetTransactions() []*WalletTransaction {
+	if x != nil {
+		return x.Transactions
+	}
+	return nil
+}
+
+type WalletTransaction struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The sidechain txid. A deposit names its mainchain txid, and a coin that a
+	// failed withdrawal bundle gave back names the bundle M6ID.
+	Txid string `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	// What the transparent wallet gained, or lost when negative.
+	ValueSats int64 `protobuf:"varint,2,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
+	Confirmed bool  `protobuf:"varint,3,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	// The lowest output index the wallet owns. Zero when the wallet owns no output.
+	Vout          uint32 `protobuf:"varint,4,opt,name=vout,proto3" json:"vout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WalletTransaction) Reset() {
+	*x = WalletTransaction{}
+	mi := &file_zside_v1_zside_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WalletTransaction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WalletTransaction) ProtoMessage() {}
+
+func (x *WalletTransaction) ProtoReflect() protoreflect.Message {
+	mi := &file_zside_v1_zside_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WalletTransaction.ProtoReflect.Descriptor instead.
+func (*WalletTransaction) Descriptor() ([]byte, []int) {
+	return file_zside_v1_zside_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *WalletTransaction) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *WalletTransaction) GetValueSats() int64 {
+	if x != nil {
+		return x.ValueSats
+	}
+	return 0
+}
+
+func (x *WalletTransaction) GetConfirmed() bool {
+	if x != nil {
+		return x.Confirmed
+	}
+	return false
+}
+
+func (x *WalletTransaction) GetVout() uint32 {
+	if x != nil {
+		return x.Vout
+	}
+	return 0
+}
+
 var File_zside_v1_zside_proto protoreflect.FileDescriptor
 
 const file_zside_v1_zside_proto_rawDesc = "" +
@@ -2777,7 +2930,16 @@ const file_zside_v1_zside_proto_rawDesc = "" +
 	"amountSats\x12\x19\n" +
 	"\bfee_sats\x18\x03 \x01(\x03R\afeeSats\"1\n" +
 	"\x1bTransparentTransferResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid2\x90\x15\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x1f\n" +
+	"\x1dListWalletTransactionsRequest\"a\n" +
+	"\x1eListWalletTransactionsResponse\x12?\n" +
+	"\ftransactions\x18\x01 \x03(\v2\x1b.zside.v1.WalletTransactionR\ftransactions\"x\n" +
+	"\x11WalletTransaction\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x1d\n" +
+	"\n" +
+	"value_sats\x18\x02 \x01(\x03R\tvalueSats\x12\x1c\n" +
+	"\tconfirmed\x18\x03 \x01(\bR\tconfirmed\x12\x12\n" +
+	"\x04vout\x18\x04 \x01(\rR\x04vout2\xfd\x15\n" +
 	"\fZSideService\x12G\n" +
 	"\n" +
 	"GetBalance\x12\x1b.zside.v1.GetBalanceRequest\x1a\x1c.zside.v1.GetBalanceResponse\x12P\n" +
@@ -2809,7 +2971,8 @@ const file_zside_v1_zside_proto_rawDesc = "" +
 	"\x06Shield\x12\x17.zside.v1.ShieldRequest\x1a\x18.zside.v1.ShieldResponse\x12A\n" +
 	"\bUnshield\x12\x19.zside.v1.UnshieldRequest\x1a\x1a.zside.v1.UnshieldResponse\x12Y\n" +
 	"\x10ShieldedTransfer\x12!.zside.v1.ShieldedTransferRequest\x1a\".zside.v1.ShieldedTransferResponse\x12b\n" +
-	"\x13TransparentTransfer\x12$.zside.v1.TransparentTransferRequest\x1a%.zside.v1.TransparentTransferResponseB\xaa\x01\n" +
+	"\x13TransparentTransfer\x12$.zside.v1.TransparentTransferRequest\x1a%.zside.v1.TransparentTransferResponse\x12k\n" +
+	"\x16ListWalletTransactions\x12'.zside.v1.ListWalletTransactionsRequest\x1a(.zside.v1.ListWalletTransactionsResponseB\xaa\x01\n" +
 	"\fcom.zside.v1B\n" +
 	"ZsideProtoP\x01ZMgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1;zsidev1\xa2\x02\x03ZXX\xaa\x02\bZside.V1\xca\x02\bZside\\V1\xe2\x02\x14Zside\\V1\\GPBMetadata\xea\x02\tZside::V1b\x06proto3"
 
@@ -2825,7 +2988,7 @@ func file_zside_v1_zside_proto_rawDescGZIP() []byte {
 	return file_zside_v1_zside_proto_rawDescData
 }
 
-var file_zside_v1_zside_proto_msgTypes = make([]protoimpl.MessageInfo, 60)
+var file_zside_v1_zside_proto_msgTypes = make([]protoimpl.MessageInfo, 63)
 var file_zside_v1_zside_proto_goTypes = []any{
 	(*GetBalanceRequest)(nil),                             // 0: zside.v1.GetBalanceRequest
 	(*GetBalanceResponse)(nil),                            // 1: zside.v1.GetBalanceResponse
@@ -2887,73 +3050,79 @@ var file_zside_v1_zside_proto_goTypes = []any{
 	(*ShieldedTransferResponse)(nil),                      // 57: zside.v1.ShieldedTransferResponse
 	(*TransparentTransferRequest)(nil),                    // 58: zside.v1.TransparentTransferRequest
 	(*TransparentTransferResponse)(nil),                   // 59: zside.v1.TransparentTransferResponse
+	(*ListWalletTransactionsRequest)(nil),                 // 60: zside.v1.ListWalletTransactionsRequest
+	(*ListWalletTransactionsResponse)(nil),                // 61: zside.v1.ListWalletTransactionsResponse
+	(*WalletTransaction)(nil),                             // 62: zside.v1.WalletTransaction
 }
 var file_zside_v1_zside_proto_depIdxs = []int32{
-	0,  // 0: zside.v1.ZSideService.GetBalance:input_type -> zside.v1.GetBalanceRequest
-	2,  // 1: zside.v1.ZSideService.GetBlockCount:input_type -> zside.v1.GetBlockCountRequest
-	4,  // 2: zside.v1.ZSideService.Stop:input_type -> zside.v1.StopRequest
-	6,  // 3: zside.v1.ZSideService.Withdraw:input_type -> zside.v1.WithdrawRequest
-	8,  // 4: zside.v1.ZSideService.Transfer:input_type -> zside.v1.TransferRequest
-	10, // 5: zside.v1.ZSideService.GetSidechainWealth:input_type -> zside.v1.GetSidechainWealthRequest
-	12, // 6: zside.v1.ZSideService.CreateDeposit:input_type -> zside.v1.CreateDepositRequest
-	14, // 7: zside.v1.ZSideService.GetPendingWithdrawalBundle:input_type -> zside.v1.GetPendingWithdrawalBundleRequest
-	16, // 8: zside.v1.ZSideService.ConnectPeer:input_type -> zside.v1.ConnectPeerRequest
-	18, // 9: zside.v1.ZSideService.ListPeers:input_type -> zside.v1.ListPeersRequest
-	20, // 10: zside.v1.ZSideService.Mine:input_type -> zside.v1.MineRequest
-	22, // 11: zside.v1.ZSideService.GetBlock:input_type -> zside.v1.GetBlockRequest
-	24, // 12: zside.v1.ZSideService.GetBestMainchainBlockHash:input_type -> zside.v1.GetBestMainchainBlockHashRequest
-	26, // 13: zside.v1.ZSideService.GetBestSidechainBlockHash:input_type -> zside.v1.GetBestSidechainBlockHashRequest
-	28, // 14: zside.v1.ZSideService.GetBmmInclusions:input_type -> zside.v1.GetBmmInclusionsRequest
-	30, // 15: zside.v1.ZSideService.GetWalletUtxos:input_type -> zside.v1.GetWalletUtxosRequest
-	32, // 16: zside.v1.ZSideService.ListUtxos:input_type -> zside.v1.ListUtxosRequest
-	34, // 17: zside.v1.ZSideService.RemoveFromMempool:input_type -> zside.v1.RemoveFromMempoolRequest
-	36, // 18: zside.v1.ZSideService.GetLatestFailedWithdrawalBundleHeight:input_type -> zside.v1.GetLatestFailedWithdrawalBundleHeightRequest
-	38, // 19: zside.v1.ZSideService.GenerateMnemonic:input_type -> zside.v1.GenerateMnemonicRequest
-	40, // 20: zside.v1.ZSideService.SetSeedFromMnemonic:input_type -> zside.v1.SetSeedFromMnemonicRequest
-	42, // 21: zside.v1.ZSideService.CallRaw:input_type -> zside.v1.CallRawRequest
-	44, // 22: zside.v1.ZSideService.GetNewShieldedAddress:input_type -> zside.v1.GetNewShieldedAddressRequest
-	46, // 23: zside.v1.ZSideService.GetNewTransparentAddress:input_type -> zside.v1.GetNewTransparentAddressRequest
-	48, // 24: zside.v1.ZSideService.GetShieldedWalletAddresses:input_type -> zside.v1.GetShieldedWalletAddressesRequest
-	50, // 25: zside.v1.ZSideService.GetTransparentWalletAddresses:input_type -> zside.v1.GetTransparentWalletAddressesRequest
-	52, // 26: zside.v1.ZSideService.Shield:input_type -> zside.v1.ShieldRequest
-	54, // 27: zside.v1.ZSideService.Unshield:input_type -> zside.v1.UnshieldRequest
-	56, // 28: zside.v1.ZSideService.ShieldedTransfer:input_type -> zside.v1.ShieldedTransferRequest
-	58, // 29: zside.v1.ZSideService.TransparentTransfer:input_type -> zside.v1.TransparentTransferRequest
-	1,  // 30: zside.v1.ZSideService.GetBalance:output_type -> zside.v1.GetBalanceResponse
-	3,  // 31: zside.v1.ZSideService.GetBlockCount:output_type -> zside.v1.GetBlockCountResponse
-	5,  // 32: zside.v1.ZSideService.Stop:output_type -> zside.v1.StopResponse
-	7,  // 33: zside.v1.ZSideService.Withdraw:output_type -> zside.v1.WithdrawResponse
-	9,  // 34: zside.v1.ZSideService.Transfer:output_type -> zside.v1.TransferResponse
-	11, // 35: zside.v1.ZSideService.GetSidechainWealth:output_type -> zside.v1.GetSidechainWealthResponse
-	13, // 36: zside.v1.ZSideService.CreateDeposit:output_type -> zside.v1.CreateDepositResponse
-	15, // 37: zside.v1.ZSideService.GetPendingWithdrawalBundle:output_type -> zside.v1.GetPendingWithdrawalBundleResponse
-	17, // 38: zside.v1.ZSideService.ConnectPeer:output_type -> zside.v1.ConnectPeerResponse
-	19, // 39: zside.v1.ZSideService.ListPeers:output_type -> zside.v1.ListPeersResponse
-	21, // 40: zside.v1.ZSideService.Mine:output_type -> zside.v1.MineResponse
-	23, // 41: zside.v1.ZSideService.GetBlock:output_type -> zside.v1.GetBlockResponse
-	25, // 42: zside.v1.ZSideService.GetBestMainchainBlockHash:output_type -> zside.v1.GetBestMainchainBlockHashResponse
-	27, // 43: zside.v1.ZSideService.GetBestSidechainBlockHash:output_type -> zside.v1.GetBestSidechainBlockHashResponse
-	29, // 44: zside.v1.ZSideService.GetBmmInclusions:output_type -> zside.v1.GetBmmInclusionsResponse
-	31, // 45: zside.v1.ZSideService.GetWalletUtxos:output_type -> zside.v1.GetWalletUtxosResponse
-	33, // 46: zside.v1.ZSideService.ListUtxos:output_type -> zside.v1.ListUtxosResponse
-	35, // 47: zside.v1.ZSideService.RemoveFromMempool:output_type -> zside.v1.RemoveFromMempoolResponse
-	37, // 48: zside.v1.ZSideService.GetLatestFailedWithdrawalBundleHeight:output_type -> zside.v1.GetLatestFailedWithdrawalBundleHeightResponse
-	39, // 49: zside.v1.ZSideService.GenerateMnemonic:output_type -> zside.v1.GenerateMnemonicResponse
-	41, // 50: zside.v1.ZSideService.SetSeedFromMnemonic:output_type -> zside.v1.SetSeedFromMnemonicResponse
-	43, // 51: zside.v1.ZSideService.CallRaw:output_type -> zside.v1.CallRawResponse
-	45, // 52: zside.v1.ZSideService.GetNewShieldedAddress:output_type -> zside.v1.GetNewShieldedAddressResponse
-	47, // 53: zside.v1.ZSideService.GetNewTransparentAddress:output_type -> zside.v1.GetNewTransparentAddressResponse
-	49, // 54: zside.v1.ZSideService.GetShieldedWalletAddresses:output_type -> zside.v1.GetShieldedWalletAddressesResponse
-	51, // 55: zside.v1.ZSideService.GetTransparentWalletAddresses:output_type -> zside.v1.GetTransparentWalletAddressesResponse
-	53, // 56: zside.v1.ZSideService.Shield:output_type -> zside.v1.ShieldResponse
-	55, // 57: zside.v1.ZSideService.Unshield:output_type -> zside.v1.UnshieldResponse
-	57, // 58: zside.v1.ZSideService.ShieldedTransfer:output_type -> zside.v1.ShieldedTransferResponse
-	59, // 59: zside.v1.ZSideService.TransparentTransfer:output_type -> zside.v1.TransparentTransferResponse
-	30, // [30:60] is the sub-list for method output_type
-	0,  // [0:30] is the sub-list for method input_type
-	0,  // [0:0] is the sub-list for extension type_name
-	0,  // [0:0] is the sub-list for extension extendee
-	0,  // [0:0] is the sub-list for field type_name
+	62, // 0: zside.v1.ListWalletTransactionsResponse.transactions:type_name -> zside.v1.WalletTransaction
+	0,  // 1: zside.v1.ZSideService.GetBalance:input_type -> zside.v1.GetBalanceRequest
+	2,  // 2: zside.v1.ZSideService.GetBlockCount:input_type -> zside.v1.GetBlockCountRequest
+	4,  // 3: zside.v1.ZSideService.Stop:input_type -> zside.v1.StopRequest
+	6,  // 4: zside.v1.ZSideService.Withdraw:input_type -> zside.v1.WithdrawRequest
+	8,  // 5: zside.v1.ZSideService.Transfer:input_type -> zside.v1.TransferRequest
+	10, // 6: zside.v1.ZSideService.GetSidechainWealth:input_type -> zside.v1.GetSidechainWealthRequest
+	12, // 7: zside.v1.ZSideService.CreateDeposit:input_type -> zside.v1.CreateDepositRequest
+	14, // 8: zside.v1.ZSideService.GetPendingWithdrawalBundle:input_type -> zside.v1.GetPendingWithdrawalBundleRequest
+	16, // 9: zside.v1.ZSideService.ConnectPeer:input_type -> zside.v1.ConnectPeerRequest
+	18, // 10: zside.v1.ZSideService.ListPeers:input_type -> zside.v1.ListPeersRequest
+	20, // 11: zside.v1.ZSideService.Mine:input_type -> zside.v1.MineRequest
+	22, // 12: zside.v1.ZSideService.GetBlock:input_type -> zside.v1.GetBlockRequest
+	24, // 13: zside.v1.ZSideService.GetBestMainchainBlockHash:input_type -> zside.v1.GetBestMainchainBlockHashRequest
+	26, // 14: zside.v1.ZSideService.GetBestSidechainBlockHash:input_type -> zside.v1.GetBestSidechainBlockHashRequest
+	28, // 15: zside.v1.ZSideService.GetBmmInclusions:input_type -> zside.v1.GetBmmInclusionsRequest
+	30, // 16: zside.v1.ZSideService.GetWalletUtxos:input_type -> zside.v1.GetWalletUtxosRequest
+	32, // 17: zside.v1.ZSideService.ListUtxos:input_type -> zside.v1.ListUtxosRequest
+	34, // 18: zside.v1.ZSideService.RemoveFromMempool:input_type -> zside.v1.RemoveFromMempoolRequest
+	36, // 19: zside.v1.ZSideService.GetLatestFailedWithdrawalBundleHeight:input_type -> zside.v1.GetLatestFailedWithdrawalBundleHeightRequest
+	38, // 20: zside.v1.ZSideService.GenerateMnemonic:input_type -> zside.v1.GenerateMnemonicRequest
+	40, // 21: zside.v1.ZSideService.SetSeedFromMnemonic:input_type -> zside.v1.SetSeedFromMnemonicRequest
+	42, // 22: zside.v1.ZSideService.CallRaw:input_type -> zside.v1.CallRawRequest
+	44, // 23: zside.v1.ZSideService.GetNewShieldedAddress:input_type -> zside.v1.GetNewShieldedAddressRequest
+	46, // 24: zside.v1.ZSideService.GetNewTransparentAddress:input_type -> zside.v1.GetNewTransparentAddressRequest
+	48, // 25: zside.v1.ZSideService.GetShieldedWalletAddresses:input_type -> zside.v1.GetShieldedWalletAddressesRequest
+	50, // 26: zside.v1.ZSideService.GetTransparentWalletAddresses:input_type -> zside.v1.GetTransparentWalletAddressesRequest
+	52, // 27: zside.v1.ZSideService.Shield:input_type -> zside.v1.ShieldRequest
+	54, // 28: zside.v1.ZSideService.Unshield:input_type -> zside.v1.UnshieldRequest
+	56, // 29: zside.v1.ZSideService.ShieldedTransfer:input_type -> zside.v1.ShieldedTransferRequest
+	58, // 30: zside.v1.ZSideService.TransparentTransfer:input_type -> zside.v1.TransparentTransferRequest
+	60, // 31: zside.v1.ZSideService.ListWalletTransactions:input_type -> zside.v1.ListWalletTransactionsRequest
+	1,  // 32: zside.v1.ZSideService.GetBalance:output_type -> zside.v1.GetBalanceResponse
+	3,  // 33: zside.v1.ZSideService.GetBlockCount:output_type -> zside.v1.GetBlockCountResponse
+	5,  // 34: zside.v1.ZSideService.Stop:output_type -> zside.v1.StopResponse
+	7,  // 35: zside.v1.ZSideService.Withdraw:output_type -> zside.v1.WithdrawResponse
+	9,  // 36: zside.v1.ZSideService.Transfer:output_type -> zside.v1.TransferResponse
+	11, // 37: zside.v1.ZSideService.GetSidechainWealth:output_type -> zside.v1.GetSidechainWealthResponse
+	13, // 38: zside.v1.ZSideService.CreateDeposit:output_type -> zside.v1.CreateDepositResponse
+	15, // 39: zside.v1.ZSideService.GetPendingWithdrawalBundle:output_type -> zside.v1.GetPendingWithdrawalBundleResponse
+	17, // 40: zside.v1.ZSideService.ConnectPeer:output_type -> zside.v1.ConnectPeerResponse
+	19, // 41: zside.v1.ZSideService.ListPeers:output_type -> zside.v1.ListPeersResponse
+	21, // 42: zside.v1.ZSideService.Mine:output_type -> zside.v1.MineResponse
+	23, // 43: zside.v1.ZSideService.GetBlock:output_type -> zside.v1.GetBlockResponse
+	25, // 44: zside.v1.ZSideService.GetBestMainchainBlockHash:output_type -> zside.v1.GetBestMainchainBlockHashResponse
+	27, // 45: zside.v1.ZSideService.GetBestSidechainBlockHash:output_type -> zside.v1.GetBestSidechainBlockHashResponse
+	29, // 46: zside.v1.ZSideService.GetBmmInclusions:output_type -> zside.v1.GetBmmInclusionsResponse
+	31, // 47: zside.v1.ZSideService.GetWalletUtxos:output_type -> zside.v1.GetWalletUtxosResponse
+	33, // 48: zside.v1.ZSideService.ListUtxos:output_type -> zside.v1.ListUtxosResponse
+	35, // 49: zside.v1.ZSideService.RemoveFromMempool:output_type -> zside.v1.RemoveFromMempoolResponse
+	37, // 50: zside.v1.ZSideService.GetLatestFailedWithdrawalBundleHeight:output_type -> zside.v1.GetLatestFailedWithdrawalBundleHeightResponse
+	39, // 51: zside.v1.ZSideService.GenerateMnemonic:output_type -> zside.v1.GenerateMnemonicResponse
+	41, // 52: zside.v1.ZSideService.SetSeedFromMnemonic:output_type -> zside.v1.SetSeedFromMnemonicResponse
+	43, // 53: zside.v1.ZSideService.CallRaw:output_type -> zside.v1.CallRawResponse
+	45, // 54: zside.v1.ZSideService.GetNewShieldedAddress:output_type -> zside.v1.GetNewShieldedAddressResponse
+	47, // 55: zside.v1.ZSideService.GetNewTransparentAddress:output_type -> zside.v1.GetNewTransparentAddressResponse
+	49, // 56: zside.v1.ZSideService.GetShieldedWalletAddresses:output_type -> zside.v1.GetShieldedWalletAddressesResponse
+	51, // 57: zside.v1.ZSideService.GetTransparentWalletAddresses:output_type -> zside.v1.GetTransparentWalletAddressesResponse
+	53, // 58: zside.v1.ZSideService.Shield:output_type -> zside.v1.ShieldResponse
+	55, // 59: zside.v1.ZSideService.Unshield:output_type -> zside.v1.UnshieldResponse
+	57, // 60: zside.v1.ZSideService.ShieldedTransfer:output_type -> zside.v1.ShieldedTransferResponse
+	59, // 61: zside.v1.ZSideService.TransparentTransfer:output_type -> zside.v1.TransparentTransferResponse
+	61, // 62: zside.v1.ZSideService.ListWalletTransactions:output_type -> zside.v1.ListWalletTransactionsResponse
+	32, // [32:63] is the sub-list for method output_type
+	1,  // [1:32] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_zside_v1_zside_proto_init() }
@@ -2967,7 +3136,7 @@ func file_zside_v1_zside_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_zside_v1_zside_proto_rawDesc), len(file_zside_v1_zside_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   60,
+			NumMessages:   63,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
