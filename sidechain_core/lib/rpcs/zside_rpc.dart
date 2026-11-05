@@ -191,7 +191,39 @@ class ZSideLive extends ZSideRPC {
   }
 
   @override
-  Future<List<CoreTransaction>> listTransactions() async => [];
+  Future<List<CoreTransaction>> listTransactions() async {
+    final resp = await _client.listWalletTransactions(pb.ListWalletTransactionsRequest());
+    return resp.transactions.map(_toCoreTransaction).toList();
+  }
+
+  // The node records no height and no time for a transaction.
+  CoreTransaction _toCoreTransaction(pb.WalletTransaction tx) {
+    final sats = tx.valueSats.toInt();
+    final confirmations = tx.confirmed ? 1 : 0;
+    final unknownTime = DateTime.fromMillisecondsSinceEpoch(0);
+    return CoreTransaction(
+      address: '',
+      category: sats < 0 ? 'send' : 'receive',
+      // The table converts satoshis to BTC.
+      amount: sats.toDouble(),
+      label: '',
+      vout: tx.vout,
+      fee: 0,
+      confirmations: confirmations,
+      trusted: tx.confirmed,
+      blockhash: '',
+      blockindex: 0,
+      blocktime: 0,
+      txid: tx.txid,
+      time: unknownTime,
+      timereceived: unknownTime,
+      comment: '',
+      bip125Replaceable: 'no',
+      abandoned: false,
+      // CoreTransactions compare on raw, so a confirmed entry must differ from its pending form.
+      raw: jsonEncode({'txid': tx.txid, 'value_sats': sats, 'vout': tx.vout, 'confirmed': tx.confirmed}),
+    );
+  }
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
@@ -410,13 +442,44 @@ class ZSideLive extends ZSideRPC {
   }
 
   @override
-  Future<List<ShieldedUTXO>> listPrivateTransactions() async => [];
+  Future<List<ShieldedUTXO>> listPrivateTransactions() => listShieldedUTXOs();
 
   @override
   Future<List<UnshieldedUTXO>> listTransparentTransactions() async => [];
 
   @override
-  Future<List<ShieldedUTXO>> listShieldedUTXOs() async => [];
+  Future<List<ShieldedUTXO>> listShieldedUTXOs() async {
+    final confirmed = await _orchardNotes('get_wallet_orchard_notes');
+    final unconfirmed = await _orchardNotes('get_wallet_orchard_notes_unconfirmed');
+    return [
+      ...confirmed.map((note) => _shieldedUTXO(note, confirmed: true)),
+      ...unconfirmed.map((note) => _shieldedUTXO(note, confirmed: false)),
+    ];
+  }
+
+  Future<List<Map<String, dynamic>>> _orchardNotes(String method) async {
+    final result = await callRAW(method);
+    return (result as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  ShieldedUTXO _shieldedUTXO(Map<String, dynamic> note, {required bool confirmed}) {
+    final nullifier = note['nullifier'] as String;
+    final sats = note['value_sats'] as int;
+    return ShieldedUTXO(
+      txid: nullifier,
+      pool: 'orchard',
+      type: 'note',
+      outindex: 0,
+      confirmations: confirmed ? 1 : 0,
+      spendable: confirmed,
+      address: note['recipient'] as String,
+      amount: satoshiToBTC(sats),
+      amountZat: sats.toDouble(),
+      memo: '',
+      change: false,
+      raw: jsonEncode({'nullifier': nullifier, 'confirmed': confirmed}),
+    );
+  }
 
   @override
   Future<List<UnshieldedUTXO>> listUnshieldedUTXOs() async {
@@ -438,6 +501,10 @@ class ZSideLive extends ZSideRPC {
 }
 
 const zsideFee = 0.0001;
+
+/// Reports whether [address] is a zSide shielded address: bech32m with the
+/// HRP "t-shld". A transparent address is plain base58.
+bool isZSideShieldedAddress(String address) => address.trim().toLowerCase().startsWith('t-shld1');
 
 class ShieldedUTXO {
   final String txid;

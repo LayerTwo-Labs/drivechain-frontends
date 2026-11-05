@@ -66,6 +66,8 @@ abstract class ZSideServiceBase extends $pb.GeneratedService {
       $pb.ServerContext ctx, $0.ShieldedTransferRequest request);
   $async.Future<$0.TransparentTransferResponse> transparentTransfer(
       $pb.ServerContext ctx, $0.TransparentTransferRequest request);
+  $async.Future<$0.ListWalletTransactionsResponse> listWalletTransactions(
+      $pb.ServerContext ctx, $0.ListWalletTransactionsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -129,6 +131,8 @@ abstract class ZSideServiceBase extends $pb.GeneratedService {
         return $0.ShieldedTransferRequest();
       case 'TransparentTransfer':
         return $0.TransparentTransferRequest();
+      case 'ListWalletTransactions':
+        return $0.ListWalletTransactionsRequest();
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -197,6 +201,8 @@ abstract class ZSideServiceBase extends $pb.GeneratedService {
         return shieldedTransfer(ctx, request as $0.ShieldedTransferRequest);
       case 'TransparentTransfer':
         return transparentTransfer(ctx, request as $0.TransparentTransferRequest);
+      case 'ListWalletTransactions':
+        return listWalletTransactions(ctx, request as $0.ListWalletTransactionsRequest);
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }

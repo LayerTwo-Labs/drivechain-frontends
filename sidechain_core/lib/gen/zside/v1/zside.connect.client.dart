@@ -547,4 +547,22 @@ extension type ZSideServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// List the transparent wallet history, one entry per transaction.
+  Future<zsidev1zside.ListWalletTransactionsResponse> listWalletTransactions(
+    zsidev1zside.ListWalletTransactionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.listWalletTransactions,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }
