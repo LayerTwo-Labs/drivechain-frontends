@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -193,4 +196,53 @@ func TestTimestampEngine_VerifyTimestamp(t *testing.T) {
 		_, err = engine.VerifyTimestamp(t.Context(), fileData, "found.txt")
 		require.ErrorContains(t, err, "no update")
 	})
+}
+
+func TestConcurrentTimestampPaysOnce(t *testing.T) {
+	db := database.Test(t)
+	orch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	orch.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).Return(&emptypb.Empty{}, nil).AnyTimes()
+	ready := make(chan struct{}, 2)
+	release := make(chan struct{})
+	var sent atomic.Int32
+	orch.EXPECT().SendTransaction(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, req *orchpb.SendTransactionRequest) (*orchpb.SendTransactionResponse, error) {
+			id := sent.Add(1)
+			ready <- struct{}{}
+			select {
+			case <-release:
+				return &orchpb.SendTransactionResponse{Txid: fmt.Sprintf("paid-%d", id)}, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}).AnyTimes()
+	wallet := engines.NewWalletEngine(nil, apitests.OpenWallet(orch, &orchpb.WalletMetadata{Id: "a"}), &chaincfg.SigNetParams,
+		func(context.Context) ([]string, error) { return nil, nil })
+	engine := engines.NewTimestampEngine(db, wallet, nil, nil)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	results := make(chan error, 2)
+	for range 2 {
+		go func() {
+			_, err := engine.TimestampFile(ctx, "same.txt", []byte("same file"))
+			results <- err
+		}()
+	}
+	select {
+	case <-ready:
+	case <-ctx.Done():
+		t.Fatal("the first request did not reach broadcast")
+	}
+	select {
+	case <-ready:
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	for range 2 {
+		assert.NoError(t, <-results)
+	}
+	stored, err := timestamps.List(t.Context(), db)
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	assert.Equal(t, int32(1), sent.Load(), "the same file must pay one transaction fee")
 }
