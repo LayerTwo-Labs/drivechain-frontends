@@ -53,7 +53,7 @@ func Upsert(ctx context.Context, db *sql.DB, txs []Tx) error {
 		INSERT INTO mempool_transactions
 			(txid, fee_sats, vsize, fee_rate, first_seen_at, first_seen_height)
 		VALUES (?, ?, ?, ?, ?, ?)
-		ON CONFLICT(txid) DO NOTHING`)
+		ON CONFLICT(txid) DO UPDATE SET fee_rate = excluded.fee_rate`)
 	if err != nil {
 		return err
 	}
