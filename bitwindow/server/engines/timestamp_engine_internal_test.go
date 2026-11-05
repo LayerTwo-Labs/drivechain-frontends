@@ -38,6 +38,12 @@ func TestCheckConfirmations_UnknownTransaction(t *testing.T) {
 			want:      timestamps.StatusConfirming,
 		},
 		{
+			name:      "an incomplete transaction index preserves the timestamp",
+			createdAt: time.Now().Add(-timestampFailureGrace - time.Hour),
+			rpcErr:    errors.New("internal: -5: No such mempool transaction. Blockchain transactions are still in the process of being indexed. Use gettransaction for wallet transactions."),
+			want:      timestamps.StatusConfirming,
+		},
+		{
 			name:      "unknown transaction past grace period fails",
 			createdAt: time.Now().Add(-timestampFailureGrace - time.Hour),
 			rpcErr:    errors.New("internal: -5: No such mempool or blockchain transaction. Use gettransaction for wallet transactions."),

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -47,7 +48,7 @@ var txNotFoundPatterns = []string{
 // rather than failing for a transient reason (still starting up, connection
 // refused, timeout).
 func isTxNotFoundError(errMsg string) bool {
-	if IsBitcoinCoreStartupError(errMsg) {
+	if IsBitcoinCoreStartupError(errMsg) || strings.Contains(errMsg, "Blockchain transactions are still in the process of being indexed") {
 		return false
 	}
 	for _, p := range txNotFoundPatterns {
@@ -59,6 +60,7 @@ func isTxNotFoundError(errMsg string) bool {
 }
 
 type TimestampEngine struct {
+	mu       sync.Mutex
 	db       *sql.DB
 	wallet   *WalletEngine
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
@@ -217,6 +219,9 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 }
 
 func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fileData []byte) (*timestamps.FileTimestamp, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	hash := sha256.Sum256(fileData)
 	fileHash := hex.EncodeToString(hash[:])
 
