@@ -140,7 +140,7 @@ func (w *MempoolWatcher) Status() MempoolWatchStatus {
 func (w *MempoolWatcher) start(parent context.Context) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.cancel != nil {
+	if !w.enabled || w.cancel != nil {
 		return
 	}
 	ctx, cancel := context.WithCancel(parent)

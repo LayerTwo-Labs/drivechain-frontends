@@ -373,21 +373,26 @@ func TestMempoolWatchHandleInvalidEvent(t *testing.T) {
 type watchRun struct {
 	events chan SequenceMsg
 	cancel context.CancelFunc
-	done   chan error
+	done   chan struct{}
+	err    error
 }
 
 func startWatch(t *testing.T, w *MempoolWatcher) *watchRun {
 	t.Helper()
-	run := &watchRun{events: make(chan SequenceMsg), done: make(chan error, 1)}
+	run := &watchRun{events: make(chan SequenceMsg), done: make(chan struct{})}
 	w.subscribe = func(context.Context) (<-chan SequenceMsg, func(), error) {
 		return run.events, func() {}, nil
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	run.cancel = cancel
-	go func() { run.done <- w.watch(ctx) }()
+	go func() {
+		run.err = w.watch(ctx)
+		close(run.done)
+	}()
 	t.Cleanup(func() {
 		cancel()
-		t.Logf("watch stopped: %v", <-run.done)
+		<-run.done
+		t.Logf("watch stopped: %v", run.err)
 	})
 	return run
 }
@@ -397,8 +402,8 @@ func (r *watchRun) send(t *testing.T, ev SequenceMsg) {
 	t.Helper()
 	select {
 	case r.events <- ev:
-	case err := <-r.done:
-		t.Fatalf("watch stopped: %v", err)
+	case <-r.done:
+		t.Fatalf("watch stopped: %v", r.err)
 	}
 }
 
@@ -487,8 +492,8 @@ func TestMempoolWatchStopsWhenTheSubscriptionCloses(t *testing.T) {
 	var err error
 	require.Eventually(t, func() bool {
 		select {
-		case err = <-run.done:
-			run.done <- err
+		case <-run.done:
+			err = run.err
 			return true
 		default:
 			return false
@@ -572,4 +577,69 @@ func TestMempoolWatchReset(t *testing.T) {
 
 	assert.Empty(t, storedTxids(t, db))
 	assert.Empty(t, storedHeights(t, db))
+}
+
+func TestMempoolRefreshUpdatesPackageRate(t *testing.T) {
+	node := nodeAtTip(t, 50)
+	node.set("getrawmempool false", snapshotJSON(t, 50, hexOf(1)))
+	node.set("getrawmempool true", fmt.Sprintf(`{%q:%s}`, hexOf(1), entryJSON(100, 1_700_000_000)))
+	w, db := newTestWatcher(t, node)
+	_, err := w.bootstrap(t.Context())
+	require.NoError(t, err)
+	rows, _, err := mempooltx.List(t.Context(), db, mempooltx.Filter{})
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, float64(10), rows[0].FeeRate)
+	node.set("getrawmempool true", fmt.Sprintf(`{%q:{"vsize":200,"ancestorsize":200,"time":1700000000,"height":100,"fees":{"base":0.00001,"ancestor":0.00001}}}`, hexOf(1)))
+	_, err = w.bootstrap(t.Context())
+	require.NoError(t, err)
+	rows, _, err = mempooltx.List(t.Context(), db, mempooltx.Filter{})
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, float64(5), rows[0].FeeRate)
+}
+
+func TestMempoolResetObeysDisable(t *testing.T) {
+	w, _ := newTestWatcher(t, nodeAtTip(t, 1))
+	entered := make(chan struct{})
+	canceled := make(chan struct{})
+	release := make(chan struct{})
+	baseCall := w.call
+	w.call = func(ctx context.Context, method string, params ...any) (json.RawMessage, error) {
+		if method == "getmempoolentry" {
+			close(entered)
+			<-ctx.Done()
+			close(canceled)
+			<-release
+			return nil, ctx.Err()
+		}
+		return baseCall(ctx, method, params...)
+	}
+	subs := make(chan chan SequenceMsg, 2)
+	w.subscribe = func(context.Context) (<-chan SequenceMsg, func(), error) {
+		events := make(chan SequenceMsg, 1)
+		subs <- events
+		return events, func() {}, nil
+	}
+	require.NoError(t, w.SetEnabled(t.Context(), true))
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- w.Run(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		assert.NoError(t, <-done)
+	})
+	require.Eventually(t, func() bool { return w.Status().Running }, time.Second, time.Millisecond)
+	events := <-subs
+	events <- SequenceMsg{Hash: hashOf(1), Event: TransactionAdded, MempoolSeq: 1}
+	<-entered
+	reset := make(chan error, 1)
+	go func() { reset <- w.Reset(t.Context()) }()
+	<-canceled
+	require.NoError(t, w.SetEnabled(t.Context(), false))
+	close(release)
+	require.NoError(t, <-reset)
+	status := w.Status()
+	require.False(t, status.Enabled)
+	assert.False(t, status.Running, "a disabled watcher must remain stopped after reset")
 }

@@ -76,6 +76,7 @@ func TestMempoolTxUpsert(t *testing.T) {
 		got := listAll(t, db)
 		require.Equal(t, []string{"aa", "bb"}, txids(got))
 		assert.EqualValues(t, 1000, got[0].FeeSats)
+		assert.InDelta(t, later.FeeRate, got[0].FeeRate, 1e-9)
 		assert.EqualValues(t, 1000, got[0].FirstSeenAt.Unix())
 		assert.EqualValues(t, 100, got[0].FirstSeenHeight)
 	})
