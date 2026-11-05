@@ -49,7 +49,7 @@ void main() {
         totalShieldedSats: 200000000,
         totalTransparentSats: 60000000,
       );
-    model.bitcoinAddressController.text = 'zs1notatransparentaddress';
+    model.bitcoinAddressController.text = 't-shld1xasc5pa3u5z7azpy4ypmk786aa3sfket407slyasurfqsrkmr2m2hckls';
     model.bitcoinAmountController.text = '1.0';
     expect(model.bitcoinAmountController.text, '1.0');
 
