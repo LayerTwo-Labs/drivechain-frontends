@@ -211,8 +211,6 @@ func (e *NotificationEngine) watchWalletTransactions(ctx context.Context) {
 }
 
 func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error {
-	log := zerolog.Ctx(ctx)
-
 	bitcoind, err := e.bitcoind.Get(ctx)
 	if err != nil {
 		return err
@@ -226,19 +224,12 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 
 	// Check transactions for each wallet
 	for _, walletName := range walletsResp.Msg.Wallets {
-		resp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
-			Count:  100,
-			Wallet: walletName,
-		}))
+		transactions, err := ReadCoreTransactions(ctx, bitcoind, walletName, 100)
 		if err != nil {
-			log.Warn().
-				Err(err).
-				Str("wallet", walletName).
-				Msg("list transactions for wallet")
-			continue
+			return fmt.Errorf("list transactions of wallet %s: %w", walletName, err)
 		}
 
-		if err := e.processWalletTransactions(ctx, walletName, resp.Msg.Transactions); err != nil {
+		if err := e.processWalletTransactions(ctx, walletName, transactions); err != nil {
 			return fmt.Errorf("process transactions of wallet %s: %w", walletName, err)
 		}
 	}
