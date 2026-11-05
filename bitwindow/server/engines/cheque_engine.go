@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -24,10 +25,13 @@ import (
 const chequeAccount = 999
 
 type ChequeRecovery struct {
-	Index   uint32
-	Address string
-	Amount  uint64
-	Outputs []cheques.FundingOutput
+	Index      uint32
+	Address    string
+	Amount     uint64
+	Outputs    []cheques.FundingOutput
+	KeyVersion uint32
+	KeyDomain  string
+	KeyScope   string
 }
 
 // ChequeEngine derives cheque keys from the wallet seed, and reads their
@@ -38,15 +42,18 @@ type ChequeEngine struct {
 	chainParams  *chaincfg.Params
 	chain        ChequeChain
 	scanRetry    time.Duration
+	network      string
+	issueMu      sync.Mutex
 }
 
-func NewChequeEngine(db *sql.DB, walletEngine *WalletEngine, chainParams *chaincfg.Params, chain ChequeChain) *ChequeEngine {
+func NewChequeEngine(db *sql.DB, walletEngine *WalletEngine, chainParams *chaincfg.Params, chain ChequeChain, network string) *ChequeEngine {
 	return &ChequeEngine{
 		db:           db,
 		walletEngine: walletEngine,
 		chainParams:  chainParams,
 		chain:        chain,
 		scanRetry:    10 * time.Second,
+		network:      network,
 	}
 }
 
@@ -56,41 +63,8 @@ func (e *ChequeEngine) GetChainParams() *chaincfg.Params {
 
 // deriveChequeKey derives the HD key at m/44'/0'/999'/{index}
 func (e *ChequeEngine) deriveChequeKey(seedHex string, index uint32) (*hdkeychain.ExtendedKey, error) {
-	seedBytes, err := hex.DecodeString(seedHex)
-	if err != nil {
-		return nil, fmt.Errorf("decode seed: %w", err)
-	}
-
-	masterKey, err := hdkeychain.NewMaster(seedBytes, e.chainParams)
-	if err != nil {
-		return nil, fmt.Errorf("create master key: %w", err)
-	}
-
-	// m/44'
-	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 44)
-	if err != nil {
-		return nil, fmt.Errorf("derive purpose: %w", err)
-	}
-
-	// m/44'/0'
-	coinType, err := purpose.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return nil, fmt.Errorf("derive coin type: %w", err)
-	}
-
-	// m/44'/0'/999'
-	chequeAcct, err := coinType.Derive(hdkeychain.HardenedKeyStart + chequeAccount)
-	if err != nil {
-		return nil, fmt.Errorf("derive cheque account: %w", err)
-	}
-
-	// m/44'/0'/999'/{index} - index is NOT hardened per BIP44
-	chequeKey, err := chequeAcct.Derive(index)
-	if err != nil {
-		return nil, fmt.Errorf("derive cheque key: %w", err)
-	}
-
-	return chequeKey, nil
+	return e.deriveChequePath(seedHex, []uint32{hdkeychain.HardenedKeyStart + 44,
+		hdkeychain.HardenedKeyStart, hdkeychain.HardenedKeyStart + chequeAccount, index})
 }
 
 // DeriveChequeAddress derives the native segwit address at m/44'/0'/999'/{index}
@@ -111,6 +85,10 @@ func (e *ChequeEngine) chequeAddress(seedHex string, index uint32) (string, erro
 		return "", err
 	}
 
+	return e.chequeKeyAddress(chequeKey)
+}
+
+func (e *ChequeEngine) chequeKeyAddress(chequeKey *hdkeychain.ExtendedKey) (string, error) {
 	pubKey, err := chequeKey.ECPubKey()
 	if err != nil {
 		return "", fmt.Errorf("get public key: %w", err)
@@ -137,6 +115,10 @@ func (e *ChequeEngine) DeriveChequePrivateKey(ctx context.Context, walletID stri
 		return "", err
 	}
 
+	return e.chequeKeyWIF(chequeKey)
+}
+
+func (e *ChequeEngine) chequeKeyWIF(chequeKey *hdkeychain.ExtendedKey) (string, error) {
 	privKey, err := chequeKey.ECPrivKey()
 	if err != nil {
 		return "", fmt.Errorf("get private key: %w", err)
@@ -166,12 +148,41 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, gapLim
 		return nil, err
 	}
 
+	legacyRoot, err := e.deriveChequePath(seedHex, []uint32{hdkeychain.HardenedKeyStart + 44,
+		hdkeychain.HardenedKeyStart, hdkeychain.HardenedKeyStart + chequeAccount})
+	if err != nil {
+		return nil, err
+	}
+	legacy, err := e.scanChequeFunds(ctx, legacyRoot, nextIndex, gapLimit, 0, "", "")
+	if err != nil {
+		return nil, err
+	}
+	root, domain, err := e.chequeRoot(ctx, walletID, seedHex, e.network)
+	if err != nil {
+		return nil, err
+	}
+	nextIndex, err = cheques.GetNextDomainIndex(ctx, e.db, domain)
+	if err != nil {
+		return nil, err
+	}
+	current, err := e.scanChequeFunds(ctx, root, nextIndex, gapLimit, 1, domain, e.network)
+	if err != nil {
+		return nil, err
+	}
+	return append(legacy, current...), nil
+}
+
+func (e *ChequeEngine) scanChequeFunds(ctx context.Context, root *hdkeychain.ExtendedKey, nextIndex uint32, gapLimit int, version uint32, domain, scope string) ([]ChequeRecovery, error) {
 	log := zerolog.Ctx(ctx)
 	var recoveries []ChequeRecovery
 
 	empty := 0
 	for i := uint32(0); empty < gapLimit; i++ {
-		address, err := e.chequeAddress(seedHex, i)
+		key, err := root.Derive(i)
+		if err != nil {
+			return nil, fmt.Errorf("derive cheque key %d: %w", i, err)
+		}
+		address, err := e.chequeKeyAddress(key)
 		if err != nil {
 			return nil, fmt.Errorf("derive cheque address %d: %w", i, err)
 		}
@@ -198,10 +209,13 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletID string, gapLim
 		}
 
 		recoveries = append(recoveries, ChequeRecovery{
-			Index:   i,
-			Address: address,
-			Amount:  amountSats,
-			Outputs: outputs,
+			Index:      i,
+			Address:    address,
+			Amount:     amountSats,
+			Outputs:    outputs,
+			KeyVersion: version,
+			KeyDomain:  domain,
+			KeyScope:   scope,
 		})
 
 		log.Info().
@@ -445,8 +459,8 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 			}
 
 			for _, recovery := range recoveries {
-				if err := cheques.CreateOrUpdateFromRecovery(
-					ctx, e.db, wallet.ID, recovery.Index, recovery.Address, recovery.Outputs, recovery.Amount,
+				if err := cheques.CreateOrUpdateFromRecoveryVersioned(
+					ctx, e.db, wallet.ID, recovery.Index, recovery.Address, recovery.Outputs, recovery.Amount, recovery.KeyVersion, recovery.KeyDomain, recovery.KeyScope,
 				); err != nil {
 					log.Error().Err(err).
 						Str("wallet_id", wallet.ID).

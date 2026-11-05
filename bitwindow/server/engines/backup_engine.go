@@ -12,10 +12,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
@@ -23,15 +26,18 @@ import (
 
 // BackupEngine handles wallet backup and restore operations.
 type BackupEngine struct {
+	mu            sync.Mutex
 	db            *sql.DB
 	walletDir     string // dir containing wallet.json
+	network       string
 	multisigStore *multisig.Store
 }
 
-func NewBackupEngine(db *sql.DB, walletDir string) *BackupEngine {
+func NewBackupEngine(db *sql.DB, walletDir, network string) *BackupEngine {
 	return &BackupEngine{
 		db:            db,
 		walletDir:     walletDir,
+		network:       network,
 		multisigStore: multisig.NewStore(db),
 	}
 }
@@ -47,6 +53,9 @@ type BackupContents struct {
 // CreateBackup produces a ZIP archive containing wallet.json plus
 // multisig and transaction data exported from the DB.
 func (e *BackupEngine) CreateBackup(ctx context.Context) ([]byte, string, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	log := zerolog.Ctx(ctx)
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
@@ -62,6 +71,7 @@ CONTENTS
 3. transactions.json - Transaction history (exported from DB)
 4. metadata.json - Latest known wallet balance metadata
 5. wallet_encryption.json - Password encryption parameters (only if the wallet is encrypted)
+6. cheques.json - Cheque records and key counters for this network
 
 All sidechain wallets are DERIVED from the master seed in wallet.json.
 Restoring this backup restores ALL your sidechain wallets automatically.
@@ -134,6 +144,20 @@ Keep this file secure. Anyone with access can control ALL your funds.
 		}
 		log.Info().Msg("backup: added transactions.json")
 	}
+	chequeData, err := cheques.ExportBackup(ctx, e.db)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(chequeData.Cheques) > 0 || len(chequeData.Counters) > 0 || len(chequeData.DomainCounters) > 0 {
+		chequeData.Network = e.network
+		data, err := json.Marshal(chequeData)
+		if err != nil {
+			return nil, "", fmt.Errorf("encode cheque backup: %w", err)
+		}
+		if err := addToZip(zw, "cheques.json", data); err != nil {
+			return nil, "", fmt.Errorf("write cheques.json: %w", err)
+		}
+	}
 
 	if err := zw.Close(); err != nil {
 		return nil, "", fmt.Errorf("close zip: %w", err)
@@ -161,10 +185,16 @@ func (e *BackupEngine) ValidateBackup(_ context.Context, data []byte, filename s
 // RestoreBackup restores wallet data from a backup file.
 // The caller is responsible for stopping/restarting services.
 func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if _, err := e.ValidateBackup(ctx, data, filename); err != nil {
+		return fmt.Errorf("validate backup: %w", err)
+	}
 	log := zerolog.Ctx(ctx)
 	ext := strings.ToLower(filepath.Ext(filename))
 
-	var walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON []byte
+	var walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON, chequeJSON []byte
 	var err error
 
 	switch ext {
@@ -175,7 +205,7 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 			return fmt.Errorf("invalid wallet.json: %w", err)
 		}
 	case ".zip":
-		walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON, err = extractZIP(data)
+		walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON, chequeJSON, err = extractZIP(data)
 		if err != nil {
 			return fmt.Errorf("extract zip: %w", err)
 		}
@@ -193,18 +223,10 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 
 	// Import into the DB before touching the wallet files, so a backup that
 	// fails to import leaves the current wallet in place.
-	if multisigJSON != nil {
-		if err := e.multisigStore.ImportFromJSON(ctx, multisigJSON); err != nil {
-			return fmt.Errorf("import multisig data: %w", err)
+	if multisigJSON != nil || txJSON != nil || chequeJSON != nil {
+		if err := e.importBackupData(ctx, multisigJSON, txJSON, chequeJSON); err != nil {
+			return err
 		}
-		log.Info().Msg("restore: imported multisig data")
-	}
-
-	if txJSON != nil {
-		if err := e.multisigStore.ImportTransactionsFromJSON(ctx, txJSON); err != nil {
-			return fmt.Errorf("import transactions: %w", err)
-		}
-		log.Info().Msg("restore: imported transactions")
 	}
 
 	// Restore wallet.json
@@ -256,6 +278,38 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 	}
 
 	return nil
+}
+
+func (e *BackupEngine) importBackupData(ctx context.Context, groups, transactions, chequeJSON []byte) error {
+	tx, err := e.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin backup import: %w", err)
+	}
+	defer database.SafeDefer(ctx, tx.Rollback)
+	if err := multisig.ImportBackupTx(ctx, tx, groups, transactions); err != nil {
+		return err
+	}
+	if chequeJSON != nil {
+		backup, err := e.readChequeBackup(chequeJSON)
+		if err != nil {
+			return err
+		}
+		if err := cheques.ImportBackupTx(ctx, tx, *backup); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (e *BackupEngine) readChequeBackup(data []byte) (*cheques.Backup, error) {
+	var backup cheques.Backup
+	if err := json.Unmarshal(data, &backup); err != nil {
+		return nil, fmt.Errorf("read cheque backup: %w", err)
+	}
+	if backup.Network != e.network {
+		return nil, fmt.Errorf("cheque backup uses network %q, current network is %q", backup.Network, e.network)
+	}
+	return &backup, nil
 }
 
 // snapshotCurrentWallet copies the master wallet files into a new
@@ -615,27 +669,49 @@ func (e *BackupEngine) validateJSON(data []byte) (*BackupContents, error) {
 }
 
 func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
-	walletData, encData, _, msData, txData, err := extractZIP(data)
+	walletData, encData, _, msData, txData, chequeData, err := extractZIP(data)
 	if err != nil {
 		return nil, err
 	}
 	if walletData == nil {
 		return nil, errors.New("backup is missing wallet.json")
 	}
+	if chequeData != nil {
+		if _, err := e.readChequeBackup(chequeData); err != nil {
+			return nil, err
+		}
+	}
 
 	contents := &BackupContents{HasWallet: true}
+	hasEncryptionMetadata := encData != nil
+	if encData == nil && walletfile.IsEncrypted(walletData) && e.walletDir != "" {
+		current, err := os.ReadFile(filepath.Join(e.walletDir, "wallet_encryption.json"))
+		if err != nil {
+			return nil, fmt.Errorf("read current wallet encryption metadata: %w", err)
+		}
+		meta, err := orchwallet.UnmarshalEncryptionMetadata(current)
+		if err != nil {
+			return nil, fmt.Errorf("read current wallet encryption metadata: %w", err)
+		}
+		if !meta.Encrypted {
+			return nil, errors.New("backup has no wallet encryption metadata")
+		}
+		encData = current
+	}
+	encrypted := false
 	if encData != nil {
 		meta, err := orchwallet.UnmarshalEncryptionMetadata(encData)
 		if err != nil {
 			return nil, fmt.Errorf("wallet_encryption.json invalid: %w", err)
 		}
-		contents.HasEncryptionMetadata = meta.Encrypted
+		encrypted = meta.Encrypted
+		contents.HasEncryptionMetadata = hasEncryptionMetadata && encrypted
 	}
 	var tmp any
 	contents.HasMultisig = msData != nil && json.Unmarshal(msData, &tmp) == nil
 	contents.HasTransactions = txData != nil && json.Unmarshal(txData, &tmp) == nil
 
-	if contents.HasEncryptionMetadata {
+	if encrypted {
 		if !walletfile.IsEncrypted(walletData) {
 			return nil, errors.New("wallet.json invalid: not an encrypted wallet")
 		}
@@ -646,10 +722,10 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 	return contents, nil
 }
 
-func extractZIP(data []byte) (walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON []byte, err error) {
+func extractZIP(data []byte) (walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON, chequeJSON []byte, err error) {
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, nil, nil, nil, nil, fmt.Errorf("invalid zip: %w", err)
+		return nil, nil, nil, nil, nil, nil, fmt.Errorf("invalid zip: %w", err)
 	}
 
 	for _, f := range r.File {
@@ -665,15 +741,17 @@ func extractZIP(data []byte) (walletJSON, encryptionJSON, metadataJSON, multisig
 			dst = &multisigJSON
 		case "transactions.json":
 			dst = &txJSON
+		case "cheques.json":
+			dst = &chequeJSON
 		default:
 			continue
 		}
 		content, rerr := readZipEntry(f)
 		if rerr != nil {
-			return nil, nil, nil, nil, nil, fmt.Errorf("read %s in zip: %w", f.Name, rerr)
+			return nil, nil, nil, nil, nil, nil, fmt.Errorf("read %s in zip: %w", f.Name, rerr)
 		}
 		*dst = content
 	}
 
-	return
+	return walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON, chequeJSON, nil
 }

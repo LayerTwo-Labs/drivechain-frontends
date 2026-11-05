@@ -186,8 +186,9 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		},
 	)
 
+	chequeScope := keyScope(conf.BitcoinCoreNetwork, networkID)
 	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
-	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, rt.chequeChain)
+	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, rt.chequeChain, chequeScope)
 	rt.timestampEngine = engines.NewTimestampEngine(rt.db, rt.walletEngine, s.Bitcoind, rt.walletEngine.NodeMode())
 	rt.m4Engine = engines.NewM4Engine(rt.db, conf.BitcoinCoreNetwork)
 	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind, rt.walletEngine.NodeMode())
@@ -253,7 +254,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 			_, err := orchestrator.RestartL1(ctx, &orchctlpb.RestartL1Request{})
 			return err
 		}
-		rt.walletSvc = api_wallet.New(rt.db, s.Bitcoind, s.Enforcer, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
+		rt.walletSvc = api_wallet.New(rt.db, s.Bitcoind, s.Enforcer, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, chequeScope, restartL1)
 		walletv1connect.RegisterWalletServiceHandler(rpcServer, rt.walletSvc)
 	}
 	{
@@ -566,4 +567,13 @@ func activeSidechainSlots(ctx context.Context, enforcer *service.Service[validat
 		slots = append(slots, sc.GetSidechainNumber().GetValue())
 	}
 	return slots, nil
+}
+
+// keyScope names the network that cheque keys and backups belong to. Only eCash
+// has a catalog ID; other networks get an empty one.
+func keyScope(network config.Network, networkID string) string {
+	if network != config.NetworkECash {
+		networkID = ""
+	}
+	return string(network) + "/" + networkID
 }

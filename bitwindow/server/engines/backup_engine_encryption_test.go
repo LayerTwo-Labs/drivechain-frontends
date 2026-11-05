@@ -91,6 +91,9 @@ func TestRestoreBackup_EncryptedWithoutMetadata_KeepsExistingMarker(t *testing.T
 	require.NoError(t, addToZip(zw, "wallet.json", testEncryptedWallet))
 	require.NoError(t, zw.Close())
 
+	contents, err := e.ValidateBackup(ctx, buf.Bytes(), "backup.zip")
+	require.NoError(t, err)
+	require.False(t, contents.HasEncryptionMetadata)
 	require.NoError(t, e.RestoreBackup(ctx, buf.Bytes(), "backup.zip"))
 	require.True(t, isEncrypted(t, dir), "the existing marker must be kept")
 }

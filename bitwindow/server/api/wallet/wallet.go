@@ -53,7 +53,7 @@ func New(
 	chequeEngine *engines.ChequeEngine,
 	chequeChain engines.ChequeChain,
 	walletEngine *engines.WalletEngine,
-	walletDir string,
+	walletDir, network string,
 	restartL1 func(context.Context) error,
 ) *Server {
 	return &Server{
@@ -63,7 +63,7 @@ func New(
 		enforcer:     enforcer,
 		chequeEngine: chequeEngine,
 		walletEngine: walletEngine,
-		backupEngine: engines.NewBackupEngine(database, walletDir),
+		backupEngine: engines.NewBackupEngine(database, walletDir, network),
 		restartL1:    restartL1,
 	}
 }
@@ -1039,32 +1039,22 @@ func (s *Server) CreateCheque(ctx context.Context, c *pb.CreateChequeRequest) (*
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	nextIndex, err := cheques.GetNextIndex(ctx, s.database, walletID)
+	cheque, err := s.chequeEngine.CreateCheque(ctx, walletID, c.ExpectedAmountSats)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("get next index: %s", err)).WithCause(err)
-	}
-
-	address, err := s.chequeEngine.DeriveChequeAddress(ctx, walletID, nextIndex)
-	if err != nil {
-		return nil, keepConnectCode(fmt.Errorf("derive address %d: %w", nextIndex, err))
-	}
-
-	id, err := cheques.Create(ctx, s.database, walletID, nextIndex, c.ExpectedAmountSats, address)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Sprintf("create cheque: %s", err)).WithCause(err)
+		return nil, keepConnectCode(fmt.Errorf("create cheque: %w", err))
 	}
 
 	log.Info().
-		Int64("id", id).
-		Uint32("index", nextIndex).
-		Str("address", address).
+		Int64("id", cheque.ID).
+		Uint32("index", cheque.DerivationIndex).
+		Str("address", cheque.Address).
 		Uint64("expected_sats", c.ExpectedAmountSats).
 		Msg("cheque created")
 
 	return &pb.CreateChequeResponse{
-		Id:              id,
-		Address:         address,
-		DerivationIndex: nextIndex,
+		Id:              cheque.ID,
+		Address:         cheque.Address,
+		DerivationIndex: cheque.DerivationIndex,
 	}, nil
 }
 
@@ -1104,7 +1094,7 @@ func (s *Server) GetChequePrivateKey(ctx context.Context, c *pb.GetChequePrivate
 		return nil, err
 	}
 
-	privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, walletID, cheque.DerivationIndex)
+	privateKeyWIF, err := s.chequeEngine.ChequePrivateKey(ctx, cheque)
 	if err != nil {
 		return nil, keepConnectCode(fmt.Errorf("derive private key %d: %w", cheque.DerivationIndex, err))
 	}
@@ -1319,7 +1309,7 @@ func (s *Server) chequeToPb(ctx context.Context, c *cheques.Cheque, unlocked boo
 	}
 
 	if c.IsFunded() && unlocked {
-		privateKeyWIF, err := s.chequeEngine.DeriveChequePrivateKey(ctx, c.WalletID, c.DerivationIndex)
+		privateKeyWIF, err := s.chequeEngine.ChequePrivateKey(ctx, c)
 		if err != nil {
 			return nil, fmt.Errorf("derive cheque %d private key: %w", c.ID, err)
 		}
