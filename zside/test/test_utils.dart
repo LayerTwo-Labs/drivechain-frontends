@@ -67,6 +67,10 @@ Future<void> registerTestDependencies() async {
     );
   }
 
+  if (!GetIt.I.isRegistered<SyncProvider>()) {
+    GetIt.I.registerLazySingleton<SyncProvider>(() => SyncProvider(startTimer: false));
+  }
+
   if (!GetIt.I.isRegistered<BinaryProvider>()) {
     GetIt.I.registerLazySingleton<BinaryProvider>(
       () => MockBinaryProvider(),

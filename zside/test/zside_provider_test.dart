@@ -1,9 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pbenum.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
+import 'package:sidechain_core/models/core_transaction.dart';
+import 'package:sidechain_core/providers/sync_provider.dart';
 import 'package:sidechain_core/rpcs/bitcoind_connection.dart';
 import 'package:sidechain_core/rpcs/zside_rpc.dart';
+import 'package:zside/providers/transactions_provider.dart';
 import 'package:zside/providers/zside_provider.dart';
 import 'package:zside/routing/router.dart';
 import 'package:zside/zside_module.dart';
@@ -15,6 +19,14 @@ class _WalletRPC extends MockZSideRPC {
   int newAddresses = 0;
   Object? fault;
   final Set<String> failShield = {};
+  List<UnshieldedUTXO> coins = [];
+  List<CoreTransaction> history = [];
+
+  @override
+  Future<List<UnshieldedUTXO>> listUnshieldedUTXOs() async => coins;
+
+  @override
+  Future<List<CoreTransaction>> listTransactions() async => history;
 
   @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
@@ -38,6 +50,7 @@ class _WalletRPC extends MockZSideRPC {
 
 void main() {
   late _WalletRPC rpc;
+  late SyncProvider sync;
 
   setUp(() async {
     await GetIt.I.reset();
@@ -45,6 +58,8 @@ void main() {
     GetIt.I.registerSingleton<Logger>(Logger(level: Level.off));
     GetIt.I.registerSingleton<ZSideRPC>(rpc);
     GetIt.I.registerSingleton<BitcoindConnection>(MockBitcoindConnection());
+    sync = SyncProvider(startTimer: false);
+    GetIt.I.registerSingleton<SyncProvider>(sync);
   });
 
   tearDown(() async {
@@ -114,5 +129,58 @@ void main() {
     expect(event.content, 'ZSide shielded 3 UTXOs, 1.5 BTC in all. 1 failed.');
     expect(event.tab.routeName, ZSideMeltCastTabRoute.name);
     expect(event.id, 'zside-melt-${DateTime.utc(2026, 11, 1).microsecondsSinceEpoch}');
+  });
+
+  test('a new zSide block loads the coins again', () async {
+    final provider = ZSideProvider();
+    await pumpEventQueue();
+    expect(provider.unshieldedUTXOs, isEmpty);
+
+    rpc.coins = [
+      UnshieldedUTXO(txid: 'c1', address: 'a', amount: 0.4, confirmations: 1, generated: false, raw: 'c1'),
+    ];
+    sync.maybeFireNewSidechainBlock(
+      SidechainType.SIDECHAIN_TYPE_ZSIDE,
+      SyncInfo(progressCurrent: 1, progressGoal: 1, lastBlockAt: null),
+    );
+    await pumpEventQueue();
+    expect(provider.unshieldedUTXOs.map((u) => u.txid), ['c1']);
+    provider.dispose();
+  });
+
+  test('a new zSide block loads the transaction history again', () async {
+    final provider = TransactionsProvider();
+    await pumpEventQueue();
+    expect(provider.sidechainTransactions, isEmpty);
+
+    rpc.history = [
+      CoreTransaction(
+        address: '',
+        category: 'receive',
+        amount: 5000,
+        label: '',
+        vout: 0,
+        fee: 0,
+        confirmations: 1,
+        trusted: true,
+        blockhash: '',
+        blockindex: 0,
+        blocktime: 0,
+        txid: 't1',
+        time: DateTime.fromMillisecondsSinceEpoch(0),
+        timereceived: DateTime.fromMillisecondsSinceEpoch(0),
+        comment: '',
+        bip125Replaceable: 'no',
+        abandoned: false,
+        raw: 't1',
+      ),
+    ];
+    sync.maybeFireNewSidechainBlock(
+      SidechainType.SIDECHAIN_TYPE_ZSIDE,
+      SyncInfo(progressCurrent: 1, progressGoal: 1, lastBlockAt: null),
+    );
+    await pumpEventQueue();
+    expect(provider.sidechainTransactions.map((tx) => tx.txid), ['t1']);
+    provider.dispose();
   });
 }

@@ -12,6 +12,7 @@ class ZSideProvider extends ChangeNotifier {
 
   BitcoindConnection get _mainchainRPC => GetIt.I.get<BitcoindConnection>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
+  SyncProvider get _syncProvider => GetIt.I.get<SyncProvider>();
 
   String zsideAddress = '';
   int shieldedSats = 0;
@@ -33,7 +34,10 @@ class ZSideProvider extends ChangeNotifier {
     // then refetch every time the block count is updated
     _mainchainRPC.addListener(fetch);
     _rpc.addListener(fetch);
+    _syncProvider.onNewSidechainBlock(ZSide(), _onNewBlock);
   }
+
+  void _onNewBlock(int _) => fetch();
 
   Future<void> fetch() async {
     try {
@@ -186,6 +190,7 @@ class ZSideProvider extends ChangeNotifier {
   void dispose() {
     _mainchainRPC.removeListener(fetch);
     _rpc.removeListener(fetch);
+    _syncProvider.offNewSidechainBlock(ZSide(), _onNewBlock);
     for (final timer in _timers) {
       timer.cancel();
     }
