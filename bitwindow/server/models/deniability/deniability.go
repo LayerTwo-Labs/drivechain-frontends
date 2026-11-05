@@ -34,6 +34,7 @@ type Denial struct {
 	PausedAt        *time.Time    `db:"paused_at"`
 	NextExecution   *time.Time
 	ExecutedDenials []ExecutedDenial
+	Pending         *PendingExecution
 }
 
 type ExecutedDenial struct {
@@ -376,6 +377,10 @@ func (d Denial) addExecutionData(ctx context.Context, db *sql.DB) (Denial, error
 	}
 	d.ExecutedDenials = executions
 	d.NextExecution = nextExecution(d, executions)
+	d.Pending, err = GetPending(ctx, db, d.ID)
+	if err != nil {
+		return Denial{}, err
+	}
 
 	return d, nil
 }

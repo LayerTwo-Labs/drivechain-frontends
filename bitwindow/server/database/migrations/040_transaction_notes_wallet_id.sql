@@ -11,9 +11,6 @@ CREATE TABLE transaction_notes (
     PRIMARY KEY (wallet_id, txid)
 );
 
--- The old UNIQUE(initial_txid, initial_vout, cancelled_at) never fired for
--- active denials, because SQLite treats every NULL cancelled_at as distinct.
--- A partial unique index is the only way to constrain just the active rows.
-CREATE UNIQUE INDEX denials_active_unique
+CREATE INDEX denials_active_outpoints
     ON denials (initial_txid, initial_vout)
     WHERE cancelled_at IS NULL;
