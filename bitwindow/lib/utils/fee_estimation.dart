@@ -103,6 +103,20 @@ List<T> sendInputs<T>({
   return pricedInputs;
 }
 
+/// The coins a send spends, for display. The matching preview holds every
+/// coin, also the coins the backend adds to a selection that cannot pay.
+List<T> graphInputs<T>({
+  required List<T> selected,
+  required String? currentKey,
+  required String? pricedKey,
+  required List<T> pricedInputs,
+}) {
+  if (currentKey == null || currentKey != pricedKey || pricedInputs.isEmpty) {
+    return selected;
+  }
+  return pricedInputs;
+}
+
 /// The fees of a previewed send: the payment, and the BIP47 notification a
 /// first payment publishes before it.
 int previewFeeSats(PreviewSendResponse preview) => preview.feeSats.toInt() + preview.notificationFeeSats.toInt();
@@ -139,14 +153,3 @@ const dustSats = 546;
 /// Time the send page waits after the last form change before it asks for a
 /// fee preview.
 const feePreviewDebounce = Duration(milliseconds: 400);
-
-/// A single point on the fee-rate-vs-confirmation-target curve.
-class FeeRatePoint {
-  final int confTarget;
-  final double satPerVByte;
-
-  const FeeRatePoint({required this.confTarget, required this.satPerVByte});
-}
-
-/// Confirmation targets (in blocks) sampled to build the fee-rate curve.
-const List<int> feeRateConfTargets = [1, 2, 3, 6, 12, 24, 48, 144];

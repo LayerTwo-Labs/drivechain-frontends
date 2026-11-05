@@ -101,6 +101,23 @@ void main() {
     });
   });
 
+  group('graphInputs', () {
+    test('the matching preview shows every coin, also beyond the selection', () {
+      expect(
+        graphInputs(selected: ['a:0'], currentKey: 'k', pricedKey: 'k', pricedInputs: ['a:0', 'b:1']),
+        ['a:0', 'b:1'],
+      );
+    });
+
+    test('a stale preview falls back to the selection', () {
+      expect(graphInputs(selected: ['a:0'], currentKey: 'k2', pricedKey: 'k', pricedInputs: ['b:1']), ['a:0']);
+    });
+
+    test('an estimate preview with no coins falls back to the selection', () {
+      expect(graphInputs(selected: ['a:0'], currentKey: 'k', pricedKey: 'k', pricedInputs: <String>[]), ['a:0']);
+    });
+  });
+
   group('sendInputs', () {
     test('a send pins the coins of the preview that priced the form', () {
       expect(sendInputs(selected: <String>[], currentKey: 'k', pricedKey: 'k', pricedInputs: ['a:0']), ['a:0']);
@@ -205,11 +222,5 @@ void main() {
         999_300,
       );
     });
-  });
-
-  test('feeRateConfTargets is ascending', () {
-    for (var i = 1; i < feeRateConfTargets.length; i++) {
-      expect(feeRateConfTargets[i] > feeRateConfTargets[i - 1], isTrue);
-    }
   });
 }
