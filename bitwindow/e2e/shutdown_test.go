@@ -8,11 +8,7 @@ import (
 	"time"
 )
 
-// TestJustRunShutsDownDaemons covers Issue 2: closing the bitwindow window
-// should tear down bitwindowd and drivechaind. The reported symptoms are
-// that bitwindowd lingers on Mac+Linux and drivechaind specifically lingers
-// on Linux, so we assert OS-level process death rather than Flutter-side
-// state.
+// TestJustRunShutsDownDaemons checks shutdown after an interrupt signal.
 func TestJustRunShutsDownDaemons(t *testing.T) {
 	skipIfNoDisplay(t)
 
@@ -46,12 +42,10 @@ func TestJustRunShutsDownDaemons(t *testing.T) {
 	waitForPort(t, drivechaindPort, rpcDeadline, "drivechaind")
 	waitForOrchestratorRPC(t, rpcDeadline, run.dataDir)
 
-	// Request a graceful shutdown and wait up to `shutdownDeadline` for the
-	// whole tree to exit. This mirrors the user closing the window — we
-	// don't force-kill here; any force escalation inside stop() is a FAIL
-	// signal for this test (see below).
 	t.Log("requesting graceful shutdown")
-	run.stop(t, shutdownDeadline)
+	if !run.stop(t, shutdownDeadline) {
+		t.Fatal("graceful stop used escalation")
+	}
 
 	// bitwindowd must be gone. This is the Mac+Linux symptom the user
 	// reported: "Bitwindowd isn't shutting down properly when you close

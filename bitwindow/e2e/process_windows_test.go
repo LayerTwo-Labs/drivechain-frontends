@@ -80,23 +80,6 @@ func runTaskkill(pid int, force bool) error {
 	return nil
 }
 
-// Clears orphans from a previous crashed run so the next `just run` can bind
-// its RPC ports. In-run shutdown is the orchestrator's responsibility.
-func sweepPriorRunOrphans(t *testing.T) {
-	t.Helper()
-	// A live app restarts a daemon it did not stop, so it goes first.
-	images := []string{
-		flutterAppProcessName() + ".exe",
-		"bitwindowd.exe",
-		"drivechaind.exe",
-		"bitcoind.exe",
-		"bip300301_enforcer.exe",
-	}
-	for _, name := range images {
-		_ = exec.Command("taskkill", "/F", "/IM", name).Run()
-	}
-}
-
 // closeAppViaWindowSystem sends WM_CLOSE to the top-level window of the
 // given pid — the Windows equivalent of clicking the X button. Goes through
 // the Flutter onWindowClose handler, not a POSIX signal.

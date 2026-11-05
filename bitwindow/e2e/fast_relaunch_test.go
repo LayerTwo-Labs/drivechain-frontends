@@ -38,13 +38,14 @@ func TestFastRelaunchKeepsDrivechaindAlive(t *testing.T) {
 
 	// Quit the app tree and relaunch at once. drivechaind runs in its own
 	// process group, so the tree signal leaves it alive for its grace period.
-	first.stop(t, treeDeadline)
+	if !first.stop(t, treeDeadline) {
+		t.Fatal("graceful stop used escalation")
+	}
 	survivors := processPIDs(t, bitwindowdName)
 	t.Logf("first launch: app tree exited, surviving bitwindowd=%s drivechaind=%s",
 		prettyPIDs(survivors), prettyPIDs(processPIDs(t, drivechaindName)))
 
-	// launchJustRun, not startJustRunIn: the sweep would kill the very
-	// drivechaind this test keeps alive.
+	// The second launch overlaps daemons from the first launch.
 	second := launchJustRun(t, dataDir, nil)
 	t.Cleanup(func() {
 		second.dumpDiagnostics(t)

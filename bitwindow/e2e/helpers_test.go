@@ -10,6 +10,7 @@ package e2e
 import (
 	"bufio"
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -70,12 +71,13 @@ func flutterAppProcessName() string {
 
 // runHandle owns one `just run` subprocess plus captured output.
 type runHandle struct {
-	cmd      *exec.Cmd
-	dataDir  string
-	stdout   *lineBuffer
-	stderr   *lineBuffer
-	doneCh   chan error
-	stopOnce sync.Once
+	cmd           *exec.Cmd
+	dataDir       string
+	stdout        *lineBuffer
+	stderr        *lineBuffer
+	doneCh        chan error
+	stopOnce      sync.Once
+	stopEscalated bool
 }
 
 // startJustRun launches `just run` in the bitwindow directory with an
@@ -105,12 +107,56 @@ func makeTempDataDir(t *testing.T) string {
 
 func startJustRunIn(t *testing.T, dataDir string, extraEnv map[string]string) *runHandle {
 	t.Helper()
-	sweepPriorRunOrphans(t)
+	if err := waitForTestHost(hostClearDeadline); err != nil {
+		t.Fatalf("test host preflight: %v", err)
+	}
 	return launchJustRun(t, dataDir, extraEnv)
 }
 
-// launchJustRun starts `just run` and leaves a daemon of an earlier launch
-// alone. The fast-relaunch test needs that overlap, and the sweep kills it.
+// hostClearDeadline covers the drivechaind drain of an earlier test in the same run.
+const hostClearDeadline = 5 * time.Minute
+
+func waitForTestHost(deadline time.Duration) error {
+	stop := time.Now().Add(deadline)
+	for {
+		err := checkTestHost()
+		if err == nil || time.Now().After(stop) {
+			return err
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
+func checkTestHost() error {
+	for _, name := range []string{flutterAppProcessName(), bitwindowdName, drivechaindName, "bitcoind", "bip300301_enforcer"} {
+		pids, err := findProcessPIDs(name)
+		if err != nil {
+			return err
+		}
+		if len(pids) != 0 {
+			return fmt.Errorf("%s already runs with PIDs %s", name, prettyPIDs(pids))
+		}
+	}
+	return checkPorts(drivechaindPort, bitwindowdPort)
+}
+
+func checkPorts(ports ...int) error {
+	for _, port := range ports {
+		for _, host := range []string{"127.0.0.1", "0.0.0.0"} {
+			address := fmt.Sprintf("%s:%d", host, port)
+			listener, err := net.Listen("tcp4", address)
+			if err != nil {
+				return fmt.Errorf("test address %s is unavailable: %w", address, err)
+			}
+			if err := listener.Close(); err != nil {
+				return fmt.Errorf("close test address %s: %w", address, err)
+			}
+		}
+	}
+	return nil
+}
+
+// launchJustRun permits overlap with daemons from an earlier test launch.
 func launchJustRun(t *testing.T, dataDir string, extraEnv map[string]string) *runHandle {
 	t.Helper()
 
@@ -169,14 +215,17 @@ func bitwindowRepoDir(t *testing.T) string {
 	return filepath.Clean(filepath.Join(filepath.Dir(thisFile), ".."))
 }
 
-// stop requests graceful shutdown (mirrors a user Ctrl+C / window close) and
-// waits for the whole process tree to exit, escalating to SIGTERM and finally
-// SIGKILL if needed. Idempotent.
-func (h *runHandle) stop(t *testing.T, graceful time.Duration) {
+// stop returns true if the process exits without escalation.
+func (h *runHandle) stop(t *testing.T, graceful time.Duration) bool {
 	t.Helper()
 	h.stopOnce.Do(func() {
+		select {
+		case <-h.doneCh:
+			return
+		default:
+		}
 		if err := interruptProcessGroup(h.cmd); err != nil {
-			t.Logf("interrupt: %v", err)
+			t.Errorf("interrupt: %v", err)
 		}
 
 		select {
@@ -185,9 +234,10 @@ func (h *runHandle) stop(t *testing.T, graceful time.Duration) {
 		case <-time.After(graceful):
 		}
 
-		t.Logf("graceful stop timed out after %s, escalating to terminate", graceful)
+		h.stopEscalated = true
+		t.Logf("graceful stop timed out after %s", graceful)
 		if err := terminateProcessGroup(h.cmd); err != nil {
-			t.Logf("terminate: %v", err)
+			t.Errorf("terminate: %v", err)
 		}
 
 		select {
@@ -196,17 +246,13 @@ func (h *runHandle) stop(t *testing.T, graceful time.Duration) {
 		case <-time.After(10 * time.Second):
 		}
 
-		t.Logf("terminate ignored, force-killing")
+		t.Log("terminate failed to stop the process group")
 		if err := killProcessGroup(h.cmd); err != nil {
-			t.Logf("kill: %v", err)
+			t.Errorf("kill: %v", err)
 		}
 		<-h.doneCh
-		// Final sweep for Windows: Job Object covers clean process death,
-		// but if the Flutter app was hung (Dart onShutdown threw before
-		// windowManager.destroy), bitwindow.exe survives the tree-kill
-		// and its descendants are still alive.
-		sweepPriorRunOrphans(t)
 	})
+	return !h.stopEscalated
 }
 
 // waitUntil polls pred every interval until it returns true or deadline
@@ -227,68 +273,74 @@ func waitUntil(t *testing.T, deadline time.Duration, interval time.Duration, msg
 // matches name (Windows: name + ".exe"). Empty slice means no such process.
 func processPIDs(t *testing.T, name string) []int {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		return tasklistPIDs(t, name+".exe")
+	pids, err := findProcessPIDs(name)
+	if err != nil {
+		t.Fatalf("query processes: %v", err)
 	}
-	return pgrepPIDs(t, name)
+	return pids
 }
 
-func pgrepPIDs(t *testing.T, name string) []int {
-	t.Helper()
+func findProcessPIDs(name string) ([]int, error) {
+	if runtime.GOOS == "windows" {
+		return tasklistPIDs(name + ".exe")
+	}
+	return pgrepPIDs(name)
+}
+
+func pgrepPIDs(name string) ([]int, error) {
 	out, err := exec.Command("pgrep", "-x", name).Output()
 	if err != nil {
 		// pgrep exits 1 when nothing matches — treat as empty, not failure.
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
-			return nil
+			return nil, nil
 		}
-		t.Logf("pgrep %q failed: %v", name, err)
-		return nil
+		return nil, fmt.Errorf("pgrep %q: %w", name, err)
 	}
 	return parsePIDs(string(out))
 }
 
-func tasklistPIDs(t *testing.T, imageName string) []int {
-	t.Helper()
+func tasklistPIDs(imageName string) ([]int, error) {
 	out, err := exec.Command("tasklist", "/FO", "CSV", "/NH", "/FI", "IMAGENAME eq "+imageName).Output()
 	if err != nil {
-		t.Logf("tasklist %q failed: %v", imageName, err)
-		return nil
+		return nil, fmt.Errorf("tasklist %q: %w", imageName, err)
 	}
 	text := string(out)
 	if strings.Contains(text, "No tasks are running") || strings.TrimSpace(text) == "" {
-		return nil
+		return nil, nil
 	}
 	var pids []int
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		fields := strings.Split(line, ",")
-		if len(fields) < 2 {
-			continue
-		}
-		raw := strings.Trim(fields[1], "\" ")
-		if pid, err := strconv.Atoi(raw); err == nil {
-			pids = append(pids, pid)
-		}
+	rows, err := csv.NewReader(strings.NewReader(text)).ReadAll()
+	if err != nil {
+		return nil, fmt.Errorf("parse tasklist: %w", err)
 	}
-	return pids
+	for _, fields := range rows {
+		if len(fields) < 2 || !strings.EqualFold(fields[0], imageName) {
+			return nil, fmt.Errorf("unexpected tasklist row: %q", fields)
+		}
+		pid, err := strconv.Atoi(fields[1])
+		if err != nil || pid <= 0 {
+			return nil, fmt.Errorf("invalid tasklist PID %q", fields[1])
+		}
+		pids = append(pids, pid)
+	}
+	return pids, nil
 }
 
-func parsePIDs(text string) []int {
+func parsePIDs(text string) ([]int, error) {
 	var pids []int
 	for _, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		if pid, err := strconv.Atoi(line); err == nil {
-			pids = append(pids, pid)
+		pid, err := strconv.Atoi(line)
+		if err != nil || pid <= 0 {
+			return nil, fmt.Errorf("invalid process PID %q", line)
 		}
+		pids = append(pids, pid)
 	}
-	return pids
+	return pids, nil
 }
 
 // lineBuffer tees lines from a pipe to t.Log AND stores them for later

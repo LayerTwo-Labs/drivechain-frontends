@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -73,39 +72,6 @@ func signalGroup(cmd *exec.Cmd, sig syscall.Signal) error {
 		return fmt.Errorf("kill -%d -%d: %w", sig, pgid, err)
 	}
 	return nil
-}
-
-// sweepPriorRunOrphans kills daemons left holding the ports this suite needs.
-// A previous case can leak an drivechaind past its own cleanup; the next
-// case's drivechaind then refuses to start, because it fails closed rather
-// than adopt a listener it cannot authenticate against. The app ends up
-// talking to the stale process, whose auth cookie lives in a temp dir that has
-// already been removed, and every RPC fails with "local auth cookie is
-// missing" until the test times out.
-//
-// Targeted by port rather than by process name: running this locally must not
-// take out the developer's own bitwindow, only whatever is squatting on the
-// ports the test is about to bind.
-//
-// -sTCP:LISTEN narrows it to the daemon holding the port. Without it lsof also
-// lists every client with an open connection, and this suite is one of them —
-// the sweep then kills the test binary itself.
-func sweepPriorRunOrphans(t *testing.T) {
-	t.Helper()
-	for _, port := range []int{drivechaindPort, bitwindowdPort} {
-		out, err := exec.Command("lsof", "-ti", fmt.Sprintf("tcp:%d", port), "-sTCP:LISTEN").Output()
-		if err != nil {
-			continue // nothing listening, or no lsof — either way there is nothing to sweep
-		}
-		for _, field := range strings.Fields(string(out)) {
-			pid, convErr := strconv.Atoi(field)
-			if convErr != nil {
-				continue
-			}
-			t.Logf("sweeping orphaned pid %d holding port %d", pid, port)
-			_ = syscall.Kill(pid, syscall.SIGKILL)
-		}
-	}
 }
 
 // closeAppViaWindowSystem triggers a graceful "user closed the window"

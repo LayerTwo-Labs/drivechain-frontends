@@ -124,8 +124,7 @@ func assertRestartAfterExit(t *testing.T, path exitPath) {
 	// running" check would pass on it and prove nothing about the relaunch.
 	survivors := processPIDs(t, bitwindowdName)
 
-	// launchJustRun, not startJustRunIn: the sweep would kill a daemon that
-	// the first launch still winds down, and that overlap is the real case.
+	// The second launch overlaps daemons from the first launch.
 	second := launchJustRun(t, dataDir, nil)
 	t.Cleanup(func() {
 		second.dumpDiagnostics(t)

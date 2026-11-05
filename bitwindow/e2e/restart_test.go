@@ -47,7 +47,9 @@ func TestJustRunRestart(t *testing.T) {
 	firstWalletID := generateTestWallet(t, dataDir)
 	t.Logf("first launch: wallet created, wallet_id=%s", firstWalletID)
 
-	first.stop(t, shutdownDeadline)
+	if !first.stop(t, shutdownDeadline) {
+		t.Fatal("graceful stop used escalation")
+	}
 	waitUntil(t, shutdownDeadline, shutdownPoll, "first launch: bitwindowd lingered", func() bool {
 		return len(processPIDs(t, bitwindowdName)) == 0
 	})
