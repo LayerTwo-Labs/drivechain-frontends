@@ -53,7 +53,7 @@ func testChequeEngineWith(t *testing.T, chain ChequeChain, orch orchrpc.WalletMa
 		&chaincfg.SigNetParams,
 		nil,
 	)
-	return NewChequeEngine(database.Test(t), walletEngine, &chaincfg.SigNetParams, chain)
+	return NewChequeEngine(database.Test(t), walletEngine, &chaincfg.SigNetParams, chain, "signet/")
 }
 
 func TestScanForFunds(t *testing.T) {
@@ -72,7 +72,7 @@ func TestScanForFunds(t *testing.T) {
 		assert.Equal(t, address, recoveries[0].Address)
 		assert.Equal(t, uint64(100_000), recoveries[0].Amount)
 		assert.Equal(t, []cheques.FundingOutput{{Txid: testUTXOs()[0].TxID, ValueSats: 100_000}}, recoveries[0].Outputs)
-		assert.Len(t, chain.queried, 24)
+		assert.Len(t, chain.queried, 44)
 	})
 
 	t.Run("finds a funded index past the first gap", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestScanForFunds(t *testing.T) {
 		recoveries, err := engine.ScanForFunds(t.Context(), chequeWalletID, 20)
 		require.NoError(t, err)
 		assert.Equal(t, []uint32{5, 25}, lo.Map(recoveries, func(r ChequeRecovery, _ int) uint32 { return r.Index }))
-		assert.Len(t, chain.queried, 46)
+		assert.Len(t, chain.queried, 66)
 	})
 
 	t.Run("counts the gap from the stored counter", func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestScanForFunds(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, recoveries, 1)
 		assert.Equal(t, uint32(39), recoveries[0].Index)
-		assert.Len(t, chain.queried, 60)
+		assert.Len(t, chain.queried, 80)
 	})
 }
 

@@ -146,7 +146,7 @@ func TestCreateBackup(t *testing.T) {
 
 		data, _, err := e.CreateBackup(t.Context())
 		require.NoError(t, err)
-		gotWallet, _, _, _, _, err := extractZIP(data)
+		gotWallet, _, _, _, _, _, err := extractZIP(data)
 		require.NoError(t, err)
 		require.Equal(t, walletJSON, gotWallet)
 	})
@@ -282,4 +282,40 @@ func TestRestoreBackup_KeepsCurrentWallet(t *testing.T) {
 		require.ErrorContains(t, err, "write wallet_encryption.json")
 		require.Equal(t, plainWallet, readFile(t, filepath.Join(dir, "wallet.json")))
 	})
+}
+
+func TestRestoreBackupRejectsEmptyWalletZIP(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "wallet.json")
+	current := []byte(`{"wallets":[{"id":"current","master":{},"l1":{}}]}`)
+	require.NoError(t, os.WriteFile(path, current, 0o600))
+	engine := &BackupEngine{walletDir: dir}
+	data := zipWith(t, "wallet.json", []byte(`{"wallets":[]}`))
+	_, err := engine.ValidateBackup(t.Context(), data, "backup.zip")
+	require.ErrorContains(t, err, "wallets array is empty")
+	err = engine.RestoreBackup(t.Context(), data, "backup.zip")
+	after, readErr := os.ReadFile(path)
+	require.NoError(t, readErr)
+	require.ErrorContains(t, err, "wallets array is empty")
+	require.Equal(t, current, after)
+}
+
+func TestRestoreBackupErrorKeepsCurrentGroup(t *testing.T) {
+	db := database.Test(t)
+	store := multisig.NewStore(db)
+	current := multisig.Group{ID: "group", Name: "current", N: 2, M: 3, NextReceiveIndex: 10}
+	require.NoError(t, store.SaveGroupAtomic(t.Context(), multisig.SaveGroupAtomicParams{Group: current}))
+	engine := NewBackupEngine(db, t.TempDir(), "")
+	var buf bytes.Buffer
+	archive := zip.NewWriter(&buf)
+	require.NoError(t, addToZip(archive, "wallet.json", []byte(`{"master":{},"l1":{}}`)))
+	require.NoError(t, addToZip(archive, "multisig/multisig.json", []byte(`{"groups":[{"id":"group","name":"old backup","n":2,"m":3,"next_receive_index":1}]}`)))
+	require.NoError(t, addToZip(archive, "transactions.json", []byte(`"invalid transaction list"`)))
+	require.NoError(t, archive.Close())
+	err := engine.RestoreBackup(t.Context(), buf.Bytes(), "backup.zip")
+	require.ErrorContains(t, err, "import transactions")
+	groups, err := store.ListGroups(t.Context())
+	require.NoError(t, err)
+	require.Len(t, groups, 1)
+	require.Equal(t, current, groups[0])
 }

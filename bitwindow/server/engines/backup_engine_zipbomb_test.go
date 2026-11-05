@@ -24,7 +24,7 @@ func TestBackupZipEntryCapped(t *testing.T) {
 	defer func() { maxBackupEntrySize = orig }()
 
 	bomb := zipWith(t, "wallet.json", bytes.Repeat([]byte("a"), 8<<10))
-	_, _, _, _, _, err := extractZIP(bomb)
+	_, _, _, _, _, _, err := extractZIP(bomb)
 	require.ErrorContains(t, err, "exceeds 1024 byte limit")
 	e := &BackupEngine{}
 	_, err = e.validateZIP(bomb)
@@ -32,7 +32,7 @@ func TestBackupZipEntryCapped(t *testing.T) {
 
 	// a valid within-cap backup still works
 	ok := zipWith(t, "wallet.json", []byte(`{"master":"x","l1":"y"}`))
-	wallet, _, _, _, _, err := extractZIP(ok)
+	wallet, _, _, _, _, _, err := extractZIP(ok)
 	require.NoError(t, err)
 	require.NotEmpty(t, wallet)
 	_, err = e.validateZIP(ok)

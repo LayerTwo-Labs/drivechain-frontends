@@ -14,8 +14,14 @@ import (
 var migrations embed.FS
 
 func runMigrations(ctx context.Context, db *sql.DB) error {
+	if err := addLegacyChequeReceipt(ctx, db); err != nil {
+		return err
+	}
 	applied, err := sqlitemigrate.Run(ctx, db, migrations, "migrations")
 	if err != nil {
+		return err
+	}
+	if err := addChequeKeyVersions(ctx, db); err != nil {
 		return err
 	}
 

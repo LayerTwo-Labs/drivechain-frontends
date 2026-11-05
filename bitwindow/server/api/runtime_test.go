@@ -290,3 +290,9 @@ func TestZmqAddress(t *testing.T) {
 		require.ErrorContains(t, err, "bitcoind does not publish pubsequence ZMQ notifications")
 	})
 }
+
+func TestKeyScopeIsStableAcrossRestart(t *testing.T) {
+	assert.Equal(t, keyScope(config.NetworkSignet, ""), keyScope(config.NetworkSignet, "signet"))
+	assert.Equal(t, "signet/", keyScope(config.NetworkSignet, "signet"))
+	assert.Equal(t, "ecash/betanet", keyScope(config.NetworkECash, "betanet"))
+}

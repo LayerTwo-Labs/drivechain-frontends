@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -18,9 +19,13 @@ type Cheque struct {
 	ID                 int64  `db:"id"`
 	WalletID           string `db:"wallet_id"`
 	DerivationIndex    uint32 `db:"derivation_index"`
+	KeyVersion         uint32 `db:"key_version"`
+	KeyDomain          string `db:"key_domain"`
+	KeyScope           string `db:"key_scope"`
 	ExpectedAmountSats uint64 `db:"expected_amount_sats"`
 	Address            string `db:"address"`
 	FundedTxids        []string
+	LegacyFundedTxid   *string    `db:"funded_txid"`
 	ActualAmountSats   *uint64    `db:"actual_amount_sats"`
 	CreatedAt          time.Time  `db:"created_at"`
 	FundedAt           *time.Time `db:"funded_at"`
@@ -37,11 +42,18 @@ func (c *Cheque) IsPartiallyFunded() bool {
 }
 
 func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expectedAmount uint64, address string) (int64, error) {
+	return CreateVersioned(ctx, db, walletID, index, expectedAmount, address, 0, "", "")
+}
+
+func CreateVersioned(ctx context.Context, db *sql.DB, walletID string, index uint32, expectedAmount uint64, address string, keyVersion uint32, keyDomain, keyScope string) (int64, error) {
 	if walletID == "" {
 		panic("cheques: Create called with an empty wallet id")
 	}
 	if address == "" {
 		panic("cheques: Create called with an empty address")
+	}
+	if err := checkKeyVersion(keyVersion, keyDomain, keyScope); err != nil {
+		return 0, err
 	}
 
 	tx, err := db.BeginTx(ctx, nil)
@@ -51,9 +63,9 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 	defer database.SafeDefer(ctx, tx.Rollback)
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address)
-		VALUES (?, ?, ?, ?)
-	`, walletID, index, expectedAmount, address)
+		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address, key_version, key_domain, key_scope)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, walletID, index, expectedAmount, address, keyVersion, keyDomain, keyScope)
 	if err != nil {
 		return 0, fmt.Errorf("create cheque: %w", err)
 	}
@@ -63,7 +75,7 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 		return 0, fmt.Errorf("get last insert id: %w", err)
 	}
 
-	if err := bumpIndexCounter(ctx, tx, walletID, index); err != nil {
+	if err := bumpKeyCounter(ctx, tx, walletID, index, keyVersion, keyDomain); err != nil {
 		return 0, err
 	}
 
@@ -72,6 +84,47 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 	}
 
 	return id, nil
+}
+
+func checkKeyVersion(version uint32, domain, scope string) error {
+	switch version {
+	case 0:
+		if domain != "" {
+			return errors.New("a legacy cheque must not have a key domain")
+		}
+		if scope != "" {
+			return errors.New("a legacy cheque must not have a key scope")
+		}
+	case 1:
+		if domain == "" {
+			return errors.New("a version 1 cheque must have a key domain")
+		}
+		if scope == "" {
+			return errors.New("a version 1 cheque must have a key scope")
+		}
+	default:
+		return fmt.Errorf("unsupported cheque key version %d", version)
+	}
+	return nil
+}
+
+func bumpKeyCounter(ctx context.Context, tx *sql.Tx, walletID string, index, keyVersion uint32, keyDomain string) error {
+	if keyVersion == 0 {
+		return bumpIndexCounter(ctx, tx, walletID, index)
+	}
+	return bumpDomainIndexCounter(ctx, tx, keyDomain, index)
+}
+
+func bumpDomainIndexCounter(ctx context.Context, tx *sql.Tx, domain string, index uint32) error {
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO cheque_domain_counters (domain, next_index)
+		VALUES (?, ?)
+		ON CONFLICT (domain) DO UPDATE
+		SET next_index = MAX(cheque_domain_counters.next_index, excluded.next_index)
+	`, domain, uint64(index)+1); err != nil {
+		return fmt.Errorf("bump cheque domain counter: %w", err)
+	}
+	return nil
 }
 
 // bumpIndexCounter raises the wallet's next cheque index past index. It never lowers it.
@@ -91,6 +144,7 @@ var selectCheque = sq.
 	Select(
 		"id", "wallet_id", "derivation_index", "expected_amount_sats", "address",
 		"actual_amount_sats", "created_at", "funded_at", "swept_txid", "swept_at",
+		"key_version", "key_domain", "key_scope", "funded_txid",
 	).
 	From("cheques").
 	PlaceholderFormat(sq.Question)
@@ -146,6 +200,14 @@ func attachFundingOutputs(ctx context.Context, db *sql.DB, cheques []*Cheque) er
 	for _, c := range cheques {
 		if c != nil {
 			byID[c.ID] = c
+			if c.LegacyFundedTxid != nil {
+				for _, txid := range strings.Split(*c.LegacyFundedTxid, ",") {
+					txid = strings.TrimSpace(txid)
+					if txid != "" && !slices.Contains(c.FundedTxids, txid) {
+						c.FundedTxids = append(c.FundedTxids, txid)
+					}
+				}
+			}
 		}
 	}
 	if len(byID) == 0 {
@@ -258,6 +320,22 @@ func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, err
 	return nextIndex, nil
 }
 
+func GetNextDomainIndex(ctx context.Context, db *sql.DB, domain string) (uint32, error) {
+	if domain == "" {
+		return 0, errors.New("cheque key domain is empty")
+	}
+	nextIndex, err := database.Get[uint32](ctx, db, `
+		SELECT next_index FROM cheque_domain_counters WHERE domain = ?
+	`, domain)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return 0, nil
+	case err != nil:
+		return 0, fmt.Errorf("get next domain index: %w", err)
+	}
+	return nextIndex, nil
+}
+
 func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -283,10 +361,53 @@ func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 }
 
 func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, outputs []FundingOutput, amount uint64) error {
-	existing, err := GetByAddress(ctx, db, walletID, address)
+	return CreateOrUpdateFromRecoveryVersioned(ctx, db, walletID, index, address, outputs, amount, 0, "", "")
+}
+
+func claimUnownedCheque(ctx context.Context, db *sql.DB, walletID string, cheque *Cheque) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer database.SafeDefer(ctx, tx.Rollback)
+	if err := database.CheckOne(tx.ExecContext(ctx, `
+		UPDATE cheques SET wallet_id = ? WHERE id = ? AND wallet_id = ''
+	`, walletID, cheque.ID)); err != nil {
+		return fmt.Errorf("claim unowned cheque %d: %w", cheque.ID, err)
+	}
+	if err := bumpIndexCounter(ctx, tx, walletID, cheque.DerivationIndex); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit claimed cheque: %w", err)
+	}
+	return nil
+}
+
+func CreateOrUpdateFromRecoveryVersioned(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, outputs []FundingOutput, amount uint64, keyVersion uint32, keyDomain, keyScope string) error {
+	if err := checkKeyVersion(keyVersion, keyDomain, keyScope); err != nil {
+		return err
+	}
+	// Cheques from before migration 025 have no owner. The wallet that derives
+	// their address from its seed owns them.
+	filter := sq.Eq{"wallet_id": []string{walletID, ""}, "address": address}
+	if keyVersion == 1 {
+		filter = sq.Eq{"key_version": keyVersion, "key_domain": keyDomain, "address": address}
+	}
+	query, args := selectCheque.Where(filter).MustSql()
+	existing, err := database.Get[Cheque](ctx, db, query, args...)
 	switch {
 	case err == nil:
-		return UpdateFunding(ctx, db, walletID, existing.ID, outputs, amount)
+		if existing.KeyVersion != keyVersion || existing.KeyDomain != keyDomain || existing.KeyScope != keyScope || existing.DerivationIndex != index {
+			return errors.New("recovered cheque key differs from the stored key")
+		}
+		if existing.WalletID == "" {
+			if err := claimUnownedCheque(ctx, db, walletID, &existing); err != nil {
+				return err
+			}
+			existing.WalletID = walletID
+		}
+		return UpdateFunding(ctx, db, existing.WalletID, existing.ID, outputs, amount)
 	case !errors.Is(err, sql.ErrNoRows):
 		return fmt.Errorf("check existing cheque: %w", err)
 	}
@@ -299,9 +420,9 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 
 	now := time.Now()
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address, actual_amount_sats, funded_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, walletID, index, amount, address, amount, now)
+		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address, actual_amount_sats, funded_at, key_version, key_domain, key_scope)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, walletID, index, amount, address, amount, now, keyVersion, keyDomain, keyScope)
 	if err != nil {
 		return fmt.Errorf("create recovered cheque: %w", err)
 	}
@@ -314,7 +435,7 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 		return err
 	}
 
-	if err := bumpIndexCounter(ctx, tx, walletID, index); err != nil {
+	if err := bumpKeyCounter(ctx, tx, walletID, index, keyVersion, keyDomain); err != nil {
 		return err
 	}
 
