@@ -219,3 +219,25 @@ func TestBranchAndBoundRequiredInputsOverpayBounded(t *testing.T) {
 		})
 	}
 }
+
+func TestBranchAndBoundBalancesRequiredInputs(t *testing.T) {
+	for _, value := range []int64{101100, 101150, 500000} {
+		for _, required := range []bool{false, true} {
+			t.Run(fmt.Sprintf("value=%d/required=%t", value, required), func(t *testing.T) {
+				coins := bnbUTXOs(value)
+				result, err := SelectCoins(coins, nil, 100000, 10, 2,
+					walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND,
+					map[string]bool{coins[0].Output: required})
+				require.NoError(t, err)
+				require.Equal(t, value, result.TotalInputSats)
+				require.Equal(t, value, 100000+result.FeeSats+result.ChangeSats)
+				if value < 102000 {
+					require.Zero(t, result.ChangeSats)
+					require.Equal(t, value-100000, result.FeeSats)
+				} else {
+					require.Positive(t, result.ChangeSats)
+				}
+			})
+		}
+	}
+}
