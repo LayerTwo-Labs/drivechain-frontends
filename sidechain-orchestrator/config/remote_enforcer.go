@@ -2,7 +2,6 @@ package config
 
 import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
-	"github.com/samber/lo"
 )
 
 // RemoteEnforcerURLForNetwork returns the published validator URL, or an empty string.
@@ -27,15 +26,6 @@ func embeddedEntryFor(id string, network Network) (netcatalog.Network, bool) {
 		return netcatalog.Embedded().ByID(id)
 	}
 	return netcatalog.Embedded().ForNetwork(string(network))
-}
-
-// RemoteEnforcerNetworks names every network that publishes a validator URL, by
-// the name the user reads. Light mode serves sidechains on these networks only.
-func RemoteEnforcerNetworks() []string {
-	withEnforcer := lo.Filter(AllNetworks(), func(n Network, _ int) bool {
-		return RemoteEnforcerURLForNetwork(n) != ""
-	})
-	return lo.Map(withEnforcer, func(n Network, _ int) string { return NetworkDisplayName(n) })
 }
 
 // NetworkDisplayName is the name the user reads for a network. The catalog
