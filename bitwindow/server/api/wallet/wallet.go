@@ -323,7 +323,7 @@ func (s *Server) GetBalance(ctx context.Context, c *pb.GetBalanceRequest) (*pb.G
 // ListTransactions implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListTransactions(ctx context.Context, c *pb.ListTransactionsRequest) (*pb.ListTransactionsResponse, error) {
 	walletID := c.WalletId
-	txs, err := s.listTransactions(ctx, walletID)
+	txs, err := s.listTransactions(ctx, walletID, true)
 	if err != nil {
 		return nil, err
 	}
@@ -350,7 +350,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *pb.ListTransactionsReq
 	return &pb.ListTransactionsResponse{Transactions: txs}, nil
 }
 
-func (s *Server) listTransactions(ctx context.Context, walletID string) ([]*pb.WalletTransaction, error) {
+func (s *Server) listTransactions(ctx context.Context, walletID string, includeConflicted bool) ([]*pb.WalletTransaction, error) {
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -366,6 +366,9 @@ func (s *Server) listTransactions(ctx context.Context, walletID string) ([]*pb.W
 
 		rows := make([]txRow, 0, len(entries))
 		for _, t := range entries {
+			if !includeConflicted && t.Confirmations < 0 {
+				continue
+			}
 			feeSats, err := btcToSats(math.Abs(t.Fee))
 			if err != nil {
 				return nil, fmt.Errorf("electrum: fee of %s: %w", t.Txid, err)
@@ -408,6 +411,9 @@ func (s *Server) listTransactions(ctx context.Context, walletID string) ([]*pb.W
 
 	rows := make([]txRow, 0, len(coreTxs))
 	for _, tx := range coreTxs {
+		if !includeConflicted && tx.Confirmations < 0 {
+			continue
+		}
 		amount, err := btcutil.NewAmount(tx.Amount)
 		if err != nil {
 			return nil, fmt.Errorf("amount of %s: %w", tx.Txid, err)
@@ -912,7 +918,7 @@ func (s *Server) GetStats(ctx context.Context, c *pb.GetStatsRequest) (*pb.GetSt
 	}
 	uniqueAddressCount := uint64(len(addressSet))
 
-	txs, err := s.listTransactions(ctx, walletID)
+	txs, err := s.listTransactions(ctx, walletID, false)
 	if err != nil {
 		return nil, err
 	}
