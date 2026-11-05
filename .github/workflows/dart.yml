@@ -86,8 +86,8 @@ jobs:
             dart-deps-${{ matrix.package }}-
 
         # https://docs.flutter.dev/platform-integration/linux/building
+      # window_manager builds native code in flutter test too.
       - name: Install Linux build dependencies
-        if: matrix.package != 'sail_ui' && matrix.package != 'sidechain_core'
         run: |
           sudo find /etc/apt/sources.list.d -maxdepth 1 -type f -name '*google-chrome*' -delete
           sudo apt-get update -y
