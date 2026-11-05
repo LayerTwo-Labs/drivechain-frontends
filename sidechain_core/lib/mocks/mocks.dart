@@ -1809,6 +1809,21 @@ class MockSyncProvider implements SyncProvider {
   }
 
   @override
+  void onNewSidechainBlock(Binary chain, void Function(int newHeight) cb) {
+    return;
+  }
+
+  @override
+  void offNewSidechainBlock(Binary chain, void Function(int newHeight) cb) {
+    return;
+  }
+
+  @override
+  void maybeFireNewSidechainBlock(SidechainType type, SyncInfo sync) {
+    return;
+  }
+
+  @override
   bool get hasListeners => false;
 
   @override
