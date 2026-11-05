@@ -9,12 +9,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	walletmanagerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -210,4 +214,46 @@ func TestWalletManager(t *testing.T) {
 		_, err := WalletManager(server.URL, t.TempDir()).GetNodeMode(t.Context(), &walletmanagerpb.GetNodeModeRequest{})
 		require.ErrorContains(t, err, "unauthenticated")
 	})
+}
+
+type streamValidator struct {
+	validatorHandler
+}
+
+func (streamValidator) SubscribeHeaderSyncProgress(ctx context.Context, _ *pb.SubscribeHeaderSyncProgressRequest, stream rpc.ValidatorServiceSubscribeHeaderSyncProgressServerStream) error {
+	if err := stream.Send(&pb.SubscribeHeaderSyncProgressResponse{CurrentHeight: wrapperspb.UInt32(1)}); err != nil {
+		return err
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(31 * time.Second):
+	}
+	return stream.Send(&pb.SubscribeHeaderSyncProgressResponse{CurrentHeight: wrapperspb.UInt32(2)})
+}
+
+func TestValidatorStreamKeepsItsSecondMessage(t *testing.T) {
+	mux := http.NewServeMux()
+	srv := connect.NewServer()
+	rpc.RegisterValidatorServiceHandler(srv, streamValidator{})
+	connecthttp.Mount(mux, srv)
+	server := httptest.NewUnstartedServer(mux)
+	server.Config.Protocols = new(http.Protocols)
+	server.Config.Protocols.SetHTTP1(true)
+	server.Config.Protocols.SetUnencryptedHTTP2(true)
+	server.Start()
+	t.Cleanup(server.Close)
+	ctx, cancel := context.WithTimeout(t.Context(), 40*time.Second)
+	defer cancel()
+	client, err := EnforcerValidator(ctx, server.URL, "")
+	require.NoError(t, err)
+	stream, err := client.SubscribeHeaderSyncProgress(ctx, &pb.SubscribeHeaderSyncProgressRequest{})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, stream.Close()) })
+	first, err := stream.Receive()
+	require.NoError(t, err)
+	require.Equal(t, uint32(1), first.GetCurrentHeight().GetValue())
+	second, err := stream.Receive()
+	require.NoError(t, err)
+	require.Equal(t, uint32(2), second.GetCurrentHeight().GetValue())
 }
