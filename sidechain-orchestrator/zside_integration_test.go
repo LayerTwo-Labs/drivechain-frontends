@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -47,119 +48,21 @@ const (
 //
 // Run: ZSIDE_BIN=... ZSIDE_MAINCHAIN_BITCOIND=... BIP300301_ENFORCER=... \
 //
-//	go test -tags integration -run TestZSide -v -timeout 20m .
+//	go test -tags integration -run TestZSideWallet -v -timeout 20m .
 func TestZSideWallet(t *testing.T) {
-	zsideBin := os.Getenv("ZSIDE_BIN")
-	bitcoind := os.Getenv("ZSIDE_MAINCHAIN_BITCOIND")
-	enforcerBin := os.Getenv("BIP300301_ENFORCER")
-	if zsideBin == "" || bitcoind == "" || enforcerBin == "" {
-		t.Skip("set ZSIDE_BIN, ZSIDE_MAINCHAIN_BITCOIND and BIP300301_ENFORCER to run")
-	}
-
-	requirePortsFree(t, mainchainRPCPort, mainchainZMQPort, enforcerPort,
-		zsideRPCPort, zsideP2PPort, orchestratorPort, enforcerRPCPort)
-
-	orchBin := buildDrivechaind(t)
-
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 18*time.Minute)
 	defer cancel()
-
-	// The deposit pays an OP_DRIVECHAIN treasury output, which stock Core does
-	// not relay as standard.
-	mainDir, enforcer := startMainchain(ctx, t, home, bitcoind, enforcerBin, "-acceptnonstdtxn=1")
-	activateSlot(ctx, t, enforcer, zsideSlot, "zSide")
-
-	zsideDir := config.ZSideDirs.DatadirNetwork(config.NetworkRegtest, "")
-	require.NoError(t, os.MkdirAll(zsideDir, 0o700))
-	startProcess(t, "zside", zsideBin,
-		"--headless",
-		"--network=regtest",
-		"--datadir="+zsideDir,
-		fmt.Sprintf("--mainchain-grpc-url=http://127.0.0.1:%d", enforcerPort),
-		fmt.Sprintf("--rpc-addr=127.0.0.1:%d", zsideRPCPort),
-		fmt.Sprintf("--private-rpc-addr=127.0.0.1:%d", zsideRPCPort),
-		fmt.Sprintf("--net-addr=127.0.0.1:%d", zsideP2PPort),
-	)
-
-	startOrchestrator(t, orchBin, home, mainDir)
-	httpClient := &http.Client{Timeout: 120 * time.Second}
-	orchURL := fmt.Sprintf("http://127.0.0.1:%d", orchestratorPort)
-	wallets := walletmanagerv1connect.NewWalletManagerServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0))))
-	bmm := bmmv1connect.NewBMMServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0))))
-	zside := zsidev1connect.NewZSideServiceClient(connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0))))
-	waitFor(t, 60*time.Second, "drivechaind", func() bool {
-		_, err := wallets.GetWalletStatus(ctx, &wmpb.GetWalletStatusRequest{})
-		return err == nil
-	})
-	waitFor(t, 90*time.Second, "zside through drivechaind", func() bool {
-		_, err := zside.GetBlockCount(ctx, &zpb.GetBlockCountRequest{})
-		return err == nil
-	})
-
-	mnemonic, err := zside.GenerateMnemonic(ctx, &zpb.GenerateMnemonicRequest{})
-	require.NoError(t, err, "generate mnemonic")
-	_, err = zside.SetSeedFromMnemonic(ctx, &zpb.SetSeedFromMnemonicRequest{
-		Mnemonic: mnemonic.Mnemonic,
-	})
-	require.NoError(t, err, "set seed")
-
-	// Only a Bitcoin Core wallet can build the bare scriptPubKey an M8 needs.
-	generateWallet(ctx, t, wallets, "enforcer")
-	coreWallet := generateWallet(ctx, t, wallets, "core")
-	_, err = wallets.SwitchWallet(ctx, &wmpb.SwitchWalletRequest{WalletId: coreWallet})
-	require.NoError(t, err)
-	mainAddr, err := wallets.GetNewAddress(ctx, &wmpb.GetNewAddressRequest{})
-	require.NoError(t, err)
-	mineMainchain(ctx, t, enforcer, 150, mainAddr.Address)
-	waitFor(t, 60*time.Second, "bidding funds", func() bool {
-		bal, err := wallets.GetBalance(ctx, &wmpb.GetBalanceRequest{})
-		return err == nil && bal.ConfirmedSats > 0
-	})
-
-	mainchain := newCoreRPC(t, filepath.Join(mainDir, "regtest"), mainchainRPCPort)
+	stack := startZSideStack(ctx, t, false)
+	zside, wallets := stack.zside, stack.wallets
 	height := func(t *testing.T) int64 {
 		t.Helper()
-		resp, err := zside.GetBlockCount(ctx, &zpb.GetBlockCountRequest{})
+		count, err := stack.height(ctx)
 		require.NoError(t, err)
-		return resp.Count
+		return count
 	}
 	blindMergeMine := func(t *testing.T) {
 		t.Helper()
-		before := height(t)
-		bid, err := bmm.CreateBid(ctx, &bmmpb.CreateBidRequest{
-			Sidechain: orchpb.BinaryType_BINARY_TYPE_ZSIDE,
-			BidSats:   1000,
-		})
-		require.NoError(t, err, "create bid")
-		require.NotEmpty(t, bid.BmmTxid)
-		mineMainchain(ctx, t, enforcer, 1, mainAddr.Address)
-		// The node lists no inclusion for a mainchain block it was not given, so
-		// the test names it, as the BMM engine does.
-		var included string
-		require.NoError(t, mainchain.call(ctx, "getbestblockhash", nil, &included))
-
-		deadline := time.Now().Add(60 * time.Second)
-		for {
-			resp, err := bmm.ConnectBid(ctx, &bmmpb.ConnectBidRequest{
-				Sidechain:     orchpb.BinaryType_BINARY_TYPE_ZSIDE,
-				CriticalHash:  bid.CriticalHash,
-				BlockJson:     bid.BlockJson,
-				MainBlockHash: included,
-			})
-			require.NoError(t, err, "connect bid %s", bid.CriticalHash)
-			if resp.Connected {
-				break
-			}
-			if time.Now().After(deadline) {
-				t.Fatalf("bid %s for %s in block %s never connected", bid.BmmTxid, bid.CriticalHash, included)
-			}
-			time.Sleep(time.Second)
-		}
-		require.Equal(t, before+1, height(t), "the bid must extend the zSide chain")
+		require.NoError(t, stack.blindMergeMine(ctx))
 	}
 	balance := func(t *testing.T) *zpb.GetBalanceResponse {
 		t.Helper()
@@ -189,6 +92,9 @@ func TestZSideWallet(t *testing.T) {
 		feeSats      = 1_000
 	)
 
+	var depositTxid string
+	var transferTxids []string
+
 	t.Run("bmm", func(t *testing.T) {
 		require.Zero(t, height(t), "zSide should start empty")
 		for range 3 {
@@ -197,18 +103,7 @@ func TestZSideWallet(t *testing.T) {
 	})
 
 	t.Run("deposit", func(t *testing.T) {
-		addr, err := zside.GetNewTransparentAddress(ctx, &zpb.GetNewTransparentAddressRequest{})
-		require.NoError(t, err)
-		deposit, err := wallets.CreateDeposit(ctx, &wmpb.CreateDepositRequest{
-			Slot:        zsideSlot,
-			Destination: formatDepositAddress(addr.Address, zsideSlot),
-			AmountSats:  depositSats,
-			FeeSats:     10_000,
-		})
-		require.NoError(t, err, "create deposit")
-		require.NotEmpty(t, deposit.Txid)
-
-		mineMainchain(ctx, t, enforcer, 1, mainAddr.Address)
+		depositTxid = stack.deposit(t, depositSats)
 		blindMergeMine(t)
 		require.EqualValues(t, depositSats, balance(t).TotalTransparentSats)
 	})
@@ -223,6 +118,7 @@ func TestZSideWallet(t *testing.T) {
 		})
 		require.NoError(t, err, "transparent transfer")
 		defer dropOnFailure(t, transfer.Txid)
+		transferTxids = append(transferTxids, transfer.Txid)
 		blindMergeMine(t)
 		require.InDelta(t, before.TotalTransparentSats-feeSats, balance(t).TotalTransparentSats, zsideFeeSlack)
 	})
@@ -236,11 +132,37 @@ func TestZSideWallet(t *testing.T) {
 		})
 		require.NoError(t, err, "transfer")
 		defer dropOnFailure(t, transfer.Txid)
+		transferTxids = append(transferTxids, transfer.Txid)
 		coins, err := zside.GetWalletUtxos(ctx, &zpb.GetWalletUtxosRequest{})
 		require.NoError(t, err, "wallet coins with a transfer in the mempool")
 		require.Contains(t, coins.UtxosJson, `"confirmed":false`, "the change of the transfer waits in the mempool")
+		history, err := zside.ListWalletTransactions(ctx, &zpb.ListWalletTransactionsRequest{})
+		require.NoError(t, err, "wallet history with a transfer in the mempool")
+		require.True(t, slices.ContainsFunc(history.Transactions, func(tx *zpb.WalletTransaction) bool {
+			return tx.Txid == transfer.Txid && !tx.Confirmed && tx.ValueSats == -feeSats
+		}), "the history lists the transfer in the mempool as unconfirmed")
 		blindMergeMine(t)
 		require.InDelta(t, before.TotalTransparentSats-feeSats, balance(t).TotalTransparentSats, zsideFeeSlack)
+	})
+
+	t.Run("history", func(t *testing.T) {
+		resp, err := zside.ListWalletTransactions(ctx, &zpb.ListWalletTransactionsRequest{})
+		require.NoError(t, err, "list wallet transactions")
+
+		byTxid := map[string]*zpb.WalletTransaction{}
+		for _, tx := range resp.Transactions {
+			t.Logf("history %s value=%d vout=%d confirmed=%v", tx.Txid, tx.ValueSats, tx.Vout, tx.Confirmed)
+			byTxid[tx.Txid] = tx
+		}
+		require.Contains(t, byTxid, depositTxid, "the deposit")
+		require.EqualValues(t, depositSats, byTxid[depositTxid].ValueSats)
+		require.Len(t, transferTxids, 2)
+		for _, txid := range transferTxids {
+			require.Contains(t, byTxid, txid, "a transfer")
+			// Each transfer pays the wallet itself, so only the fee left.
+			require.EqualValues(t, -feeSats, byTxid[txid].ValueSats)
+			require.True(t, byTxid[txid].Confirmed)
+		}
 	})
 
 	t.Run("withdraw", func(t *testing.T) {
@@ -307,6 +229,190 @@ func TestZSideWallet(t *testing.T) {
 		require.EqualValues(t, before.TotalShieldedSats-unshieldSats-feeSats, after.TotalShieldedSats)
 		require.InDelta(t, before.TotalTransparentSats+unshieldSats, after.TotalTransparentSats, zsideFeeSlack)
 	})
+}
+
+// zsideStack is a regtest mainchain, an enforcer with slot 98 active, a
+// thunder-orchard node with a seed, and drivechaind with funded wallets.
+// With drivechaindStartsNode, drivechaind starts the node from its own bin
+// directory with the wallet's sidechain starter, as it does for the app.
+type zsideStack struct {
+	home      string
+	orchURL   string
+	enforcer  *jsonClient
+	mainchain *coreRPC
+	mainAddr  string
+	wallets   walletmanagerv1connect.WalletManagerServiceClient
+	bmm       bmmv1connect.BMMServiceClient
+	zside     zsidev1connect.ZSideServiceClient
+}
+
+func startZSideStack(ctx context.Context, t *testing.T, drivechaindStartsNode bool) *zsideStack {
+	t.Helper()
+	zsideBin := os.Getenv("ZSIDE_BIN")
+	bitcoind := os.Getenv("ZSIDE_MAINCHAIN_BITCOIND")
+	enforcerBin := os.Getenv("BIP300301_ENFORCER")
+	if zsideBin == "" || bitcoind == "" || enforcerBin == "" {
+		t.Skip("set ZSIDE_BIN, ZSIDE_MAINCHAIN_BITCOIND and BIP300301_ENFORCER to run")
+	}
+
+	requirePortsFree(t, mainchainRPCPort, mainchainZMQPort, enforcerPort,
+		zsideRPCPort, zsideP2PPort, orchestratorPort, enforcerRPCPort)
+
+	orchBin := buildDrivechaind(t)
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	// The deposit pays an OP_DRIVECHAIN treasury output, which stock Core does
+	// not relay as standard.
+	mainDir, enforcer := startMainchain(ctx, t, home, bitcoind, enforcerBin, "-acceptnonstdtxn=1")
+	activateSlot(ctx, t, enforcer, zsideSlot, "zSide")
+
+	if !drivechaindStartsNode {
+		zsideDir := config.ZSideDirs.DatadirNetwork(config.NetworkRegtest, "")
+		require.NoError(t, os.MkdirAll(zsideDir, 0o700))
+		startProcess(t, "zside", zsideBin,
+			"--headless",
+			"--network=regtest",
+			"--datadir="+zsideDir,
+			fmt.Sprintf("--mainchain-grpc-url=http://127.0.0.1:%d", enforcerPort),
+			fmt.Sprintf("--rpc-addr=127.0.0.1:%d", zsideRPCPort),
+			fmt.Sprintf("--private-rpc-addr=127.0.0.1:%d", zsideRPCPort),
+			fmt.Sprintf("--net-addr=127.0.0.1:%d", zsideP2PPort),
+		)
+	}
+
+	startOrchestrator(t, orchBin, home, mainDir)
+	httpClient := &http.Client{Timeout: 120 * time.Second}
+	orchURL := fmt.Sprintf("http://127.0.0.1:%d", orchestratorPort)
+	client := connect.NewClient(connecthttp.NewTransport(httpClient, orchURL, connecthttp.WithReadMaxBytes(0)))
+	stack := &zsideStack{
+		home:      home,
+		orchURL:   orchURL,
+		enforcer:  enforcer,
+		mainchain: newCoreRPC(t, filepath.Join(mainDir, "regtest"), mainchainRPCPort),
+		wallets:   walletmanagerv1connect.NewWalletManagerServiceClient(client),
+		bmm:       bmmv1connect.NewBMMServiceClient(client),
+		zside:     zsidev1connect.NewZSideServiceClient(client),
+	}
+	waitFor(t, 60*time.Second, "drivechaind", func() bool {
+		_, err := stack.wallets.GetWalletStatus(ctx, &wmpb.GetWalletStatusRequest{})
+		return err == nil
+	})
+	// Only a Bitcoin Core wallet can build the bare scriptPubKey an M8 needs.
+	generateWallet(ctx, t, stack.wallets, "enforcer")
+	coreWallet := generateWallet(ctx, t, stack.wallets, "core")
+	_, err := stack.wallets.SwitchWallet(ctx, &wmpb.SwitchWalletRequest{WalletId: coreWallet})
+	require.NoError(t, err)
+	if drivechaindStartsNode {
+		startZSideThroughDrivechaind(ctx, t, stack, zsideBin)
+	}
+	waitFor(t, 90*time.Second, "zside through drivechaind", func() bool {
+		_, err := stack.zside.GetBlockCount(ctx, &zpb.GetBlockCountRequest{})
+		return err == nil
+	})
+	if !drivechaindStartsNode {
+		mnemonic, err := stack.zside.GenerateMnemonic(ctx, &zpb.GenerateMnemonicRequest{})
+		require.NoError(t, err, "generate mnemonic")
+		_, err = stack.zside.SetSeedFromMnemonic(ctx, &zpb.SetSeedFromMnemonicRequest{
+			Mnemonic: mnemonic.Mnemonic,
+		})
+		require.NoError(t, err, "set seed")
+	}
+	mainAddr, err := stack.wallets.GetNewAddress(ctx, &wmpb.GetNewAddressRequest{})
+	require.NoError(t, err)
+	stack.mainAddr = mainAddr.Address
+	mineMainchain(ctx, t, enforcer, 150, stack.mainAddr)
+	waitFor(t, 60*time.Second, "bidding funds", func() bool {
+		bal, err := stack.wallets.GetBalance(ctx, &wmpb.GetBalanceRequest{})
+		return err == nil && bal.ConfirmedSats > 0
+	})
+	return stack
+}
+
+func (s *zsideStack) height(ctx context.Context) (int64, error) {
+	resp, err := s.zside.GetBlockCount(ctx, &zpb.GetBlockCountRequest{})
+	if err != nil {
+		return 0, fmt.Errorf("zside block count: %w", err)
+	}
+	return resp.Count, nil
+}
+
+// blindMergeMine adds one zSide block through a BMM bid in a new mainchain block.
+func (s *zsideStack) blindMergeMine(ctx context.Context) error {
+	before, err := s.height(ctx)
+	if err != nil {
+		return err
+	}
+	bid, err := s.bmm.CreateBid(ctx, &bmmpb.CreateBidRequest{
+		Sidechain: orchpb.BinaryType_BINARY_TYPE_ZSIDE,
+		BidSats:   1000,
+	})
+	if err != nil {
+		return fmt.Errorf("create bid: %w", err)
+	}
+	if bid.BmmTxid == "" {
+		return fmt.Errorf("bid for %s has no BMM txid", bid.CriticalHash)
+	}
+	if err := s.enforcer.call(ctx, "MiningService/GenerateToAddress", map[string]any{
+		"blocks": 1, "address": s.mainAddr,
+	}, nil); err != nil {
+		return fmt.Errorf("mine mainchain: %w", err)
+	}
+	// The node lists no inclusion for a mainchain block it was not given, so
+	// the test names it, as the BMM engine does.
+	var included string
+	if err := s.mainchain.call(ctx, "getbestblockhash", nil, &included); err != nil {
+		return err
+	}
+
+	deadline := time.Now().Add(60 * time.Second)
+	for {
+		resp, err := s.bmm.ConnectBid(ctx, &bmmpb.ConnectBidRequest{
+			Sidechain:     orchpb.BinaryType_BINARY_TYPE_ZSIDE,
+			CriticalHash:  bid.CriticalHash,
+			BlockJson:     bid.BlockJson,
+			MainBlockHash: included,
+		})
+		if err != nil {
+			return fmt.Errorf("connect bid %s: %w", bid.CriticalHash, err)
+		}
+		if resp.Connected {
+			break
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("bid %s for %s in block %s never connected", bid.BmmTxid, bid.CriticalHash, included)
+		}
+		time.Sleep(time.Second)
+	}
+	after, err := s.height(ctx)
+	if err != nil {
+		return err
+	}
+	if after != before+1 {
+		return fmt.Errorf("the bid must extend the zSide chain: height %d, want %d", after, before+1)
+	}
+	return nil
+}
+
+// deposit pays sats from the Core wallet to a new zSide transparent address
+// and mines the mainchain block that holds it.
+func (s *zsideStack) deposit(t *testing.T, sats int64) string {
+	t.Helper()
+	ctx := t.Context()
+	addr, err := s.zside.GetNewTransparentAddress(ctx, &zpb.GetNewTransparentAddressRequest{})
+	require.NoError(t, err)
+	deposit, err := s.wallets.CreateDeposit(ctx, &wmpb.CreateDepositRequest{
+		Slot:        zsideSlot,
+		Destination: formatDepositAddress(addr.Address, zsideSlot),
+		AmountSats:  sats,
+		FeeSats:     10_000,
+	})
+	require.NoError(t, err, "create deposit")
+	require.NotEmpty(t, deposit.Txid)
+	mineMainchain(ctx, t, s.enforcer, 1, s.mainAddr)
+	return deposit.Txid
 }
 
 // formatDepositAddress matches formatDepositAddress in sidechain_core/lib/bitcoin.dart.
