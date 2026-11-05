@@ -188,7 +188,7 @@ func selectBranchAndBound(
 	}
 
 	target := targetSats + noChangeOverhead - requiredEffective
-	if target <= 0 {
+	if target < -costOfChange {
 		return nil
 	}
 
@@ -277,12 +277,10 @@ func selectBranchAndBound(
 		totalInput += int64(u.ValueSats)
 	}
 
-	fee := int64(OverheadVbytes+(len(selected)*InputVbytes)+(sendOutputs*OutputVbytes)) * feeSatsPerVbyte
-
 	return &CoinSelectionResult{
 		SelectedUTXOs:  selected,
 		TotalInputSats: totalInput,
-		FeeSats:        fee,
+		FeeSats:        totalInput - targetSats,
 		ChangeSats:     0,
 	}
 }
