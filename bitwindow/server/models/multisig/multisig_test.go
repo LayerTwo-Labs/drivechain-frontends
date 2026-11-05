@@ -660,3 +660,27 @@ func TestImportFromJSON_KeyPSBTs(t *testing.T) {
 		assert.ElementsMatch(t, want, listPSBTs(t, store))
 	})
 }
+
+func TestImportBackupKeepsGroupsOnTransactionError(t *testing.T) {
+	ctx := t.Context()
+	store := multisig.NewStore(database.Test(t))
+	current := sampleGroup()
+	current.NextReceiveIndex = 10
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: current}))
+	groups := []byte(`{"groups":[{"id":"` + current.ID + `","name":"restored","next_receive_index":1}]}`)
+	transactions := []byte(`[{"id":"tx","groupId":"` + current.ID + `","keyPSBTs":[{"keyId":"same"},{"keyId":"same"}]}]`)
+	require.ErrorContains(t, store.ImportBackup(ctx, groups, transactions), "UNIQUE constraint failed")
+	saved, err := store.ListGroups(ctx)
+	require.NoError(t, err)
+	require.Equal(t, []multisig.Group{current}, saved)
+	txs, err := store.ListTransactions(ctx, current.ID)
+	require.NoError(t, err)
+	require.Empty(t, txs)
+	require.NoError(t, store.ImportBackup(ctx, groups, []byte(`[{"id":"tx","groupId":"`+current.ID+`"}]`)))
+	saved, err = store.ListGroups(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 1, saved[0].NextReceiveIndex)
+	txs, err = store.ListTransactions(ctx, current.ID)
+	require.NoError(t, err)
+	require.Len(t, txs, 1)
+}
