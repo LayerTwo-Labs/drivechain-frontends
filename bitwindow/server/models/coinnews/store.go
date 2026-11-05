@@ -267,8 +267,10 @@ func CountStoriesSince(ctx context.Context, db *sql.DB, since time.Time) (int64,
 	return count, nil
 }
 
-// ReassembleTLVs returns the TLVs of a head item with its Continuation chunks (spec §9).
-// It returns the head TLVs alone when the chunk set does not obey §9.
+// ErrInvalidContinuation identifies a message with invalid continuation chunks.
+var ErrInvalidContinuation = errors.New("invalid continuation chunks")
+
+// ReassembleTLVs returns the complete TLV section or an error for invalid chunks.
 func ReassembleTLVs(ctx context.Context, db *sql.DB, headID codec.ItemID, headRawTLV []byte) ([]codec.TLV, error) {
 	headTLVs, err := codec.DecodeTLVs(headRawTLV)
 	if err != nil {
@@ -298,14 +300,14 @@ func ReassembleTLVs(ctx context.Context, db *sql.DB, headID codec.ItemID, headRa
 	for _, c := range chunks {
 		pos := ItemRef{TxIndex: c.TxIndex, VoutIndex: c.VoutIndex}
 		if c.Seq != wantSeq {
-			return headTLVs, nil // gap or non-zero start ⇒ drop the chunk set
+			return nil, fmt.Errorf("%w: sequence gap", ErrInvalidContinuation)
 		}
 		if havePrev && !prevPos.Before(pos) {
-			return headTLVs, nil // not in physical seq order ⇒ drop
+			return nil, fmt.Errorf("%w: position order", ErrInvalidContinuation)
 		}
 		full = append(full, c.Chunk...)
 		if len(full) > codec.MaxReassembledLen {
-			return headTLVs, nil // exceeds the 8 KiB reassembly cap ⇒ drop
+			return nil, fmt.Errorf("%w: length exceeds limit", ErrInvalidContinuation)
 		}
 		wantSeq++
 		havePrev = true
@@ -317,7 +319,7 @@ func ReassembleTLVs(ctx context.Context, db *sql.DB, headID codec.ItemID, headRa
 
 	tlvs, err := codec.DecodeTLVs(full)
 	if err != nil {
-		return headTLVs, nil // reassembled bytes aren't valid TLVs ⇒ drop
+		return nil, fmt.Errorf("%w: %w", ErrInvalidContinuation, err)
 	}
 	return tlvs, nil
 }

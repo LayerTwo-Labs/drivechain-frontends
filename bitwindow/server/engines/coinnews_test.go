@@ -477,3 +477,74 @@ func TestConnectRemoteResolve(t *testing.T) {
 	assert.NotNil(t, r.resolve(t.Context()))
 	assert.Equal(t, int32(2), fetches.Load())
 }
+
+func storyBlockWithChunks(t *testing.T, fields []codec.TLV, chunks bool, seq byte) *wire.MsgBlock {
+	t.Helper()
+	story := codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "Article"}
+	if !chunks {
+		story.TLVs = fields
+	}
+	payload, err := codec.EncodeStory(story)
+	require.NoError(t, err)
+	block := blockOf(t, [][]byte{payload}, time.Now().UTC())
+	if !chunks {
+		return block
+	}
+	txHash := block.Transactions[0].TxHash()
+	var rawHash [32]byte
+	copy(rawHash[:], txHash[:])
+	blob, err := codec.SerialiseTLVs(fields)
+	require.NoError(t, err)
+	chunk, err := codec.EncodeContinuation(codec.Continuation{
+		Head: codec.ComputeItemID(rawHash, 0), Seq: seq, Chunk: blob,
+	})
+	require.NoError(t, err)
+	part := blockOfWithPrevHash(t, [][]byte{chunk}, block.Header.Timestamp, chainhash.Hash{33})
+	block.Transactions = append(block.Transactions, part.Transactions...)
+	return block
+}
+
+func TestContinuationKeepsStoryFields(t *testing.T) {
+	for _, chunks := range []bool{false, true} {
+		name := "inline"
+		if chunks {
+			name = "continuation"
+		}
+		t.Run(name, func(t *testing.T) {
+			p := newCoinNewsParser(t)
+			fields := []codec.TLV{
+				{Tag: codec.TLVBody, Value: []byte("Body")},
+				{Tag: codec.TLVURL, Value: []byte("https://example.test")},
+				{Tag: codec.TLVSubtype, Value: []byte{byte(codec.SubtypeShow)}},
+				{Tag: codec.TLVNSFW, Value: []byte{1}},
+			}
+			block := storyBlockWithChunks(t, fields, chunks, 0)
+			require.NoError(t, p.indexCoinNewsBlocks(t.Context(), []lo.Tuple2[uint32, *wire.MsgBlock]{lo.T2(uint32(100), block)}))
+			news, err := opreturns.ListCoinNews(t.Context(), p.db)
+			require.NoError(t, err)
+			require.Len(t, news, 1)
+			assert.Equal(t, "Body", news[0].Content)
+			assert.Equal(t, "https://example.test", news[0].URL)
+			assert.Equal(t, int32(codec.SubtypeShow), news[0].Subtype)
+			assert.True(t, news[0].NSFW)
+		})
+	}
+}
+
+func TestContinuationGapDropsStory(t *testing.T) {
+	for _, seq := range []byte{0, 1} {
+		name, count := "complete", 1
+		if seq != 0 {
+			name, count = "gap", 0
+		}
+		t.Run(name, func(t *testing.T) {
+			p := newCoinNewsParser(t)
+			fields := []codec.TLV{{Tag: codec.TLVBody, Value: []byte("Body")}}
+			block := storyBlockWithChunks(t, fields, true, seq)
+			require.NoError(t, p.indexCoinNewsBlocks(t.Context(), []lo.Tuple2[uint32, *wire.MsgBlock]{lo.T2(uint32(100), block)}))
+			news, err := opreturns.ListCoinNews(t.Context(), p.db)
+			require.NoError(t, err)
+			assert.Len(t, news, count)
+		})
+	}
+}

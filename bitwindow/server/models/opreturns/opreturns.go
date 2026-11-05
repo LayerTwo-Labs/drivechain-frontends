@@ -527,50 +527,56 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		toReassemble = append(toReassemble, continuationTarget{idx: len(out) - 1, itemID: row.ItemID, rawTLV: row.RawTLV})
 	}
 
-	// §9: splice in any Continuation chunks to recover long bodies that didn't
-	// fit in the head's 80-byte OP_RETURN.
 	heads, err := database.Select[string](ctx, db, `SELECT DISTINCT lower(hex(head_id)) FROM cn_continuations`)
 	if err != nil {
 		return nil, fmt.Errorf("list coin news: select continuation heads: %w", err)
 	}
 	headSet := lo.Keyify(heads)
+	invalid := make(map[int]bool)
 	for _, t := range toReassemble {
 		if _, ok := headSet[t.itemID]; !ok {
 			continue
 		}
-		body, ok, err := reassembledBody(ctx, db, t.itemID, t.rawTLV)
+		tlvs, err := reassembledTLVs(ctx, db, t.itemID, t.rawTLV)
+		if errors.Is(err, cnstore.ErrInvalidContinuation) {
+			invalid[t.idx] = true
+			continue
+		}
 		if err != nil {
 			return nil, fmt.Errorf("list coin news: %w", err)
 		}
-		if ok {
-			out[t.idx].Content = body
+		if body := codec.FindFirst(tlvs, codec.TLVBody); body != nil {
+			out[t.idx].Content = string(body.Value)
+		}
+		if url := codec.FindFirst(tlvs, codec.TLVURL); url != nil {
+			out[t.idx].URL = string(url.Value)
+		}
+		if subtype := codec.FindFirst(tlvs, codec.TLVSubtype); subtype != nil && len(subtype.Value) > 0 {
+			out[t.idx].Subtype = int32(subtype.Value[0])
+		}
+		if nsfw := codec.FindFirst(tlvs, codec.TLVNSFW); nsfw != nil {
+			out[t.idx].NSFW = len(nsfw.Value) > 0 && nsfw.Value[0] != 0
 		}
 	}
-	return out, nil
+	return lo.Filter(out, func(_ CoinNews, i int) bool { return !invalid[i] }), nil
 }
 
-// reassembledBody returns the spec §9 reassembled body for a story when
-// continuations extend it, and ok=false when there's nothing to splice
-// (no continuations, or no body TLV in the reassembled section).
-func reassembledBody(ctx context.Context, db *sql.DB, itemIDHex string, rawTLV []byte) (string, bool, error) {
+func reassembledTLVs(ctx context.Context, db *sql.DB, itemIDHex string, rawTLV []byte) ([]codec.TLV, error) {
 	raw, err := hex.DecodeString(itemIDHex)
 	if err != nil {
-		return "", false, fmt.Errorf("decode item id %q: %w", itemIDHex, err)
+		return nil, fmt.Errorf("decode item id %q: %w", itemIDHex, err)
 	}
 	if len(raw) != codec.ItemIDLen {
-		return "", false, fmt.Errorf("item id %q is %d bytes, want %d", itemIDHex, len(raw), codec.ItemIDLen)
+		return nil, fmt.Errorf("item id %q is %d bytes, want %d", itemIDHex, len(raw), codec.ItemIDLen)
 	}
 	var headID codec.ItemID
 	copy(headID[:], raw)
 
 	tlvs, err := cnstore.ReassembleTLVs(ctx, db, headID, rawTLV)
 	if err != nil {
-		return "", false, fmt.Errorf("reassemble story %s: %w", itemIDHex, err)
+		return nil, fmt.Errorf("reassemble story %s: %w", itemIDHex, err)
 	}
-	if t := codec.FindFirst(tlvs, codec.TLVBody); t != nil {
-		return string(t.Value), true, nil
-	}
-	return "", false, nil
+	return tlvs, nil
 }
 
 // rankCoinNews orders the feed by descending §13 score, breaking ties
