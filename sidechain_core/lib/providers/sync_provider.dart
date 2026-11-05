@@ -166,7 +166,12 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
 
   /// The sync state of [chain], or null for a binary that is not a sidechain.
   SyncInfo? sidechainSyncInfo(Binary chain) {
-    final type = switch (chain) {
+    final type = _sidechainType(chain);
+    return type == null ? null : sidechains[type];
+  }
+
+  static orch_pb.SidechainType? _sidechainType(Binary chain) {
+    return switch (chain) {
       Thunder() => orch_pb.SidechainType.SIDECHAIN_TYPE_THUNDER,
       ZSide() => orch_pb.SidechainType.SIDECHAIN_TYPE_ZSIDE,
       BitNames() => orch_pb.SidechainType.SIDECHAIN_TYPE_BITNAMES,
@@ -176,7 +181,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       CoinShift() => orch_pb.SidechainType.SIDECHAIN_TYPE_COINSHIFT,
       _ => null,
     };
-    return type == null ? null : sidechains[type];
   }
 
   /// bitwindow's own daemon state, populated by polling bitwindowd
@@ -209,6 +213,43 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
 
   void offNewBlock(void Function(int newHeight) cb) {
     _newBlockListeners.remove(cb);
+  }
+
+  final Map<orch_pb.SidechainType, int> _lastSidechainBlocks = {};
+  final Map<orch_pb.SidechainType, Set<void Function(int)>> _newSidechainBlockListeners = {};
+
+  /// Register [cb] to fire on each new block of [chain], with the new height.
+  void onNewSidechainBlock(Binary chain, void Function(int newHeight) cb) {
+    final type = _sidechainType(chain);
+    if (type == null) {
+      throw ArgumentError('${chain.name} is not a sidechain');
+    }
+    _newSidechainBlockListeners.putIfAbsent(type, () => {}).add(cb);
+  }
+
+  void offNewSidechainBlock(Binary chain, void Function(int newHeight) cb) {
+    _newSidechainBlockListeners[_sidechainType(chain)]?.remove(cb);
+  }
+
+  /// Fires the listeners of [type] when [sync] is above the last seen height.
+  @visibleForTesting
+  void maybeFireNewSidechainBlock(orch_pb.SidechainType type, SyncInfo sync) {
+    // During a mainchain sync the blocks count the mainchain phase, not the sidechain.
+    if (sync.mainchainSyncing) {
+      return;
+    }
+    final newBlocks = sync.progressCurrent.toInt();
+    if (newBlocks <= (_lastSidechainBlocks[type] ?? 0)) {
+      return;
+    }
+    _lastSidechainBlocks[type] = newBlocks;
+    for (final cb in (_newSidechainBlockListeners[type] ?? const {}).toList(growable: false)) {
+      try {
+        cb(newBlocks);
+      } catch (e) {
+        log.w('SyncProvider: new-sidechain-block listener threw: $e');
+      }
+    }
   }
 
   /// Apply the dedupe-and-broadcast logic for a freshly-polled mainchain
@@ -249,6 +290,7 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
     // mainnet (height 800k) → regtest (height 0) would never fire again
     // until regtest passed 800k.
     _lastMainchainBlocks = 0;
+    _lastSidechainBlocks.clear();
     notifyListeners();
   }
 
@@ -338,6 +380,7 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       for (final entry in resp.sidechains) {
         newSidechains[entry.type] = _toSyncInfo(entry.sync);
         newSidechainErrors[entry.type] = _errOrNull(entry.sync);
+        maybeFireNewSidechainBlock(entry.type, newSidechains[entry.type]!);
       }
       if (!_sidechainMapEquals(sidechains, newSidechains) ||
           !_sidechainMapEquals(sidechainErrors, newSidechainErrors)) {
