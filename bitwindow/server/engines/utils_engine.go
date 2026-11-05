@@ -50,27 +50,31 @@ func ParseBitcoinURI(uri string) (*BitcoinURI, error) {
 	if len(parts) > 1 {
 		queryParts := strings.Split(parts[1], "&")
 		for _, param := range queryParts {
-			kv := strings.SplitN(param, "=", 2)
-			if len(kv) != 2 {
+			if param == "" {
 				continue
 			}
-
-			key, err := url.QueryUnescape(kv[0])
+			keyText, valueText, _ := strings.Cut(param, "=")
+			key, err := url.QueryUnescape(keyText)
 			if err != nil {
-				continue
-			}
-			value, err := url.QueryUnescape(kv[1])
-			if err != nil {
-				continue
+				return nil, fmt.Errorf("decode URI parameter name: %w", err)
 			}
 
 			// Check for required parameters we don't understand
 			if strings.HasPrefix(key, "req-") {
 				return nil, fmt.Errorf("required parameter not understood: %s", key)
 			}
+			value, err := url.QueryUnescape(valueText)
+			if err != nil {
+				return nil, fmt.Errorf("decode URI parameter %s: %w", key, err)
+			}
 
 			switch key {
 			case "amount":
+				for _, digit := range value {
+					if (digit < '0' || digit > '9') && digit != '.' {
+						return nil, errors.New("amount must use decimal BTC")
+					}
+				}
 				amount, err := strconv.ParseFloat(value, 64)
 				if err != nil {
 					return nil, errors.New("invalid amount format")

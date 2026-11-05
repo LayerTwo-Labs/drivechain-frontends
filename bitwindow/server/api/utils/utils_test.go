@@ -145,3 +145,52 @@ func TestCreatePaperPdfs(t *testing.T) {
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 }
+
+func TestURIRejectsUnknownRequiredParameter(t *testing.T) {
+	for _, query := range []string{"req-payjoin", "req-payjoin=%zz", "req%2Dpayjoin=1", "%zz=1", "label=%zz"} {
+		t.Run(query, func(t *testing.T) {
+			server := utils.New(&chaincfg.MainNetParams)
+			uri := "bitcoin:1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2?" + query
+			_, err := server.ParseBitcoinURI(t.Context(), &utilspb.ParseBitcoinURIRequest{Uri: uri})
+			assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+			result, err := server.ValidateBitcoinURI(t.Context(), &utilspb.ValidateBitcoinURIRequest{Uri: uri})
+			require.NoError(t, err)
+			assert.False(t, result.Valid)
+			assert.NotEmpty(t, result.Error)
+		})
+	}
+}
+
+func TestURIRejectsInvalidAmountText(t *testing.T) {
+	for _, test := range []struct {
+		amount string
+		valid  bool
+	}{
+		{"1", true},
+		{"1.", true},
+		{".1", true},
+		{"1.2.3", false},
+		{"", false},
+		{".", false},
+		{"0.00000001", true},
+		{"-1", false},
+		{"NaN", false},
+		{"Inf", false},
+		{"1e2", false},
+		{"0x1p0", false},
+	} {
+		t.Run(test.amount, func(t *testing.T) {
+			server := utils.New(&chaincfg.MainNetParams)
+			uri := "bitcoin:1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2?amount=" + test.amount
+			_, err := server.ParseBitcoinURI(t.Context(), &utilspb.ParseBitcoinURIRequest{Uri: uri})
+			if test.valid {
+				assert.NoError(t, err)
+			} else {
+				assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+			}
+			result, err := server.ValidateBitcoinURI(t.Context(), &utilspb.ValidateBitcoinURIRequest{Uri: uri})
+			require.NoError(t, err)
+			assert.Equal(t, test.valid, result.Valid)
+		})
+	}
+}
