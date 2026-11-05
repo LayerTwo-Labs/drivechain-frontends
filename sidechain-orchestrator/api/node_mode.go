@@ -54,7 +54,7 @@ func (h *WalletHandler) GetNodeMode(
 		Mode:                    nodeModeToProto(mode),
 		LightModeAvailable:      config.SupportsLightMode(network),
 		RemoteEnforcerAvailable: config.RemoteEnforcerURLForNetwork(network) != "",
-		RemoteEnforcerNetworks:  config.RemoteEnforcerNetworks(),
+		RemoteEnforcerNetworks:  h.orch.RemoteEnforcerNetworks(),
 	}, nil
 }
 

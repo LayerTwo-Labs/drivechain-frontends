@@ -660,6 +660,26 @@ func (o *Orchestrator) ListNetworks() []NetworkOption {
 	return append(options, regtest)
 }
 
+// RemoteEnforcerNetworks names every network in the live catalog that
+// publishes an enforcer URL. Light mode serves sidechains on these only.
+func (o *Orchestrator) RemoteEnforcerNetworks() []string {
+	o.mu.RLock()
+	cat := o.Catalog
+	o.mu.RUnlock()
+
+	var names []string
+	for _, n := range cat.Networks {
+		if n.MigrationOnly || n.Services.Enforcer.URL() == "" {
+			continue
+		}
+		if _, ok := config.NetworkForCatalogEntry(n.ID, n.Family); !ok {
+			continue
+		}
+		names = append(names, n.DisplayName)
+	}
+	return names
+}
+
 // NetworkForOption resolves a picker id to the slot it runs in. It accepts a
 // catalog id ("betanet") and a bare slot name ("signet"), so a caller that
 // only knows the slot still works.
