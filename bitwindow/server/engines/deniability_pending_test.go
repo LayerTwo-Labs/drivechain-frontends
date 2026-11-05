@@ -2,6 +2,7 @@ package engines_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -43,6 +44,8 @@ func TestDenialKeepsBroadcastHopAfterStop(t *testing.T) {
 	core.EXPECT().GetNewAddress(gomock.Any(), gomock.Any()).
 		Return(connect.NewResponse(&corepb.GetNewAddressResponse{Address: "bc1qtest"}), nil)
 	core.EXPECT().ListUnspent(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&corepb.ListUnspentResponse{}), nil)
+	core.EXPECT().GetTransaction(gomock.Any(), gomock.Any()).
+		Return(nil, connect.NewError(connect.CodeNotFound, errors.New("Invalid or non-wallet transaction id")))
 	core.EXPECT().ListUnspent(gomock.Any(), gomock.Any()).Times(2).
 		Return(connect.NewResponse(&corepb.ListUnspentResponse{Unspent: []*corepb.UnspentOutput{
 			{Txid: "sent-hop", Vout: 0, Address: "bc1qtest", Amount: 0.005},
@@ -82,4 +85,87 @@ func TestDenialKeepsBroadcastHopAfterStop(t *testing.T) {
 	stored, err = deniability.Get(ctx, db, denial.ID)
 	require.NoError(t, err)
 	require.Len(t, stored.ExecutedDenials, 1)
+}
+
+func TestDenialStopsWhenSentHopIsSpent(t *testing.T) {
+	ctx := t.Context()
+	db, err := database.New(ctx, config.Config{Datadir: t.TempDir()})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	ctrl := gomock.NewController(t)
+	core := mocks.NewMockBitcoinServiceClient(ctrl)
+	orch := mocks.NewMockWalletManagerServiceClient(ctrl)
+	orch.EXPECT().CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).AnyTimes().
+		Return(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"}, nil)
+	core.EXPECT().ListUnspent(gomock.Any(), gomock.Any()).Times(2).
+		Return(connect.NewResponse(&corepb.ListUnspentResponse{}), nil)
+	core.EXPECT().GetTransaction(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&corepb.GetTransactionResponse{
+			Txid:          "sent-hop",
+			Confirmations: 2,
+			Details: []*corepb.GetTransactionResponse_Details{
+				{Address: "bc1qtest", Category: corepb.GetTransactionResponse_CATEGORY_SEND, Vout: 0},
+				{Address: "bc1qtest", Category: corepb.GetTransactionResponse_CATEGORY_RECEIVE, Vout: 0},
+				{Address: "bc1qother", Category: corepb.GetTransactionResponse_CATEGORY_RECEIVE, Vout: 1},
+			},
+		}), nil)
+	coreService := service.New("bitcoind", func(context.Context) (corerpc.BitcoinServiceClient, error) {
+		return core, nil
+	})
+	engine := engines.NewDeniability(coreService, db, testDenialWalletEngine(t, core, orch))
+	denial, err := deniability.Create(ctx, db, denialWalletID, "old-tip", 0, time.Hour, 3, nil)
+	require.NoError(t, err)
+	require.NoError(t, deniability.SavePending(ctx, db, denial.ID, "old-tip", 0, "sent-hop", map[string]uint64{"bc1qtest": 500_000}))
+
+	_, runnable, err := engine.CleanupDenials(ctx)
+	require.NoError(t, err)
+	require.Empty(t, runnable)
+	stored, err := deniability.Get(ctx, db, denial.ID)
+	require.NoError(t, err)
+	require.Nil(t, stored.Pending)
+	require.Nil(t, stored.CancelledAt)
+	require.Equal(t, "sent-hop", stored.TipTXID)
+	require.Len(t, stored.ExecutedDenials, 1)
+
+	_, runnable, err = engine.CleanupDenials(ctx)
+	require.NoError(t, err)
+	require.Empty(t, runnable)
+	stored, err = deniability.Get(ctx, db, denial.ID)
+	require.NoError(t, err)
+	require.NotNil(t, stored.CancelledAt)
+	require.Len(t, stored.ExecutedDenials, 1)
+}
+
+func TestDenialCancelsWhenSentHopConflicts(t *testing.T) {
+	ctx := t.Context()
+	db, err := database.New(ctx, config.Config{Datadir: t.TempDir()})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	ctrl := gomock.NewController(t)
+	core := mocks.NewMockBitcoinServiceClient(ctrl)
+	orch := mocks.NewMockWalletManagerServiceClient(ctrl)
+	orch.EXPECT().CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).AnyTimes().
+		Return(&orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"}, nil)
+	core.EXPECT().ListUnspent(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&corepb.ListUnspentResponse{}), nil)
+	core.EXPECT().GetTransaction(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&corepb.GetTransactionResponse{Txid: "sent-hop", Confirmations: -1}), nil)
+	coreService := service.New("bitcoind", func(context.Context) (corerpc.BitcoinServiceClient, error) {
+		return core, nil
+	})
+	engine := engines.NewDeniability(coreService, db, testDenialWalletEngine(t, core, orch))
+	denial, err := deniability.Create(ctx, db, denialWalletID, "old-tip", 0, time.Hour, 3, nil)
+	require.NoError(t, err)
+	require.NoError(t, deniability.SavePending(ctx, db, denial.ID, "old-tip", 0, "sent-hop", map[string]uint64{"bc1qtest": 500_000}))
+
+	_, runnable, err := engine.CleanupDenials(ctx)
+	require.NoError(t, err)
+	require.Empty(t, runnable)
+	stored, err := deniability.Get(ctx, db, denial.ID)
+	require.NoError(t, err)
+	require.NotNil(t, stored.CancelledAt)
+	require.Nil(t, stored.Pending)
+	require.Empty(t, stored.ExecutedDenials)
+	require.NotNil(t, stored.CancelReason)
+	require.Contains(t, *stored.CancelReason, "conflict")
 }

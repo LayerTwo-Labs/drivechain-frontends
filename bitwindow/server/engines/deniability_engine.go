@@ -158,15 +158,39 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 		}
 	}
 
+	// A hop completed from wallet history waits one cycle, so a fresh UTXO list decides whether its outputs are spent.
+	fromHistory := make(map[int64]bool)
 	for i, denial := range denials {
 		if denial.Pending == nil || denial.WalletID == nil {
 			continue
 		}
-		outputs := denialOutputs(walletUTXOs[*denial.WalletID], denial.Pending.ToTxID, denial.Pending.Destinations)
-		if len(outputs) == 0 {
+		utxos, listed := walletUTXOs[*denial.WalletID]
+		if !listed {
 			continue
 		}
-		if err := deniability.CompletePending(ctx, e.db, denial.ID, lo.Map(outputs, func(u *UTXO, _ int) uint32 { return u.Vout })); err != nil {
+		vouts := lo.Map(denialOutputs(utxos, denial.Pending.ToTxID, denial.Pending.Destinations), func(u *UTXO, _ int) uint32 { return u.Vout })
+		if len(vouts) == 0 {
+			var conflicted bool
+			vouts, conflicted, err = e.hopOutputsInHistory(ctx, *denial.WalletID, denial.Pending.ToTxID, denial.Pending.Destinations)
+			if err != nil {
+				return nil, nil, fmt.Errorf("read pending denial %d hop: %w", denial.ID, err)
+			}
+			if conflicted {
+				if err := deniability.CancelPending(ctx, e.db, denial.ID, "cancelled because a conflict replaced the hop transaction"); err != nil {
+					return nil, nil, fmt.Errorf("cancel conflicted denial %d: %w", denial.ID, err)
+				}
+				denials[i], err = deniability.Get(ctx, e.db, denial.ID)
+				if err != nil {
+					return nil, nil, err
+				}
+				continue
+			}
+			if len(vouts) == 0 {
+				continue
+			}
+			fromHistory[denial.ID] = true
+		}
+		if err := deniability.CompletePending(ctx, e.db, denial.ID, vouts); err != nil {
 			return nil, nil, fmt.Errorf("complete pending denial: %w", err)
 		}
 		denials[i], err = deniability.Get(ctx, e.db, denial.ID)
@@ -176,7 +200,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 	}
 
 	// if any denial tips are missing from the wallet, we must abort them before moving on
-	if err := e.cancelIfUTXOIsGone(ctx, walletUTXOs, denials); err != nil {
+	if err := e.cancelIfUTXOIsGone(ctx, walletUTXOs, lo.Filter(denials, func(d deniability.Denial, _ int) bool { return !fromHistory[d.ID] && d.CancelledAt == nil })); err != nil {
 		return nil, nil, fmt.Errorf("handle aborted denials: %w", err)
 	}
 
@@ -189,7 +213,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deni
 	denials = lo.Filter(denials, func(d deniability.Denial, _ int) bool {
 		walletID, err := e.resolveDenialWallet(ctx, d)
 		_, listed := walletUTXOs[walletID]
-		return err == nil && listed && d.Pending == nil
+		return err == nil && listed && d.Pending == nil && !fromHistory[d.ID]
 	})
 
 	// Flatten all UTXOs for ExecuteDenial (which will also re-verify)
@@ -469,6 +493,65 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 			}
 		}
 	}
+}
+
+// hopOutputsInHistory returns the destination outputs of a sent hop that the
+// wallet knows, spent or unspent. It returns none while the wallet does not
+// know the hop, and conflicted after a conflict replaced it.
+func (e *DeniabilityEngine) hopOutputsInHistory(ctx context.Context, walletID, txid string, destinations map[string]uint64) ([]uint32, bool, error) {
+	walletType, err := e.walletEngine.GetWalletBackendType(ctx, walletID)
+	if err != nil {
+		return nil, false, fmt.Errorf("get wallet type: %w", err)
+	}
+	var vouts []uint32
+	switch walletType {
+	case WalletTypeBitcoinCore:
+		coreWalletName, err := e.walletEngine.EnsureBitcoinCoreWallet(ctx, walletID)
+		if err != nil {
+			return nil, false, fmt.Errorf("get bitcoin core wallet name: %w", err)
+		}
+		bitcoind, err := e.bitcoind.Get(ctx)
+		if err != nil {
+			return nil, false, fmt.Errorf("get bitcoind client: %w", err)
+		}
+		resp, err := bitcoind.GetTransaction(ctx, connect.NewRequest(&corepb.GetTransactionRequest{Txid: txid, Wallet: coreWalletName}))
+		if connect.CodeOf(err) == connect.CodeNotFound {
+			return nil, false, nil
+		}
+		if err != nil {
+			return nil, false, fmt.Errorf("bitcoin core get transaction %s: %w", txid, err)
+		}
+		if resp.Msg.Confirmations < 0 {
+			return nil, true, nil
+		}
+		for _, detail := range resp.Msg.Details {
+			if _, ok := destinations[detail.Address]; ok && detail.Category == corepb.GetTransactionResponse_CATEGORY_RECEIVE {
+				vouts = append(vouts, detail.Vout)
+			}
+		}
+	case WalletTypeElectrum:
+		entries, err := e.walletEngine.GetElectrumTransactions(ctx, walletID)
+		if err != nil {
+			return nil, false, fmt.Errorf("electrum transactions: %w", err)
+		}
+		if !lo.ContainsBy(entries, func(entry *orchpb.TransactionEntry) bool {
+			return entry.Txid == txid && entry.Confirmations >= 0
+		}) {
+			return nil, false, nil
+		}
+		details, err := e.walletEngine.GetTransactionDetails(ctx, walletID, txid)
+		if err != nil {
+			return nil, false, err
+		}
+		for _, output := range details.Outputs {
+			if _, ok := destinations[output.Address]; ok && output.Index >= 0 {
+				vouts = append(vouts, uint32(output.Index))
+			}
+		}
+	default:
+		return nil, false, fmt.Errorf("unknown wallet type: %s", walletType)
+	}
+	return lo.Uniq(vouts), false, nil
 }
 
 func denialOutputs(utxos []*UTXO, txid string, destinations map[string]uint64) []*UTXO {

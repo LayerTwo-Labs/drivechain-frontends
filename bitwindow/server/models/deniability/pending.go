@@ -81,3 +81,27 @@ func CompletePending(ctx context.Context, db *sql.DB, denialID int64, vouts []ui
 	}
 	return tx.Commit()
 }
+
+// CancelPending cancels a denial and drops its pending hop in one transaction.
+func CancelPending(ctx context.Context, db *sql.DB, denialID int64, reason string) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin pending denial cancel: %w", err)
+	}
+	defer database.SafeDefer(ctx, tx.Rollback)
+	if err := database.CheckOne(tx.ExecContext(ctx, `DELETE FROM denial_pending WHERE denial_id = ?`, denialID)); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("delete pending denial: %w", err)
+	}
+	if err := database.CheckOne(tx.ExecContext(ctx, `
+		UPDATE denials SET cancelled_at = ?, cancelled_reason = ? WHERE id = ?
+	`, time.Now(), reason, denialID)); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("cancel pending denial: %w", err)
+	}
+	return tx.Commit()
+}
