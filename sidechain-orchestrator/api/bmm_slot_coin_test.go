@@ -116,7 +116,9 @@ func (m *fakeSlotMempool) call(_ context.Context, method, paramsJSON, _ string) 
 
 // fakeBidWallet stands in for the wallet the bid spends through.
 type fakeBidWallet struct {
-	utxos []*wpb.UnspentOutput
+	// coreWallet names a wallet that needs the local L1 stack.
+	coreWallet string
+	utxos      []*wpb.UnspentOutput
 	// byWallet holds the coins of each wallet, for a test that names more than
 	// one. It comes before utxos.
 	byWallet  map[string][]*wpb.UnspentOutput
@@ -136,6 +138,10 @@ type fakeBidWallet struct {
 	// status answers TxStatus, and statusErr fails it.
 	status    map[string]wallet.EsploraStatus
 	statusErr error
+}
+
+func (w *fakeBidWallet) walletNeedsL1(walletID string) bool {
+	return w.coreWallet != "" && walletID == w.coreWallet
 }
 
 func (w *fakeBidWallet) TxStatus(_ context.Context, txid string) (wallet.EsploraStatus, error) {
