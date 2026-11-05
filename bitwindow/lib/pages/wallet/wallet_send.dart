@@ -9,7 +9,8 @@ import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
-import 'package:bitwindow/pages/wallet/widgets/fee_rate_chart.dart';
+import 'package:bitwindow/pages/wallet/widgets/transaction_graph_card.dart';
+import 'package:bitwindow/widgets/tx_flow_diagram.dart';
 import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/signing/psbt_signer.dart';
@@ -73,57 +74,98 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
 
   Widget _createForm(BuildContext context, SendPageViewModel viewModel) {
     return SingleChildScrollView(
-      child: SailColumn(
-        spacing: SailStyleValues.padding16,
-        children: [
-          PayFromCard(),
-          PayToCard(),
-          FeeCard(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final graph = viewModel.showTransactionGraph
+              ? TransactionGraphCard(
+                  spends: viewModel.graphSpends,
+                  creates: viewModel.graphCreates,
+                  walletName: viewModel.walletName,
+                )
+              : null;
+          final side = SailColumn(
+            spacing: SailStyleValues.padding12,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SailButton(
-                label: viewModel.isMultisig ? 'Continue to signing' : 'Send',
-                loadingLabel: viewModel.isMultisig ? 'Creating' : 'Broadcasting',
-                onPressed: () => viewModel.sendTransaction(context),
-              ),
-              const SizedBox(width: SailStyleValues.padding08),
-              if (!viewModel.isMultisig) ...[
-                SailButton(
-                  variant: ButtonVariant.secondary,
-                  label: 'External signer (airgap)',
-                  onPressed: () => _externalSign(context, viewModel, AirgapPsbtSigner()),
-                ),
-                const SizedBox(width: SailStyleValues.padding08),
-                if (viewModel.isHardwareWallet) ...[
-                  SailButton(
-                    variant: ButtonVariant.secondary,
-                    label: 'Sign with ${viewModel.hardwareDeviceType}',
-                    onPressed: () => _externalSign(
-                      context,
-                      viewModel,
-                      HwiPsbtSigner(
-                        wmpb.HardwareDeviceSelector(
-                          type: viewModel.hardwareDeviceType,
-                          fingerprint: viewModel.hardwareFingerprint,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: SailStyleValues.padding08),
-                ],
-              ],
-              SailButton(
-                variant: ButtonVariant.outline,
-                label: 'Clear All',
-                onPressed: viewModel.clearAll,
-              ),
+              const SummaryCard(),
+              _actions(context, viewModel),
+              if (viewModel.sendError != null) SailInlineError(viewModel.sendError!),
             ],
-          ),
-          if (viewModel.sendError != null) SailInlineError(viewModel.sendError!),
-          SailSpacing(SailStyleValues.padding64),
-        ],
+          );
+
+          if (constraints.maxWidth < sendWideLayoutMinWidth) {
+            return SailColumn(
+              spacing: SailStyleValues.padding12,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const PayToCard(),
+                ?graph,
+                side,
+                SailSpacing(SailStyleValues.padding64),
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SailColumn(
+                  spacing: SailStyleValues.padding12,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const PayToCard(),
+                    ?graph,
+                    SailSpacing(SailStyleValues.padding64),
+                  ],
+                ),
+              ),
+              const SizedBox(width: SailStyleValues.padding12),
+              SizedBox(width: sendSideColumnWidth, child: side),
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _actions(BuildContext context, SendPageViewModel viewModel) {
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SailButton(
+          label: viewModel.isMultisig ? 'Continue to signing' : 'Send',
+          loadingLabel: viewModel.isMultisig ? 'Creating' : 'Broadcasting',
+          onPressed: () => viewModel.sendTransaction(context),
+        ),
+        if (!viewModel.isMultisig) ...[
+          SailButton(
+            variant: ButtonVariant.secondary,
+            label: 'External signer (airgap)',
+            onPressed: () => _externalSign(context, viewModel, AirgapPsbtSigner()),
+          ),
+          if (viewModel.isHardwareWallet)
+            SailButton(
+              variant: ButtonVariant.secondary,
+              label: 'Sign with ${viewModel.hardwareDeviceType}',
+              onPressed: () => _externalSign(
+                context,
+                viewModel,
+                HwiPsbtSigner(
+                  wmpb.HardwareDeviceSelector(
+                    type: viewModel.hardwareDeviceType,
+                    fingerprint: viewModel.hardwareFingerprint,
+                  ),
+                ),
+              ),
+            ),
+        ],
+        SailButton(
+          variant: ButtonVariant.outline,
+          label: 'Clear All',
+          onPressed: viewModel.clearAll,
+        ),
+      ],
     );
   }
 
@@ -166,27 +208,60 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
   }
 }
 
-String calculateLabel(RecipientModel recipient, int index, BitcoinUnit currentUnit) {
-  if (recipient.amountController.text.isEmpty &&
-      recipient.addressController.text.isEmpty &&
-      recipient.matchingAddressLabel.isEmpty) {
-    return 'Recipient ${index + 1}';
+const double sendWideLayoutMinWidth = 1000;
+const double sendSideColumnWidth = 400;
+
+/// What the send pays in total: the amounts, plus the fee unless the
+/// recipient pays the fee out of the amount, plus a BIP47 notification.
+int sendTotalSats({
+  required int amountSats,
+  required int feeSats,
+  required bool subtractFee,
+  int notificationSats = 0,
+}) => (subtractFee ? amountSats : amountSats + feeSats) + notificationSats;
+
+/// The name of a fee target in blocks. Null is a fee the user typed.
+String feeTargetLabel(int? confTarget) => switch (confTarget) {
+  null => 'Custom',
+  1 => 'Next block',
+  final blocks => '$blocks blocks',
+};
+
+/// The fee targets the fee menu offers, in blocks.
+const List<int> sendFeeTargets = [1, 3, 6];
+
+/// What "Pay from" shows: the coin selection strategy, or the coins the user
+/// picked by hand.
+String payFromLabel(CoinSelectionStrategy strategy, List<UnspentOutput> selected) {
+  if (selected.isEmpty) {
+    return strategy.displayName;
   }
+  final total = selected.fold<int>(0, (sum, u) => sum + u.valueSats.toInt());
+  return '${selected.length} ${selected.length == 1 ? 'UTXO' : 'UTXOs'} · ${formatBitcoin(satoshiToBTC(total))}';
+}
 
-  final recipientLabel = recipient.matchingAddressLabel.isNotEmpty
-      ? recipient.matchingAddressLabel
-      : recipient.addressController.text.isEmpty
-      ? '<Unknown>'
-      : recipient.addressController.text.substring(0, min(recipient.addressController.text.length, 10));
-
-  if (recipient.amountController.text.isEmpty) {
-    return recipientLabel;
+/// The outputs and the fee of a send, as graph lines. A recipient who pays
+/// the fee gets the amount less the fee. Change is what the coins hold above
+/// the payments and the fee. A recipient who pays the fee keeps change below
+/// dust. Without that, a priced fee already holds dropped change.
+List<GraphLine> sendGraphCreates({
+  required List<({String address, int sats})> payments,
+  required int inputSats,
+  required int feeSats,
+  required bool subtractFee,
+}) {
+  final amounts = [for (final p in payments) subtractFee ? max(p.sats - feeSats, 0) : p.sats];
+  var change = inputSats - amounts.fold<int>(0, (sum, a) => sum + a) - feeSats;
+  if (subtractFee && amounts.length == 1 && change > 0 && change < dustSats) {
+    amounts[0] += change;
+    change = 0;
   }
-
-  final amountBTC = parseAmountInUnit(recipient.amountController.text, currentUnit);
-  final formattedAmount = formatBitcoinWithUnit(amountBTC, currentUnit);
-
-  return '$recipientLabel ($formattedAmount)';
+  return [
+    for (var i = 0; i < payments.length; i++)
+      GraphLine(sats: amounts[i], address: payments[i].address, kind: FlowKind.payment),
+    if (change > 0) GraphLine(sats: change, address: '', kind: FlowKind.change),
+    if (feeSats > 0) GraphLine(sats: feeSats, address: '', kind: FlowKind.fee),
+  ];
 }
 
 class PayToCard extends ViewModelWidget<SendPageViewModel> {
@@ -194,173 +269,443 @@ class PayToCard extends ViewModelWidget<SendPageViewModel> {
 
   @override
   Widget build(BuildContext context, SendPageViewModel viewModel) {
-    // Build a tab for each recipient
-    final List<TabItem> tabs = [
-      for (int i = 0; i < viewModel.recipients.length; i++)
-        SingleTabItem(
-          label: calculateLabel(viewModel.recipients[i], i, viewModel.currentUnit),
-          child: RecipientFields(
-            key: ValueKey('recipient_fields_${viewModel.recipients[i].id}'),
-            index: i,
-            recipient: viewModel.recipients[i],
-            addressBookEntries: viewModel.addressBookEntries,
-            selectedEntry: viewModel.selectedEntry,
-            onAddressSelected: viewModel.onAddressSelected,
-            onUseAvailableBalance: viewModel.onUseAvailableBalance,
-            subtractFee: viewModel.recipients[i].subtractFee,
-            // The backend rejects subtract-fee with more than one destination.
-            canSubtractFee: viewModel.recipients.length == 1,
-            onSubtractFeeChanged: (val) {
-              viewModel.recipients[i].subtractFee = val;
-              viewModel.notifyListeners();
-            },
-            currentUnit: viewModel.currentUnit,
-            onSaveToAddressBook: viewModel.saveToAddressBook,
-          ),
-          icon: SailSVGAsset.iconClose,
-          onIconTap: () => viewModel.removeRecipient(i),
-          onTap: () => viewModel.selectRecipient(i),
-        ),
-      // "+" tab at the end
-      TabItem(
-        label: '',
-        child: const SizedBox.shrink(),
-        onTap: viewModel.addRecipient,
-        icon: SailSVGAsset.plus, // Use your plus icon asset here
-      ),
-    ];
+    final canRemove = viewModel.recipients.length > 1;
 
     return SailCard(
       title: 'Pay To',
-      child: SizedBox(
-        height: 230,
-        child: InlineTabBar(
-          tabs: tabs,
-          selectedIndex: viewModel.selectedRecipientIndex,
-          onTabChanged: (index) {
-            if (index < viewModel.recipients.length) {
-              viewModel.selectRecipient(index);
-            }
-          },
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          RecipientColumnLabels(currentUnit: viewModel.currentUnit, canRemove: canRemove),
+          for (int i = 0; i < viewModel.recipients.length; i++)
+            RecipientRow(
+              key: ValueKey('recipient_row_${viewModel.recipients[i].id}'),
+              index: i,
+              recipient: viewModel.recipients[i],
+              addressBookEntries: viewModel.addressBookEntries,
+              onAddressSelected: (entry) => viewModel.onAddressSelected(i, entry),
+              onUseAvailableBalance: viewModel.onUseAvailableBalance,
+              currentUnit: viewModel.currentUnit,
+              onSaveToAddressBook: viewModel.saveToAddressBook,
+              onRemove: canRemove ? () => viewModel.removeRecipient(i) : null,
+            ),
+          // The backend rejects subtract-fee with more than one destination.
+          if (viewModel.recipients.length == 1)
+            AddFeeOnTopCheckbox(
+              subtractFee: viewModel.recipients.first.subtractFee,
+              onSubtractFeeChanged: (val) {
+                viewModel.recipients.first.subtractFee = val;
+                viewModel.notifyListeners();
+              },
+            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SailButton(
+              label: '+ Add recipient',
+              variant: ButtonVariant.link,
+              small: true,
+              onPressed: () async => viewModel.addRecipient(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const int _addressFlex = 3;
+const int _amountFlex = 1;
+const double _amountMinWidth = 240;
+const double _removeWidth = 38;
+
+class RecipientColumnLabels extends StatelessWidget {
+  final BitcoinUnit currentUnit;
+  final bool canRemove;
+
+  const RecipientColumnLabels({super.key, required this.currentUnit, required this.canRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(flex: _addressFlex, child: SailText.primary13('Address', bold: true)),
+        const SizedBox(width: SailStyleValues.padding08),
+        Expanded(
+          flex: _amountFlex,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: _amountMinWidth),
+            child: SailText.primary13('Amount (${currentUnit.symbol})', bold: true),
+          ),
+        ),
+        if (canRemove) const SizedBox(width: SailStyleValues.padding08 + _removeWidth),
+      ],
+    );
+  }
+}
+
+/// One recipient: the address, the amount, and a remove button when
+/// [onRemove] is not null.
+class RecipientRow extends StatelessWidget {
+  final RecipientModel recipient;
+  final List<AddressBookEntry> addressBookEntries;
+  final ValueChanged<AddressBookEntry?> onAddressSelected;
+  final Future<void> Function(int index) onUseAvailableBalance;
+  final int index;
+  final BitcoinUnit currentUnit;
+  final Future<void> Function(BuildContext context, String address) onSaveToAddressBook;
+  final VoidCallback? onRemove;
+
+  const RecipientRow({
+    super.key,
+    required this.index,
+    required this.recipient,
+    required this.addressBookEntries,
+    required this.onAddressSelected,
+    required this.onUseAvailableBalance,
+    required this.currentUnit,
+    required this.onSaveToAddressBook,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final address = recipient.addressController.text;
+    final bookLabel = addressBookEntries.firstWhereOrNull((e) => e.address == address)?.label ?? '';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          flex: _addressFlex,
+          child: SailTextField(
+            key: Key('recipient_address_$index'),
+            controller: recipient.addressController,
+            hintText: 'Enter a single L1 ${activeTicker.name} address (e.g. 1NS17iag...)',
+            size: TextFieldSize.small,
+            maxLines: null,
+            suffixWidget: SailRow(
+              children: [
+                PasteButton(onPaste: (text) => recipient.addressController.text = text),
+                if (address.isNotEmpty && !addressBookEntries.any((e) => e.address == address))
+                  SailButton(
+                    label: 'Save',
+                    variant: ButtonVariant.ghost,
+                    onPressed: () async => onSaveToAddressBook(context, address),
+                  ),
+                Flexible(
+                  child: SailDropdownButton<AddressBookEntry>(
+                    value: null,
+                    hint: addressBookEntries.isEmpty
+                        ? 'No Addresses Saved'
+                        : (bookLabel.isNotEmpty ? bookLabel : 'Address Book'),
+                    items: [
+                      for (final entry in addressBookEntries)
+                        SailDropdownItem<AddressBookEntry>(value: entry, label: entry.label),
+                    ],
+                    icon: SailSVG.fromAsset(SailSVGAsset.bookUser, width: 13, color: theme.colors.inactiveNavText),
+                    onChanged: onAddressSelected,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: SailStyleValues.padding08),
+        Expanded(
+          flex: _amountFlex,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: _amountMinWidth),
+            child: NumericField(
+              key: Key('recipient_amount_$index'),
+              controller: recipient.amountController,
+              hintText: '0.00',
+              textFieldType: currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
+              suffixWidget: SailButton(
+                label: 'MAX',
+                variant: ButtonVariant.link,
+                onPressed: () async => onUseAvailableBalance(index),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+        ),
+        if (onRemove != null) ...[
+          const SizedBox(width: SailStyleValues.padding08),
+          SizedBox(
+            width: _removeWidth,
+            child: SailButton(
+              key: Key('recipient_remove_$index'),
+              variant: ButtonVariant.icon,
+              icon: SailSVGAsset.iconClose,
+              onPressed: () async => onRemove!(),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class AddFeeOnTopCheckbox extends StatelessWidget {
+  final bool subtractFee;
+  final ValueChanged<bool> onSubtractFeeChanged;
+
+  const AddFeeOnTopCheckbox({super.key, required this.subtractFee, required this.onSubtractFeeChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailCheckbox(
+      key: const Key('recipient_add_fee_on_top'),
+      value: !subtractFee,
+      label: 'Add fee on top of amount',
+      onChanged: (addFeeOnTop) => onSubtractFeeChanged(!addFeeOnTop),
+    );
+  }
+}
+
+class SummaryCard extends ViewModelWidget<SendPageViewModel> {
+  const SummaryCard({super.key});
+
+  @override
+  Widget build(BuildContext context, SendPageViewModel viewModel) {
+    final unit = viewModel.currentUnit;
+    String fmt(int sats) => formatBitcoinWithUnit(satoshiToBTC(sats), unit);
+    final estimate = approximateFeePrefix(viewModel.feeIsEstimate) ?? '';
+
+    return SailCard(
+      title: 'Summary',
+      widgetHeaderEnd: SailButton(
+        label: viewModel.showTransactionGraph ? 'Hide graph' : 'Show graph',
+        variant: ButtonVariant.ghost,
+        small: true,
+        onPressed: () async => viewModel.toggleTransactionGraph(),
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SummaryLine(label: 'Recipients', value: SailText.primary13('${viewModel.recipients.length}')),
+          _SummaryLine(
+            label: 'Pay from',
+            value: SailPopover(
+              side: SailPopoverSide.bottom,
+              alignment: SailPopoverAlignment.end,
+              popover: const PayFromPanel(),
+              child: _SummaryLink(payFromLabel(viewModel.coinSelectionStrategy, viewModel.selectedUtxos)),
+            ),
+          ),
+          _SummaryLine(label: 'Amount', value: SailText.primary13(fmt(viewModel.amountSats), monospace: true)),
+          _SummaryLine(
+            label: 'Fee',
+            value: viewModel.customFee
+                ? SailRow(
+                    spacing: SailStyleValues.padding12,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _FeeMenu(
+                        onTarget: viewModel.selectFeeTarget,
+                        onCustom: viewModel.selectCustomFee,
+                        child: _SummaryLink(feeTargetLabel(null)),
+                      ),
+                      SizedBox(
+                        width: 200,
+                        child: SailTextField(
+                          key: const Key('send_custom_fee'),
+                          controller: viewModel.feeController,
+                          hintText: 'Fee',
+                          size: TextFieldSize.small,
+                          textFieldType: unit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
+                          suffixWidget: SailText.secondary13(unit.symbol),
+                        ),
+                      ),
+                    ],
+                  )
+                : _FeeMenu(
+                    onTarget: viewModel.selectFeeTarget,
+                    onCustom: viewModel.selectCustomFee,
+                    child: _SummaryLink(
+                      '${feeTargetLabel(viewModel.selectedConfTarget)} · $estimate${fmt(viewModel.feeSats)}',
+                    ),
+                  ),
+          ),
+          _SummaryLine(
+            label: 'Total',
+            bold: true,
+            value: SailText.primary13(fmt(viewModel.totalSats), monospace: true, bold: true),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryLine extends StatelessWidget {
+  final String label;
+  final Widget value;
+  final bool bold;
+
+  const _SummaryLine({required this.label, required this.value, this.bold = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        bold ? SailText.primary13(label, bold: true) : SailText.secondary13(label),
+        const SizedBox(width: SailStyleValues.padding08),
+        Expanded(
+          child: Align(alignment: Alignment.centerRight, child: value),
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryLink extends StatelessWidget {
+  final String label;
+
+  const _SummaryLink(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Text(
+        label,
+        overflow: TextOverflow.ellipsis,
+        style: SailStyleValues.thirteen.copyWith(
+          color: context.sailTheme.colors.text,
+          decoration: TextDecoration.underline,
+          fontFamily: context.sailTheme.chrome.fontFamily,
         ),
       ),
     );
   }
 }
 
-// Extracted widget for recipient fields
-class RecipientFields extends StatelessWidget {
-  final RecipientModel recipient;
-  final List<AddressBookEntry> addressBookEntries;
-  final AddressBookEntry? selectedEntry;
-  final ValueChanged<AddressBookEntry?> onAddressSelected;
-  final Future<void> Function(int index) onUseAvailableBalance;
-  final bool subtractFee;
-  final bool canSubtractFee;
-  final ValueChanged<bool> onSubtractFeeChanged;
-  final int index;
-  final BitcoinUnit currentUnit;
-  final Future<void> Function(BuildContext context, String address) onSaveToAddressBook;
+/// The fee targets and Custom, in a menu that opens below [child].
+class _FeeMenu extends StatefulWidget {
+  final Widget child;
+  final Future<void> Function(int confTarget) onTarget;
+  final VoidCallback onCustom;
 
-  const RecipientFields({
-    super.key,
-    required this.index,
-    required this.recipient,
-    required this.addressBookEntries,
-    required this.selectedEntry,
-    required this.onAddressSelected,
-    required this.onUseAvailableBalance,
-    required this.subtractFee,
-    this.canSubtractFee = true,
-    required this.onSubtractFeeChanged,
-    required this.currentUnit,
-    required this.onSaveToAddressBook,
-  });
+  const _FeeMenu({required this.child, required this.onTarget, required this.onCustom});
+
+  @override
+  State<_FeeMenu> createState() => _FeeMenuState();
+}
+
+class _FeeMenuState extends State<_FeeMenu> {
+  final _controller = SailPopoverController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return SailColumn(
-      spacing: SailStyleValues.padding08,
-      children: [
-        SailTextField(
-          key: Key('recipient_address_$key'),
-          label: 'Address',
-          controller: recipient.addressController,
-          hintText: 'Enter a single L1 ${activeTicker.name} address (e.g. 1NS17iag...)',
-          size: TextFieldSize.small,
-          suffixWidget: SailRow(
+    return SailPopover(
+      controller: _controller,
+      alignment: SailPopoverAlignment.end,
+      popover: SizedBox(
+        width: 180,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              PasteButton(
-                onPaste: (text) {
-                  recipient.addressController.text = text;
-                },
-              ),
-              if (recipient.addressController.text.isNotEmpty &&
-                  !addressBookEntries.any((e) => e.address == recipient.addressController.text))
-                SailButton(
-                  label: 'Save',
-                  variant: ButtonVariant.ghost,
-                  onPressed: () async => onSaveToAddressBook(context, recipient.addressController.text),
-                ),
-              Flexible(
-                child: SailDropdownButton<AddressBookEntry>(
-                  value: null,
-                  hint: addressBookEntries.isEmpty ? 'No Addresses Saved' : (selectedEntry?.label ?? 'Address Book'),
-                  items: addressBookEntries.isEmpty
-                      ? []
-                      : addressBookEntries.map((entry) {
-                          return SailDropdownItem<AddressBookEntry>(
-                            value: entry,
-                            label: entry.label,
-                          );
-                        }).toList(),
-                  icon: SailSVG.fromAsset(
-                    SailSVGAsset.bookUser,
-                    width: 13,
-                    color: theme.colors.inactiveNavText,
-                  ),
-                  onChanged: onAddressSelected,
-                ),
-              ),
+              for (final target in sendFeeTargets)
+                _FeeMenuItem(label: feeTargetLabel(target), menu: _controller, onTap: () => widget.onTarget(target)),
+              _FeeMenuItem(label: feeTargetLabel(null), menu: _controller, onTap: () async => widget.onCustom()),
             ],
           ),
         ),
-        NumericField(
-          key: Key('recipient_amount_$key'),
-          label: 'Amount (${currentUnit.symbol})',
-          controller: recipient.amountController,
-          textFieldType: currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
-          suffixWidget: SailButton(
-            label: 'MAX',
-            variant: ButtonVariant.link,
-            onPressed: () async => onUseAvailableBalance(index),
-            padding: EdgeInsets.zero,
-          ),
+      ),
+      child: GestureDetector(onTap: _controller.toggle, child: widget.child),
+    );
+  }
+}
+
+class _FeeMenuItem extends StatelessWidget {
+  final String label;
+  final SailPopoverController menu;
+  final Future<void> Function() onTap;
+
+  const _FeeMenuItem({required this.label, required this.menu, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: Key('fee_menu_$label'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () async {
+        menu.hide();
+        await onTap();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: SailText.primary13(label),
+      ),
+    );
+  }
+}
+
+/// The UTXO selector and the coin selection strategy.
+class PayFromPanel extends ViewModelWidget<SendPageViewModel> {
+  const PayFromPanel({super.key});
+
+  @override
+  Widget build(BuildContext context, SendPageViewModel viewModel) {
+    return SizedBox(
+      width: 700,
+      child: Padding(
+        padding: const EdgeInsets.all(SailStyleValues.padding16),
+        child: SailColumn(
+          spacing: SailStyleValues.padding16,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            UTXOSelector(
+              allUtxos: viewModel.allUtxos,
+              selectedUtxos: viewModel.selectedUtxos,
+              onSelectionChanged: viewModel.onSelectionChanged,
+            ),
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              children: [
+                SailText.secondary13('Coin selection'),
+                SailDropdownButton<CoinSelectionStrategy>(
+                  value: viewModel.coinSelectionStrategy,
+                  items: [
+                    for (final s in CoinSelectionStrategy.values)
+                      SailDropdownItem<CoinSelectionStrategy>(value: s, label: s.displayName),
+                  ],
+                  onChanged: (value) async {
+                    if (value != null) {
+                      await viewModel.setCoinSelectionStrategy(value);
+                    }
+                  },
+                ),
+                Flexible(child: SailText.secondary12(viewModel.coinSelectionStrategy.description)),
+              ],
+            ),
+          ],
         ),
-        if (canSubtractFee)
-          SailCheckbox(
-            key: Key('recipient_add_fee_on_top_$key'),
-            value: !subtractFee,
-            label: 'Add fee on top of amount',
-            onChanged: (addFeeOnTop) => onSubtractFeeChanged(!addFeeOnTop),
-          ),
-      ],
+      ),
     );
   }
 }
 
 class RecipientModel extends ChangeNotifier {
   final String id = UniqueKey().toString();
-  AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
-  List<AddressBookEntry> get addressBookEntries => addressBookProvider.sendEntries;
 
   final TextEditingController addressController;
   final TextEditingController amountController;
   bool subtractFee;
-  String get matchingAddressLabel =>
-      addressBookEntries.firstWhereOrNull((e) => e.address == addressController.text)?.label ?? '';
 
   RecipientModel({
     String address = '',
@@ -371,108 +716,6 @@ class RecipientModel extends ChangeNotifier {
        amountController = TextEditingController(text: amount) {
     addressController.addListener(notifyListeners);
     amountController.addListener(notifyListeners);
-  }
-}
-
-class PayFromCard extends ViewModelWidget<SendPageViewModel> {
-  const PayFromCard({super.key});
-
-  @override
-  Widget build(BuildContext context, SendPageViewModel viewModel) {
-    return SailCard(
-      title: 'Pay From',
-      child: UTXOSelector(
-        allUtxos: viewModel.allUtxos,
-        selectedUtxos: viewModel.selectedUtxos,
-        onSelectionChanged: viewModel.onSelectionChanged,
-      ),
-    );
-  }
-}
-
-class FeeCard extends ViewModelWidget<SendPageViewModel> {
-  const FeeCard({super.key});
-
-  @override
-  Widget build(BuildContext context, SendPageViewModel viewModel) {
-    final hasGraph = viewModel.feeRatePoints.isNotEmpty || viewModel.loadingFeeRates;
-
-    return SailCard(
-      title: 'Fee',
-      widgetHeaderEnd: hasGraph
-          ? SailButton(
-              label: viewModel.showFeeGraph ? 'Hide graph' : 'Show graph',
-              variant: ButtonVariant.ghost,
-              onPressed: () async => viewModel.toggleFeeGraph(),
-            )
-          : null,
-      child: SailColumn(
-        spacing: SailStyleValues.padding12,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SailTextField(
-            controller: viewModel.feeController,
-            hintText: 'Fee (in ${viewModel.currentUnit.symbol})',
-            prefix: approximateFeePrefix(viewModel.feeIsEstimate),
-            onChanged: (_) => viewModel.clearFeeEstimate(),
-            textFieldType: viewModel.currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
-            suffixWidget: SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                SailText.primary13(viewModel.currentUnit.symbol),
-                SailDropdownButton<int>(
-                  value: null,
-                  hint: 'Estimate',
-                  items: [
-                    SailDropdownItem(value: 6, label: 'Low (6 blocks)'),
-                    SailDropdownItem(value: 3, label: 'Medium (3 blocks)'),
-                    SailDropdownItem(value: 1, label: 'High (1 block)'),
-                  ],
-                  onChanged: (value) async {
-                    if (value != null) {
-                      await viewModel.estimateFee(value);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          if (viewModel.showFeeGraph)
-            if (viewModel.feeRatePoints.isNotEmpty)
-              FeeRateChart(
-                points: viewModel.feeRatePoints,
-                selectedConfTarget: viewModel.selectedConfTarget,
-                onSelected: viewModel.selectFeeRatePoint,
-              )
-            else if (viewModel.loadingFeeRates)
-              SizedBox(
-                height: feeRateChartHeight,
-                child: Center(
-                  child: SailCircularProgressIndicator(color: context.sailTheme.colors.text),
-                ),
-              ),
-          SailColumn(
-            spacing: SailStyleValues.padding04,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SailText.secondary13('Coin selection'),
-              SailDropdownButton<CoinSelectionStrategy>(
-                value: viewModel.coinSelectionStrategy,
-                items: CoinSelectionStrategy.values
-                    .map((s) => SailDropdownItem<CoinSelectionStrategy>(value: s, label: s.displayName))
-                    .toList(),
-                onChanged: (value) async {
-                  if (value != null) {
-                    await viewModel.setCoinSelectionStrategy(value);
-                  }
-                },
-              ),
-              SailText.secondary12(viewModel.coinSelectionStrategy.description),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -564,7 +807,6 @@ class SendPageViewModel extends BaseViewModel {
   BitcoinUnit get currentUnit => settingsProvider.bitcoinUnit;
 
   List<AddressBookEntry> get addressBookEntries => addressBookProvider.sendEntries;
-  AddressBookEntry? selectedEntry;
   TextEditingController selectedUTXOs = TextEditingController();
   late TextEditingController feeController;
 
@@ -591,11 +833,11 @@ class SendPageViewModel extends BaseViewModel {
   CoinSelectionStrategy get coinSelectionStrategy => coinSelectionProvider.strategy;
 
   List<RecipientModel> recipients = [];
-  int selectedRecipientIndex = 0;
   BitcoinUnit? _previousUnit;
 
-  List<FeeRatePoint> feeRatePoints = [];
-  int? selectedConfTarget;
+  /// The fee target in blocks. Null when the user types the fee.
+  int? selectedConfTarget = 1;
+  bool get customFee => selectedConfTarget == null;
   double? _estimatedSatPerVByte;
   Timer? _feePreviewTimer;
   String? _feePreviewKey;
@@ -603,17 +845,83 @@ class SendPageViewModel extends BaseViewModel {
   List<UnspentOutput> _pricedInputs = const [];
   UnspentOutput? _pricedNotificationInput;
   int _pricedFeeSats = 0;
+  int _pricedPaymentFeeSats = 0;
+  int _pricedNotificationFeeSats = 0;
   bool _pricedIsEstimate = false;
 
   /// True when the fee field shows an estimate: a first BIP47 payment from a
   /// one-coin wallet pays from the notification change, which no preview can price.
   bool get feeIsEstimate => _pricedIsEstimate && _currentFeePreviewKey() == _pricedKey;
-  bool loadingFeeRates = false;
-  bool showFeeGraph = false;
+  bool showTransactionGraph = false;
 
-  void toggleFeeGraph() {
-    showFeeGraph = !showFeeGraph;
+  void toggleTransactionGraph() {
+    showTransactionGraph = !showTransactionGraph;
     notifyListeners();
+  }
+
+  String get walletName => _walletReader.activeWallet?.name ?? 'this wallet';
+
+  int get amountSats => recipients.fold(
+    0,
+    (sum, r) =>
+        sum + (r.amountController.text.isEmpty ? 0 : parseAmountToSatoshis(r.amountController.text, currentUnit)),
+  );
+
+  int get feeSats => feeController.text.isEmpty ? 0 : parseAmountToSatoshis(feeController.text, currentUnit);
+
+  int get totalSats {
+    if (!_pricedMatchesForm) {
+      return sendTotalSats(amountSats: amountSats, feeSats: feeSats, subtractFee: _subtractFeeFromAmount);
+    }
+    return sendTotalSats(
+      amountSats: amountSats,
+      feeSats: _pricedPaymentFeeSats,
+      subtractFee: _subtractFeeFromAmount,
+      notificationSats: _pricedNotificationFeeSats > 0 ? _pricedNotificationFeeSats + dustSats : 0,
+    );
+  }
+
+  bool get _pricedMatchesForm {
+    final key = _currentFeePreviewKey();
+    return key != null && key == _pricedKey && !_pricedIsEstimate;
+  }
+
+  /// The coins the send spends. The address comes from the wallet coin list.
+  List<GraphLine> get graphSpends {
+    final addresses = {for (final u in allUtxos) u.output: u.address};
+    return [
+      for (final u in graphInputs(
+        selected: selectedUtxos,
+        currentKey: _currentFeePreviewKey(),
+        pricedKey: _pricedKey,
+        pricedInputs: _pricedInputs,
+      ))
+        GraphLine(sats: u.valueSats.toInt(), address: addresses[u.output] ?? u.address, kind: FlowKind.input),
+    ];
+  }
+
+  /// The fee of the payment transaction alone. A BIP47 notification pays its
+  /// own fee from its own coin.
+  int get _graphFeeSats => _pricedMatchesForm ? _pricedPaymentFeeSats : feeSats;
+
+  List<GraphLine> get graphCreates {
+    final spends = graphSpends;
+    if (spends.isEmpty) {
+      return const [];
+    }
+    final payments = <String, int>{};
+    for (final r in recipients) {
+      if (r.amountController.text.isNotEmpty) {
+        final address = r.addressController.text;
+        payments[address] = (payments[address] ?? 0) + parseAmountToSatoshis(r.amountController.text, currentUnit);
+      }
+    }
+    return sendGraphCreates(
+      payments: [for (final e in payments.entries) (address: e.key, sats: e.value)],
+      inputSats: spends.fold(0, (sum, l) => sum + l.sats),
+      feeSats: _graphFeeSats,
+      subtractFee: _subtractFeeFromAmount,
+    );
   }
 
   String? sendError;
@@ -715,8 +1023,7 @@ class SendPageViewModel extends BaseViewModel {
     await addressBookProvider.fetch();
     applicationDir = await Environment.datadir();
     logFile = await getLogFile();
-    await loadFeeRateCurve();
-    await estimateFee(1); // default to the next-block fee
+    await selectFeeTarget(1);
   }
 
   Directory? applicationDir;
@@ -1111,7 +1418,6 @@ class SendPageViewModel extends BaseViewModel {
     final initialRecipient = RecipientModel();
     initialRecipient.addListener(_onFormChanged);
     recipients.add(initialRecipient);
-    selectedRecipientIndex = 0;
     if (currentUnit == BitcoinUnit.btc) {
       feeController.text = '0.00010000';
     } else {
@@ -1120,13 +1426,12 @@ class SendPageViewModel extends BaseViewModel {
     _estimatedSatPerVByte = null;
     selectedUtxos = [];
 
-    notifyListeners();
+    await selectFeeTarget(1);
   }
 
-  void onAddressSelected(AddressBookEntry? entry) {
+  void onAddressSelected(int index, AddressBookEntry? entry) {
     if (entry != null) {
-      selectedEntry = entry;
-      recipients[selectedRecipientIndex].addressController.text = entry.address;
+      recipients[index].addressController.text = entry.address;
       notifyListeners();
     }
   }
@@ -1179,21 +1484,15 @@ class SendPageViewModel extends BaseViewModel {
     final recipient = RecipientModel();
     recipient.addListener(_onFormChanged);
     recipients.add(recipient);
-    selectedRecipientIndex = recipients.length - 1;
-    notifyListeners();
-  }
-
-  void selectRecipient(int index) {
-    selectedRecipientIndex = index;
     notifyListeners();
   }
 
   void removeRecipient(int index) {
+    if (recipients.length <= 1) {
+      return;
+    }
     recipients[index].removeListener(_onFormChanged);
     recipients.removeAt(index);
-    if (index != 0) {
-      selectedRecipientIndex = index - 1;
-    }
     notifyListeners();
   }
 
@@ -1350,6 +1649,8 @@ class SendPageViewModel extends BaseViewModel {
       _pricedInputs = preview.inputs.map(coin).toList();
       _pricedNotificationInput = preview.hasNotificationInput() ? coin(preview.notificationInput) : null;
       _pricedFeeSats = previewFeeSats(preview);
+      _pricedPaymentFeeSats = preview.feeSats.toInt();
+      _pricedNotificationFeeSats = preview.notificationFeeSats.toInt();
       _pricedIsEstimate = preview.feeIsEstimate;
       _setFeeFromSats(_pricedFeeSats);
     } catch (error) {
@@ -1391,43 +1692,36 @@ class SendPageViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> estimateFee(int confTarget) async {
+  /// Prices the fee for a confirmation in [confTarget] blocks.
+  Future<void> selectFeeTarget(int confTarget) async {
+    final request = ++_feeTargetRequest;
     try {
       final satPerVByte = await feeRateForTarget(confTarget);
-      if (satPerVByte == null) {
+      if (request != _feeTargetRequest) {
         return;
       }
-      _setEstimatedFee(satPerVByte);
+      if (satPerVByte == null) {
+        selectCustomFee();
+        return;
+      }
       selectedConfTarget = confTarget;
+      _setEstimatedFee(satPerVByte);
       notifyListeners();
     } catch (error) {
-      log.e('Error estimating fee: $error');
+      if (request != _feeTargetRequest) {
+        return;
+      }
+      setSendError('Could not estimate the fee for ${feeTargetLabel(confTarget).toLowerCase()}: $error');
     }
   }
 
-  Future<void> loadFeeRateCurve() async {
-    loadingFeeRates = true;
-    notifyListeners();
-    try {
-      final results = await Future.wait(
-        feeRateConfTargets.map((t) async {
-          final rate = await feeRateForTarget(t);
-          return rate == null ? null : FeeRatePoint(confTarget: t, satPerVByte: rate);
-        }),
-      );
-      feeRatePoints = results.whereType<FeeRatePoint>().toList();
-    } catch (error) {
-      log.e('Error loading fee rate curve: $error');
-      feeRatePoints = [];
-    } finally {
-      loadingFeeRates = false;
-      notifyListeners();
-    }
-  }
+  int _feeTargetRequest = 0;
 
-  void selectFeeRatePoint(FeeRatePoint point) {
-    selectedConfTarget = point.confTarget;
-    _setEstimatedFee(point.satPerVByte);
+  /// Stops the fee estimate, so the user types the fee.
+  void selectCustomFee() {
+    _feeTargetRequest++;
+    selectedConfTarget = null;
+    clearFeeEstimate();
     notifyListeners();
   }
 
