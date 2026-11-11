@@ -21,7 +21,7 @@ require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.2.0
 	github.com/go-zeromq/zmq4 v0.17.0
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/mattn/go-sqlite3 v1.14.52
+	github.com/mattn/go-sqlite3 v1.14.53
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/rs/zerolog v1.35.1
 	github.com/samber/lo v1.53.0
