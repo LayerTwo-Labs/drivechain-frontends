@@ -382,7 +382,7 @@ class _TransactionTableState extends State<TransactionTable> {
     entries.sort((a, b) {
       dynamic aValue, bValue;
       switch (sortColumn) {
-        case 'height':
+        case 'confirmations':
           aValue = a.confirmations;
           bValue = b.confirmations;
           break;
@@ -443,8 +443,8 @@ class _TransactionTableState extends State<TransactionTable> {
                   getRowId: (index) => entries[index].txid,
                   headerBuilder: (context) => [
                     SailTableHeaderCell(
-                      name: 'Conf Height',
-                      onSort: () => onSort('height'),
+                      name: 'Confirmations',
+                      onSort: () => onSort('confirmations'),
                     ),
                     SailTableHeaderCell(
                       name: 'Amount',
@@ -490,14 +490,14 @@ class _TransactionTableState extends State<TransactionTable> {
                   emptyPlaceholder: 'No transactions yet',
                   drawGrid: true,
                   sortColumnIndex: [
-                    'height',
+                    'confirmations',
                     'amount',
                     'txid',
                     'date',
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['height', 'amount', 'txid', 'date'][columnIndex]);
+                    onSort(['confirmations', 'amount', 'txid', 'date'][columnIndex]);
                   },
                   onDoubleTap: (rowId) {
                     final utxo = entries.firstWhere((u) => u.txid == rowId);
@@ -534,7 +534,7 @@ class _TransactionTableState extends State<TransactionTable> {
                   ),
                   DetailRow(label: 'Date', value: utxo.time.toLocal().format()),
                   DetailRow(
-                    label: 'Confirmation Height',
+                    label: 'Confirmations',
                     value: utxo.confirmations.toString(),
                   ),
                 ],
