@@ -3,6 +3,8 @@ import 'package:bitassets/providers/asset_analytics_provider.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/providers/favorites_provider.dart';
 import 'package:bitassets/providers/price_alert_provider.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -15,6 +17,14 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late AuctionRPC rpc;
+
+  setUpAll(() async {
+    final inter = FontLoader(SailFonts.inter);
+    for (final weight in ['Regular', 'Bold']) {
+      inter.addFont(rootBundle.load('packages/sail_ui/assets/fonts/Inter-$weight.ttf'));
+    }
+    await inter.load();
+  });
 
   setUp(() async {
     await GetIt.I.reset();
@@ -78,10 +88,32 @@ void main() {
       await GetIt.I.reset();
     });
   }
+
+  testWidgets('the Upcoming badge fits its column on one line', (tester) async {
+    rpc.upcoming = true;
+    await tester.pumpSailPage(const AuctionBrowserTabPage());
+    await tester.pumpAndSettle();
+
+    final paragraphs = tester
+        .renderObjectList<RenderParagraph>(find.descendant(of: find.text('Upcoming'), matching: find.byType(RichText)))
+        .toList();
+    expect(paragraphs, hasLength(2));
+    for (final paragraph in paragraphs) {
+      final oneLine = TextPainter(
+        text: paragraph.text,
+        textDirection: TextDirection.ltr,
+        textScaler: paragraph.textScaler,
+      )..layout();
+      expect(paragraph.size.height, oneLine.height);
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+    await GetIt.I.reset();
+  });
 }
 
 class AuctionRPC extends MockBitAssetsRPC {
   int height = 101;
+  bool upcoming = false;
 
   @override
   Future<int> getBlockCount() async => height;
@@ -106,7 +138,7 @@ class AuctionRPC extends MockBitAssetsRPC {
       baseAmount: 1,
       initialPrice: 80,
       finalPrice: 70,
-      startBlock: 100,
+      startBlock: upcoming ? 200 : 100,
       duration: 10,
       status: 'Active',
     ),
