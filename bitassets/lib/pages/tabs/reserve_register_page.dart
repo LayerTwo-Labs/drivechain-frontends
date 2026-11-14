@@ -700,7 +700,7 @@ class BitAssetsViewModel extends BaseViewModel {
       if (context.mounted) {
         notificationProvider.add(
           title: 'Success',
-          content: 'Bitname "$name" reserved successfully in $txid!',
+          content: 'BitAsset "$name" reserved successfully in $txid!',
           dialogType: DialogType.success,
         );
       }

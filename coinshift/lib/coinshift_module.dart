@@ -98,6 +98,7 @@ class CoinShiftModule extends SidechainModule {
   @override
   List<ShellTab> get tabs => const [
     ShellTab(label: 'Swaps', route: SwapsTabRoute(), sourceFiles: ['swaps_page.dart']),
+    ShellTab(label: 'Analytics', route: SwapAnalyticsRoute(), sourceFiles: ['swap_analytics_page.dart']),
   ];
 
   @override
