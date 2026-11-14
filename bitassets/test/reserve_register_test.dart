@@ -132,5 +132,9 @@ void main() {
 
     expect(model.reserveError, isNull);
     expect(rpc.reserved, ['NewAsset']);
+    expect(
+      GetIt.I.get<NotificationProvider>().history.first.content,
+      'BitAsset "NewAsset" reserved successfully in txid!',
+    );
   });
 }
