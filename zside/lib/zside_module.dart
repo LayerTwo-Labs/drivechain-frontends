@@ -116,7 +116,7 @@ class ZSideModule extends SidechainModule {
   String get homeTabLabel => 'Home';
 
   @override
-  List<String> get homepageSourceFiles => const ['zside_transfer_page.dart', 'zside_bill_page.dart'];
+  List<String> get homepageSourceFiles => const ['zside_bill_page.dart'];
 
   @override
   List<ShellTab> get tabs => const [
@@ -126,6 +126,7 @@ class ZSideModule extends SidechainModule {
       sourceFiles: ['zside_shield_deshield_page.dart'],
     ),
     ShellTab(label: 'Melt/Cast', route: ZSideMeltCastTabRoute(), sourceFiles: ['zside_melt_cast_page.dart']),
+    ShellTab(label: 'Transfer', route: ZSideTransferTabRoute(), sourceFiles: ['zside_transfer_page.dart']),
   ];
 
   @override
