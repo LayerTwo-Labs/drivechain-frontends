@@ -5,6 +5,23 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:zside/providers/cast_provider.dart';
 
+/// Formats a bill amount in sats, or in BTC with spaced decimals from 1 BTC up.
+String billAmountLabel(int sats) {
+  if (sats < 100000000) {
+    return _groupDigits(sats.toString());
+  }
+  final fraction = (sats % 100000000).toString().padLeft(8, '0');
+  return '${_groupDigits((sats ~/ 100000000).toString())}.${fraction.substring(0, 2)} ${_groupDigits(fraction.substring(2))}';
+}
+
+String _groupDigits(String digits) {
+  final groups = <String>[];
+  for (var end = digits.length; end > 0; end -= 3) {
+    groups.insert(0, digits.substring(end < 3 ? 0 : end - 3, end));
+  }
+  return groups.join(' ');
+}
+
 @RoutePage()
 class ZSideBillPage extends StatelessWidget {
   const ZSideBillPage({super.key});
@@ -44,60 +61,8 @@ class ZSideBillPage extends StatelessWidget {
                                 TableCell(child: Center(child: SailText.primary13('Saturday'))),
                               ],
                             ),
-                            _buildTableRow([
-                              '1',
-                              '2',
-                              '4',
-                              '8',
-                              '16',
-                              '32',
-                              '64',
-                            ]),
-                            _buildTableRow([
-                              '128',
-                              '256',
-                              '512',
-                              '1 024',
-                              '2 048',
-                              '4 096',
-                              '8 192',
-                            ]),
-                            _buildTableRow([
-                              '16 384',
-                              '32 768',
-                              '65 536',
-                              '31 072',
-                              '262 144',
-                              '524 288',
-                              '1 048 576',
-                            ]),
-                            _buildTableRow([
-                              '2 097 152',
-                              '4 194 304',
-                              '8 388 608',
-                              '16 777 216',
-                              '33 554 432',
-                              '67 108 864',
-                              '1.34 217 728',
-                            ]),
-                            _buildTableRow([
-                              '2.68 435 456',
-                              '5.36 870 912',
-                              '10.73 718 240',
-                              '21.47 436 480',
-                              '42.94 972 960',
-                              '85.89 945 920',
-                              '171.79 891 840',
-                            ]),
-                            _buildTableRow([
-                              '343.58 983 680',
-                              '687.17 967 360',
-                              '1 374.35 934 720',
-                              '2 748.71 869 440',
-                              '5 497.43 738 880',
-                              '10 994.87 477 760',
-                              '21 989.74 955 520',
-                            ]),
+                            for (var row = 0; row < 6; row++)
+                              _buildTableRow([for (var day = 0; day < 7; day++) billAmountLabel(1 << (row * 7 + day))]),
                           ],
                         ),
                       ],
