@@ -10,6 +10,9 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+const _statusColumnWidth = 90.0;
+const _actionsColumnWidth = 140.0;
+
 @RoutePage()
 class AuctionBrowserTabPage extends StatelessWidget {
   const AuctionBrowserTabPage({super.key});
@@ -155,7 +158,7 @@ class AuctionBrowserTabPage extends StatelessWidget {
                               child: Row(
                                 children: [
                                   const SizedBox(width: 28), // Star column
-                                  SizedBox(width: 70, child: SailText.secondary12('Status')),
+                                  SizedBox(width: _statusColumnWidth, child: SailText.secondary12('Status')),
                                   Expanded(flex: 2, child: SailText.secondary12('Auction ID')),
                                   Expanded(child: SailText.secondary12('Base Asset')),
                                   Expanded(child: SailText.secondary12('Quote Asset')),
@@ -163,7 +166,7 @@ class AuctionBrowserTabPage extends StatelessWidget {
                                   Expanded(child: SailText.secondary12('Price Range', textAlign: TextAlign.right)),
                                   Expanded(child: SailText.secondary12('Current', textAlign: TextAlign.right)),
                                   Expanded(child: SailText.secondary12('Duration')),
-                                  const SizedBox(width: 110),
+                                  const SizedBox(width: _actionsColumnWidth),
                                 ],
                               ),
                             ),
@@ -329,7 +332,7 @@ class _AuctionRow extends StatelessWidget {
 
           // Status
           SizedBox(
-            width: 70,
+            width: _statusColumnWidth,
             child: _StatusBadge(status: status, color: statusColor),
           ),
 
@@ -417,7 +420,7 @@ class _AuctionRow extends StatelessWidget {
 
           // Actions
           SizedBox(
-            width: 110,
+            width: _actionsColumnWidth,
             child: SailRow(
               spacing: 4,
               mainAxisAlignment: MainAxisAlignment.end,
