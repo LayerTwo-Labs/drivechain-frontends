@@ -18,6 +18,7 @@ on:
       - "*/windows/packaging/exe/make_config.yaml"
       - "scripts/check-windows-app-ids.sh"
       - "scripts/sync-path-dep-versions.sh"
+      - "scripts/appcast/**"
       - ".github/workflows/dart.yml"
 
 env:
@@ -32,6 +33,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: ./scripts/check-windows-app-ids.sh
+
+  appcast:
+    name: appcast scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get install -y libxml2-utils
+      - run: ./scripts/appcast/build-appcast_test.sh
 
   format-lint-test:
     name: ${{ matrix.package }}
