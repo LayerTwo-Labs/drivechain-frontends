@@ -11,6 +11,7 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLIENT=$1
 DSA_KEY_FILE=$2
 EXE_PATH=$3
@@ -80,20 +81,7 @@ file_size=$(stat -c%s "../$EXE_PATH" 2>/dev/null || stat -f%z "../$EXE_PATH" 2>/
 FRAGMENT_FILE="release/$CLIENT-windows-fragment.xml"
 mkdir -p release
 
-# convert client to releases-name
-if [ "$CLIENT" == "bitwindow" ]; then
-    RELEASES_NAME="BitWindow"
-    RELEASES_FILENAME="BitWindow-latest-x86_64-windows.exe"
-elif [ "$CLIENT" == "bitassets" ]; then
-    RELEASES_NAME="BitAssets"
-    RELEASES_FILENAME="test-bitassets-x86_64-windows.exe"
-elif [ "$CLIENT" == "bitnames" ]; then
-    RELEASES_NAME="BitNames"
-    RELEASES_FILENAME="test-bitnames-x86_64-windows.exe"
-elif [ "$CLIENT" == "thunder" ]; then
-    RELEASES_NAME="Thunder"
-    RELEASES_FILENAME="test-thunder-x86_64-windows.exe"
-fi
+RELEASES_FILENAME=$("$SCRIPT_DIR/release-filename.sh" "$CLIENT" windows)
 
 cat > "$FRAGMENT_FILE" << EOF
     <!-- Windows Release -->
