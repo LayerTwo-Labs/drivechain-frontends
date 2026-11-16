@@ -15,6 +15,7 @@ import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/signing/psbt_signer.dart';
 import 'package:bitwindow/signing/sign_and_broadcast.dart';
+import 'package:bitwindow/widgets/confirm_send_dialog.dart';
 import 'package:bitwindow/widgets/multisig_sign_panel.dart';
 import 'package:bitwindow/widgets/replay_protection_dialog.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
@@ -1257,21 +1258,43 @@ class SendPageViewModel extends BaseViewModel {
       return;
     }
 
+    final destinations = <String, int>{};
+    for (final r in recipients) {
+      final address = r.addressController.text;
+      destinations[address] =
+          (destinations[address] ?? 0) + parseAmountToSatoshis(r.amountController.text, currentUnit);
+    }
+
+    setBusy(false);
+    if (!context.mounted) {
+      return;
+    }
+    final confirmed = await askConfirmSend(
+      context,
+      SendConfirmation(
+        payments: confirmSendPayments(
+          destinations: destinations,
+          feeSats: _graphFeeSats,
+          feeFromAmount: _subtractFeeFromAmount,
+        ),
+        payFrom: payFromLabel(coinSelectionStrategy, selectedUtxos),
+        feeTarget: feeTargetLabel(selectedConfTarget),
+        feeSats: feeSats,
+        feeIsEstimate: feeIsEstimate,
+        feeFromAmount: _subtractFeeFromAmount,
+        totalSats: totalSats,
+        unit: currentUnit,
+      ),
+    );
+    if (!confirmed) {
+      return;
+    }
+    setBusy(true);
+
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) {
         throw Exception('No active wallet');
-      }
-
-      // Build destinations map for all recipients, summing amounts for duplicate addresses
-      final destinations = <String, int>{};
-      for (int i = 0; i < recipients.length; i++) {
-        final r = recipients[i];
-        final address = r.addressController.text;
-        final satoshis = parseAmountToSatoshis(r.amountController.text, currentUnit);
-
-        // Sum amounts for duplicate addresses
-        destinations[address] = (destinations[address] ?? 0) + satoshis;
       }
 
       final fee = sendFee(estimatedSatPerVByte: _estimatedSatPerVByte, typedFeeSats: feeSats);
