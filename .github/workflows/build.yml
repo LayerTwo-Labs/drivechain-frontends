@@ -159,14 +159,15 @@ jobs:
 
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
                     # use windows-2022 because we need Inno Setup. -2022-image is heavier than latest
-              for os in "ubuntu-latest" "ubuntu-24.04-arm" "macos-latest" "windows-2022"; do
+              # The glibc of an image is the oldest glibc that the Linux release runs on.
+              for os in "ubuntu-22.04" "ubuntu-22.04-arm" "macos-latest" "windows-2022"; do
                 # For PRs, only build on ubuntu to save minutes
-                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "ubuntu-latest" ]]; then
+                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "ubuntu-22.04" ]]; then
                   continue
                 fi
 
                 # Only bitwindow runs in light mode, which needs no arm64 sidechain or enforcer build.
-                if [[ "$client" != "bitwindow" && "$os" == "ubuntu-24.04-arm" ]]; then
+                if [[ "$client" != "bitwindow" && "$os" == "ubuntu-22.04-arm" ]]; then
                   continue
                 fi
 
@@ -207,7 +208,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
     env:
-      ARCH_SUFFIX: ${{ matrix.os == 'ubuntu-24.04-arm' && '-arm64' || '' }}
+      ARCH_SUFFIX: ${{ matrix.os == 'ubuntu-22.04-arm' && '-arm64' || '' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -222,7 +223,7 @@ jobs:
             go-build-${{ env.GO_VERSION }}-${{ runner.os }}${{ env.ARCH_SUFFIX }}-
 
       - uses: subosito/flutter-action@v2
-        if: matrix.os != 'ubuntu-24.04-arm'
+        if: matrix.os != 'ubuntu-22.04-arm'
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -233,7 +234,7 @@ jobs:
 
       # Flutter publishes no Linux arm64 archive, so this runner uses a git checkout.
       - name: Install Flutter from git
-        if: matrix.os == 'ubuntu-24.04-arm'
+        if: matrix.os == 'ubuntu-22.04-arm'
         run: |
           git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$RUNNER_TOOL_CACHE/flutter"
           echo "$RUNNER_TOOL_CACHE/flutter/bin" >> "$GITHUB_PATH"
@@ -422,8 +423,8 @@ jobs:
           if [ -n "$built_file" ]; then
             # Map GitHub runner OS to platform name
             case "${{ matrix.os }}" in
-              ubuntu-latest) platform="linux" ;;
-              ubuntu-24.04-arm) platform="linux-arm64" ;;
+              ubuntu-22.04) platform="linux" ;;
+              ubuntu-22.04-arm) platform="linux-arm64" ;;
               macos-latest) platform="macos" ;;
               windows-2022) platform="windows" ;;
               *) platform="${{ matrix.os }}" ;;
@@ -432,7 +433,8 @@ jobs:
             # Normalize OS name for version file (always use -latest suffix)
             case "${{ matrix.os }}" in
               windows-2022) normalized_os="windows-latest" ;;
-              ubuntu-24.04-arm) normalized_os="ubuntuarm64-latest" ;;
+              ubuntu-22.04) normalized_os="ubuntu-latest" ;;
+              ubuntu-22.04-arm) normalized_os="ubuntuarm64-latest" ;;
               *) normalized_os="${{ matrix.os }}" ;;
             esac
 
@@ -466,7 +468,7 @@ jobs:
         run: |
           # Find built files with platform-specific patterns
           case "${{ matrix.os }}" in
-            ubuntu-latest|ubuntu-24.04-arm)
+            ubuntu-22.04|ubuntu-22.04-arm)
               # Linux doesn't need appcast fragments (no auto-updater)
               echo "Skipping appcast fragment for Linux"
               exit 0

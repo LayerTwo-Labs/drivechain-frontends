@@ -23,7 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          # The glibc of this image is the oldest glibc that the cgo binary runs on.
+          - os: ubuntu-22.04
             goos: linux
             goarch: amd64
           - os: macos-latest
