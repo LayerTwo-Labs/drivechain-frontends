@@ -36,7 +36,7 @@ class BitDriveProvider extends ChangeNotifier {
   String? fileName;
   String? mimeType;
   bool shouldEncrypt = true;
-  int fee = 1;
+  int feeSatPerVbyte = 1;
 
   BitDriveProvider() {
     blockchainProvider.addListener(_onSyncStatusChanged);
@@ -166,8 +166,8 @@ class BitDriveProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setFee(double value) {
-    fee = (btcToSatoshi(value)).toInt();
+  void setFeeRate(int satPerVbyte) {
+    feeSatPerVbyte = satPerVbyte;
     notifyListeners();
   }
 
@@ -189,7 +189,7 @@ class BitDriveProvider extends ChangeNotifier {
         filename: fileName,
         mimeType: mimeType,
         encrypt: shouldEncrypt,
-        feeSatPerVbyte: fee,
+        feeSatPerVbyte: feeSatPerVbyte,
       );
 
       log.i(

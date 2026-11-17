@@ -181,20 +181,21 @@ class _StoreTab extends StatelessWidget {
                               SizedBox(
                                 width: 150,
                                 child: NumericField(
-                                  label: 'Fee (${activeTicker.symbol})',
+                                  label: 'Fee rate (sat/vB)',
                                   controller: model.feeController,
-                                  hintText: '0.0001',
+                                  hintText: '1',
+                                  textFieldType: TextFieldType.number,
                                 ),
                               ),
                               SailButton(
                                 variant: ButtonVariant.icon,
                                 icon: SailSVGAsset.arrowUp,
-                                onPressed: () async => model.adjustFee(0.0001),
+                                onPressed: () async => model.adjustFeeRate(1),
                               ),
                               SailButton(
                                 variant: ButtonVariant.icon,
                                 icon: SailSVGAsset.arrowDown,
-                                onPressed: () async => model.adjustFee(-0.0001),
+                                onPressed: () async => model.adjustFeeRate(-1),
                               ),
                             ],
                           ),
@@ -331,14 +332,19 @@ class _MyFilesTab extends StatelessWidget {
 class BitDriveViewModel extends BaseViewModel {
   final BitDriveProvider provider = GetIt.I.get<BitDriveProvider>();
   final TextEditingController textController = TextEditingController();
-  final TextEditingController feeController = TextEditingController(text: '0.0001');
+  late final TextEditingController feeController = TextEditingController(text: '${provider.feeSatPerVbyte}');
   Logger get log => GetIt.I.get<Logger>();
   String? selectedFileName;
   Uint8List? selectedFileContent;
   String? fileError;
   String? storeError;
   bool get shouldEncrypt => provider.shouldEncrypt;
-  bool get canStore => textController.text.isNotEmpty || selectedFileContent != null;
+  bool get canStore => (textController.text.isNotEmpty || selectedFileContent != null) && feeRate != null;
+  int? get feeRate {
+    final rate = int.tryParse(feeController.text);
+    return rate != null && rate >= 1 ? rate : null;
+  }
+
   String? _bitdriveDir;
   String? get bitdriveDir => _bitdriveDir;
 
@@ -354,7 +360,7 @@ class BitDriveViewModel extends BaseViewModel {
   BitDriveViewModel() {
     provider.addListener(_onProviderChanged);
     textController.addListener(() => onTextChanged(textController.text));
-    feeController.addListener(_clearStoreError);
+    feeController.addListener(_onFeeRateChanged);
     _initBitdrive();
   }
 
@@ -369,11 +375,13 @@ class BitDriveViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void _clearStoreError() {
-    if (storeError != null) {
-      storeError = null;
-      notifyListeners();
+  void _onFeeRateChanged() {
+    storeError = null;
+    final rate = feeRate;
+    if (rate != null) {
+      provider.setFeeRate(rate);
     }
+    notifyListeners();
   }
 
   @override
@@ -439,18 +447,9 @@ class BitDriveViewModel extends BaseViewModel {
     }
   }
 
-  void adjustFee(double amount) {
-    try {
-      final currentFee = double.parse(feeController.text);
-      final newFee = (currentFee + amount).clamp(0.0001, 1.0);
-      final formattedFee = newFee.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
-      feeController.text = formattedFee;
-      provider.setFee(newFee);
-      notifyListeners();
-    } catch (e) {
-      feeController.text = '0.0001';
-      provider.setFee(0.0001);
-    }
+  void adjustFeeRate(int delta) {
+    final rate = (feeRate ?? 1) + delta;
+    feeController.text = '${rate < 1 ? 1 : rate}';
   }
 
   void onTextChanged(String value) {
