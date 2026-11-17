@@ -20,7 +20,7 @@ class DraftSigningStatus {
   });
 }
 
-/// Holds the open PSBT drafts for the active wallet. Every change goes
+/// Holds the saved transactions of the active wallet. Every change goes
 /// through SaveDraft at once, so a crash between two signatures loses
 /// nothing. Signing progress is derived from the PSBT, never stored.
 class PsbtDraftProvider extends ChangeNotifier implements NetworkScoped {
@@ -61,6 +61,13 @@ class PsbtDraftProvider extends ChangeNotifier implements NetworkScoped {
   final Set<String> _deleted = {};
 
   bool isBroadcastPending(String id) => _broadcastPending.contains(id);
+
+  /// The coins of the drafts that wait for a broadcast, as txid:vout. No new
+  /// transaction may spend them.
+  Set<String> get lockedOutpoints => {
+    for (final d in drafts)
+      if (d.txid.isEmpty) ...d.inputs,
+  };
 
   void setBroadcastPending(String id, bool pending) {
     if (pending) {
@@ -240,7 +247,8 @@ class PsbtDraftProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<void> _refreshStatus(String walletId, PsbtDraft draft) async {
-    if (draft.txid.isNotEmpty) {
+    final multisig = _walletReader.wallets.any((w) => w.id == walletId && w.isMultisig);
+    if (draft.txid.isNotEmpty || !multisig) {
       return;
     }
     final generation = _generation;

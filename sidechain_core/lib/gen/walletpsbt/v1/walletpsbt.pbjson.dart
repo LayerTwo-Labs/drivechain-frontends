@@ -28,6 +28,7 @@ const PsbtDraft$json = {
     {'1': 'created_at', '3': 5, '4': 1, '5': 3, '10': 'createdAt'},
     {'1': 'updated_at', '3': 6, '4': 1, '5': 3, '10': 'updatedAt'},
     {'1': 'txid', '3': 7, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'inputs', '3': 8, '4': 3, '5': 9, '10': 'inputs'},
   ],
 };
 
@@ -36,7 +37,7 @@ final $typed_data.Uint8List psbtDraftDescriptor =
     $convert.base64Decode('CglQc2J0RHJhZnQSDgoCaWQYASABKAlSAmlkEhsKCXdhbGxldF9pZBgCIAEoCVIId2FsbGV0SW'
         'QSFAoFbGFiZWwYAyABKAlSBWxhYmVsEh8KC3BzYnRfYmFzZTY0GAQgASgJUgpwc2J0QmFzZTY0'
         'Eh0KCmNyZWF0ZWRfYXQYBSABKANSCWNyZWF0ZWRBdBIdCgp1cGRhdGVkX2F0GAYgASgDUgl1cG'
-        'RhdGVkQXQSEgoEdHhpZBgHIAEoCVIEdHhpZA==');
+        'RhdGVkQXQSEgoEdHhpZBgHIAEoCVIEdHhpZBIWCgZpbnB1dHMYCCADKAlSBmlucHV0cw==');
 
 @$core.Deprecated('Use listDraftsRequestDescriptor instead')
 const ListDraftsRequest$json = {

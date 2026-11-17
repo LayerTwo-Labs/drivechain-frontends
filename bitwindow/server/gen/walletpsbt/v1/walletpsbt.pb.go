@@ -36,7 +36,9 @@ type PsbtDraft struct {
 	CreatedAt int64 `protobuf:"varint,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt int64 `protobuf:"varint,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Set once broadcast.
-	Txid          string `protobuf:"bytes,7,opt,name=txid,proto3" json:"txid,omitempty"`
+	Txid string `protobuf:"bytes,7,opt,name=txid,proto3" json:"txid,omitempty"`
+	// The coins the transaction spends, as txid:vout.
+	Inputs        []string `protobuf:"bytes,8,rep,name=inputs,proto3" json:"inputs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,6 +120,13 @@ func (x *PsbtDraft) GetTxid() string {
 		return x.Txid
 	}
 	return ""
+}
+
+func (x *PsbtDraft) GetInputs() []string {
+	if x != nil {
+		return x.Inputs
+	}
+	return nil
 }
 
 type ListDraftsRequest struct {
@@ -344,7 +353,7 @@ var File_walletpsbt_v1_walletpsbt_proto protoreflect.FileDescriptor
 
 const file_walletpsbt_v1_walletpsbt_proto_rawDesc = "" +
 	"\n" +
-	"\x1ewalletpsbt/v1/walletpsbt.proto\x12\rwalletpsbt.v1\x1a\x1bgoogle/protobuf/empty.proto\"\xc1\x01\n" +
+	"\x1ewalletpsbt/v1/walletpsbt.proto\x12\rwalletpsbt.v1\x1a\x1bgoogle/protobuf/empty.proto\"\xd9\x01\n" +
 	"\tPsbtDraft\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\twallet_id\x18\x02 \x01(\tR\bwalletId\x12\x14\n" +
@@ -355,7 +364,8 @@ const file_walletpsbt_v1_walletpsbt_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x06 \x01(\x03R\tupdatedAt\x12\x12\n" +
-	"\x04txid\x18\a \x01(\tR\x04txid\"0\n" +
+	"\x04txid\x18\a \x01(\tR\x04txid\x12\x16\n" +
+	"\x06inputs\x18\b \x03(\tR\x06inputs\"0\n" +
 	"\x11ListDraftsRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"F\n" +
 	"\x12ListDraftsResponse\x120\n" +

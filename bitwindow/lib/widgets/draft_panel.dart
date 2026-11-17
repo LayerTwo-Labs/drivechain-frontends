@@ -3,7 +3,10 @@ import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:bitwindow/pages/wallet/wallet_send.dart';
+import 'package:bitwindow/widgets/grouped_address.dart';
 import 'package:bitwindow/widgets/hardware_device_picker.dart';
+import 'package:bitwindow/widgets/summary_line.dart';
 import 'package:bitwindow/widgets/tx_flow_diagram.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
@@ -14,24 +17,23 @@ import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wm
 import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// The saved-transaction view for one PSBT draft: the flow card, the keys
-/// table, and the sign / import / broadcast actions. Drawn as frame 12 of
-/// the Multisig signing design.
-class MultisigSignPanel extends StatefulWidget {
+/// The view of one saved transaction: the flow card, and the broadcast and
+/// discard actions. A multisig wallet also gets the keys table.
+class DraftPanel extends StatefulWidget {
   final String walletId;
   final String draftId;
 
-  const MultisigSignPanel({
+  const DraftPanel({
     super.key,
     required this.walletId,
     required this.draftId,
   });
 
   @override
-  State<MultisigSignPanel> createState() => _MultisigSignPanelState();
+  State<DraftPanel> createState() => _DraftPanelState();
 }
 
-class _MultisigSignPanelState extends State<MultisigSignPanel> {
+class _DraftPanelState extends State<DraftPanel> {
   OrchestratorWalletRPC get _wallet => GetIt.I.get<OrchestratorRPC>().wallet;
   PsbtDraftProvider get _drafts => GetIt.I.get<PsbtDraftProvider>();
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
@@ -61,6 +63,14 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
   DraftSigningStatus? get _status => _drafts.statusFor(widget.draftId);
   wmpb.MultisigInfo? get _multisig => _walletReader.activeWallet?.multisig;
   String get _walletName => _walletReader.activeWallet?.name ?? 'this wallet';
+
+  /// A one-key draft can go out once each input holds a signature.
+  bool get _fullySigned {
+    final decoded = _decoded;
+    return decoded != null &&
+        decoded.details.inputs.isNotEmpty &&
+        decoded.signedInputs >= decoded.details.inputs.length;
+  }
 
   @override
   void initState() {
@@ -173,6 +183,12 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
     _signedAt[index] = DateTime.now();
   });
 
+  Future<void> _signOneKeyWithDevice(wmpb.HardwareDeviceSelector device) => _run('device', () async {
+    final draft = _draft!;
+    final signed = await _signOnDevice(device, draft.psbtBase64);
+    await _drafts.updatePsbt(draft.id, signed);
+  });
+
   Future<String> _signOnDevice(wmpb.HardwareDeviceSelector sel, String psbt) async {
     try {
       return await _wallet.signPsbtWithDevice(device: sel, psbtBase64: psbt);
@@ -278,11 +294,15 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
       return const SizedBox.shrink();
     }
 
+    if (_multisig == null) {
+      return _oneKeyLayout(context, draft);
+    }
+
     return SingleChildScrollView(
       child: SailColumn(
         spacing: SailStyleValues.padding16,
         children: [
-          _flowCard(context),
+          _flowCard(context, draft),
           _keysCard(context, draft),
           SailSpacing(SailStyleValues.padding64),
         ],
@@ -290,9 +310,115 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
     );
   }
 
+  Widget _oneKeyLayout(BuildContext context, PsbtDraft draft) {
+    final broadcast = draft.txid.isNotEmpty;
+    final error = _error ?? _drafts.modelError;
+    final main = SailColumn(
+      spacing: SailStyleValues.padding12,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _flowCard(context, draft),
+        if (broadcast) _broadcastRow(context, draft),
+      ],
+    );
+    final side = SailColumn(
+      spacing: SailStyleValues.padding12,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DraftSummaryCard(decoded: _decoded, isChange: _isChange),
+        if (!broadcast) ..._oneKeyActions(context, draft),
+        if (error != null) SailInlineError(error),
+      ],
+    );
+
+    return SingleChildScrollView(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < sendWideLayoutMinWidth) {
+            return SailColumn(
+              spacing: SailStyleValues.padding12,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [main, side, SailSpacing(SailStyleValues.padding64)],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: main),
+              const SizedBox(width: SailStyleValues.padding12),
+              SizedBox(width: sendSideColumnWidth, child: side),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _oneKeyActions(BuildContext context, PsbtDraft draft) {
+    final pending = _drafts.isBroadcastPending(draft.id);
+    final wallet = _walletReader.activeWallet;
+    final signed = _fullySigned;
+    return [
+      SailButton(
+        label: 'Broadcast',
+        loadingLabel: 'Broadcasting',
+        disabled: !signed || _blocked('broadcast') || pending,
+        loading: _isBusy('broadcast') || pending,
+        onPressed: () async => _broadcast(),
+      ),
+      if (!signed && wallet != null && wallet.isHardware)
+        SailButton(
+          label: 'Sign with ${wallet.hardwareDeviceType}',
+          variant: ButtonVariant.secondary,
+          loading: _isBusy('device'),
+          disabled: _blocked('device') || pending,
+          onPressed: () async => _signOneKeyWithDevice(
+            wmpb.HardwareDeviceSelector(type: wallet.hardwareDeviceType, fingerprint: wallet.hardwareFingerprint),
+          ),
+        ),
+      if (!signed && _decoded != null)
+        SailButton(
+          label: 'Import a signature',
+          variant: ButtonVariant.secondary,
+          loading: _isBusy('import'),
+          disabled: _blocked('import') || pending,
+          onPressed: () async => _importSignedPsbt(),
+        ),
+      SailButton(
+        label: 'Copy PSBT',
+        variant: ButtonVariant.ghost,
+        onPressed: () async => _copyPsbt(),
+      ),
+      SailButton(
+        label: 'Discard',
+        variant: ButtonVariant.outline,
+        disabled: _busyKey != null || pending,
+        onPressed: () async => confirmDeleteDraft(context, draft, _decoded),
+      ),
+    ];
+  }
+
+  Widget _broadcastRow(BuildContext context, PsbtDraft draft) {
+    final theme = context.sailTheme;
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    return SailRow(
+      spacing: SailStyleValues.padding08,
+      children: [
+        FlowChip(label: 'Broadcast', color: theme.colors.success),
+        Flexible(child: SailText.secondary13(draft.txid, monospace: true)),
+        SailButton(
+          label: 'View transaction',
+          variant: ButtonVariant.ghost,
+          small: true,
+          onPressed: () async => openUrl(Uri.parse(mempoolTxUrl(draft.txid, network))),
+        ),
+      ],
+    );
+  }
+
   // ─── Flow card ───────────────────────────────────────────────────
 
-  Widget _flowCard(BuildContext context) {
+  Widget _flowCard(BuildContext context, PsbtDraft draft) {
     final decoded = _decoded;
     return SailCard(
       title: 'Flow',
@@ -325,16 +451,16 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
                       if (decoded.hasFee) FlowSlot(sats: decoded.details.feeSats.toInt(), kind: FlowKind.fee),
                     ],
                   ),
-                _flowLabels(context, decoded),
+                _flowLabels(context, decoded, locked: draft.txid.isEmpty),
               ],
             ),
     );
   }
 
-  Widget _flowLabels(BuildContext context, DecodedTransaction decoded) {
+  Widget _flowLabels(BuildContext context, DecodedTransaction decoded, {required bool locked}) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final spends = _spendsColumn(context, decoded);
+        final spends = _spendsColumn(context, decoded, locked: locked);
         final creates = _createsColumn(context, decoded);
         if (constraints.maxWidth > 800) {
           return Row(
@@ -354,7 +480,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
     );
   }
 
-  Widget _spendsColumn(BuildContext context, DecodedTransaction decoded) {
+  Widget _spendsColumn(BuildContext context, DecodedTransaction decoded, {required bool locked}) {
     final inputs = decoded.details.inputs;
     final total = decoded.details.totalInputSats.toInt();
     return SailColumn(
@@ -362,7 +488,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.secondary12(
-          'SPENDS · ${inputs.length} ${inputs.length == 1 ? 'coin' : 'coins'} · ${_fmt(total)}',
+          'SPENDS · ${inputs.length} ${inputs.length == 1 ? 'coin' : 'coins'} · ${_fmt(total)}${locked ? ' · locked' : ''}',
           bold: true,
         ),
         for (final input in inputs)
@@ -443,10 +569,15 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
             runSpacing: SailStyleValues.padding04,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              SailText.secondary13(
-                bookName == null ? _shortAddress(address) : '$bookName · ${_shortAddress(address)}',
-                monospace: true,
-              ),
+              if (isChange)
+                SailText.secondary13(
+                  bookName == null ? _shortAddress(address) : '$bookName · ${_shortAddress(address)}',
+                  monospace: true,
+                )
+              else ...[
+                if (bookName != null) SailText.secondary13(bookName),
+                GroupedAddress(address),
+              ],
               if (isChange)
                 FlowChip(label: 'change · back to $_walletName', color: theme.colors.success)
               else
@@ -657,6 +788,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
         ),
         SailButton(
           label: 'Broadcast',
+          loadingLabel: 'Broadcasting',
           disabled: !finalizable || _blocked('broadcast') || pending,
           loading: _isBusy('broadcast') || pending,
           onPressed: () async => _broadcast(),
@@ -711,7 +843,7 @@ Future<bool> confirmDeleteDraft(BuildContext context, PsbtDraft draft, DecodedTr
   }
   final subtitle = draft.txid.isNotEmpty
       ? '$summary. The transaction is already broadcast — the delete only removes this tab. The coins moved.'
-      : '$summary. The signatures collected are deleted with it. Nothing was broadcast, so no coins move.';
+      : '$summary. Nothing was broadcast, so no coins move. New transactions can spend its coins again.';
 
   final confirmed = await showThemedDialog<bool>(
     context: context,
@@ -816,6 +948,53 @@ class _ImportPsbtDialogState extends State<_ImportPsbtDialog> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// What a saved transaction pays, in the lines of the send form summary.
+class DraftSummaryCard extends StatelessWidget {
+  final DecodedTransaction? decoded;
+  final bool Function(walletpb.TransactionOutput output) isChange;
+
+  const DraftSummaryCard({super.key, required this.decoded, required this.isChange});
+
+  @override
+  Widget build(BuildContext context) {
+    final decoded = this.decoded;
+    final unit = GetIt.I.get<SettingsProvider>().bitcoinUnit;
+    String fmt(int sats) => formatBitcoinWithUnit(satoshiToBTC(sats), unit);
+
+    if (decoded == null) {
+      return SailCard(title: 'Summary', child: SailText.secondary13('Decoding the transaction…'));
+    }
+    final payments = decoded.details.outputs.where((o) => !isChange(o)).toList();
+    final inputs = decoded.details.inputs;
+    final amount = payments.fold<int>(0, (sum, o) => sum + o.valueSats.toInt());
+    final fee = decoded.details.feeSats.toInt();
+
+    return SailCard(
+      title: 'Summary',
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SummaryLine(label: 'Recipients', value: SailText.primary13('${payments.length}')),
+          SummaryLine(
+            label: 'Pay from',
+            value: SailText.primary13(
+              '${inputs.length} ${inputs.length == 1 ? 'UTXO' : 'UTXOs'} · ${fmt(decoded.details.totalInputSats.toInt())}',
+            ),
+          ),
+          SummaryLine(label: 'Amount', value: SailText.primary13(fmt(amount), monospace: true)),
+          SummaryLine(label: 'Fee', value: SailText.primary13(fmt(fee), monospace: true)),
+          SummaryLine(
+            label: 'Total',
+            bold: true,
+            value: SailText.primary13(fmt(amount + fee), monospace: true, bold: true),
+          ),
+        ],
       ),
     );
   }

@@ -505,8 +505,19 @@ func (c *CoreRPCClient) WalletCreateFundedPSBT(
 
 // WalletProcessPSBT signs the wallet's inputs of a PSBT.
 func (c *CoreRPCClient) WalletProcessPSBT(ctx context.Context, walletName, psbtBase64 string) (*WalletProcessPSBTResult, error) {
+	return c.walletProcessPSBT(ctx, walletName, psbtBase64, true)
+}
+
+// WalletFillPSBT adds the wallet's coin records and key paths to a PSBT. It signs nothing.
+func (c *CoreRPCClient) WalletFillPSBT(ctx context.Context, walletName, psbtBase64 string) (*WalletProcessPSBTResult, error) {
+	return c.walletProcessPSBT(ctx, walletName, psbtBase64, false)
+}
+
+func (c *CoreRPCClient) walletProcessPSBT(
+	ctx context.Context, walletName, psbtBase64 string, sign bool,
+) (*WalletProcessPSBTResult, error) {
 	// No finalize here: FinalizePSBT checks every signature before it extracts.
-	result, err := c.call(ctx, walletName, "walletprocesspsbt", psbtBase64, true, "DEFAULT", true, false)
+	result, err := c.call(ctx, walletName, "walletprocesspsbt", psbtBase64, sign, "DEFAULT", true, false)
 	if err != nil {
 		return nil, err
 	}

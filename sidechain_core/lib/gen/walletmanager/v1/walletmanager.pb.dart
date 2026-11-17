@@ -5826,6 +5826,55 @@ class SetFrozenCoinsRequest extends $pb.GeneratedMessage {
   $pb.PbList<FrozenOutpoint> get outpoints => $_getList(0);
 }
 
+class SetDraftCoinsRequest extends $pb.GeneratedMessage {
+  factory SetDraftCoinsRequest({
+    $core.Iterable<FrozenOutpoint>? outpoints,
+  }) {
+    final result = SetDraftCoinsRequest._();
+    if (outpoints != null) result.outpoints.addAll(outpoints);
+    return result;
+  }
+
+  SetDraftCoinsRequest._();
+
+  factory SetDraftCoinsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      SetDraftCoinsRequest()..mergeFromBuffer(data, registry);
+  factory SetDraftCoinsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      SetDraftCoinsRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetDraftCoinsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'),
+      createEmptyInstance: SetDraftCoinsRequest.$_createMessage)
+    ..pPM<FrozenOutpoint>(1, _omitFieldNames ? '' : 'outpoints', subBuilder: FrozenOutpoint.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetDraftCoinsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetDraftCoinsRequest copyWith(void Function(SetDraftCoinsRequest) updates) =>
+      super.copyWith((message) => updates(message as SetDraftCoinsRequest)) as SetDraftCoinsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use SetDraftCoinsRequest() / SetDraftCoinsRequest.new instead')
+  static SetDraftCoinsRequest create() => SetDraftCoinsRequest._();
+  static $pb.GeneratedMessage $_createMessage() => SetDraftCoinsRequest._();
+  @$core.override
+  SetDraftCoinsRequest createEmptyInstance() => SetDraftCoinsRequest._();
+  @$core.pragma('dart2js:noInline')
+  static SetDraftCoinsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetDraftCoinsRequest>(SetDraftCoinsRequest.$_createMessage);
+  static SetDraftCoinsRequest? _defaultInstance;
+
+  /// The inputs of every saved transaction of this install. An empty list frees all.
+  @$pb.TagNumber(1)
+  $pb.PbList<FrozenOutpoint> get outpoints => $_getList(0);
+}
+
 class FrozenOutpoint extends $pb.GeneratedMessage {
   factory FrozenOutpoint({
     $core.String? txid,
@@ -14091,6 +14140,12 @@ class WalletManagerServiceApi {
   /// length of a send so its own coin selection skips them too.
   $async.Future<$1.Empty> setFrozenCoins($pb.ClientContext? ctx, SetFrozenCoinsRequest request) =>
       _client.invoke<$1.Empty>(ctx, 'WalletManagerService', 'SetFrozenCoins', request, $1.Empty());
+
+  /// SetDraftCoins records the inputs of the saved transactions that wait for a
+  /// broadcast. Coin selection skips them. A broadcast of that saved transaction
+  /// still spends them.
+  $async.Future<$1.Empty> setDraftCoins($pb.ClientContext? ctx, SetDraftCoinsRequest request) =>
+      _client.invoke<$1.Empty>(ctx, 'WalletManagerService', 'SetDraftCoins', request, $1.Empty());
 
   /// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
   $async.Future<CreateDepositResponse> createDeposit($pb.ClientContext? ctx, CreateDepositRequest request) => _client

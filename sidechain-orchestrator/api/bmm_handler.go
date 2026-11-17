@@ -57,8 +57,9 @@ type bidWallet interface {
 	walletNeedsL1(walletID string) bool
 	// ResolveWalletID names the wallet an empty id means.
 	ResolveWalletID(walletID string) (string, error)
-	// HeldCoins names the coins the user froze, keyed txid:vout. A bid picks
-	// its coin by hand and pins it, so the coin has to leave the list here.
+	// HeldCoins names the coins the user froze and the inputs of saved
+	// transactions, keyed txid:vout. A bid picks its coin by hand and pins it,
+	// so the coin has to leave the list here.
 	HeldCoins() map[string]bool
 	ListUnspent(
 		context.Context, *wpb.ListUnspentRequest,

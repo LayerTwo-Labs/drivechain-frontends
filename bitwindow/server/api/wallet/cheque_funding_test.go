@@ -61,6 +61,12 @@ func (f *fakeOrchestrator) SetFrozenCoins(
 	return &emptypb.Empty{}, nil
 }
 
+func (f *fakeOrchestrator) SetDraftCoins(
+	context.Context, *orchpb.SetDraftCoinsRequest,
+) (*emptypb.Empty, error) {
+	return &emptypb.Empty{}, nil
+}
+
 // The pollers ask before each tick. A full-mode answer keeps them running,
 // which is what these tests exercise.
 func (f *fakeOrchestrator) GetNodeMode(

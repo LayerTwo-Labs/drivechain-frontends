@@ -57,12 +57,14 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/walletpsbt"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchctlpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 )
 
@@ -186,6 +188,17 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		},
 	)
 
+	drafts := walletpsbt.NewStore(rt.db)
+	rt.walletEngine.SetDraftCoins(func(ctx context.Context) ([]string, error) {
+		wallets, err := orchClient.ListWallets(ctx, &orchpb.ListWalletsRequest{})
+		if err != nil {
+			return nil, fmt.Errorf("list wallets: %w", err)
+		}
+		return drafts.PendingInputs(ctx, lo.Map(wallets.Wallets, func(w *orchpb.WalletMetadata, _ int) string {
+			return w.Id
+		}))
+	})
+
 	chequeScope := keyScope(conf.BitcoinCoreNetwork, networkID)
 	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
 	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, rt.chequeChain, chequeScope)
@@ -291,7 +304,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		multisigv1connect.RegisterMultisigServiceHandler(rpcServer, multisigSvc)
 	}
 	{
-		walletPsbtSvc := api_walletpsbt.New(rt.db)
+		walletPsbtSvc := api_walletpsbt.New(rt.db, rt.walletEngine.PushFrozenCoins)
 		walletpsbtv1connect.RegisterWalletPsbtServiceHandler(rpcServer, walletPsbtSvc)
 	}
 	// Enforcer bridge — single impl serves three separate services

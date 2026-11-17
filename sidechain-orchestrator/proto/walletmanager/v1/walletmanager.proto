@@ -67,6 +67,10 @@ service WalletManagerService {
   // leaves those coins alone, and Bitcoin Core holds them locked for the
   // length of a send so its own coin selection skips them too.
   rpc SetFrozenCoins(SetFrozenCoinsRequest) returns (google.protobuf.Empty);
+  // SetDraftCoins records the inputs of the saved transactions that wait for a
+  // broadcast. Coin selection skips them. A broadcast of that saved transaction
+  // still spends them.
+  rpc SetDraftCoins(SetDraftCoinsRequest) returns (google.protobuf.Empty);
 
   // CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
   rpc CreateDeposit(CreateDepositRequest) returns (CreateDepositResponse);
@@ -785,6 +789,11 @@ message PreviewSendResponse {
 message SetFrozenCoinsRequest {
   // The whole frozen set of this install. An outpoint names one coin of one
   // wallet, so the set covers every wallet at once. An empty list frees all.
+  repeated FrozenOutpoint outpoints = 1;
+}
+
+message SetDraftCoinsRequest {
+  // The inputs of every saved transaction of this install. An empty list frees all.
   repeated FrozenOutpoint outpoints = 1;
 }
 

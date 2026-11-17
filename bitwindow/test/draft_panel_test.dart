@@ -4,7 +4,8 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/widgets/multisig_sign_panel.dart';
+import 'package:bitwindow/widgets/draft_panel.dart';
+import 'package:bitwindow/widgets/grouped_address.dart';
 import 'package:bitwindow/widgets/tx_flow_diagram.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,9 @@ import 'test_utils.dart';
 class _FakeWalletRPC implements OrchestratorWalletRPC {
   String warningMessage = '';
   int locktime = 0;
+
+  /// The decode reports both inputs signed once a PSBT holds this mark.
+  String signedMark = 'cHNidP8B';
   wmpb.MultisigPsbtStatusResponse status = wmpb.MultisigPsbtStatusResponse(
     threshold: 2,
     signatures: 1,
@@ -41,7 +45,7 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
     return DecodedTransaction(
       form: wmpb.DecodedForm.DECODED_FORM_PSBT,
       isPsbt: true,
-      signedInputs: 1,
+      signedInputs: input.contains(signedMark) ? 2 : 1,
       hasFee: true,
       hasTotalInput: true,
       changeOutputIndexes: {1},
@@ -65,6 +69,13 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
 
   @override
   Future<String> finalizePsbt({required String psbtBase64}) async => 'rawhex';
+
+  @override
+  Future<String> signPsbtWithDevice({required wmpb.HardwareDeviceSelector device, required String psbtBase64}) async =>
+      '$psbtBase64+signed';
+
+  @override
+  Future<String> combinePsbt({required List<String> psbtsBase64}) async => psbtsBase64.last;
 
   @override
   Future<String> broadcastTransaction({required String walletId, required String txHex}) async => 'cc' * 32;
@@ -99,6 +110,9 @@ class _FakeConf implements BitcoinConfProvider {
 
   @override
   String get ecashNetworkId => 'ecash-mainnet';
+
+  @override
+  String get ecashExplorerHost => 'explorer.example';
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -153,13 +167,32 @@ class _TestWalletReader extends WalletReaderProvider {
     activeWalletId = 'wallet-1';
     notifyListeners();
   }
+
+  void setOneKeyWallet({String hardwareDeviceType = ''}) {
+    wallets = [
+      WalletData(
+        version: 1,
+        master: MasterWallet(mnemonic: '', seedHex: '', masterKey: '', chainCode: ''),
+        l1: L1Wallet(mnemonic: ''),
+        sidechains: [],
+        id: 'wallet-1',
+        name: 'Spending',
+        gradient: WalletGradient.fromWalletId('wallet-1'),
+        createdAt: DateTime(2026, 8, 1),
+        walletType: BinaryType.BINARY_TYPE_BITCOIND,
+        hardwareDeviceType: hardwareDeviceType,
+      ),
+    ];
+    activeWalletId = 'wallet-1';
+    notifyListeners();
+  }
 }
 
 void main() {
   late _FakeOrchestrator orchestrator;
   late PsbtDraftProvider draftProvider;
 
-  Future<String> setUpPanelDeps() async {
+  Future<String> setUpPanelDeps({bool oneKey = false, String hardwareDeviceType = ''}) async {
     await GetIt.I.reset();
     await registerTestDependencies();
 
@@ -168,7 +201,11 @@ void main() {
 
     final walletReader = _TestWalletReader();
     GetIt.I.registerSingleton<WalletReaderProvider>(walletReader);
-    walletReader.setMultisigWallet();
+    if (oneKey) {
+      walletReader.setOneKeyWallet(hardwareDeviceType: hardwareDeviceType);
+    } else {
+      walletReader.setMultisigWallet();
+    }
 
     GetIt.I.registerSingleton<AddressBookProvider>(AddressBookProvider());
     GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());
@@ -193,7 +230,7 @@ void main() {
       final draftId = await setUpPanelDeps();
       orchestrator.wallet.warningMessage = message.value;
 
-      await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
       await tester.pumpAndSettle();
 
       final alerts = tester.widgetList<SailAlert>(find.byType(SailAlert));
@@ -211,7 +248,7 @@ void main() {
   testWidgets('the flow diagram stays hidden until the user asks', (tester) async {
     final draftId = await setUpPanelDeps();
 
-    await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+    await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
     await tester.pumpAndSettle();
 
     final toggle = find.byWidgetPredicate((w) => w is SailButton && w.label == 'Show diagram');
@@ -228,7 +265,7 @@ void main() {
   testWidgets('the keys table renders one row per cosigner', (tester) async {
     final draftId = await setUpPanelDeps();
 
-    await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+    await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
     await tester.pumpAndSettle();
 
     expect(find.text('Key 1'), findsOneWidget);
@@ -246,7 +283,7 @@ void main() {
   testWidgets('only an eligible cosigner shows Sign', (tester) async {
     final draftId = await setUpPanelDeps();
 
-    await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+    await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
     await tester.pumpAndSettle();
 
     // Cosigner 1 signed, cosigner 2 is a device that has not signed, and
@@ -261,7 +298,7 @@ void main() {
   testWidgets('Broadcast stays disabled until finalizable', (tester) async {
     final draftId = await setUpPanelDeps();
 
-    await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+    await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
     await tester.pumpAndSettle();
 
     expect(broadcastButton(tester).disabled, isTrue);
@@ -312,7 +349,7 @@ void main() {
       );
       await draftProvider.fetch();
 
-      await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
       await tester.pumpAndSettle();
       final broadcast = find.byWidgetPredicate((w) => w is SailButton && w.label == 'Broadcast');
       await tester.ensureVisible(broadcast);
@@ -324,4 +361,82 @@ void main() {
       expect(fork.replayedTxids.contains('cc' * 32), entry.value.unprotected);
     });
   }
+
+  group('a one-key wallet', () {
+    Finder button(String label) => find.byWidgetPredicate((w) => w is SailButton && w.label == label);
+
+    Future<String> pumpOneKeyPanel(WidgetTester tester, {String hardwareDeviceType = ''}) async {
+      final draftId = await setUpPanelDeps(oneKey: true, hardwareDeviceType: hardwareDeviceType);
+      if (hardwareDeviceType.isNotEmpty) {
+        orchestrator.wallet.signedMark = '+signed';
+      }
+      GetIt.I.registerSingleton<ForkProvider>(ForkProvider());
+      GetIt.I.registerSingleton<BitcoinConfProvider>(_FakeConf());
+      GetIt.I.registerSingleton<NotificationProvider>(_FakeNotifications());
+      await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.pumpAndSettle();
+      return draftId;
+    }
+
+    testWidgets('shows no keys table, and locks the coins until the broadcast', (tester) async {
+      await pumpOneKeyPanel(tester);
+
+      expect(find.text('Key 1'), findsNothing);
+      expect(find.textContaining('of 3 keys'), findsNothing);
+      expect(find.textContaining('· locked'), findsOneWidget);
+      expect(find.text('Summary'), findsOneWidget);
+      expect(find.byType(GroupedAddress), findsOneWidget);
+      expect(tester.widget<SailButton>(button('Broadcast')).disabled, isFalse);
+      expect(button('Copy PSBT'), findsOneWidget);
+      expect(button('Discard'), findsOneWidget);
+    });
+
+    testWidgets('a broadcast puts the txid where the buttons were', (tester) async {
+      final draftId = await pumpOneKeyPanel(tester);
+
+      await tester.ensureVisible(button('Broadcast'));
+      await tester.pumpAndSettle();
+      await tester.tap(button('Broadcast'));
+      await tester.pumpAndSettle();
+
+      expect(draftProvider.drafts.single.txid, 'cc' * 32);
+      expect(draftProvider.lockedOutpoints, isEmpty, reason: draftId);
+      expect(find.text('cc' * 32), findsOneWidget);
+      expect(button('View transaction'), findsOneWidget);
+      expect(button('Broadcast'), findsNothing);
+      expect(button('Discard'), findsNothing);
+      expect(find.textContaining('· locked'), findsNothing);
+    });
+
+    testWidgets('Discard deletes the draft', (tester) async {
+      await pumpOneKeyPanel(tester);
+
+      await tester.ensureVisible(button('Discard'));
+      await tester.pumpAndSettle();
+      await tester.tap(button('Discard'));
+      // The Discard button spins while its dialog is open, so the frames never settle.
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(button('Delete transaction'));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(draftProvider.drafts, isEmpty);
+    });
+
+    testWidgets('a hardware wallet signs its draft on the device, then broadcasts', (tester) async {
+      await pumpOneKeyPanel(tester, hardwareDeviceType: 'trezor');
+
+      expect(tester.widget<SailButton>(button('Broadcast')).disabled, isTrue);
+      expect(button('Import a signature'), findsOneWidget);
+
+      await tester.ensureVisible(button('Sign with trezor'));
+      await tester.pumpAndSettle();
+      await tester.tap(button('Sign with trezor'));
+      await tester.pumpAndSettle();
+
+      expect(draftProvider.drafts.single.psbtBase64, endsWith('+signed'));
+      expect(tester.widget<SailButton>(button('Broadcast')).disabled, isFalse);
+      expect(button('Sign with trezor'), findsNothing);
+      expect(button('Import a signature'), findsNothing);
+    });
+  });
 }

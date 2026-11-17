@@ -890,28 +890,32 @@ func (h *WalletHandler) refuseFrozenRawInputs(txHex string) error {
 	return nil
 }
 
-// refuseFrozenInputs stops a send that names a coin the user froze.
+// refuseFrozenInputs stops a send that names a coin the user froze, or a coin
+// a saved transaction spends.
 func (h *WalletHandler) refuseFrozenInputs(inputs []*pb.UnspentOutput) error {
 	if len(inputs) == 0 {
 		return nil
 	}
 	held := h.svc.HeldCoins()
-	if len(held) == 0 {
-		return nil
-	}
+	drafts := h.svc.DraftCoins()
 	for _, in := range inputs {
 		outpoint := wallet.Outpoint{TxID: in.Txid, Vout: int(in.Vout)}
 		if held[outpoint.Key()] {
 			return connect.Errorf(connect.CodeFailedPrecondition,
 				"the output %s is frozen; unfreeze it to spend it", outpoint.Key())
 		}
+		if drafts[outpoint.Key()] {
+			return connect.Errorf(connect.CodeFailedPrecondition,
+				"a saved transaction spends the output %s; discard it to spend the coin", outpoint.Key())
+		}
 	}
 	return nil
 }
 
-// HeldCoins names the coins the frontend froze.
+// HeldCoins names the coins no bid may pick: the coins the frontend froze, and
+// the inputs of saved transactions.
 func (h *WalletHandler) HeldCoins() map[string]bool {
-	return h.svc.HeldCoins()
+	return lo.Assign(h.svc.HeldCoins(), h.svc.DraftCoins())
 }
 
 // SetFrozenCoins records the coins the frontend froze, so every later send
@@ -925,6 +929,21 @@ func (h *WalletHandler) SetFrozenCoins(ctx context.Context, req *pb.SetFrozenCoi
 		coins = append(coins, wallet.Outpoint{TxID: out.Txid, Vout: int(out.Vout)})
 	}
 	h.svc.SetHeldCoins(coins)
+
+	return &emptypb.Empty{}, nil
+}
+
+// SetDraftCoins records the inputs of the saved transactions, so every later
+// send leaves them alone.
+func (h *WalletHandler) SetDraftCoins(ctx context.Context, req *pb.SetDraftCoinsRequest) (*emptypb.Empty, error) {
+	coins := make([]wallet.Outpoint, 0, len(req.Outpoints))
+	for _, out := range req.Outpoints {
+		if out.Txid == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, "a draft coin needs a txid")
+		}
+		coins = append(coins, wallet.Outpoint{TxID: out.Txid, Vout: int(out.Vout)})
+	}
+	h.svc.SetDraftCoins(coins)
 
 	return &emptypb.Empty{}, nil
 }

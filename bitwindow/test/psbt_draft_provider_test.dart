@@ -280,4 +280,18 @@ void main() {
 
     expect(provider.drafts, isEmpty);
   });
+
+  test('the coins of a draft stay locked until its broadcast', () async {
+    final api = GetIt.I.get<BitwindowRPC>().walletpsbt as MockWalletPsbtAPI;
+    api.drafts['waits'] = PsbtDraft(id: 'waits', walletId: 'wallet-1', psbtBase64: 'a', inputs: ['aa:0', 'aa:1']);
+    api.drafts['sent'] = PsbtDraft(id: 'sent', walletId: 'wallet-1', psbtBase64: 'b', inputs: ['bb:0'], txid: 'bb');
+    api.drafts['other'] = PsbtDraft(id: 'other', walletId: 'wallet-2', psbtBase64: 'c', inputs: ['cc:0']);
+
+    final provider = PsbtDraftProvider();
+    await provider.fetch();
+    expect(provider.lockedOutpoints, {'aa:0', 'aa:1'});
+
+    await provider.delete('waits');
+    expect(provider.lockedOutpoints, isEmpty);
+  });
 }

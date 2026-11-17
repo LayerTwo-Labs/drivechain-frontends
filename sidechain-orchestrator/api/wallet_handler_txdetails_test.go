@@ -173,6 +173,26 @@ func TestSetFrozenCoinsRecordsTheWholeSet(t *testing.T) {
 	assert.Empty(t, h.svc.HeldCoins())
 }
 
+// A bid skips the inputs of a saved transaction, but a broadcast of that
+// transaction still spends them.
+func TestSetDraftCoinsHoldsBidsOffButNotTheBroadcast(t *testing.T) {
+	fake := &detailsProvider{rawTx: paymentWithChange()}
+	h, _ := newDetailsHandler(t, fake)
+	ctx := context.Background()
+	draft := wallet.Outpoint{TxID: "draft", Vout: 2}
+
+	_, err := h.SetDraftCoins(ctx, &pb.SetDraftCoinsRequest{
+		Outpoints: []*pb.FrozenOutpoint{{Txid: draft.TxID, Vout: int32(draft.Vout)}},
+	})
+	require.NoError(t, err)
+	assert.True(t, h.HeldCoins()[draft.Key()])
+	assert.Empty(t, h.svc.HeldCoins())
+
+	_, err = h.SetDraftCoins(ctx, &pb.SetDraftCoinsRequest{})
+	require.NoError(t, err)
+	assert.Empty(t, h.HeldCoins())
+}
+
 func TestSetFrozenCoinsRefusesACoinWithoutATxid(t *testing.T) {
 	fake := &detailsProvider{rawTx: paymentWithChange()}
 	h, _ := newDetailsHandler(t, fake)
@@ -234,6 +254,23 @@ func TestSendRefusesAFrozenRequiredInput(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Contains(t, err.Error(), "is frozen")
+}
+
+// A required input is spent as it is given, so a send that pins the coin of a
+// saved transaction has to stop.
+func TestSendRefusesARequiredInputOfASavedTransaction(t *testing.T) {
+	fake := &detailsProvider{rawTx: paymentWithChange()}
+	h, walletID := newDetailsHandler(t, fake)
+	h.svc.SetDraftCoins([]wallet.Outpoint{{TxID: "draft", Vout: 0}})
+
+	_, err := h.SendTransaction(context.Background(), &pb.SendTransactionRequest{
+		WalletId:       walletID,
+		Destinations:   map[string]int64{"bcrt1qdest": 50_000},
+		RequiredInputs: []*pb.UnspentOutput{{Txid: "draft", Vout: 0}},
+	})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	assert.Contains(t, err.Error(), "a saved transaction spends")
 }
 
 // A bid raise pins the coin its own bid holds, and that coin stays spendable.

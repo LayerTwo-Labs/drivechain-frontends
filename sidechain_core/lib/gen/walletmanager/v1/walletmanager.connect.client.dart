@@ -628,6 +628,26 @@ extension type WalletManagerServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// SetDraftCoins records the inputs of the saved transactions that wait for a
+  /// broadcast. Coin selection skips them. A broadcast of that saved transaction
+  /// still spends them.
+  Future<googleprotobufempty.Empty> setDraftCoins(
+    walletmanagerv1walletmanager.SetDraftCoinsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.setDraftCoins,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
   Future<walletmanagerv1walletmanager.CreateDepositResponse> createDeposit(
     walletmanagerv1walletmanager.CreateDepositRequest input, {

@@ -7,13 +7,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/btcsuite/btcd/btcutil/psbt"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/samber/lo"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
-// Draft is an in-progress multisig spend. The PSBT blob holds the
-// signatures; nothing else about signing state is stored.
+// Draft is a saved transaction. The PSBT blob holds the signatures; nothing
+// else about signing state is stored.
 type Draft struct {
 	ID         string `db:"id"`
 	WalletID   string `db:"wallet_id"`
@@ -41,6 +46,40 @@ func (s *Store) List(ctx context.Context, walletID string) ([]Draft, error) {
 		return nil, fmt.Errorf("list drafts: %w", err)
 	}
 	return drafts, nil
+}
+
+// PendingInputs names the coins of every draft of [walletIDs] that waits for a
+// broadcast, as txid:vout. A draft of a deleted wallet holds no coin.
+func (s *Store) PendingInputs(ctx context.Context, walletIDs []string) ([]string, error) {
+	drafts, err := database.Select[Draft](ctx, s.db, `
+		SELECT id, wallet_id, label, psbt_base64, created_at, updated_at, txid
+		FROM wallet_psbt_drafts WHERE txid = ''`)
+	if err != nil {
+		return nil, fmt.Errorf("list drafts: %w", err)
+	}
+	var outpoints []string
+	for _, d := range drafts {
+		if !lo.Contains(walletIDs, d.WalletID) {
+			continue
+		}
+		inputs, err := Inputs(d.PSBTBase64)
+		if err != nil {
+			return nil, fmt.Errorf("draft %s: %w", d.ID, err)
+		}
+		outpoints = append(outpoints, inputs...)
+	}
+	return outpoints, nil
+}
+
+// Inputs names the coins a PSBT spends, as txid:vout.
+func Inputs(psbtBase64 string) ([]string, error) {
+	packet, err := psbt.NewFromRawBytes(strings.NewReader(psbtBase64), true)
+	if err != nil {
+		return nil, fmt.Errorf("decode psbt: %w", err)
+	}
+	return lo.Map(packet.UnsignedTx.TxIn, func(in *wire.TxIn, _ int) string {
+		return in.PreviousOutPoint.String()
+	}), nil
 }
 
 // ErrOtherWallet is returned when a save names the id of a draft of another wallet.

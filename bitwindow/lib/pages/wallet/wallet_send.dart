@@ -15,9 +15,10 @@ import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/signing/psbt_signer.dart';
 import 'package:bitwindow/signing/sign_and_broadcast.dart';
-import 'package:bitwindow/widgets/confirm_send_dialog.dart';
-import 'package:bitwindow/widgets/multisig_sign_panel.dart';
+import 'package:bitwindow/utils/base58.dart';
+import 'package:bitwindow/widgets/draft_panel.dart';
 import 'package:bitwindow/widgets/replay_protection_dialog.dart';
+import 'package:bitwindow/widgets/summary_line.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.pb.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
@@ -36,12 +37,6 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
 
   @override
   Widget build(BuildContext context, SendPageViewModel viewModel) {
-    if (!viewModel.isMultisig) {
-      return _createForm(context, viewModel);
-    }
-
-    // One tab per saved transaction. The tab persisting says "saved" —
-    // no label does.
     final walletId = viewModel.activeWalletId;
     final tabs = [
       SingleTabItem(
@@ -51,7 +46,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
       for (final draft in viewModel.drafts)
         SingleTabItem(
           label: draft.label.isNotEmpty ? draft.label : 'Transaction ${draftReference(draft)}',
-          leading: _StateDot(draft: draft),
+          leading: _StateDot(draft: draft, signed: viewModel.holdsKey),
           icon: SailSVGAsset.iconClose,
           onIconTap: () async {
             final deleted = await confirmDeleteDraft(context, draft, null);
@@ -62,7 +57,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
           onLabelChanged: (label) => viewModel.renameDraft(draft.id, label),
           child: walletId == null
               ? const SizedBox.shrink()
-              : MultisigSignPanel(key: ValueKey('sign_panel_${draft.id}'), walletId: walletId, draftId: draft.id),
+              : DraftPanel(key: ValueKey('draft_panel_${draft.id}'), walletId: walletId, draftId: draft.id),
         ),
     ];
 
@@ -130,43 +125,27 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
   }
 
   Widget _actions(BuildContext context, SendPageViewModel viewModel) {
-    return SailColumn(
-      spacing: SailStyleValues.padding08,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SailButton(
-          label: viewModel.isMultisig ? 'Continue to signing' : 'Send',
-          loadingLabel: viewModel.isMultisig ? 'Creating' : 'Broadcasting',
-          onPressed: () => viewModel.sendTransaction(context),
-        ),
-        if (!viewModel.isMultisig) ...[
-          SailButton(
-            variant: ButtonVariant.secondary,
-            label: 'External signer (airgap)',
-            onPressed: () => _externalSign(context, viewModel, AirgapPsbtSigner()),
+    final oneKey = !viewModel.isMultisig;
+    return SendActions(
+      creating: viewModel.creating,
+      sendsNow: viewModel.sendsNow,
+      onCreate: viewModel.sendsNow
+          ? () => viewModel.sendNow(context)
+          : () async => unawaited(viewModel.createTransaction(context)),
+      onCancel: viewModel.cancelCreate,
+      onClear: viewModel.clearAll,
+      onAirgap: oneKey ? () => _externalSign(context, viewModel, AirgapPsbtSigner()) : null,
+      deviceType: oneKey && viewModel.isHardwareWallet ? viewModel.hardwareDeviceType : null,
+      onDevice: () => _externalSign(
+        context,
+        viewModel,
+        HwiPsbtSigner(
+          wmpb.HardwareDeviceSelector(
+            type: viewModel.hardwareDeviceType,
+            fingerprint: viewModel.hardwareFingerprint,
           ),
-          if (viewModel.isHardwareWallet)
-            SailButton(
-              variant: ButtonVariant.secondary,
-              label: 'Sign with ${viewModel.hardwareDeviceType}',
-              onPressed: () => _externalSign(
-                context,
-                viewModel,
-                HwiPsbtSigner(
-                  wmpb.HardwareDeviceSelector(
-                    type: viewModel.hardwareDeviceType,
-                    fingerprint: viewModel.hardwareFingerprint,
-                  ),
-                ),
-              ),
-            ),
-        ],
-        SailButton(
-          variant: ButtonVariant.outline,
-          label: 'Clear All',
-          onPressed: viewModel.clearAll,
         ),
-      ],
+      ),
     );
   }
 
@@ -211,6 +190,112 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
 
 const double sendWideLayoutMinWidth = 1000;
 const double sendSideColumnWidth = 400;
+
+/// The buttons under the send summary. While a transaction builds, the main
+/// button waits and Cancel stops the build.
+class SendActions extends StatelessWidget {
+  final bool creating;
+
+  /// A send to a BIP47 payment code broadcasts at once, with no saved transaction.
+  final bool sendsNow;
+  final Future<void> Function() onCreate;
+  final VoidCallback onCancel;
+  final Future<void> Function() onClear;
+
+  /// Null hides the airgap button.
+  final Future<void> Function()? onAirgap;
+
+  /// The hardware device of the wallet. Null hides its sign button.
+  final String? deviceType;
+  final Future<void> Function() onDevice;
+
+  const SendActions({
+    super.key,
+    required this.creating,
+    required this.sendsNow,
+    required this.onCreate,
+    required this.onCancel,
+    required this.onClear,
+    required this.onAirgap,
+    required this.deviceType,
+    required this.onDevice,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SailButton(
+          label: sendsNow ? 'Send' : 'Create Transaction',
+          loadingLabel: sendsNow ? 'Sending' : 'Creating…',
+          loading: creating,
+          disabled: creating,
+          onPressed: onCreate,
+        ),
+        if (onAirgap != null)
+          SailButton(
+            variant: ButtonVariant.secondary,
+            label: 'External signer (airgap)',
+            disabled: creating,
+            onPressed: onAirgap,
+          ),
+        if (deviceType != null)
+          SailButton(
+            variant: ButtonVariant.secondary,
+            label: 'Sign with $deviceType',
+            disabled: creating,
+            onPressed: onDevice,
+          ),
+        if (creating)
+          SailButton(
+            variant: ButtonVariant.outline,
+            label: 'Cancel',
+            onPressed: () async => onCancel(),
+          )
+        else
+          SailButton(
+            variant: ButtonVariant.outline,
+            label: 'Clear All',
+            onPressed: onClear,
+          ),
+      ],
+    );
+  }
+}
+
+/// The steps of Create Transaction: build, sign when [sign] is set, and save.
+/// A cancel stops the steps that remain, and a draft saved after a cancel is
+/// discarded again. Null when it stopped.
+Future<PsbtDraft?> buildSignAndSave({
+  required Future<String?> Function() build,
+  required Future<String> Function(String psbt)? sign,
+  required Future<PsbtDraft> Function(String psbt) save,
+  required Future<void> Function(String id) discard,
+  required bool Function() canceled,
+}) async {
+  final unsigned = await build();
+  if (unsigned == null || canceled()) {
+    return null;
+  }
+  final psbt = sign == null ? unsigned : await sign(unsigned);
+  if (canceled()) {
+    return null;
+  }
+  final draft = await save(psbt);
+  if (canceled()) {
+    await discard(draft.id);
+    return null;
+  }
+  return draft;
+}
+
+/// True for a BIP47 payment code: Base58Check with version 0x47 and an 80-byte payload.
+bool isPaymentCode(String address) {
+  final decoded = Base58Check.decode(address.trim());
+  return decoded != null && decoded.checksumValid && decoded.versionByte == 0x47 && decoded.payload.length == 80;
+}
 
 /// What the send pays in total: the amounts, plus the fee unless the
 /// recipient pays the fee out of the amount, plus a BIP47 notification.
@@ -487,8 +572,8 @@ class SummaryCard extends ViewModelWidget<SendPageViewModel> {
         spacing: SailStyleValues.padding12,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SummaryLine(label: 'Recipients', value: SailText.primary13('${viewModel.recipients.length}')),
-          _SummaryLine(
+          SummaryLine(label: 'Recipients', value: SailText.primary13('${viewModel.recipients.length}')),
+          SummaryLine(
             label: 'Pay from',
             value: SailPopover(
               side: SailPopoverSide.bottom,
@@ -497,8 +582,8 @@ class SummaryCard extends ViewModelWidget<SendPageViewModel> {
               child: _SummaryLink(payFromLabel(viewModel.coinSelectionStrategy, viewModel.selectedUtxos)),
             ),
           ),
-          _SummaryLine(label: 'Amount', value: SailText.primary13(fmt(viewModel.amountSats), monospace: true)),
-          _SummaryLine(
+          SummaryLine(label: 'Amount', value: SailText.primary13(fmt(viewModel.amountSats), monospace: true)),
+          SummaryLine(
             label: 'Fee',
             value: viewModel.customFee
                 ? SailRow(
@@ -531,34 +616,13 @@ class SummaryCard extends ViewModelWidget<SendPageViewModel> {
                     ),
                   ),
           ),
-          _SummaryLine(
+          SummaryLine(
             label: 'Total',
             bold: true,
             value: SailText.primary13(fmt(viewModel.totalSats), monospace: true, bold: true),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SummaryLine extends StatelessWidget {
-  final String label;
-  final Widget value;
-  final bool bold;
-
-  const _SummaryLine({required this.label, required this.value, this.bold = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        bold ? SailText.primary13(label, bold: true) : SailText.secondary13(label),
-        const SizedBox(width: SailStyleValues.padding08),
-        Expanded(
-          child: Align(alignment: Alignment.centerRight, child: value),
-        ),
-      ],
     );
   }
 }
@@ -725,7 +789,10 @@ class RecipientModel extends ChangeNotifier {
 class _StateDot extends StatelessWidget {
   final PsbtDraft draft;
 
-  const _StateDot({required this.draft});
+  /// True when the draft got its only signature at its creation.
+  final bool signed;
+
+  const _StateDot({required this.draft, required this.signed});
 
   @override
   Widget build(BuildContext context) {
@@ -733,7 +800,7 @@ class _StateDot extends StatelessWidget {
     final status = GetIt.I.get<PsbtDraftProvider>().statusFor(draft.id);
 
     Color color = theme.colors.textTertiary;
-    if (draft.txid.isNotEmpty || (status?.finalizable ?? false)) {
+    if (draft.txid.isNotEmpty || signed || (status?.finalizable ?? false)) {
       color = theme.colors.success;
     } else if ((status?.signatures ?? 0) > 0) {
       color = theme.colors.orange;
@@ -752,7 +819,7 @@ String amountTextInUnit(int sats, BitcoinUnit unit) =>
 
 /// Orchestrator migration status:
 /// - Balance/UTXOs/transactions: routed via providers (already on orchestrator)
-/// - sendTransaction: routed via orchestrator shared wallet RPC
+/// - createTransaction, sendNow: routed via orchestrator shared wallet RPC
 /// - setCoinSelectionStrategy: STAYS on bitwindowd — BW-only coin selection prefs
 /// - estimateSmartFee: STAYS on bitwindowd — bitcoind API, not wallet primitive
 class SendPageViewModel extends BaseViewModel {
@@ -775,6 +842,14 @@ class SendPageViewModel extends BaseViewModel {
   String get hardwareFingerprint => _walletReader.activeWallet?.hardwareFingerprint ?? '';
   bool get isMultisig => _walletReader.activeWallet?.isMultisig ?? false;
   String? get activeWalletId => _walletReader.activeWalletId;
+
+  /// True for a one-key wallet whose key is on this computer. It signs a draft at its creation.
+  bool get holdsKey {
+    final wallet = _walletReader.activeWallet;
+    return wallet != null && !wallet.isMultisig && !wallet.isHardware && !wallet.isWatchOnly;
+  }
+
+  bool get sendsNow => recipients.any((r) => isPaymentCode(r.addressController.text));
 
   List<PsbtDraft> get drafts => draftProvider.drafts;
 
@@ -822,11 +897,18 @@ class SendPageViewModel extends BaseViewModel {
     },
   );
 
-  /// Available UTXOs (excluding frozen) for automatic selection
-  List<UnspentOutput> get availableUtxos => allUtxos.where((u) => !coinSelectionProvider.isFrozen(u.output)).toList();
+  /// The UTXOs automatic selection may take: not frozen, and not locked by a saved transaction.
+  List<UnspentOutput> get availableUtxos => spendableAmong(allUtxos, heldOutpoints);
 
-  /// Frozen outpoints
-  Set<String> get frozenOutpoints => coinSelectionProvider.frozenOutpoints;
+  /// The coins no new transaction may take: the frozen coins, and the coins of saved transactions.
+  Set<String> get heldOutpoints => {...coinSelectionProvider.frozenOutpoints, ...draftProvider.lockedOutpoints};
+
+  static List<UnspentOutput> spendableAmong(List<UnspentOutput> utxos, Set<String> held) =>
+      utxos.where((u) => !held.contains(u.output)).toList();
+
+  /// The sats the coins of saved transactions hold. MAX leaves them out.
+  static int lockedSats(List<UnspentOutput> utxos, Set<String> locked) =>
+      utxos.where((u) => locked.contains(u.output)).fold(0, (sum, u) => sum + u.valueSats.toInt());
 
   List<UnspentOutput> selectedUtxos = [];
 
@@ -1056,7 +1138,9 @@ class SendPageViewModel extends BaseViewModel {
       double availableAmount = satoshiToBTC(selectedUtxos.fold(0, (sum, utxo) => sum + utxo.valueSats.toInt()));
       if (availableAmount == 0) {
         // if sum of all selected utxos, none are selected! defer to their balance
-        availableAmount = balanceProvider.balance;
+        availableAmount =
+            balanceProvider.balance -
+            satoshiToBTC(SendPageViewModel.lockedSats(allUtxos, draftProvider.lockedOutpoints));
       }
 
       // 1. Sum up the amounts of all recipients except the one at 'index'
@@ -1206,21 +1290,15 @@ class SendPageViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> sendTransaction(BuildContext context) async {
+  /// Sends to a BIP47 payment code at once. Its notification broadcasts in
+  /// the same call, so it cannot wait in a saved transaction.
+  Future<void> sendNow(BuildContext context) async {
     setSendError(null);
     final plan = await askReplayProtect(context);
     if (plan == null || !context.mounted) {
       return;
     }
     final allowReplay = plan.allowReplay;
-
-    // Multisig never auto-signs: save the PSBT as a draft and open its tab,
-    // where each keystore signs explicitly and broadcast happens once the
-    // threshold is met.
-    if (isMultisig) {
-      await _createMultisigDraft(context, allowReplay: allowReplay);
-      return;
-    }
 
     setBusy(true);
 
@@ -1265,32 +1343,6 @@ class SendPageViewModel extends BaseViewModel {
           (destinations[address] ?? 0) + parseAmountToSatoshis(r.amountController.text, currentUnit);
     }
 
-    setBusy(false);
-    if (!context.mounted) {
-      return;
-    }
-    final confirmed = await askConfirmSend(
-      context,
-      SendConfirmation(
-        payments: confirmSendPayments(
-          destinations: destinations,
-          feeSats: _graphFeeSats,
-          feeFromAmount: _subtractFeeFromAmount,
-        ),
-        payFrom: payFromLabel(coinSelectionStrategy, selectedUtxos),
-        feeTarget: feeTargetLabel(selectedConfTarget),
-        feeSats: feeSats,
-        feeIsEstimate: feeIsEstimate,
-        feeFromAmount: _subtractFeeFromAmount,
-        totalSats: totalSats,
-        unit: currentUnit,
-      ),
-    );
-    if (!confirmed) {
-      return;
-    }
-    setBusy(true);
-
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) {
@@ -1332,39 +1384,63 @@ class SendPageViewModel extends BaseViewModel {
     }
   }
 
-  /// Build the PSBT for a multisig send, save it as a draft, and switch to
-  /// its tab at once. Reuses the airgap PSBT builder (validates
-  /// recipients/fee and calls createPsbt).
-  Future<void> _createMultisigDraft(BuildContext context, {bool allowReplay = false}) async {
+  /// True while [createTransaction] builds, signs, and saves.
+  bool creating = false;
+  int _createRun = 0;
+
+  /// Builds the transaction, signs it when this computer holds the key, and
+  /// saves it in its own tab. Nothing goes to the network.
+  Future<void> createTransaction(BuildContext context) async {
+    setSendError(null);
+    final plan = await askReplayProtect(context);
     final walletId = activeWalletId;
-    if (walletId == null) {
+    if (plan == null || walletId == null || !context.mounted) {
       return;
     }
-    final generation = draftProvider.generation;
-    final psbt = await buildUnsignedPsbtForAirgap(context, allowReplay: allowReplay);
-    if (psbt == null) {
-      return;
-    }
-    // The PSBT belongs to the wallet and the network that built it. A
-    // wallet or network switch during the build voids the draft instead of
-    // filing a wrong-chain PSBT under the new state.
-    if (activeWalletId != walletId || draftProvider.generation != generation) {
-      setSendError('The active wallet or network changed. Create the transaction again.');
-      return;
-    }
+    final run = ++_createRun;
+    creating = true;
+    notifyListeners();
     try {
-      final draft = await draftProvider.create(psbt, walletId: walletId);
-      // A wallet switch during the save leaves the draft with the old
-      // wallet; do not clear the form the user types into for the new one.
-      if (activeWalletId != walletId) {
+      await _createDraft(context, walletId, run, allowReplay: plan.allowReplay);
+    } finally {
+      if (run == _createRun && !disposed) {
+        creating = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Stops the build. A result that arrives later saves nothing.
+  void cancelCreate() {
+    _createRun++;
+    creating = false;
+    notifyListeners();
+  }
+
+  Future<void> _createDraft(BuildContext context, String walletId, int run, {required bool allowReplay}) async {
+    final generation = draftProvider.generation;
+    // The PSBT belongs to the wallet and the network that built it.
+    bool moved() => activeWalletId != walletId || draftProvider.generation != generation;
+    bool canceled() => run != _createRun || disposed || moved();
+    try {
+      final draft = await buildSignAndSave(
+        build: () => buildUnsignedPsbtForAirgap(context, allowReplay: allowReplay),
+        sign: holdsKey ? (psbt) => _orchestratorWallet.signPsbt(walletId: walletId, psbtBase64: psbt) : null,
+        save: (psbt) => draftProvider.create(psbt, walletId: walletId),
+        discard: draftProvider.delete,
+        canceled: canceled,
+      );
+      if (draft == null) {
+        if (run == _createRun && !disposed && moved()) {
+          setSendError('The active wallet or network changed. Create the transaction again.');
+        }
         return;
       }
-      final index = drafts.indexWhere((d) => d.id == draft.id);
-      sendTabIndex = index >= 0 ? index + 1 : 0;
+      sendTabIndex = draftTabIndex(drafts, draft.id);
       await clearAll();
     } catch (error) {
-      log.e('Error saving draft: $error');
-      setSendError('Could not save transaction: $error');
+      log.e('Error creating transaction: $error');
+      setSendError('Could not create the transaction: $error');
     }
   }
 
@@ -1380,6 +1456,11 @@ class SendPageViewModel extends BaseViewModel {
     final missingAmount = recipients.indexWhere((r) => r.amountController.text.trim().isEmpty);
     if (missingAmount != -1) {
       setSendError('Please enter an amount for all recipients.');
+      return null;
+    }
+    final zeroAmount = recipients.indexWhere((r) => parseAmountToSatoshis(r.amountController.text, currentUnit) <= 0);
+    if (zeroAmount != -1) {
+      setSendError('Please enter a valid amount for all recipients.');
       return null;
     }
     final feeSats = parseAmountToSatoshis(feeController.text, currentUnit);
@@ -1622,7 +1703,7 @@ class SendPageViewModel extends BaseViewModel {
       feeRateSatPerVbyte: rate,
       subtractFeeFromAmount: _subtractFeeFromAmount,
       requiredOutpoints: selectedUtxos.map((u) => u.output),
-      frozenOutpoints: frozenOutpoints,
+      frozenOutpoints: heldOutpoints,
       walletOutpoints: allUtxos.map((u) => u.output),
     );
   }

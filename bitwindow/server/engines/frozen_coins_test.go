@@ -168,3 +168,36 @@ func TestSendRefusesAFrozenRequiredInput(t *testing.T) {
 	})
 	require.ErrorIs(t, err, engines.ErrFrozenInput)
 }
+
+// A send must never take a coin of a saved transaction, so every hand-over
+// carries those coins too.
+func TestPushHandsOverTheCoinsOfSavedTransactions(t *testing.T) {
+	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) { return nil, nil })
+	engine.SetDraftCoins(func(context.Context) ([]string, error) { return []string{"cc:3"}, nil })
+
+	client.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).Times(1).Return(&emptypb.Empty{}, nil)
+	var sent *orchpb.SetDraftCoinsRequest
+	client.EXPECT().
+		SetDraftCoins(gomock.Any(), gomock.Any()).
+		Times(1).
+		DoAndReturn(func(_ context.Context, req *orchpb.SetDraftCoinsRequest) (*emptypb.Empty, error) {
+			sent = req
+			return &emptypb.Empty{}, nil
+		})
+
+	require.NoError(t, engine.PushFrozenCoins(t.Context()))
+	require.NotNil(t, sent)
+	require.Len(t, sent.Outpoints, 1)
+	assert.Equal(t, "cc", sent.Outpoints[0].Txid)
+	assert.Equal(t, int32(3), sent.Outpoints[0].Vout)
+}
+
+func TestPushFailsWhenTheSavedTransactionsCannotBeRead(t *testing.T) {
+	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	engine := engineWithClient(t, client, func(context.Context) ([]string, error) { return nil, nil })
+	engine.SetDraftCoins(func(context.Context) ([]string, error) { return nil, errors.New("the database is closed") })
+	client.EXPECT().SetFrozenCoins(gomock.Any(), gomock.Any()).Times(1).Return(&emptypb.Empty{}, nil)
+
+	require.ErrorContains(t, engine.PushFrozenCoins(t.Context()), "read the coins of saved transactions")
+}

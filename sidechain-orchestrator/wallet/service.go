@@ -65,6 +65,10 @@ type Service struct {
 	// belongs to one wallet, so one set covers them all.
 	heldCoins map[string]bool
 
+	// draftCoins names the inputs of saved transactions that wait for a
+	// broadcast, keyed txid:vout.
+	draftCoins map[string]bool
+
 	// Callbacks
 	// Dart: deleteAllWallets stops all binaries before wiping (L560-575)
 	OnStopAllBinaries func() error

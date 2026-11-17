@@ -4,9 +4,10 @@ package walletpsbt.v1;
 
 import "google/protobuf/empty.proto";
 
-// Persists in-progress multisig spends for the Send tab, so partial
-// signatures survive restarts. The PSBT blob itself carries the
-// signatures; signing state is derived from it, never stored.
+// Persists the saved transactions of the Send tab, so partial signatures
+// survive restarts. The PSBT blob itself carries the signatures; signing state
+// is derived from it, never stored. No new send takes the coins of a saved
+// transaction that waits for a broadcast.
 service WalletPsbtService {
   rpc ListDrafts(ListDraftsRequest) returns (ListDraftsResponse);
   rpc SaveDraft(SaveDraftRequest) returns (SaveDraftResponse);
@@ -27,6 +28,8 @@ message PsbtDraft {
   int64 updated_at = 6;
   // Set once broadcast.
   string txid = 7;
+  // The coins the transaction spends, as txid:vout.
+  repeated string inputs = 8;
 }
 
 message ListDraftsRequest {

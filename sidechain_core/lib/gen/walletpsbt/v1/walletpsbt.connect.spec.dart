@@ -9,9 +9,10 @@ import "walletpsbt.pb.dart" as walletpsbtv1walletpsbt;
 
 import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-/// Persists in-progress multisig spends for the Send tab, so partial
-/// signatures survive restarts. The PSBT blob itself carries the
-/// signatures; signing state is derived from it, never stored.
+/// Persists the saved transactions of the Send tab, so partial signatures
+/// survive restarts. The PSBT blob itself carries the signatures; signing state
+/// is derived from it, never stored. No new send takes the coins of a saved
+/// transaction that waits for a broadcast.
 abstract final class WalletPsbtService {
   /// Fully-qualified name of the WalletPsbtService service.
   static const name = 'walletpsbt.v1.WalletPsbtService';
