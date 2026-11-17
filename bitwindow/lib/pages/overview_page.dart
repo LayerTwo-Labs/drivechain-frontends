@@ -284,62 +284,31 @@ class LatestTransactionTable extends StatefulWidget {
 
 class _LatestTransactionTableState extends State<LatestTransactionTable> {
   String sortColumn = 'time';
-  bool sortAscending = true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    onSort(sortColumn);
-  }
+  bool sortAscending = false;
 
   void onSort(String column) {
-    if (sortColumn == column) {
-      sortAscending = !sortAscending;
-    } else {
+    setState(() {
+      sortAscending = sortColumn == column ? !sortAscending : true;
       sortColumn = column;
-      sortAscending = true;
-    }
-    sortEntries();
-    setState(() {});
+    });
   }
 
-  void sortEntries() {
-    widget.entries.sort((a, b) {
-      dynamic aValue = '';
-      dynamic bValue = '';
-
-      switch (sortColumn) {
-        case 'time':
-          aValue = a.time.toDateTime().millisecondsSinceEpoch;
-          bValue = b.time.toDateTime().millisecondsSinceEpoch;
-          break;
-        case 'fee':
-          aValue = a.feeSats;
-          bValue = b.feeSats;
-          break;
-        case 'txid':
-          aValue = a.txid;
-          bValue = b.txid;
-          break;
-        case 'size':
-          aValue = a.virtualSize;
-          bValue = b.virtualSize;
-          break;
-      }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-    });
+  int compare(RecentTransaction a, RecentTransaction b) {
+    final result = switch (sortColumn) {
+      'fee' => a.feeSats.compareTo(b.feeSats),
+      'txid' => a.txid.compareTo(b.txid),
+      'size' => a.virtualSize.compareTo(b.virtualSize),
+      'height' => a.confirmedInBlock.compareTo(b.confirmedInBlock),
+      _ => a.time.toDateTime().compareTo(b.time.toDateTime()),
+    };
+    return sortAscending ? result : -result;
   }
 
   @override
   Widget build(BuildContext context) {
+    final entries = [...widget.entries]..sort(compare);
     return SailTable(
-      getRowId: (index) => widget.entries[index].txid,
+      getRowId: (index) => entries[index].txid,
       headerBuilder: (context) => [
         SailTableHeaderCell(
           name: 'Time',
@@ -359,11 +328,11 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         ),
         SailTableHeaderCell(
           name: 'Height',
-          onSort: () => onSort('block'),
+          onSort: () => onSort('height'),
         ),
       ],
       rowBuilder: (context, row, selected) {
-        final entry = widget.entries[row];
+        final entry = entries[row];
         return [
           SailTableCell(value: entry.time.toDateTime().toLocal().toString()),
           SailTableCell(value: entry.feeSats.toString()),
@@ -374,17 +343,19 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           ),
         ];
       },
-      rowCount: widget.entries.length,
+      rowCount: entries.length,
       emptyPlaceholder: 'No transactions yet',
       drawGrid: true,
-      sortColumnIndex: ['time', 'fee', 'txid', 'size', 'height'].indexOf(sortColumn),
+      sortColumnIndex: _transactionColumns.indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {
-        onSort(['time', 'fee', 'txid', 'size', 'height'][columnIndex]);
+        onSort(_transactionColumns[columnIndex]);
       },
     );
   }
 }
+
+const _transactionColumns = ['time', 'fee', 'txid', 'size', 'height'];
 
 const _blockColumns = ['time', 'height', 'hash', 'pool'];
 
@@ -402,62 +373,30 @@ class LatestBlocksTable extends StatefulWidget {
 
 class _LatestBlocksTableState extends State<LatestBlocksTable> {
   String sortColumn = 'time';
-  bool sortAscending = true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    onSort(sortColumn);
-  }
+  bool sortAscending = false;
 
   void onSort(String column) {
-    if (sortColumn == column) {
-      sortAscending = !sortAscending;
-    } else {
+    setState(() {
+      sortAscending = sortColumn == column ? !sortAscending : true;
       sortColumn = column;
-      sortAscending = true;
-    }
-    sortEntries();
-    setState(() {});
+    });
   }
 
-  void sortEntries() {
-    widget.blocks.sort((a, b) {
-      dynamic aValue = '';
-      dynamic bValue = '';
-
-      switch (sortColumn) {
-        case 'time':
-          aValue = a.blockTime.toDateTime().millisecondsSinceEpoch;
-          bValue = b.blockTime.toDateTime().millisecondsSinceEpoch;
-          break;
-        case 'height':
-          aValue = a.height;
-          bValue = b.height;
-          break;
-        case 'hash':
-          aValue = a.hash;
-          bValue = b.hash;
-          break;
-        case 'pool':
-          aValue = a.pool.name;
-          bValue = b.pool.name;
-          break;
-      }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-    });
+  int compare(Block a, Block b) {
+    final result = switch (sortColumn) {
+      'height' => a.height.compareTo(b.height),
+      'hash' => a.hash.compareTo(b.hash),
+      'pool' => a.pool.name.compareTo(b.pool.name),
+      _ => a.blockTime.toDateTime().compareTo(b.blockTime.toDateTime()),
+    };
+    return sortAscending ? result : -result;
   }
 
   @override
   Widget build(BuildContext context) {
+    final blocks = [...widget.blocks]..sort(compare);
     return SailTable(
-      getRowId: (index) => widget.blocks[index].hash,
+      getRowId: (index) => blocks[index].hash,
       headerBuilder: (context) => [
         const SailTableHeaderCell(name: 'Time'),
         const SailTableHeaderCell(name: 'Height'),
@@ -465,7 +404,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
         const SailTableHeaderCell(name: 'Pool'),
       ],
       rowBuilder: (context, row, selected) {
-        final entry = widget.blocks[row];
+        final entry = blocks[row];
         return [
           SailTableCell(value: entry.blockTime.toDateTime().toLocal().format()),
           SailTableCell(value: entry.height.toString()),
@@ -473,7 +412,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
           SailTableCell(value: entry.hasPool() ? entry.pool.name : ''),
         ];
       },
-      rowCount: widget.blocks.length,
+      rowCount: blocks.length,
       emptyPlaceholder: 'No blocks yet',
       drawGrid: true,
       sortColumnIndex: _blockColumns.indexOf(sortColumn),
