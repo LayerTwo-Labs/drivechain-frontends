@@ -311,9 +311,9 @@ func (h *WalletHandler) walletNeedsL1(walletID string) bool {
 }
 
 func (h *WalletHandler) UpdateWalletMetadata(ctx context.Context, req *pb.UpdateWalletMetadataRequest) (*pb.UpdateWalletMetadataResponse, error) {
-	var gradient json.RawMessage
-	if req.GradientJson != "" {
-		gradient = json.RawMessage(req.GradientJson)
+	gradient, err := parseGradient(req.GradientJson)
+	if err != nil {
+		return nil, err
 	}
 	if err := h.svc.UpdateWalletMetadata(req.WalletId, req.Name, gradient); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
@@ -429,8 +429,12 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *pb.Create
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			"electrum wallets are not supported on this network")
 	}
+	gradient, err := parseGradient(req.GradientJson)
+	if err != nil {
+		return nil, err
+	}
 	if req.PrivateDescriptor != "" {
-		w, err := h.svc.CreateElectrumDescriptorWallet(req.Name, json.RawMessage(req.GradientJson), req.PrivateDescriptor)
+		w, err := h.svc.CreateElectrumDescriptorWallet(req.Name, gradient, req.PrivateDescriptor)
 		if err != nil {
 			return nil, rpcError(err)
 		}
@@ -453,7 +457,7 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *pb.Create
 			scriptType = detected.String()
 		}
 	}
-	w, err := h.svc.CreateElectrumWallet(req.Name, json.RawMessage(req.GradientJson), req.Slots, req.CustomMnemonic, req.Passphrase, req.XpubOrDescriptor, scriptType, account, path)
+	w, err := h.svc.CreateElectrumWallet(req.Name, gradient, req.Slots, req.CustomMnemonic, req.Passphrase, req.XpubOrDescriptor, scriptType, account, path)
 	if err != nil {
 		return nil, rpcError(err)
 	}
@@ -506,9 +510,13 @@ func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *pb.Create
 			HardwareDeviceType: c.HardwareDeviceType,
 		})
 	}
+	gradient, err := parseGradient(req.GradientJson)
+	if err != nil {
+		return nil, err
+	}
 	w, err := h.svc.CreateElectrumMultisig(
 		req.Name,
-		json.RawMessage(req.GradientJson),
+		gradient,
 		int(req.M),
 		int(req.N),
 		req.ScriptType,
@@ -2522,4 +2530,12 @@ func (h *WalletHandler) BroadcastElectrumTransaction(ctx context.Context, req *p
 		return nil, rpcError(err)
 	}
 	return &pb.BroadcastElectrumTransactionResponse{Txid: txid}, nil
+}
+
+func parseGradient(s string) (json.RawMessage, error) {
+	gradient, err := wallet.ParseGradient(s)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+	}
+	return gradient, nil
 }
