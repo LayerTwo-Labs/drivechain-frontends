@@ -95,7 +95,7 @@ func TestOpReturnHandling(t *testing.T) {
 	core.EXPECT().
 		GetRawTransaction(gomock.Any(), tests.Connect(&corepb.GetRawTransactionRequest{
 			Txid:      tx.TxHash().String(),
-			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
+			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 		})).
 		Return(connect.NewResponse(&corepb.GetRawTransactionResponse{
 			Fee: 0.001,
@@ -435,7 +435,7 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 			core.EXPECT().
 				GetRawTransaction(gomock.Any(), tests.Connect(&corepb.GetRawTransactionRequest{
 					Txid:      tx.TxHash().String(),
-					Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
+					Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 				})).
 				Return(connect.NewResponse(&corepb.GetRawTransactionResponse{Fee: 0.001}), nil).
 				Times(1)
@@ -502,7 +502,7 @@ func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 	core.EXPECT().
 		GetRawTransaction(gomock.Any(), tests.Connect(&corepb.GetRawTransactionRequest{
 			Txid:      tx.TxHash().String(),
-			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
+			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 		})).
 		Return(connect.NewResponse(&corepb.GetRawTransactionResponse{Fee: 0.001}), nil)
 

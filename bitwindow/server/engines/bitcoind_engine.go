@@ -1010,9 +1010,8 @@ func (p *Parser) handleOpReturns(
 				return nil, fmt.Errorf("get bitcoind: %w", err)
 			}
 			res, err := core.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-				// verbosity=2 needed for fee info to be included.
-				// btc-buf only maps TX_INFO to verbosity 2.
-				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
+				// btc-buf maps TX_PREVOUT_INFO to Core verbosity 2, the first that holds the fee.
+				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 				Txid:      txid,
 			}))
 			switch {
