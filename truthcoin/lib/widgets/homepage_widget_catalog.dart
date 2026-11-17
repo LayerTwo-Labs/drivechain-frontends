@@ -128,7 +128,7 @@ class TruthcoinWidgetCatalog {
                   SailText.secondary15('Pay to'),
                   SailTextField(
                     controller: model.bitcoinAddressController,
-                    hintText: 'Enter a bitcoin address',
+                    hintText: sendAddressHint(model.sidechainName),
                   ),
                   NumericField(
                     label: 'Amount',
