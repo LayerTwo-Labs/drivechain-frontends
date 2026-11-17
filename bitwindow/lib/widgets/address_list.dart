@@ -282,9 +282,17 @@ class _AddressBookContentState extends State<AddressBookContent> {
     }
   }
 
+  List<AddressBookEntry> get _sortedEntries {
+    final entries = [...widget.viewModel.entries];
+    String key(AddressBookEntry e) => sortColumn == 'address' ? e.address : e.label;
+    entries.sort((a, b) => sortAscending ? key(a).compareTo(key(b)) : key(b).compareTo(key(a)));
+    return entries;
+  }
+
   @override
   Widget build(BuildContext context) {
     final direction = widget.viewModel.direction;
+    final entries = _sortedEntries;
 
     return SailCard(
       key: Key('address-book-$direction'),
@@ -313,23 +321,18 @@ class _AddressBookContentState extends State<AddressBookContent> {
       ),
       bottomPadding: false,
       child: SailTable(
-        getRowId: (index) => widget.viewModel.entries[index].id.toString(),
+        getRowId: (index) => entries[index].id.toString(),
         headerBuilder: (context) => [
-          SailTableHeaderCell(
-            name: 'Label',
-            onSort: () => onSort('label'),
-          ),
-          SailTableHeaderCell(
-            name: 'Address',
-            onSort: () => onSort('address'),
-          ),
+          const SailTableHeaderCell(name: 'Label'),
+          const SailTableHeaderCell(name: 'Address'),
           const SailTableHeaderCell(
             name: 'Actions',
             alignment: Alignment.centerRight,
+            sortable: false,
           ),
         ],
         rowBuilder: (context, row, selected) {
-          final entry = widget.viewModel.entries[row];
+          final entry = entries[row];
 
           return [
             SailTableCell(
@@ -372,41 +375,17 @@ class _AddressBookContentState extends State<AddressBookContent> {
             ),
           ];
         },
-        rowCount: widget.viewModel.entries.length,
+        rowCount: entries.length,
         emptyPlaceholder: 'No addresses yet',
         drawGrid: true,
-        sortColumnIndex: ['label', 'address', 'actions'].indexOf(sortColumn),
+        sortColumnIndex: ['label', 'address'].indexOf(sortColumn),
         sortAscending: sortAscending,
-        onSort: (columnIndex, ascending) {
-          onSort(['label', 'address', 'actions'][columnIndex]);
-        },
+        onSort: (columnIndex, ascending) => setState(() {
+          sortColumn = ['label', 'address'][columnIndex];
+          sortAscending = ascending;
+        }),
       ),
     );
-  }
-
-  void onSort(String column) {
-    setState(() {
-      if (sortColumn == column) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = column;
-        sortAscending = true;
-      }
-      sortEntries();
-    });
-  }
-
-  void sortEntries() {
-    widget.viewModel.entries.sort((a, b) {
-      switch (sortColumn) {
-        case 'label':
-          return sortAscending ? a.label.compareTo(b.label) : b.label.compareTo(a.label);
-        case 'address':
-          return sortAscending ? a.address.compareTo(b.address) : b.address.compareTo(a.address);
-        default:
-          return 0;
-      }
-    });
   }
 
   void _showEditDialog(BuildContext context, AddressBookEntry entry) {
