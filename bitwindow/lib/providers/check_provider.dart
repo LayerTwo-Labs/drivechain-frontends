@@ -2,7 +2,6 @@ import 'package:sidechain_core/providers/network_scoped.dart';
 
 import 'dart:async';
 
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -146,13 +145,7 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
       throw Exception('No active wallet');
     }
     final resp = await _bitwindowRPC.wallet.createCheque(walletId, expectedAmountSats);
-
-    final check = Cheque(
-      id: resp.id,
-      derivationIndex: resp.derivationIndex,
-      address: resp.address,
-      expectedAmountSats: Int64(expectedAmountSats),
-    );
+    final check = await _bitwindowRPC.wallet.getCheque(walletId, resp.id.toInt());
 
     _checks.insert(0, check);
     notifyListeners();
