@@ -88,12 +88,16 @@ void main() {
         onWalletSelected: (_) {},
         onCreateWallet: () => created.add('create'),
         noWalletActions: withActions
-            ? (onGenerate: () => created.add('generate'), onImportDescriptor: () => created.add('import'))
+            ? (
+                onGenerate: () => created.add('generate'),
+                onPasteSeed: () => created.add('paste'),
+                onImportDescriptor: () => created.add('import'),
+              )
             : null,
       ),
     );
 
-    testWidgets('reads No wallet and offers generate and import', (tester) async {
+    testWidgets('reads No wallet and offers generate, paste and import', (tester) async {
       final calls = <String>[];
       await tester.pumpWidget(dropdown(withActions: true, created: calls));
       await tester.pumpAndSettle();
@@ -105,7 +109,15 @@ void main() {
       await tester.tap(find.byType(WalletDropdown));
       await tester.pumpAndSettle();
       expect(find.text('Create new wallet'), findsNothing);
+      final labels = ['Generate wallet', 'Paste seed phrase', 'Import descriptor'];
+      final tops = [for (final l in labels) tester.getTopLeft(find.text(l)).dy];
+      expect(tops, [...tops]..sort());
+      expect(find.byIcon(Icons.content_paste), findsOneWidget);
 
+      await tester.tap(find.text('Paste seed phrase'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(WalletDropdown));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Import descriptor'));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(WalletDropdown));
@@ -113,7 +125,7 @@ void main() {
       await tester.tap(find.text('Generate wallet'));
       await tester.pumpAndSettle();
 
-      expect(calls, ['import', 'generate']);
+      expect(calls, ['paste', 'import', 'generate']);
     });
 
     testWidgets('without the actions keeps Create new wallet', (tester) async {

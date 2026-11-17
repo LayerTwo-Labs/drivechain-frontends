@@ -13,6 +13,15 @@ Future<void> openGenerateWallet(BuildContext context) async {
   );
 }
 
+/// Opens the seed entry page. It closes when the wallet exists.
+Future<void> openPasteSeed(BuildContext context) async {
+  await Navigator.of(context).push<SeedBackup>(
+    sailRoute(
+      builder: (_) => const WalletBackupPage(mode: SeedEntryMode.importExisting, onCreate: createWalletFromSeed),
+    ),
+  );
+}
+
 /// Shows [child], or the no wallet card while the backend reports no wallet.
 class NoWalletGate extends StatelessWidget {
   final Widget child;
@@ -50,13 +59,17 @@ class NoWalletCard extends StatelessWidget {
                 children: [
                   SailText.primary20('You need a wallet to send and receive', bold: true, textAlign: TextAlign.center),
                   SailText.secondary13(
-                    'Make a new wallet, or import your existing wallet with a descriptor or seed.',
+                    'Make a new wallet, or restore one from its seed phrase or a descriptor.',
                     textAlign: TextAlign.center,
                   ),
                   SetupActionButton(
                     label: 'Generate wallet',
                     primary: true,
                     onPressed: () async => openGenerateWallet(context),
+                  ),
+                  SetupActionButton(
+                    label: 'Paste seed phrase',
+                    onPressed: () async => openPasteSeed(context),
                   ),
                   SetupActionButton(
                     label: 'Import descriptor',

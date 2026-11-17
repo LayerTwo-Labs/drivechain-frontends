@@ -1108,6 +1108,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 onEditWallet: (wallet) async => editWallet(context, wallet),
                                 noWalletActions: (
                                   onGenerate: () => unawaited(openGenerateWallet(context)),
+                                  onPasteSeed: () => unawaited(openPasteSeed(context)),
                                   onImportDescriptor: () => unawaited(showImportDescriptorDialog(context)),
                                 ),
                               ),

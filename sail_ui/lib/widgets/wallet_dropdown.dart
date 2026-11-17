@@ -14,7 +14,7 @@ class WalletDropdown extends StatelessWidget {
 
   /// Replaces the menu while no wallet exists, and reads "No wallet". Null
   /// keeps "Create new wallet".
-  final ({VoidCallback onGenerate, VoidCallback onImportDescriptor})? noWalletActions;
+  final ({VoidCallback onGenerate, VoidCallback onPasteSeed, VoidCallback onImportDescriptor})? noWalletActions;
 
   const WalletDropdown({
     super.key,
@@ -113,6 +113,7 @@ class WalletDropdown extends StatelessWidget {
             _MenuAction(icon: Icons.add, label: 'Create new wallet', onSelected: onCreateWallet)
           else ...[
             _MenuAction(icon: Icons.add, label: 'Generate wallet', onSelected: empty.onGenerate),
+            _MenuAction(icon: Icons.content_paste, label: 'Paste seed phrase', onSelected: empty.onPasteSeed),
             _MenuAction(icon: Icons.download, label: 'Import descriptor', onSelected: empty.onImportDescriptor),
           ],
         ],

@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:bitwindow/pages/welcome/wallet_backup_page.dart';
 import 'package:bitwindow/widgets/import_descriptor_dialog.dart';
 import 'package:bitwindow/widgets/no_wallet_card.dart';
+import 'package:bitwindow/widgets/setup_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -121,9 +123,13 @@ void main() {
     await pumpLarge(tester, const NoWalletGate(child: Text('Send form')));
 
     expect(find.text('You need a wallet to send and receive'), findsOneWidget);
-    expect(find.text('Generate wallet'), findsOneWidget);
-    expect(find.text('Import descriptor'), findsOneWidget);
-    expect(find.text('Paste seed phrase'), findsNothing);
+    expect(find.text('Make a new wallet, or restore one from its seed phrase or a descriptor.'), findsOneWidget);
+    final buttons = tester.widgetList<SetupActionButton>(find.byType(SetupActionButton)).toList();
+    expect(buttons.map((b) => (b.label, b.primary)), [
+      ('Generate wallet', true),
+      ('Paste seed phrase', false),
+      ('Import descriptor', false),
+    ]);
     expect(find.text('Send form'), findsNothing);
 
     reader.applyWatchFrame(_frame(hasWallet: true));
@@ -131,6 +137,18 @@ void main() {
 
     expect(find.text('You need a wallet to send and receive'), findsNothing);
     expect(find.text('Send form'), findsOneWidget);
+  });
+
+  testWidgets('Paste seed phrase opens the seed entry page', (tester) async {
+    reader.applyWatchFrame(_frame(hasWallet: false));
+    await pumpLarge(tester, const NoWalletGate(child: Text('Send form')));
+
+    await tester.tap(find.text('Paste seed phrase'));
+    await tester.pumpAndSettle();
+
+    final page = tester.widget<WalletBackupPage>(find.byType(WalletBackupPage));
+    expect(page.mode, SeedEntryMode.importExisting);
+    expect(page.onCreate, isNotNull);
   });
 
   testWidgets('an unread wallet state shows the tab, not the card', (tester) async {
