@@ -97,8 +97,27 @@ func TestConfirmedOpReturnStillFailsOnAnUnrelatedRpcError(t *testing.T) {
 	require.ErrorContains(t, err, "unexpected EOF")
 }
 
-func TestIsTxIndexMissMatchesBothCoreShapes(t *testing.T) {
+// txIndexOffErr is what Core answers when it runs with no txindex.
+const txIndexOffErr = "unknown: -5: No such mempool transaction. Use -txindex or " +
+	"provide a block hash to enable blockchain transaction queries. " +
+	"Use gettransaction for wallet transactions."
+
+func TestConfirmedOpReturnSurvivesANodeWithNoTxIndex(t *testing.T) {
+	ctx := t.Context()
+	p := parserWithRawTxError(t, txIndexOffErr)
+
+	height := uint32(210)
+	blockTime := time.Unix(1700000000, 0)
+
+	opReturns, err := p.handleOpReturns(ctx, opReturnTx(t), &height, &blockTime)
+	require.NoError(t, err)
+	require.Len(t, opReturns, 1)
+	require.Zero(t, opReturns[0].Fee)
+}
+
+func TestIsTxIndexMissMatchesEveryCoreShape(t *testing.T) {
 	require.True(t, isTxIndexMiss(txIndexMissErr))
+	require.True(t, isTxIndexMiss(txIndexOffErr))
 	require.True(t, isTxIndexMiss("unknown: -5: No such mempool transaction. "+
 		"Blockchain transactions are still in the process of being indexed."))
 	require.False(t, isTxIndexMiss("unavailable: unexpected EOF"))
