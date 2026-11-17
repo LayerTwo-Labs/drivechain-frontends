@@ -1,8 +1,12 @@
 package walletpsbt_test
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcutil/psbt"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -124,4 +128,55 @@ func TestDelete(t *testing.T) {
 
 	// A second delete of the same id is a no-op.
 	require.NoError(t, store.Delete(ctx, saved.ID))
+}
+
+// spending builds a PSBT that spends one coin of each txid, at vout 1.
+func spending(t *testing.T, txids ...string) string {
+	t.Helper()
+	inputs := make([]*wire.OutPoint, 0, len(txids))
+	sequences := make([]uint32, 0, len(txids))
+	for _, txid := range txids {
+		hash, err := chainhash.NewHashFromStr(txid)
+		require.NoError(t, err)
+		inputs = append(inputs, wire.NewOutPoint(hash, 1))
+		sequences = append(sequences, wire.MaxTxInSequenceNum)
+	}
+	packet, err := psbt.New(inputs, []*wire.TxOut{wire.NewTxOut(1000, []byte{0x51})}, 2, 0, sequences)
+	require.NoError(t, err)
+	encoded, err := packet.B64Encode()
+	require.NoError(t, err)
+	return encoded
+}
+
+func TestInputsNamesEveryCoinOfThePSBT(t *testing.T) {
+	a, b := strings.Repeat("aa", 32), strings.Repeat("bb", 32)
+
+	inputs, err := walletpsbt.Inputs(spending(t, a, b))
+	require.NoError(t, err)
+	assert.Equal(t, []string{a + ":1", b + ":1"}, inputs)
+
+	_, err = walletpsbt.Inputs("cHNidP8B")
+	require.ErrorContains(t, err, "decode psbt")
+}
+
+// A broadcast draft spent its coins already, and a deleted wallet spends
+// nothing, so only a draft that waits in a live wallet holds a coin.
+func TestPendingInputsSkipsABroadcastDraft(t *testing.T) {
+	store := walletpsbt.NewStore(database.Test(t))
+	ctx := t.Context()
+	waits, broadcast, other := strings.Repeat("aa", 32), strings.Repeat("bb", 32), strings.Repeat("cc", 32)
+	deleted := strings.Repeat("dd", 32)
+
+	_, err := store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-1", PSBTBase64: spending(t, waits)})
+	require.NoError(t, err)
+	_, err = store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-1", PSBTBase64: spending(t, broadcast), Txid: "dd"})
+	require.NoError(t, err)
+	_, err = store.Save(ctx, walletpsbt.Draft{WalletID: "wallet-2", PSBTBase64: spending(t, other)})
+	require.NoError(t, err)
+	_, err = store.Save(ctx, walletpsbt.Draft{WalletID: "deleted", PSBTBase64: spending(t, deleted)})
+	require.NoError(t, err)
+
+	inputs, err := store.PendingInputs(ctx, []string{"wallet-1", "wallet-2"})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{waits + ":1", other + ":1"}, inputs)
 }

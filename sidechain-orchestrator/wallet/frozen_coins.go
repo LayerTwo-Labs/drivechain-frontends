@@ -64,20 +64,36 @@ func (s *Service) HeldCoins() map[string]bool {
 	return s.heldCoins
 }
 
+// SetDraftCoins records the inputs of the saved transactions that wait for a
+// broadcast. The set replaces the one before it, so a discard frees its coins.
+func (s *Service) SetDraftCoins(coins []Outpoint) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.draftCoins = lo.SliceToMap(coins, func(coin Outpoint) (string, bool) { return coin.Key(), true })
+}
+
+// DraftCoins names the inputs of the saved transactions that wait for a broadcast.
+func (s *Service) DraftCoins() map[string]bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.draftCoins
+}
+
 // FreezesCoins says whether any source of frozen coins is wired.
 func (s *Service) FreezesCoins() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.frozenCoins != nil || len(s.heldCoins) > 0
+	return s.frozenCoins != nil || len(s.heldCoins) > 0 || len(s.draftCoins) > 0
 }
 
 // FrozenCoins names the candidates no send may take: the coins a live BMM bid
-// holds, and the coins a frontend froze. It names none while no source is
-// wired.
+// holds, the coins a frontend froze, and the inputs of saved transactions. It
+// names none while no source is wired.
 func (s *Service) FrozenCoins(ctx context.Context, walletID string, candidates []Outpoint) (map[string]bool, error) {
 	s.mu.RLock()
 	fn := s.frozenCoins
 	held := s.heldCoins
+	drafts := s.draftCoins
 	s.mu.RUnlock()
 	if len(candidates) == 0 {
 		return nil, nil
@@ -85,7 +101,7 @@ func (s *Service) FrozenCoins(ctx context.Context, walletID string, candidates [
 
 	frozen := make(map[string]bool, len(held))
 	for _, candidate := range candidates {
-		if held[candidate.Key()] {
+		if held[candidate.Key()] || drafts[candidate.Key()] {
 			frozen[candidate.Key()] = true
 		}
 	}

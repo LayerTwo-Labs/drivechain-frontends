@@ -130,6 +130,9 @@ const (
 	// WalletManagerServiceSetFrozenCoinsProcedure is the procedure name of the WalletManagerService's
 	// SetFrozenCoins RPC.
 	WalletManagerServiceSetFrozenCoinsProcedure = "/walletmanager.v1.WalletManagerService/SetFrozenCoins"
+	// WalletManagerServiceSetDraftCoinsProcedure is the procedure name of the WalletManagerService's
+	// SetDraftCoins RPC.
+	WalletManagerServiceSetDraftCoinsProcedure = "/walletmanager.v1.WalletManagerService/SetDraftCoins"
 	// WalletManagerServiceCreateDepositProcedure is the procedure name of the WalletManagerService's
 	// CreateDeposit RPC.
 	WalletManagerServiceCreateDepositProcedure = "/walletmanager.v1.WalletManagerService/CreateDeposit"
@@ -501,6 +504,13 @@ var (
 			Procedure:  WalletManagerServiceSetFrozenCoinsProcedure,
 		}
 	})
+	walletManagerServiceSetDraftCoinsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("SetDraftCoins"),
+			Procedure:  WalletManagerServiceSetDraftCoinsProcedure,
+		}
+	})
 	walletManagerServiceCreateDepositSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -849,6 +859,10 @@ type WalletManagerServiceClient interface {
 	// leaves those coins alone, and Bitcoin Core holds them locked for the
 	// length of a send so its own coin selection skips them too.
 	SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error)
+	// SetDraftCoins records the inputs of the saved transactions that wait for a
+	// broadcast. Coin selection skips them. A broadcast of that saved transaction
+	// still spends them.
+	SetDraftCoins(context.Context, *v1.SetDraftCoinsRequest) (*emptypb.Empty, error)
 	// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
@@ -1035,6 +1049,10 @@ type WalletManagerServiceHandler interface {
 	// leaves those coins alone, and Bitcoin Core holds them locked for the
 	// length of a send so its own coin selection skips them too.
 	SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error)
+	// SetDraftCoins records the inputs of the saved transactions that wait for a
+	// broadcast. Coin selection skips them. A broadcast of that saved transaction
+	// still spends them.
+	SetDraftCoins(context.Context, *v1.SetDraftCoinsRequest) (*emptypb.Empty, error)
 	// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
 	CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error)
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
@@ -1153,6 +1171,7 @@ func RegisterWalletManagerServiceHandler(server *connect.Server, svc WalletManag
 		connect.Method{Spec: walletManagerServiceSendTransactionSpec(), Handler: adapter.sendTransaction},
 		connect.Method{Spec: walletManagerServicePreviewSendSpec(), Handler: adapter.previewSend},
 		connect.Method{Spec: walletManagerServiceSetFrozenCoinsSpec(), Handler: adapter.setFrozenCoins},
+		connect.Method{Spec: walletManagerServiceSetDraftCoinsSpec(), Handler: adapter.setDraftCoins},
 		connect.Method{Spec: walletManagerServiceCreateDepositSpec(), Handler: adapter.createDeposit},
 		connect.Method{Spec: walletManagerServiceListTransactionsSpec(), Handler: adapter.listTransactions},
 		connect.Method{Spec: walletManagerServiceListUnspentSpec(), Handler: adapter.listUnspent},
@@ -1370,6 +1389,10 @@ func (UnimplementedWalletManagerServiceHandler) PreviewSend(context.Context, *v1
 
 func (UnimplementedWalletManagerServiceHandler) SetFrozenCoins(context.Context, *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SetFrozenCoins is not implemented")
+}
+
+func (UnimplementedWalletManagerServiceHandler) SetDraftCoins(context.Context, *v1.SetDraftCoinsRequest) (*emptypb.Empty, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.SetDraftCoins is not implemented")
 }
 
 func (UnimplementedWalletManagerServiceHandler) CreateDeposit(context.Context, *v1.CreateDepositRequest) (*v1.CreateDepositResponse, error) {
@@ -1815,6 +1838,14 @@ func (c *walletManagerServiceClient) PreviewSend(ctx context.Context, req *v1.Pr
 func (c *walletManagerServiceClient) SetFrozenCoins(ctx context.Context, req *v1.SetFrozenCoinsRequest) (*emptypb.Empty, error) {
 	var res emptypb.Empty
 	if err := c.client.CallUnary(ctx, walletManagerServiceSetFrozenCoinsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletManagerServiceClient) SetDraftCoins(ctx context.Context, req *v1.SetDraftCoinsRequest) (*emptypb.Empty, error) {
+	var res emptypb.Empty
+	if err := c.client.CallUnary(ctx, walletManagerServiceSetDraftCoinsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -2560,6 +2591,18 @@ func (h walletManagerServiceHandler) setFrozenCoins(ctx context.Context, _ conne
 		return err
 	}
 	res, err := h.svc.SetFrozenCoins(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletManagerServiceHandler) setDraftCoins(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetDraftCoinsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetDraftCoins(ctx, &req)
 	if err != nil {
 		return err
 	}

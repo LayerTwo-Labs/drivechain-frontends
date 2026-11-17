@@ -10,9 +10,10 @@ import "walletpsbt.connect.spec.dart" as specs;
 
 import "package:protobuf/well_known_types/google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-/// Persists in-progress multisig spends for the Send tab, so partial
-/// signatures survive restarts. The PSBT blob itself carries the
-/// signatures; signing state is derived from it, never stored.
+/// Persists the saved transactions of the Send tab, so partial signatures
+/// survive restarts. The PSBT blob itself carries the signatures; signing state
+/// is derived from it, never stored. No new send takes the coins of a saved
+/// transaction that waits for a broadcast.
 extension type WalletPsbtServiceClient(connect.Transport _transport) {
   Future<walletpsbtv1walletpsbt.ListDraftsResponse> listDrafts(
     walletpsbtv1walletpsbt.ListDraftsRequest input, {

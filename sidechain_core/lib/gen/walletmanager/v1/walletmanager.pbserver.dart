@@ -74,6 +74,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$3.SendTransactionResponse> sendTransaction($pb.ServerContext ctx, $3.SendTransactionRequest request);
   $async.Future<$3.PreviewSendResponse> previewSend($pb.ServerContext ctx, $3.PreviewSendRequest request);
   $async.Future<$1.Empty> setFrozenCoins($pb.ServerContext ctx, $3.SetFrozenCoinsRequest request);
+  $async.Future<$1.Empty> setDraftCoins($pb.ServerContext ctx, $3.SetDraftCoinsRequest request);
   $async.Future<$3.CreateDepositResponse> createDeposit($pb.ServerContext ctx, $3.CreateDepositRequest request);
   $async.Future<$3.ListTransactionsResponse> listTransactions(
       $pb.ServerContext ctx, $3.ListTransactionsRequest request);
@@ -206,6 +207,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
         return $3.PreviewSendRequest();
       case 'SetFrozenCoins':
         return $3.SetFrozenCoinsRequest();
+      case 'SetDraftCoins':
+        return $3.SetDraftCoinsRequest();
       case 'CreateDeposit':
         return $3.CreateDepositRequest();
       case 'ListTransactions':
@@ -366,6 +369,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
         return previewSend(ctx, request as $3.PreviewSendRequest);
       case 'SetFrozenCoins':
         return setFrozenCoins(ctx, request as $3.SetFrozenCoinsRequest);
+      case 'SetDraftCoins':
+        return setDraftCoins(ctx, request as $3.SetDraftCoinsRequest);
       case 'CreateDeposit':
         return createDeposit(ctx, request as $3.CreateDepositRequest);
       case 'ListTransactions':

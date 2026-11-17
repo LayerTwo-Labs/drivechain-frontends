@@ -28,6 +28,7 @@ class PsbtDraft extends $pb.GeneratedMessage {
     $fixnum.Int64? createdAt,
     $fixnum.Int64? updatedAt,
     $core.String? txid,
+    $core.Iterable<$core.String>? inputs,
   }) {
     final result = PsbtDraft._();
     if (id != null) result.id = id;
@@ -37,6 +38,7 @@ class PsbtDraft extends $pb.GeneratedMessage {
     if (createdAt != null) result.createdAt = createdAt;
     if (updatedAt != null) result.updatedAt = updatedAt;
     if (txid != null) result.txid = txid;
+    if (inputs != null) result.inputs.addAll(inputs);
     return result;
   }
 
@@ -58,6 +60,7 @@ class PsbtDraft extends $pb.GeneratedMessage {
     ..aInt64(5, _omitFieldNames ? '' : 'createdAt')
     ..aInt64(6, _omitFieldNames ? '' : 'updatedAt')
     ..aOS(7, _omitFieldNames ? '' : 'txid')
+    ..pPS(8, _omitFieldNames ? '' : 'inputs')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -148,6 +151,10 @@ class PsbtDraft extends $pb.GeneratedMessage {
   $core.bool hasTxid() => $_has(6);
   @$pb.TagNumber(7)
   void clearTxid() => $_clearField(7);
+
+  /// The coins the transaction spends, as txid:vout.
+  @$pb.TagNumber(8)
+  $pb.PbList<$core.String> get inputs => $_getList(7);
 }
 
 class ListDraftsRequest extends $pb.GeneratedMessage {
@@ -418,9 +425,10 @@ class DeleteDraftRequest extends $pb.GeneratedMessage {
   void clearId() => $_clearField(1);
 }
 
-/// Persists in-progress multisig spends for the Send tab, so partial
-/// signatures survive restarts. The PSBT blob itself carries the
-/// signatures; signing state is derived from it, never stored.
+/// Persists the saved transactions of the Send tab, so partial signatures
+/// survive restarts. The PSBT blob itself carries the signatures; signing state
+/// is derived from it, never stored. No new send takes the coins of a saved
+/// transaction that waits for a broadcast.
 class WalletPsbtServiceApi {
   final $pb.RpcClient _client;
 

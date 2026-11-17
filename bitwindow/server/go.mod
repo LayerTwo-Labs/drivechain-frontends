@@ -18,6 +18,7 @@ require (
 	github.com/btcsuite/btcd v0.25.0
 	github.com/btcsuite/btcd/btcec/v2 v2.5.1
 	github.com/btcsuite/btcd/btcutil v1.2.0
+	github.com/btcsuite/btcd/btcutil/psbt v1.2.0
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.2.0
 	github.com/go-zeromq/zmq4 v0.17.0
 	github.com/jessevdk/go-flags v1.6.1
@@ -42,7 +43,6 @@ require (
 	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/btcsuite/btcd/address/v2 v2.0.0 // indirect
-	github.com/btcsuite/btcd/btcutil/psbt v1.2.0 // indirect
 	github.com/btcsuite/btcd/btcutil/v2 v2.0.1 // indirect
 	github.com/btcsuite/btcd/chaincfg/v2 v2.0.0 // indirect
 	github.com/btcsuite/btcd/chainhash/v2 v2.0.0 // indirect

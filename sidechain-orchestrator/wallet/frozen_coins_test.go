@@ -79,6 +79,26 @@ func TestElectrumSendSkipsACoinABidHolds(t *testing.T) {
 	assert.Equal(t, []string{freeCoinTxid}, inputTxids(broadcastTx(t, fake)))
 }
 
+// A saved transaction spends its coins at its broadcast, so a new send takes
+// another coin. A discard frees the coin again.
+func TestElectrumSendSkipsTheInputOfASavedTransaction(t *testing.T) {
+	p, fake, w, _ := twoCoinWallet(t)
+	p.svc.SetFrozenCoins(nil)
+	p.svc.SetDraftCoins([]Outpoint{{TxID: frozenCoinTxid, Vout: 1}})
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	send := SendRequest{DestinationsSats: map[string]int64{dest: 50_000}, FeeRateSatPerVB: 2}
+	_, err := p.Send(context.Background(), w.ID, send)
+	require.NoError(t, err)
+	assert.Equal(t, []string{freeCoinTxid}, inputTxids(broadcastTx(t, fake)))
+
+	p.svc.SetDraftCoins(nil)
+	fake.broadcast = nil
+	_, err = p.Send(context.Background(), w.ID, send)
+	require.NoError(t, err)
+	assert.Equal(t, []string{frozenCoinTxid}, inputTxids(broadcastTx(t, fake)))
+}
+
 // A deposit spends the sidechain treasury plus a wallet coin. The wallet coin
 // must outlive the next round, or the deposit dies with the bid below it.
 func TestElectrumDepositSkipsACoinABidHolds(t *testing.T) {

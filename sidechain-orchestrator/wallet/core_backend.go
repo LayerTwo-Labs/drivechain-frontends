@@ -16,6 +16,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -895,48 +896,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	}
 
 	if req.FixedFeeSats > 0 {
-		selectedInputAmountSats := externalSats
-		if len(req.RequiredInputs) > 0 {
-			// Core owns the pinned outpoints' real values; a caller-supplied
-			// amount that is absent or too small would shrink the change output
-			// and burn the difference as fee.
-			requiredSats, err := p.requiredInputValueSats(ctx, name, req.RequiredInputs)
-			if err != nil {
-				return "", err
-			}
-			selectedInputAmountSats += requiredSats
-		}
-
-		neededSats := totalDestinationSats + req.FixedFeeSats
-		if len(req.RequiredInputs) == 0 && selectedInputAmountSats < neededSats {
-			extra, extraSats, err := p.selectInputsForFixedFee(
-				ctx, walletID, neededSats-selectedInputAmountSats,
-			)
-			if err != nil {
-				return "", err
-			}
-			inputs = append(inputs, extra...)
-			selectedInputAmountSats += extraSats
-		}
-
-		changeSats := selectedInputAmountSats - totalDestinationSats - req.FixedFeeSats
-		if changeSats < 0 {
-			return "", fmt.Errorf(
-				"insufficient selected inputs: need %d sats, have %d sats",
-				totalDestinationSats+req.FixedFeeSats,
-				selectedInputAmountSats,
-			)
-		}
-
-		if changeSats >= 546 {
-			changeAddress, err := p.NextChangeAddress(ctx, walletID)
-			if err != nil {
-				return "", fmt.Errorf("get raw change address: %w", err)
-			}
-			outputs = append(outputs, TxOutSpec{Address: changeAddress, AmountBTC: float64(changeSats) / 1e8})
-		}
-
-		rawHex, err := p.createRawTx(ctx, req, inputs, outputs, locktime)
+		rawHex, err := p.fixedFeeRawTx(ctx, walletID, name, req, inputs, outputs, totalDestinationSats, externalSats, locktime)
 		if err != nil {
 			return "", err
 		}
@@ -948,6 +908,57 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		return "", err
 	}
 	return p.signAndBroadcast(ctx, name, funded.Hex, false)
+}
+
+// fixedFeeRawTx builds the unsigned transaction of a fixed-fee send: the given
+// inputs, or more of the largest coins when no input is pinned, and change
+// above dust.
+func (p *CoreBackend) fixedFeeRawTx(
+	ctx context.Context, walletID, name string, req SendRequest, inputs []RawInput, outputs []TxOutSpec,
+	totalDestinationSats, externalSats int64, locktime uint32,
+) (string, error) {
+	selectedInputAmountSats := externalSats
+	if len(req.RequiredInputs) > 0 {
+		// Core owns the pinned outpoints' real values; a caller-supplied
+		// amount that is absent or too small would shrink the change output
+		// and burn the difference as fee.
+		requiredSats, err := p.requiredInputValueSats(ctx, name, req.RequiredInputs)
+		if err != nil {
+			return "", err
+		}
+		selectedInputAmountSats += requiredSats
+	}
+
+	neededSats := totalDestinationSats + req.FixedFeeSats
+	if len(req.RequiredInputs) == 0 && selectedInputAmountSats < neededSats {
+		extra, extraSats, err := p.selectInputsForFixedFee(
+			ctx, walletID, neededSats-selectedInputAmountSats,
+		)
+		if err != nil {
+			return "", err
+		}
+		inputs = append(inputs, extra...)
+		selectedInputAmountSats += extraSats
+	}
+
+	changeSats := selectedInputAmountSats - totalDestinationSats - req.FixedFeeSats
+	if changeSats < 0 {
+		return "", fmt.Errorf(
+			"insufficient selected inputs: need %d sats, have %d sats",
+			totalDestinationSats+req.FixedFeeSats,
+			selectedInputAmountSats,
+		)
+	}
+
+	if changeSats >= 546 {
+		changeAddress, err := p.NextChangeAddress(ctx, walletID)
+		if err != nil {
+			return "", fmt.Errorf("get raw change address: %w", err)
+		}
+		outputs = append(outputs, TxOutSpec{Address: changeAddress, AmountBTC: float64(changeSats) / 1e8})
+	}
+
+	return p.createRawTx(ctx, req, inputs, outputs, locktime)
 }
 
 // fundWithCoreSelection lets Core add inputs, change and the fee to the send.
@@ -1166,9 +1177,12 @@ func (p *CoreBackend) SignTransaction(ctx context.Context, walletID, rawHex stri
 // CreatePSBT funds an unsigned PSBT with Core's coin selection. It takes
 // destinations, OP_RETURN data, pinned inputs, a fee rate and fee subtraction.
 func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
-	if len(req.ExternalInputs) > 0 || len(req.ExcludedInputs) > 0 || len(req.RawOutputs) > 0 || req.FixedFeeSats > 0 {
+	if len(req.ExternalInputs) > 0 || len(req.ExcludedInputs) > 0 || len(req.RawOutputs) > 0 {
 		return "", connect.NewError(connect.CodeInvalidArgument,
-			"a Core wallet PSBT takes no external inputs, excluded inputs, raw outputs or fixed fee")
+			"a Core wallet PSBT takes no external inputs, excluded inputs or raw outputs")
+	}
+	if req.FixedFeeSats > 0 && req.SubtractFeeFromAmount {
+		return "", connect.NewError(connect.CodeInvalidArgument, ErrCoreMixedFee.Error()).WithCause(ErrCoreMixedFee)
 	}
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
@@ -1206,12 +1220,45 @@ func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendR
 		options["replaceable"] = true
 	}
 
-	outputs, _ := buildSendOutputs(req)
+	outputs, totalDestinationSats := buildSendOutputs(req)
+	if req.FixedFeeSats > 0 {
+		rawHex, err := p.fixedFeeRawTx(ctx, walletID, name, req, inputs, outputs, totalDestinationSats, 0, locktime)
+		if err != nil {
+			return "", err
+		}
+		unsigned, err := psbtFromRawTx(rawHex)
+		if err != nil {
+			return "", err
+		}
+		// An offline signer needs the coin records and key paths Core holds.
+		filled, err := p.rpc.WalletFillPSBT(ctx, name, unsigned)
+		if err != nil {
+			return "", fmt.Errorf("fill psbt: %w", err)
+		}
+		return filled.PSBT, nil
+	}
 	funded, err := p.rpc.WalletCreateFundedPSBT(ctx, name, inputs, rpcOutputs(outputs), locktime, options)
 	if err != nil {
 		return "", fmt.Errorf("create funded psbt: %w", err)
 	}
 	return funded.PSBT, nil
+}
+
+// psbtFromRawTx wraps an unsigned raw transaction in a base64 PSBT.
+func psbtFromRawTx(rawHex string) (string, error) {
+	raw, err := hex.DecodeString(rawHex)
+	if err != nil {
+		return "", fmt.Errorf("decode raw transaction hex: %w", err)
+	}
+	var tx wire.MsgTx
+	if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
+		return "", fmt.Errorf("decode raw transaction: %w", err)
+	}
+	packet, err := psbt.NewFromUnsignedTx(&tx)
+	if err != nil {
+		return "", fmt.Errorf("wrap raw transaction in a psbt: %w", err)
+	}
+	return packet.B64Encode()
 }
 
 // SignPSBT adds the Core wallet's signatures to a base64 PSBT.

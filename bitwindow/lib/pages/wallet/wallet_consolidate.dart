@@ -1,6 +1,7 @@
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/providers/consolidation_provider.dart';
+import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/consolidation.dart';
 import 'package:flutter/widgets.dart';
@@ -44,6 +45,7 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
   ConsolidationProvider get _consolidation => GetIt.I<ConsolidationProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
   FormatterProvider get _formatter => GetIt.I<FormatterProvider>();
+  PsbtDraftProvider get _drafts => GetIt.I<PsbtDraftProvider>();
 
   /// The values the size slider steps through, in satoshis.
   static const List<int> limitSteps = [
@@ -70,7 +72,10 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
 
   List<UnspentOutput> get _coins => _txProvider.utxos;
 
-  bool _isFrozen(String outpoint) => _coinSelection.isFrozen(outpoint);
+  bool _isLocked(String outpoint) => _drafts.lockedOutpoints.contains(outpoint);
+
+  /// A frozen coin, or a coin a saved transaction spends. No consolidation takes one.
+  bool _isFrozen(String outpoint) => _coinSelection.isFrozen(outpoint) || _isLocked(outpoint);
 
   List<UnspentOutput> get _visibleCoins {
     final coins = _coins.where((c) => !_hideFrozen || !_isFrozen(c.output)).toList();
@@ -112,7 +117,7 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
   ConsolidationPlan get _plan => planConsolidation(
     coins: _selectedCoins,
     feeRateSatPerVbyte: _feeRate,
-    frozenOutpoints: _coinSelection.frozenOutpoints,
+    frozenOutpoints: {..._coinSelection.frozenOutpoints, ..._drafts.lockedOutpoints},
     destinationKind: _destinationKind,
   );
 
@@ -152,7 +157,7 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([_txProvider, _coinSelection, _consolidation, _formatter]),
+      listenable: Listenable.merge([_txProvider, _coinSelection, _consolidation, _formatter, _drafts]),
       builder: (context, child) {
         final blocked = consolidationBlockReason(_walletReader.activeWallet);
         if (blocked != null) {
@@ -289,7 +294,13 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
                 copyValue: coin.output,
               ),
               SailTableCell(value: coin.address, copyValue: coin.address),
-              SailTableCell(value: frozen ? 'Frozen' : _coinSelection.getLabel(coin.output)),
+              SailTableCell(
+                value: _isLocked(coin.output)
+                    ? 'Locked'
+                    : frozen
+                    ? 'Frozen'
+                    : _coinSelection.getLabel(coin.output),
+              ),
               SailTableCell(value: _formatter.formatSats(coin.valueSats.toInt()), monospace: true),
             ];
           },

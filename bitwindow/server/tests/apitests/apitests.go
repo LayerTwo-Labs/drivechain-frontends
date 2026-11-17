@@ -607,6 +607,12 @@ func expectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
 		Return(&orchpb.GetWalletSeedResponse{SeedHex: seedHex}, nil).
 		AnyTimes()
 
+	// Every hand-over of the frozen set carries the coins of saved transactions.
+	mock.EXPECT().
+		SetDraftCoins(gomock.Any(), gomock.Any()).
+		Return(&emptypb.Empty{}, nil).
+		AnyTimes()
+
 	mock.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
 		Return(&orchpb.ListWalletsResponse{

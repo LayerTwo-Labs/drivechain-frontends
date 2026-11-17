@@ -3,9 +3,10 @@ package walletpsbt
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"connectrpc.com/connect/v2"
-	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1"
@@ -17,10 +18,12 @@ var _ rpc.WalletPsbtServiceHandler = new(Server)
 
 type Server struct {
 	store *walletpsbt.Store
+	// lockCoins hands the orchestrator the coins of every saved transaction.
+	lockCoins func(context.Context) error
 }
 
-func New(db *sql.DB) *Server {
-	return &Server{store: walletpsbt.NewStore(db)}
+func New(db *sql.DB, lockCoins func(context.Context) error) *Server {
+	return &Server{store: walletpsbt.NewStore(db), lockCoins: lockCoins}
 }
 
 func (s *Server) ListDrafts(
@@ -36,11 +39,15 @@ func (s *Server) ListDrafts(
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return &pb.ListDraftsResponse{
-		Drafts: lo.Map(drafts, func(d walletpsbt.Draft, _ int) *pb.PsbtDraft {
-			return draftToProto(d)
-		}),
-	}, nil
+	out := make([]*pb.PsbtDraft, 0, len(drafts))
+	for _, d := range drafts {
+		draft, err := draftToProto(d)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		}
+		out = append(out, draft)
+	}
+	return &pb.ListDraftsResponse{Drafts: out}, nil
 }
 
 func (s *Server) SaveDraft(
@@ -57,6 +64,9 @@ func (s *Server) SaveDraft(
 	if pd.PsbtBase64 == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, "psbt is required")
 	}
+	if _, err := walletpsbt.Inputs(pd.PsbtBase64); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+	}
 
 	saved, err := s.store.Save(ctx, walletpsbt.Draft{
 		ID:         pd.Id,
@@ -68,8 +78,21 @@ func (s *Server) SaveDraft(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
+	if err := s.lockCoins(ctx); err != nil {
+		// The caller gets no id for a new draft that failed, so it must not stay.
+		if pd.Id == "" {
+			if derr := s.store.Delete(ctx, saved.ID); derr != nil {
+				err = errors.Join(err, derr)
+			}
+		}
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Sprintf("lock the coins of the draft: %s", err)).WithCause(err)
+	}
 
-	return &pb.SaveDraftResponse{Draft: draftToProto(saved)}, nil
+	draft, err := draftToProto(saved)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	return &pb.SaveDraftResponse{Draft: draft}, nil
 }
 
 func (s *Server) DeleteDraft(
@@ -82,10 +105,17 @@ func (s *Server) DeleteDraft(
 	if err := s.store.Delete(ctx, req.Id); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
+	if err := s.lockCoins(ctx); err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Sprintf("free the coins of the draft: %s", err)).WithCause(err)
+	}
 	return &emptypb.Empty{}, nil
 }
 
-func draftToProto(d walletpsbt.Draft) *pb.PsbtDraft {
+func draftToProto(d walletpsbt.Draft) (*pb.PsbtDraft, error) {
+	inputs, err := walletpsbt.Inputs(d.PSBTBase64)
+	if err != nil {
+		return nil, fmt.Errorf("draft %s: %w", d.ID, err)
+	}
 	return &pb.PsbtDraft{
 		Id:         d.ID,
 		WalletId:   d.WalletID,
@@ -94,5 +124,6 @@ func draftToProto(d walletpsbt.Draft) *pb.PsbtDraft {
 		CreatedAt:  d.CreatedAt,
 		UpdatedAt:  d.UpdatedAt,
 		Txid:       d.Txid,
-	}
+		Inputs:     inputs,
+	}, nil
 }

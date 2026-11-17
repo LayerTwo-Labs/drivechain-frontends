@@ -81,6 +81,8 @@ type WalletEngine struct {
 
 	// frozenCoins names the coins the user froze, so no send of ours takes one.
 	frozenCoins FrozenCoinsFunc
+	// draftCoins names the inputs of the saved transactions, so no send of ours takes one.
+	draftCoins FrozenCoinsFunc
 	// frozenPushMu runs one hand-over at a time, newest set last.
 	frozenPushMu sync.Mutex
 
@@ -159,23 +161,55 @@ func (e *WalletEngine) PushFrozenCoins(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("read the frozen coins: %w", err)
 	}
-
-	coins := make([]*orchpb.FrozenOutpoint, 0, len(outpoints))
-	for _, outpoint := range outpoints {
-		txid, vout, ok := SplitOutpoint(outpoint)
-		if !ok {
-			return fmt.Errorf("frozen coin %q is not a txid:vout", outpoint)
-		}
-		coins = append(coins, &orchpb.FrozenOutpoint{Txid: txid, Vout: int32(vout)})
+	coins, err := frozenOutpoints(outpoints)
+	if err != nil {
+		return err
 	}
-
 	_, err = e.orchClient.SetFrozenCoins(ctx, &orchpb.SetFrozenCoinsRequest{
 		Outpoints: coins,
 	})
 	if err != nil {
 		return fmt.Errorf("set frozen coins: %w", err)
 	}
+
+	if e.draftCoins == nil {
+		return nil
+	}
+	drafts, err := e.draftCoins(ctx)
+	if err != nil {
+		return fmt.Errorf("read the coins of saved transactions: %w", err)
+	}
+	draftCoins, err := frozenOutpoints(drafts)
+	if err != nil {
+		return err
+	}
+	_, err = e.orchClient.SetDraftCoins(ctx, &orchpb.SetDraftCoinsRequest{
+		Outpoints: draftCoins,
+	})
+	if err != nil {
+		return fmt.Errorf("set draft coins: %w", err)
+	}
 	return nil
+}
+
+// SetDraftCoins wires the source that names the inputs of the saved
+// transactions. Every hand-over of the frozen set carries them too.
+func (e *WalletEngine) SetDraftCoins(fn FrozenCoinsFunc) {
+	e.frozenPushMu.Lock()
+	defer e.frozenPushMu.Unlock()
+	e.draftCoins = fn
+}
+
+func frozenOutpoints(outpoints []string) ([]*orchpb.FrozenOutpoint, error) {
+	coins := make([]*orchpb.FrozenOutpoint, 0, len(outpoints))
+	for _, outpoint := range outpoints {
+		txid, vout, ok := SplitOutpoint(outpoint)
+		if !ok {
+			return nil, fmt.Errorf("frozen coin %q is not a txid:vout", outpoint)
+		}
+		coins = append(coins, &orchpb.FrozenOutpoint{Txid: txid, Vout: int32(vout)})
+	}
+	return coins, nil
 }
 
 // SplitOutpoint reads a txid:vout pair with a nonnegative int32 output index.

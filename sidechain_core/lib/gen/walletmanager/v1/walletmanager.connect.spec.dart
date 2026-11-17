@@ -280,6 +280,16 @@ abstract final class WalletManagerService {
     googleprotobufempty.Empty.new,
   );
 
+  /// SetDraftCoins records the inputs of the saved transactions that wait for a
+  /// broadcast. Coin selection skips them. A broadcast of that saved transaction
+  /// still spends them.
+  static const setDraftCoins = connect.Spec(
+    '/$name/SetDraftCoins',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SetDraftCoinsRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
   /// CreateDeposit broadcasts a BIP300 deposit request to a sidechain from any wallet.
   static const createDeposit = connect.Spec(
     '/$name/CreateDeposit',

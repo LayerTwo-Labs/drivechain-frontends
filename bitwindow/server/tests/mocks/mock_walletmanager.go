@@ -973,6 +973,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SetCoreVariant(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCoreVariant", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).SetCoreVariant), arg0, arg1)
 }
 
+// SetDraftCoins mocks base method.
+func (m *MockWalletManagerServiceClient) SetDraftCoins(arg0 context.Context, arg1 *walletmanagerv1.SetDraftCoinsRequest) (*emptypb.Empty, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDraftCoins", arg0, arg1)
+	ret0, _ := ret[0].(*emptypb.Empty)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetDraftCoins indicates an expected call of SetDraftCoins.
+func (mr *MockWalletManagerServiceClientMockRecorder) SetDraftCoins(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDraftCoins", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).SetDraftCoins), arg0, arg1)
+}
+
 // SetElectrumServer mocks base method.
 func (m *MockWalletManagerServiceClient) SetElectrumServer(arg0 context.Context, arg1 *walletmanagerv1.SetElectrumServerRequest) (*walletmanagerv1.SetElectrumServerResponse, error) {
 	m.ctrl.T.Helper()
@@ -2134,6 +2149,21 @@ func (m *MockWalletManagerServiceHandler) SetCoreVariant(arg0 context.Context, a
 func (mr *MockWalletManagerServiceHandlerMockRecorder) SetCoreVariant(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCoreVariant", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).SetCoreVariant), arg0, arg1)
+}
+
+// SetDraftCoins mocks base method.
+func (m *MockWalletManagerServiceHandler) SetDraftCoins(arg0 context.Context, arg1 *walletmanagerv1.SetDraftCoinsRequest) (*emptypb.Empty, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDraftCoins", arg0, arg1)
+	ret0, _ := ret[0].(*emptypb.Empty)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetDraftCoins indicates an expected call of SetDraftCoins.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) SetDraftCoins(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDraftCoins", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).SetDraftCoins), arg0, arg1)
 }
 
 // SetElectrumServer mocks base method.
