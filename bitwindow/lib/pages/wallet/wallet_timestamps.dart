@@ -2,7 +2,6 @@ import 'package:bitwindow/providers/timestamp_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class TimestampsTabViewModel extends BaseViewModel {
@@ -132,7 +131,7 @@ class TimestampsTable extends StatelessWidget {
               value: _truncateHash(timestamp.fileHash),
               copyValue: timestamp.fileHash,
             ),
-            SailTableCell(value: _formatDate(timestamp.confirmedAt)),
+            SailTableCell(value: formatConfirmedAt(timestamp, 'MMM d, yyyy HH:mm')),
             SailTableCell(
               value: _getStatusLabel(timestamp.status, timestamp.confirmations),
               textColor: _getStatusColor(context, timestamp.status),
@@ -158,20 +157,6 @@ class TimestampsTable extends StatelessWidget {
         },
       ),
     );
-  }
-
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) {
-      return '-';
-    }
-    try {
-      final dt = DateTime.fromMillisecondsSinceEpoch(
-        timestamp.seconds * 1000 + timestamp.nanos ~/ 1000000,
-      );
-      return DateFormat('MMM d, yyyy HH:mm').format(dt);
-    } catch (e) {
-      return '-';
-    }
   }
 
   String _truncateHash(String hash) {

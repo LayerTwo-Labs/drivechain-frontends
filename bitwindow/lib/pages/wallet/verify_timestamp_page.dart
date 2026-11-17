@@ -5,7 +5,6 @@ import 'package:bitwindow/providers/timestamp_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class VerifyTimestampViewModel extends BaseViewModel {
@@ -113,7 +112,7 @@ class VerifyTimestampPage extends StatelessWidget {
                                   const SizedBox(width: SailStyleValues.padding08),
                                   Expanded(
                                     child: SailText.primary15(
-                                      '${model.verificationResult!.timestamp.filename} was timestamped at ${_formatDate(model.verificationResult!.timestamp.confirmedAt)}',
+                                      '${model.verificationResult!.timestamp.filename} was timestamped at ${formatConfirmedAt(model.verificationResult!.timestamp, 'MMM d, yyyy HH:mm:ss')}',
                                     ),
                                   ),
                                 ],
@@ -157,20 +156,6 @@ class VerifyTimestampPage extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) {
-      return '-';
-    }
-    try {
-      final dt = DateTime.fromMillisecondsSinceEpoch(
-        timestamp.seconds * 1000 + timestamp.nanos ~/ 1000000,
-      );
-      return DateFormat('MMM d, yyyy HH:mm:ss').format(dt);
-    } catch (e) {
-      return '-';
-    }
   }
 }
 
