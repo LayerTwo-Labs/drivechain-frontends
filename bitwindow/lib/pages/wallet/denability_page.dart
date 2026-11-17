@@ -157,12 +157,23 @@ class DeniabilityTable extends StatefulWidget {
 }
 
 class _DeniabilityTableState extends State<DeniabilityTable> {
+  static const _sortColumns = ['id', 'hops', 'txid', 'amount', 'next', 'status', 'timestamp'];
+
   String sortColumn = 'txid';
   bool sortAscending = true;
+
+  String _rowId(UnspentOutput utxo) => '${utxo.output}:${utxo.denialInfo.executions.length}';
+
+  List<UnspentOutput> get _sortedUtxos {
+    final utxos = [...widget.utxos];
+    utxos.sort((a, b) => sortAscending ? _compare(a, b) : _compare(b, a));
+    return utxos;
+  }
 
   @override
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
+    final utxos = _sortedUtxos;
 
     return SailCard(
       title: 'Your UTXOs with denial info',
@@ -177,43 +188,20 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
             child: ListenableBuilder(
               listenable: formatter,
               builder: (context, child) => SailTable(
-                getRowId: (index) => widget.utxos.isEmpty
-                    ? '0'
-                    : '${widget.utxos[index].output}:${widget.utxos[index].denialInfo.executions.length}',
+                getRowId: (index) => utxos.isEmpty ? '0' : _rowId(utxos[index]),
                 headerBuilder: (context) => [
-                  SailTableHeaderCell(
-                    name: 'Denial ID',
-                    onSort: () => onSort('id'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'Hops',
-                    onSort: () => onSort('hops'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'UTXO',
-                    onSort: () => onSort('txid'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'Amount',
-                    onSort: () => onSort('amount'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'Next Execution',
-                    onSort: () => onSort('next'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'Status',
-                    onSort: () => onSort('status'),
-                  ),
-                  SailTableHeaderCell(
-                    name: 'Timestamp',
-                    onSort: () => onSort('timestamp'),
-                  ),
-                  const SailTableHeaderCell(name: 'Actions'),
+                  const SailTableHeaderCell(name: 'Denial ID'),
+                  const SailTableHeaderCell(name: 'Hops'),
+                  const SailTableHeaderCell(name: 'UTXO'),
+                  const SailTableHeaderCell(name: 'Amount'),
+                  const SailTableHeaderCell(name: 'Next Execution'),
+                  const SailTableHeaderCell(name: 'Status'),
+                  const SailTableHeaderCell(name: 'Timestamp'),
+                  const SailTableHeaderCell(name: 'Actions', sortable: false),
                 ],
                 cellHeight: 36.0,
                 rowBuilder: (context, row, selected) {
-                  final utxo = widget.utxos[row];
+                  final utxo = utxos[row];
                   final hasDenialInfo = utxo.hasDenialInfo();
 
                   String status = '-';
@@ -326,29 +314,20 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     ),
                   ];
                 },
-                rowCount: widget.utxos.length,
+                rowCount: utxos.length,
                 emptyPlaceholder: 'No UTXOs available',
                 drawGrid: true,
-                sortColumnIndex: [
-                  'id',
-                  'txid',
-                  'vout',
-                  'amount',
-                  'next',
-                  'status',
-                  'actions',
-                ].indexOf(sortColumn),
+                sortColumnIndex: _sortColumns.indexOf(sortColumn),
                 sortAscending: sortAscending,
-                onSort: (columnIndex, ascending) {
-                  onSort(['id', 'txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
-                },
+                onSort: (columnIndex, ascending) => setState(() {
+                  sortColumn = _sortColumns[columnIndex];
+                  sortAscending = ascending;
+                }),
                 onDoubleTap: (rowId) {
-                  if (widget.utxos.isEmpty) {
+                  if (utxos.isEmpty) {
                     return;
                   }
-                  final utxo = widget.utxos.firstWhere(
-                    (u) => u.output == rowId,
-                  );
+                  final utxo = utxos.firstWhere((u) => _rowId(u) == rowId);
                   _showUtxoDetails(context, utxo);
                 },
               ),
@@ -360,96 +339,51 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     );
   }
 
-  void onSort(String column) {
-    setState(() {
-      if (sortColumn == column) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = column;
-        sortAscending = true;
-      }
-      sortEntries();
-    });
+  int _compare(UnspentOutput a, UnspentOutput b) {
+    switch (sortColumn) {
+      case 'id':
+        return a.denialInfo.id.compareTo(b.denialInfo.id);
+      case 'hops':
+        return _missingLast(a.hasDenialInfo(), b.hasDenialInfo()) ??
+            a.denialInfo.executions.length.compareTo(b.denialInfo.executions.length);
+      case 'txid':
+        return a.output.compareTo(b.output);
+      case 'amount':
+        return a.valueSats.compareTo(b.valueSats);
+      case 'next':
+        return _missingLast(a.hasDenialInfo(), b.hasDenialInfo()) ??
+            _missingLast(a.denialInfo.hasNextExecutionTime(), b.denialInfo.hasNextExecutionTime()) ??
+            a.denialInfo.nextExecutionTime.toDateTime().compareTo(b.denialInfo.nextExecutionTime.toDateTime());
+      case 'status':
+        return _missingLast(a.hasDenialInfo(), b.hasDenialInfo()) ??
+            _statusKey(a.denialInfo).compareTo(_statusKey(b.denialInfo));
+      case 'timestamp':
+        return _missingLast(a.hasReceivedAt(), b.hasReceivedAt()) ??
+            a.receivedAt.toDateTime().compareTo(b.receivedAt.toDateTime());
+      default:
+        return 0;
+    }
   }
 
-  void sortEntries() {
-    widget.utxos.sort((a, b) {
-      dynamic aValue;
-      dynamic bValue;
+  /// Null when both values exist; otherwise puts the missing one last.
+  int? _missingLast(bool aHas, bool bHas) {
+    if (aHas && bHas) {
+      return null;
+    }
+    if (aHas == bHas) {
+      return 0;
+    }
+    return aHas ? -1 : 1;
+  }
 
-      switch (sortColumn) {
-        case 'id':
-          aValue = a.denialInfo.id;
-          bValue = b.denialInfo.id;
-          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-
-        case 'txid':
-          // Sort by combined txid:vout string
-          final aKey = a.output;
-          final bKey = b.output;
-          return sortAscending ? aKey.compareTo(bKey) : bKey.compareTo(aKey);
-        case 'amount':
-          return sortAscending ? a.valueSats.compareTo(b.valueSats) : b.valueSats.compareTo(a.valueSats);
-        case 'hops':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) {
-            return 0;
-          }
-          if (!a.hasDenialInfo()) {
-            return sortAscending ? 1 : -1;
-          }
-          if (!b.hasDenialInfo()) {
-            return sortAscending ? -1 : 1;
-          }
-          aValue = a.denialInfo.executions.length;
-          bValue = b.denialInfo.executions.length;
-          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-        case 'next':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) {
-            return 0;
-          }
-          if (!a.hasDenialInfo()) {
-            return sortAscending ? 1 : -1;
-          }
-          if (!b.hasDenialInfo()) {
-            return sortAscending ? -1 : 1;
-          }
-          if (!a.denialInfo.hasNextExecutionTime() && !b.denialInfo.hasNextExecutionTime()) {
-            return 0;
-          }
-          if (!a.denialInfo.hasNextExecutionTime()) {
-            return sortAscending ? 1 : -1;
-          }
-          if (!b.denialInfo.hasNextExecutionTime()) {
-            return sortAscending ? -1 : 1;
-          }
-          return sortAscending
-              ? a.denialInfo.nextExecutionTime.toDateTime().compareTo(b.denialInfo.nextExecutionTime.toDateTime())
-              : b.denialInfo.nextExecutionTime.toDateTime().compareTo(a.denialInfo.nextExecutionTime.toDateTime());
-        case 'status':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) {
-            return 0;
-          }
-          if (!a.hasDenialInfo()) {
-            return sortAscending ? 1 : -1;
-          }
-          if (!b.hasDenialInfo()) {
-            return sortAscending ? -1 : 1;
-          }
-          aValue = a.denialInfo.hasCancelTime()
-              ? 'Cancelled'
-              : a.denialInfo.hasPausedAt()
-              ? 'Paused'
-              : (denialHasScheduledNextExecution(a.denialInfo) ? 'Ongoing' : 'Completed');
-          bValue = b.denialInfo.hasCancelTime()
-              ? 'Cancelled'
-              : b.denialInfo.hasPausedAt()
-              ? 'Paused'
-              : (denialHasScheduledNextExecution(b.denialInfo) ? 'Ongoing' : 'Completed');
-          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-        default:
-          return 0;
-      }
-    });
+  String _statusKey(DenialInfo info) {
+    if (info.hasCancelTime()) {
+      return 'Cancelled';
+    }
+    if (info.hasPausedAt()) {
+      return 'Paused';
+    }
+    return denialHasScheduledNextExecution(info) ? 'Ongoing' : 'Completed';
   }
 
   void _showUtxoDetails(BuildContext context, UnspentOutput utxo) {
