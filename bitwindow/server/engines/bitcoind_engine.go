@@ -1052,11 +1052,12 @@ func (p *Parser) handleOpReturns(
 }
 
 // isTxIndexMiss reports whether getrawtransaction failed because the node
-// has no txindex entry for the transaction, either because the index is
-// off or because Core still builds it after a reindex. Both shapes have
+// has no txindex entry for the transaction: the index is off, Core still
+// builds it after a reindex, or the entry is absent. All shapes have
 // JSON-RPC code -5.
 func isTxIndexMiss(errMsg string) bool {
 	return strings.Contains(errMsg, "No such mempool or blockchain transaction") ||
+		strings.Contains(errMsg, "Use -txindex or provide a block hash") ||
 		strings.Contains(errMsg, "Blockchain transactions are still in the process of being indexed")
 }
 
