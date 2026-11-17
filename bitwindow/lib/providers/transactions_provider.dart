@@ -213,7 +213,14 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
         update<List<UnspentOutput>>(
           utxos,
           () async {
-            final fetchedUtxos = await orchestratorWallet.listUnspent(walletId);
+            final (fetchedUtxos, bitwindowdUtxos) = await (
+              orchestratorWallet.listUnspent(walletId),
+              bitwindowd.wallet.listUnspent(walletId),
+            ).wait;
+            final denials = {
+              for (final utxo in bitwindowdUtxos)
+                if (utxo.hasDenialInfo()) utxo.output: utxo.denialInfo,
+            };
             final utxos = fetchedUtxos.utxos
                 .map(
                   (utxo) => UnspentOutput(
@@ -227,6 +234,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                     splittable: utxo.hasSplittable() ? utxo.splittable : null,
                     inputWeightUnits: utxo.inputWeightUnits,
                     confirmations: utxo.confirmations,
+                    denialInfo: denials['${utxo.txid}:${utxo.vout}'],
                   ),
                 )
                 .toList();
