@@ -469,7 +469,21 @@ class ReceivePageViewModel extends BaseViewModel {
     return active != null && (active.isWatchOnly || active.isMultisig);
   }
 
-  List<ReceiveAddress> get receiveAddresses => transactionsProvider.receiveAddresses.toList();
+  /// The wallet addresses, with the label from the address book where it has one.
+  List<ReceiveAddress> get receiveAddresses {
+    final labels = {
+      for (final entry in _addressBookProvider.receiveEntries)
+        if (entry.label.isNotEmpty) entry.address: entry.label,
+    };
+    return transactionsProvider.receiveAddresses
+        .map(
+          (address) => switch (labels[address.address]) {
+            final label? => address.deepCopy()..label = label,
+            null => address,
+          },
+        )
+        .toList();
+  }
 
   AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(
     (e) => e.address == address,
