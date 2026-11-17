@@ -109,7 +109,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                             SailText.secondary15('Pay to'),
                             SailTextField(
                               controller: model.bitcoinAddressController,
-                              hintText: 'Enter a bitcoin address',
+                              hintText: sendAddressHint(model.sidechainName),
                             ),
                             NumericField(
                               label: 'Amount',
@@ -138,6 +138,8 @@ class SidechainOverviewTabPage extends StatelessWidget {
     );
   }
 }
+
+String sendAddressHint(String chainName) => 'Enter a $chainName address';
 
 class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
