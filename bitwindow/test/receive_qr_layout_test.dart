@@ -5,6 +5,8 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/burn_ecx_card.dart';
 import 'package:bitwindow/widgets/claim_ecx_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -17,6 +19,8 @@ import 'test_utils.dart';
 const _address = 'bcrt1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq';
 const _cardTitle = 'Receive Bitcoin on L1';
 const _derivationPath = "m/84'/1'/0'/0/0";
+const _taprootAddress = 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297';
+const _taprootPath = "m/86'/0'/0'/0/0";
 
 class _FakeBitwindow extends ChangeNotifier implements BitwindowRPC {
   @override
@@ -43,13 +47,13 @@ class _FakeHDWallet extends ChangeNotifier implements HDWalletProvider {
 }
 
 class _FakeTransactions extends ChangeNotifier implements TransactionProvider {
-  _FakeTransactions(this.addressTypes);
+  _FakeTransactions(this.addressTypes, this.address, this.addressDerivationPath);
 
   @override
-  String address = _address;
+  String address;
 
   @override
-  String addressDerivationPath = _derivationPath;
+  String addressDerivationPath;
 
   @override
   final List<wmpb.AddressType> addressTypes;
@@ -124,6 +128,8 @@ Future<void> _pumpReceiveTab(
   WidgetTester tester, {
   List<wmpb.AddressType> addressTypes = const [wmpb.AddressType.ADDRESS_TYPE_SEGWIT],
   _FakeConf? conf,
+  String address = _address,
+  String derivationPath = _derivationPath,
 }) async {
   addTearDown(() async {
     await tester.pumpWidget(const SizedBox.shrink());
@@ -132,12 +138,17 @@ Future<void> _pumpReceiveTab(
   GetIt.I.registerSingleton<BitwindowRPC>(_FakeBitwindow());
   GetIt.I.registerSingleton<AddressBookProvider>(_FakeAddressBook());
   GetIt.I.registerSingleton<HDWalletProvider>(_FakeHDWallet());
-  GetIt.I.registerSingleton<TransactionProvider>(_FakeTransactions(addressTypes));
+  GetIt.I.registerSingleton<TransactionProvider>(_FakeTransactions(addressTypes, address, derivationPath));
   GetIt.I.registerSingleton<WalletReaderProvider>(_FakeWalletReader());
   GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator());
   GetIt.I.registerSingleton<BitcoinConfProvider>(conf ?? _FakeConf());
 
-  await tester.pumpSailPage(const ReceiveTab());
+  await tester.pumpSailPage(
+    Theme(
+      data: ThemeData(fontFamily: SailFonts.inter),
+      child: const ReceiveTab(),
+    ),
+  );
   await tester.pump();
 }
 
@@ -147,8 +158,28 @@ Finder _qr() => find.descendant(of: _addressCard(), matching: find.byType(QrImag
 
 Finder _addressField() => find.descendant(of: _addressCard(), matching: find.byType(SailTextField)).first;
 
+RenderEditable _addressEditable() => find
+    .descendant(of: _addressField(), matching: find.byWidgetPredicate((widget) => true))
+    .evaluate()
+    .map((element) => element.renderObject)
+    .whereType<RenderEditable>()
+    .first;
+
+Future<void> _setWindowSize(WidgetTester tester, Size size) async {
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.binding.setSurfaceSize(size);
+  await tester.pump();
+  await tester.pump();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    for (final (family, file) in [(SailFonts.inter, 'Inter'), (SailFonts.mono, 'IBMPlexMono')]) {
+      await (FontLoader(family)..addFont(rootBundle.load('packages/sail_ui/assets/fonts/$file-Regular.ttf'))).load();
+    }
+  });
 
   setUp(() async {
     await GetIt.I.reset();
@@ -249,20 +280,39 @@ void main() {
     expect(find.byType(SailDropdownButton<wmpb.AddressType>), findsNothing);
   });
 
-  testWidgets('the derivation path sits beside the copy button', (tester) async {
-    await _pumpReceiveTab(tester);
+  for (final size in const [Size(1200, 600), Size(1024, 700)]) {
+    testWidgets(
+      'a Taproot address shows in full with the path below the field at ${size.width.toInt()}x${size.height.toInt()}',
+      (tester) async {
+        await _pumpReceiveTab(tester, address: _taprootAddress, derivationPath: _taprootPath);
+        await _setWindowSize(tester, size);
 
-    final path = find.descendant(of: _addressCard(), matching: find.text(_derivationPath));
-    expect(path, findsOneWidget);
-    expect(tester.getTopLeft(path).dx, lessThan(tester.getTopLeft(_qr()).dx));
+        expect(_taprootAddress, hasLength(62));
+        final editable = _addressEditable();
+        expect(editable.text?.toPlainText(), _taprootAddress);
+        expect(editable.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(editable.size.width));
+
+        final path = find.descendant(of: _addressCard(), matching: find.text(_taprootPath));
+        expect(path, findsOneWidget);
+        expect(find.descendant(of: _addressField(), matching: find.text(_taprootPath)), findsNothing);
+        expect(tester.getTopLeft(path).dy, greaterThan(tester.getBottomLeft(_addressField()).dy));
+        expect(tester.getTopLeft(path).dx, tester.getTopLeft(_addressField()).dx);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('the path line is absent when the path is empty', (tester) async {
+    await _pumpReceiveTab(tester, address: _taprootAddress, derivationPath: '');
+    await _setWindowSize(tester, const Size(1200, 600));
+
+    expect(find.descendant(of: _addressCard(), matching: find.textContaining(RegExp(r'^m/'))), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the derivation path drops below the field at the narrow window minimum', (tester) async {
+  testWidgets('the derivation path sits below the field at the narrow window minimum', (tester) async {
     await _pumpReceiveTab(tester);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.binding.setSurfaceSize(const Size(400, 900));
-    await tester.pump();
-    await tester.pump();
+    await _setWindowSize(tester, const Size(400, 900));
 
     final path = find.descendant(of: _addressCard(), matching: find.text(_derivationPath));
     expect(path, findsOneWidget);
