@@ -430,39 +430,99 @@ class _AddressBookContentState extends State<AddressBookContent> {
   void _showDeleteConfirmation(BuildContext context, AddressBookEntry entry) {
     showThemedDialog(
       context: context,
-      builder: (context) => SailModal(
+      builder: (context) => ListenableBuilder(
+        listenable: widget.viewModel,
+        builder: (context, _) => SailModal(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: SailCard(
+            title: 'Delete Address',
+            subtitle: '',
+            error: widget.viewModel.error('delete'),
+            child: SailColumn(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: SailStyleValues.padding16,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.secondary13('Are you sure you want to delete "${entry.label}"?'),
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailButton(
+                      label: 'Delete',
+                      onPressed: () async {
+                        try {
+                          await widget.viewModel.deleteEntry(entry.id);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        } catch (e) {
+                          // Error is handled by the model
+                        }
+                      },
+                    ),
+                    SailButton(
+                      label: 'Cancel',
+                      onPressed: () async => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateDialog extends StatelessWidget {
+  final AddressBookViewModel viewModel;
+
+  const _CreateDialog({
+    required this.viewModel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) => SailModal(
         constraints: const BoxConstraints(maxWidth: 400),
         child: SailCard(
-          title: 'Delete Address',
+          title: viewModel.direction == Direction.DIRECTION_SEND ? 'New Sending Address' : 'New Receiving Address',
           subtitle: '',
-          error: widget.viewModel.error('delete'),
+          withCloseButton: true,
+          error: viewModel.error('create'),
           child: SailColumn(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: SailStyleValues.padding16,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SailText.secondary13('Are you sure you want to delete "${entry.label}"?'),
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  SailButton(
-                    label: 'Delete',
-                    onPressed: () async {
-                      try {
-                        await widget.viewModel.deleteEntry(entry.id);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      } catch (e) {
-                        // Error is handled by the model
-                      }
-                    },
-                  ),
-                  SailButton(
-                    label: 'Cancel',
-                    onPressed: () async => Navigator.pop(context),
-                  ),
-                ],
+              SailTextField(
+                label: 'Address',
+                controller: viewModel.addressController,
+                hintText: 'Enter a Bitcoin address',
+                size: TextFieldSize.small,
+              ),
+              SailTextField(
+                label: 'Label',
+                controller: viewModel.labelController,
+                hintText: 'Enter a label for this address',
+                size: TextFieldSize.small,
+              ),
+              SailButton(
+                label: 'Create',
+                onPressed: () async {
+                  try {
+                    await viewModel.createEntry();
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
+                    // Error is handled by the model
+                  }
+                },
+                disabled: viewModel.labelController.text.isEmpty || viewModel.addressController.text.isEmpty,
               ),
             ],
           ),
@@ -472,81 +532,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
   }
 }
 
-class _CreateDialog extends StatefulWidget {
-  final AddressBookViewModel viewModel;
-
-  const _CreateDialog({
-    required this.viewModel,
-  });
-
-  @override
-  State<_CreateDialog> createState() => _CreateDialogState();
-}
-
-class _CreateDialogState extends State<_CreateDialog> {
-  @override
-  void initState() {
-    super.initState();
-    widget.viewModel.labelController.addListener(_onTextChanged);
-    widget.viewModel.addressController.addListener(_onTextChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.viewModel.labelController.removeListener(_onTextChanged);
-    widget.viewModel.addressController.removeListener(_onTextChanged);
-    super.dispose();
-  }
-
-  void _onTextChanged() {
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SailModal(
-      constraints: const BoxConstraints(maxWidth: 400),
-      child: SailCard(
-        title: widget.viewModel.direction == Direction.DIRECTION_SEND ? 'New Sending Address' : 'New Receiving Address',
-        subtitle: '',
-        withCloseButton: true,
-        error: widget.viewModel.error('create'),
-        child: SailColumn(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: SailStyleValues.padding16,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailTextField(
-              label: 'Address',
-              controller: widget.viewModel.addressController,
-              hintText: 'Enter a Bitcoin address',
-              size: TextFieldSize.small,
-            ),
-            SailTextField(
-              label: 'Label',
-              controller: widget.viewModel.labelController,
-              hintText: 'Enter a label for this address',
-              size: TextFieldSize.small,
-            ),
-            SailButton(
-              label: 'Create',
-              onPressed: () async {
-                await widget.viewModel.createEntry();
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              },
-              disabled:
-                  widget.viewModel.labelController.text.isEmpty || widget.viewModel.addressController.text.isEmpty,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EditDialog extends StatefulWidget {
+class _EditDialog extends StatelessWidget {
   final AddressBookViewModel viewModel;
   final AddressBookEntry entry;
 
@@ -556,61 +542,43 @@ class _EditDialog extends StatefulWidget {
   });
 
   @override
-  State<_EditDialog> createState() => _EditDialogState();
-}
-
-class _EditDialogState extends State<_EditDialog> {
-  @override
-  void initState() {
-    super.initState();
-    widget.viewModel.editLabelController.addListener(_onTextChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.viewModel.editLabelController.removeListener(_onTextChanged);
-    super.dispose();
-  }
-
-  void _onTextChanged() {
-    setState(() {});
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return SailModal(
-      constraints: const BoxConstraints(maxWidth: 400),
-      child: SailCard(
-        title: 'Edit Label',
-        subtitle: '',
-        withCloseButton: true,
-        error: widget.viewModel.error('edit'),
-        child: SailColumn(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: SailStyleValues.padding16,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailTextField(
-              label: 'Label',
-              controller: widget.viewModel.editLabelController,
-              hintText: 'Enter a new label',
-              size: TextFieldSize.small,
-            ),
-            SailButton(
-              label: 'Update',
-              onPressed: () async {
-                try {
-                  await widget.viewModel.updateLabel(widget.entry.id);
-                  if (context.mounted) {
-                    Navigator.pop(context);
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SailCard(
+          title: 'Edit Label',
+          subtitle: '',
+          withCloseButton: true,
+          error: viewModel.error('edit'),
+          child: SailColumn(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: SailStyleValues.padding16,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailTextField(
+                label: 'Label',
+                controller: viewModel.editLabelController,
+                hintText: 'Enter a new label',
+                size: TextFieldSize.small,
+              ),
+              SailButton(
+                label: 'Update',
+                onPressed: () async {
+                  try {
+                    await viewModel.updateLabel(entry.id);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
+                    // Error is handled by the model
                   }
-                } catch (e) {
-                  // Error is handled by the model
-                }
-              },
-              disabled: widget.viewModel.editLabelController.text.isEmpty,
-            ),
-          ],
+                },
+                disabled: viewModel.editLabelController.text.isEmpty,
+              ),
+            ],
+          ),
         ),
       ),
     );
