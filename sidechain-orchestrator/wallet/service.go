@@ -988,7 +988,11 @@ func (s *Service) CreateElectrumMultisig(
 // CreateWatchOnlyWallet creates a watch-only Bitcoin Core wallet from an xpub or
 // descriptor. A bare key states no kind, so it is native segwit.
 func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON string) error {
-	_, err := s.createWatchOnly(name, json.RawMessage(gradientJSON), xpubOrDescriptor, ScriptNativeSegwit, WalletTypeBitcoinCore)
+	gradient, err := ParseGradient(gradientJSON)
+	if err != nil {
+		return connect.NewError(connect.CodeInvalidArgument, err.Error())
+	}
+	_, err = s.createWatchOnly(name, gradient, xpubOrDescriptor, ScriptNativeSegwit, WalletTypeBitcoinCore)
 	return err
 }
 

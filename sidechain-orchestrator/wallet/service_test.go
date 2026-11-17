@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"testing"
 
+	"connectrpc.com/connect/v2"
 	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -904,6 +905,34 @@ func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
 
 	// Watch-only should now be active
 	assert.Equal(t, wallets[1].ID, svc.ActiveWalletID())
+}
+
+func TestServiceCreateWatchOnlyWalletWithNoGradient(t *testing.T) {
+	dir := t.TempDir()
+	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+
+	svc1 := NewService(dir, log)
+	require.NoError(t, svc1.Init())
+	require.NoError(t, svc1.CreateWatchOnlyWallet("No Gradient", xpub, ""))
+	walletID := svc1.ActiveWalletID()
+	svc1.Close()
+
+	svc2 := NewService(dir, log)
+	require.NoError(t, svc2.Init())
+	defer svc2.Close()
+	assert.Equal(t, walletID, svc2.ActiveWalletID())
+	assert.Equal(t, "No Gradient", svc2.ActiveWalletName())
+}
+
+func TestServiceCreateWatchOnlyWalletRefusesABadGradient(t *testing.T) {
+	svc := newTestService(t)
+	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+
+	err := svc.CreateWatchOnlyWallet("Bad Gradient", xpub, "{not json")
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	assert.Empty(t, svc.ListWallets())
 }
 
 func TestServiceCreateWatchOnlyWalletPersistence(t *testing.T) {

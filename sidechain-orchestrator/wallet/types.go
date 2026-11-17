@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 )
 
@@ -163,6 +164,17 @@ func (w *WalletData) HardwareDeviceType() string { return w.watchOnlyField("hard
 
 // HardwareFingerprint returns a single-sig hardware wallet's device fingerprint.
 func (w *WalletData) HardwareFingerprint() string { return w.watchOnlyField("hardware_fingerprint") }
+
+// ParseGradient reads an optional gradient JSON. An empty string means none.
+func ParseGradient(s string) (json.RawMessage, error) {
+	if s == "" {
+		return nil, nil
+	}
+	if !json.Valid([]byte(s)) {
+		return nil, errors.New("gradient is not valid JSON")
+	}
+	return json.RawMessage(s), nil
+}
 
 // Custom JSON marshal/unmarshal for WalletData to handle time format
 func (w WalletData) MarshalJSON() ([]byte, error) {
