@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/gen/misc/v1/misc.pb.dart';
@@ -9,6 +10,14 @@ import 'package:sidechain_core/providers/sync_provider.dart';
 import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
 const int maxFileSizeBytes = 1024 * 1024; // 1MB
+
+/// The local block time of [timestamp] in [pattern], or '-' before it confirms.
+String formatConfirmedAt(FileTimestamp timestamp, String pattern) {
+  if (!timestamp.hasConfirmedAt()) {
+    return '-';
+  }
+  return DateFormat(pattern).format(timestamp.confirmedAt.toDateTime().toLocal());
+}
 
 class TimestampProvider extends ChangeNotifier {
   final Logger log = Logger(level: Level.debug);

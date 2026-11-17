@@ -4,7 +4,6 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class TimestampDetailViewModel extends BaseViewModel {
@@ -103,7 +102,7 @@ class TimestampDetailPage extends StatelessWidget {
                 ),
                 InfoRow(
                   label: 'Timestamped',
-                  value: _formatDate(ts.confirmedAt),
+                  value: formatConfirmedAt(ts, 'MMM d, yyyy HH:mm:ss'),
                 ),
                 StatusRow(status: ts.status),
                 if (ts.status == 'confirming' || ts.status == 'confirmed')
@@ -138,20 +137,6 @@ class TimestampDetailPage extends StatelessWidget {
         },
       ),
     );
-  }
-
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) {
-      return '-';
-    }
-    try {
-      final dt = DateTime.fromMillisecondsSinceEpoch(
-        timestamp.seconds * 1000 + timestamp.nanos ~/ 1000000,
-      );
-      return DateFormat('MMM d, yyyy HH:mm:ss').format(dt);
-    } catch (e) {
-      return '-';
-    }
   }
 }
 
