@@ -84,7 +84,6 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                   entries: viewModel.paginatedEntries,
                   onSort: viewModel.sortEntries,
                   loading: viewModel.loading,
-                  allTopics: viewModel.topics,
                   onArticleSelected: (news) => showCoinNewsArticle(context, news),
                 ),
                 const SizedBox(height: 16),
@@ -219,8 +218,7 @@ class _LargeColumn extends StatelessWidget {
     return ListView.builder(
       padding: EdgeInsets.zero,
       itemCount: entries.length,
-      itemBuilder: (context, i) =>
-          _LargeStoryRow(entry: entries[i], allTopics: viewModel.topics, outdated: viewModel.isOutdated(entries[i])),
+      itemBuilder: (context, i) => _LargeStoryRow(entry: entries[i], outdated: viewModel.isOutdated(entries[i])),
     );
   }
 }
@@ -228,10 +226,9 @@ class _LargeColumn extends StatelessWidget {
 /// One ranked story: headline, then its origin.
 class _LargeStoryRow extends StatefulWidget {
   final CoinNews entry;
-  final List<Topic> allTopics;
   final bool outdated;
 
-  const _LargeStoryRow({required this.entry, required this.allTopics, required this.outdated});
+  const _LargeStoryRow({required this.entry, required this.outdated});
 
   @override
   State<_LargeStoryRow> createState() => _LargeStoryRowState();
@@ -240,15 +237,11 @@ class _LargeStoryRow extends StatefulWidget {
 class _LargeStoryRowState extends State<_LargeStoryRow> {
   bool _hovered = false;
 
-  String get _topicName {
-    final match = widget.allTopics.firstWhereOrNull((t) => t.topic == widget.entry.topic);
-    return match?.name ?? widget.entry.topic;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final date = widget.entry.createTime.toDateTime().toLocal().toIso8601String().substring(0, 10);
+    final topicName = GetIt.I.get<NewsProvider>().topicName(widget.entry.topic);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
@@ -272,7 +265,7 @@ class _LargeStoryRowState extends State<_LargeStoryRow> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SailText.primary13(widget.entry.headline, bold: true),
-                  SailText.secondary12('$_topicName · $date'),
+                  SailText.secondary12(topicName == null ? date : '$topicName · $date'),
                 ],
               ),
             ),
@@ -721,9 +714,8 @@ class PageSizeSetting extends SettingValue<int> {
 
 class CoinNewsEntry extends StatefulWidget {
   final CoinNews entry;
-  final List<Topic> allTopics;
 
-  const CoinNewsEntry({required this.entry, required this.allTopics, super.key});
+  const CoinNewsEntry({required this.entry, super.key});
 
   @override
   State<CoinNewsEntry> createState() => _CoinNewsEntryState();
@@ -733,8 +725,11 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
   bool isHovered = false;
 
   String _getInitials(String topic) {
-    final matchingTopic = widget.allTopics.firstWhere((t) => t.topic == topic);
-    final words = matchingTopic.name.split(' ');
+    final name = GetIt.I.get<NewsProvider>().topicName(topic);
+    if (name == null || name.isEmpty) {
+      return '';
+    }
+    final words = name.split(' ');
     if (words.length >= 2) {
       return (words[0][0] + words[1][0]).toUpperCase();
     }
@@ -837,7 +832,6 @@ class CoinNewsTable extends StatelessWidget {
   final List<CoinNews> entries;
   final Function(String) onSort;
   final bool loading;
-  final List<Topic> allTopics;
   final bool shrinkWrap;
   final bool condensed;
   final void Function(CoinNews news)? onArticleSelected;
@@ -848,7 +842,6 @@ class CoinNewsTable extends StatelessWidget {
     required this.entries,
     required this.onSort,
     required this.loading,
-    required this.allTopics,
     this.shrinkWrap = true,
     this.condensed = false,
     this.onArticleSelected,
@@ -883,7 +876,7 @@ class CoinNewsTable extends StatelessWidget {
           ],
           rowBuilder: (context, row, selected) {
             final entry = entries[row];
-            final matchingTopic = allTopics.firstWhereOrNull((t) => t.topic == entry.topic);
+            final topicName = GetIt.I.get<NewsProvider>().topicName(entry.topic);
 
             return [
               if (condensed) ...[
@@ -892,7 +885,7 @@ class CoinNewsTable extends StatelessWidget {
                 SailTableCell(value: entry.headline),
               ] else ...[
                 SailTableCell(value: formatDate(entry.createTime.toDateTime())),
-                SailTableCell(value: matchingTopic?.name ?? entry.topic),
+                SailTableCell(value: topicName ?? ''),
                 SailTableCell(value: entry.headline),
                 SailTableCell(value: expectedReadTime(entry.content)),
               ],
@@ -968,6 +961,7 @@ class CoinNewsArticlePanel extends StatefulWidget {
 
 class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  NewsProvider get _newsProvider => GetIt.I.get<NewsProvider>();
 
   List<Comment> _comments = [];
   bool _loading = true;
@@ -1098,11 +1092,16 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
                             children: [
                               SailText.primary24(widget.news.headline, bold: true),
                               const SailSpacing(SailStyleValues.padding12),
-                              SailText.secondary13(
-                                widget.news.topic.isEmpty
-                                    ? formatDate(widget.news.createTime.toDateTime())
-                                    : '${widget.news.topic}  ·  ${formatDate(widget.news.createTime.toDateTime())}',
-                                color: theme.colors.textTertiary,
+                              ListenableBuilder(
+                                listenable: _newsProvider,
+                                builder: (context, _) {
+                                  final date = formatDate(widget.news.createTime.toDateTime());
+                                  final topicName = _newsProvider.topicName(widget.news.topic);
+                                  return SailText.secondary13(
+                                    topicName == null ? date : '$topicName  ·  $date',
+                                    color: theme.colors.textTertiary,
+                                  );
+                                },
                               ),
                               const SailSpacing(SailStyleValues.padding16),
                               Container(height: 1, color: theme.colors.divider),

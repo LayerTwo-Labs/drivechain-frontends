@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -26,6 +27,8 @@ class NewsProvider extends ChangeNotifier {
     blockchainProvider.addListener(fetch);
     fetch();
   }
+
+  String? topicName(String id) => topics.firstWhereOrNull((t) => t.topic == id)?.name;
 
   // call this function from anywhere to refetch news and topics
   Future<void> fetch() async {
