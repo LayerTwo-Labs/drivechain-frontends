@@ -1896,6 +1896,66 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		assert.Equal(t, "mempool_tx1", resp.Transactions[0].Txid)
 	})
 
+	t.Run("confirmed transactions from the block walk", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
+			}, nil).AnyTimes()
+
+		mockBitcoind.EXPECT().
+			GetRawMempool(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
+				Msg: &corepb.GetRawMempoolResponse{Transactions: map[string]*corepb.MempoolEntry{}},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 7, BestBlockHash: "blockhash7"},
+			}, nil)
+
+		// btc-buf fills Txids only at block-info verbosity.
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
+				block := &corepb.GetBlockResponse{Height: 7, Hash: "blockhash7", Time: timestamppb.Now()}
+				if req.Msg.Verbosity == corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO {
+					block.Txids = []string{"coinbase", "tx1"}
+				}
+				return connectv1.NewResponse(block), nil
+			}).Times(2)
+
+		mockBitcoind.EXPECT().
+			GetRawTransaction(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.GetRawTransactionResponse]{
+				Msg: &corepb.GetRawTransactionResponse{Vsize: 141, Fee: 0.00002000},
+			}, nil)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{Count: 10})
+		require.NoError(t, err)
+		require.Len(t, resp.Transactions, 1)
+		assert.Equal(t, "tx1", resp.Transactions[0].Txid)
+		assert.Equal(t, uint32(7), resp.Transactions[0].GetConfirmedInBlock())
+		assert.Equal(t, uint64(2000), resp.Transactions[0].FeeSats)
+		assert.Equal(t, uint32(141), resp.Transactions[0].VirtualSize)
+	})
+
 	t.Run("empty mempool and genesis block", func(t *testing.T) {
 		t.Parallel()
 

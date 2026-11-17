@@ -979,7 +979,7 @@ walkBlocks:
 	for i := 0; i < maxBlocks && currentHash != ""; i++ {
 		blockRes, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 			Hash:      currentHash,
-			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 		}))
 		if err != nil {
 			return nil, fmt.Errorf("bitcoind: get block: %w", err)
