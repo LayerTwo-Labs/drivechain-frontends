@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -96,10 +97,6 @@ var (
 )
 
 // NewCoreBackend creates the Bitcoin Core wallet backend.
-
-// ErrCoreMixedFee refuses a Core wallet send that names a fixed fee and also
-// subtracts the fee from the amount.
-var ErrCoreMixedFee = errors.New("a Core wallet send takes a fixed fee or subtract-fee-from-amount, not both")
 
 func NewCoreBackend(svc *Service, rpc *CoreRPCClient, params ParamsFunc, log zerolog.Logger) *CoreBackend {
 	backend := &CoreBackend{
@@ -853,9 +850,6 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	if len(req.ExcludedInputs) > 0 {
 		return "", errors.New("a Core wallet send takes no excluded inputs")
 	}
-	if req.FixedFeeSats > 0 && req.SubtractFeeFromAmount {
-		return "", connect.NewError(connect.CodeInvalidArgument, ErrCoreMixedFee.Error()).WithCause(ErrCoreMixedFee)
-	}
 	// External inputs carry no signature, so Core cannot size the fee for them.
 	if len(req.ExternalInputs) > 0 && req.FixedFeeSats <= 0 {
 		return "", errors.New("external inputs require a fixed fee")
@@ -917,6 +911,21 @@ func (p *CoreBackend) fixedFeeRawTx(
 	ctx context.Context, walletID, name string, req SendRequest, inputs []RawInput, outputs []TxOutSpec,
 	totalDestinationSats, externalSats int64, locktime uint32,
 ) (string, error) {
+	feeOnTopSats := req.FixedFeeSats
+	if req.SubtractFeeFromAmount {
+		if len(req.DestinationsSats) != 1 {
+			return "", connect.NewError(connect.CodeInvalidArgument, "subtractFeeFromAmount requires a single destination")
+		}
+		outputs = slices.Clone(outputs)
+		payment := &outputs[len(req.RawOutputs)]
+		paymentSats := req.DestinationsSats[payment.Address] - req.FixedFeeSats
+		if paymentSats < dustForOutput(*payment, p.net()) {
+			return "", connect.Errorf(connect.CodeInvalidArgument, "fee %d sats exceeds the payment", req.FixedFeeSats)
+		}
+		payment.AmountBTC = float64(paymentSats) / 1e8
+		feeOnTopSats = 0
+	}
+
 	selectedInputAmountSats := externalSats
 	if len(req.RequiredInputs) > 0 {
 		// Core owns the pinned outpoints' real values; a caller-supplied
@@ -929,7 +938,7 @@ func (p *CoreBackend) fixedFeeRawTx(
 		selectedInputAmountSats += requiredSats
 	}
 
-	neededSats := totalDestinationSats + req.FixedFeeSats
+	neededSats := totalDestinationSats + feeOnTopSats
 	if len(req.RequiredInputs) == 0 && selectedInputAmountSats < neededSats {
 		extra, extraSats, err := p.selectInputsForFixedFee(
 			ctx, walletID, neededSats-selectedInputAmountSats,
@@ -941,11 +950,11 @@ func (p *CoreBackend) fixedFeeRawTx(
 		selectedInputAmountSats += extraSats
 	}
 
-	changeSats := selectedInputAmountSats - totalDestinationSats - req.FixedFeeSats
+	changeSats := selectedInputAmountSats - neededSats
 	if changeSats < 0 {
 		return "", fmt.Errorf(
 			"insufficient selected inputs: need %d sats, have %d sats",
-			totalDestinationSats+req.FixedFeeSats,
+			neededSats,
 			selectedInputAmountSats,
 		)
 	}
@@ -1180,9 +1189,6 @@ func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendR
 	if len(req.ExternalInputs) > 0 || len(req.ExcludedInputs) > 0 || len(req.RawOutputs) > 0 {
 		return "", connect.NewError(connect.CodeInvalidArgument,
 			"a Core wallet PSBT takes no external inputs, excluded inputs or raw outputs")
-	}
-	if req.FixedFeeSats > 0 && req.SubtractFeeFromAmount {
-		return "", connect.NewError(connect.CodeInvalidArgument, ErrCoreMixedFee.Error()).WithCause(ErrCoreMixedFee)
 	}
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {

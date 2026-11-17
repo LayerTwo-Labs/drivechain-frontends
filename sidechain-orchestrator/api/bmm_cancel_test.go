@@ -182,7 +182,7 @@ func TestCancelBidPaysTheCoinsBackToItsOwnWallet(t *testing.T) {
 	require.Equal(t, int64(10_189), send.FixedFeeSats)
 	require.True(t, send.Replaceable)
 	require.Zero(t, send.FeeRateSatPerVbyte, "a rate beside a fixed fee is refused")
-	require.False(t, send.SubtractFeeFromAmount, "Core ignores it beside a fixed fee")
+	require.False(t, send.SubtractFeeFromAmount)
 	require.Empty(t, send.RawOutputs, "no M8, or the replacement bids again")
 	require.Len(t, send.RequiredInputs, 1)
 	require.Equal(t, "coin", send.RequiredInputs[0].Txid)

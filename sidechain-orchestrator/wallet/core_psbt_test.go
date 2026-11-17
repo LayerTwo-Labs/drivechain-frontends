@@ -161,9 +161,8 @@ func TestCoreBackendCreatePSBTSpendsOnlyThePinnedInputs(t *testing.T) {
 func TestCoreBackendCreatePSBTRefusesWhatCoreDoesNotFund(t *testing.T) {
 	dest := p2wpkhAddr(t, fixedKey(0xAA), &chaincfg.RegressionNetParams)
 	cases := map[string]SendRequest{
-		"external input":            {ExternalInputs: []ExternalInput{{TxID: freeCoinTxid, Vout: 0, AmountSats: 10_000}}},
-		"raw output":                {RawOutputs: []TxOutSpec{{OpReturnHex: "beef"}}},
-		"fixed fee from the amount": {FixedFeeSats: 1_000, SubtractFeeFromAmount: true},
+		"external input": {ExternalInputs: []ExternalInput{{TxID: freeCoinTxid, Vout: 0, AmountSats: 10_000}}},
+		"raw output":     {RawOutputs: []TxOutSpec{{OpReturnHex: "beef"}}},
 	}
 	for name, req := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -231,6 +230,48 @@ func TestCoreBackendCreatePSBTPaysAFixedFee(t *testing.T) {
 	packet, err := psbt.NewFromRawBytes(strings.NewReader(mustString(t, processes[0].Params[0])), true)
 	require.NoError(t, err)
 	assert.Equal(t, built.TxHash(), packet.UnsignedTx.TxHash())
+}
+
+func TestCoreBackendCreatePSBTTakesAFixedFeeFromTheAmount(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	calls := stubFundedPSBT(t, fake, nil)
+
+	net := &chaincfg.RegressionNetParams
+	dest := p2wpkhAddr(t, fixedKey(0x88), net)
+	change := p2wpkhAddr(t, fixedKey(0x99), net)
+	fake.handle("listunspent", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": strings.Repeat("22", 32), "vout": 1, "amount": 1.0, "spendable": true},
+		}, ""
+	})
+	fake.handle("getrawchangeaddress", func(bitcoindCall) (any, string) { return change, "" })
+	built := wire.NewMsgTx(2)
+	prev, err := chainhash.NewHashFromStr(strings.Repeat("22", 32))
+	require.NoError(t, err)
+	built.AddTxIn(wire.NewTxIn(wire.NewOutPoint(prev, 1), nil, nil))
+	built.AddTxOut(wire.NewTxOut(24_999_774, []byte{0x51}))
+	var buf bytes.Buffer
+	require.NoError(t, built.Serialize(&buf))
+	fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return hex.EncodeToString(buf.Bytes()), "" })
+	fake.handle("walletprocesspsbt", func(bitcoindCall) (any, string) {
+		return map[string]any{"psbt": corePSBT, "complete": false}, ""
+	})
+
+	filled, err := backend.CreatePSBT(context.Background(), coreID, SendRequest{
+		DestinationsSats:      map[string]int64{dest: 25_000_000},
+		FixedFeeSats:          226,
+		SubtractFeeFromAmount: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, corePSBT, filled)
+
+	assert.Empty(t, *calls)
+	creates := fake.callsFor("createrawtransaction")
+	require.Len(t, creates, 1)
+	var outputs []map[string]any
+	require.NoError(t, json.Unmarshal(creates[0].Params[1], &outputs))
+	assert.Equal(t, []map[string]any{{dest: 0.24999774}, {change: 0.75}}, outputs)
 }
 
 func TestCoreBackendCreatePSBTHoldsFrozenCoinsWhileCoreFunds(t *testing.T) {

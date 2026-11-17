@@ -107,10 +107,10 @@ func TestSendTransactionRoutesPerWalletType(t *testing.T) {
 	assert.Equal(t, coreID, chainFake.lastSendWallet)
 }
 
-func TestSendTransactionRefusesACoreMixedFeeFirst(t *testing.T) {
+func TestSendTransactionPassesAFixedFeeFromTheAmountToEveryWallet(t *testing.T) {
 	h, elecFake, chainFake, elecID, coreID := newRoutedHandler(t)
 	ctx := context.Background()
-	mixed := func(walletID string) *pb.SendTransactionRequest {
+	fromAmount := func(walletID string) *pb.SendTransactionRequest {
 		return &pb.SendTransactionRequest{
 			WalletId:              walletID,
 			Destinations:          map[string]int64{"addr": 10_000},
@@ -119,14 +119,16 @@ func TestSendTransactionRefusesACoreMixedFeeFirst(t *testing.T) {
 		}
 	}
 
-	_, err := h.SendTransaction(ctx, mixed(coreID))
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-	assert.Empty(t, chainFake.lastSendWallet)
-
-	_, err = h.SendTransaction(ctx, mixed(elecID))
-	require.NoError(t, err)
-	assert.Equal(t, elecID, elecFake.lastSendWallet)
+	for _, tc := range []struct {
+		walletID string
+		fake     *recordingProvider
+	}{{coreID, chainFake}, {elecID, elecFake}} {
+		_, err := h.SendTransaction(ctx, fromAmount(tc.walletID))
+		require.NoError(t, err)
+		assert.Equal(t, tc.walletID, tc.fake.lastSendWallet)
+		assert.Equal(t, int64(500), tc.fake.lastSend.FixedFeeSats)
+		assert.True(t, tc.fake.lastSend.SubtractFeeFromAmount)
+	}
 }
 
 func TestSendTransactionPassesThroughConnectCodes(t *testing.T) {
