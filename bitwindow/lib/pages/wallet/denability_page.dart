@@ -281,6 +281,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     ),
                     SailTableCell(
                       value: canControl ? (isPaused ? 'Resume' : 'Pause') : 'Deny',
+                      width: 160,
                       child: canControl
                           ? Row(
                               mainAxisSize: MainAxisSize.min,
