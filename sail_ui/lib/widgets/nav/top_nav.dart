@@ -44,7 +44,7 @@ class _TopNavState extends State<TopNav> {
                   bottom: 4,
                 ),
                 child: SailRow(
-                  spacing: 30,
+                  spacing: SailStyleValues.compactBars(context) ? 16 : 30,
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

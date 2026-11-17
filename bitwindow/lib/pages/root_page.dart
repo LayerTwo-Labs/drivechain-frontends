@@ -1284,6 +1284,8 @@ class _StatusBarState extends State<StatusBar> {
 
   Widget _bottomNav(BuildContext context, ECashMigrationProvider migration) {
     final swap = migration.status;
+    final compact = SailStyleValues.compactBars(context);
+    final lastBlock = 'Last block: ${_getTimeSinceLastBlock()}';
     return BottomNav(
       statusOverride: migration.swapping && swap != null
           ? BottomNavStatusOverride(
@@ -1323,8 +1325,21 @@ class _StatusBarState extends State<StatusBar> {
             description: 'Waiting for bitcoind to connect..',
             enabled: !blockchainProvider.mainchain.connected,
             child: SailTooltip(
-              message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
-              child: SailText.secondary12('Last block: ${_getTimeSinceLastBlock()}'),
+              message: compact
+                  ? [
+                      lastBlock,
+                      ?blockchainProvider.blocks.firstOrNull?.toPretty(),
+                    ].join('\n')
+                  : blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
+              child: compact
+                  ? SailRow(
+                      spacing: SailStyleValues.padding04,
+                      children: [
+                        SailSVG.icon(SailSVGAsset.clock, width: 12, color: context.sailTheme.colors.textSecondary),
+                        SailText.secondary12(_getTimeSinceLastBlock()),
+                      ],
+                    )
+                  : SailText.secondary12(lastBlock),
             ),
           ),
           const DividerDot(),
@@ -1341,6 +1356,7 @@ class _StatusBarState extends State<StatusBar> {
           const DividerDot(),
         ],
         ResetButton(
+          compact: compact,
           onTap: () async {
             final confProvider = GetIt.I.get<BitcoinConfProvider>();
             final settingsTabIndex = confProvider.networkSupportsSidechains ? 7 : 6;
