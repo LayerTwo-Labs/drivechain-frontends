@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 abstract class SailStyleValues {
+  /// Window width under which the top nav and the status bar go compact.
+  static const double compactBarsWidth = 1200;
+
+  static bool compactBars(BuildContext context) => MediaQuery.sizeOf(context).width < compactBarsWidth;
+
   // ---------- PADDINGS AND SPACINGS ----------
   static BorderRadius borderRadiusLarge = BorderRadius.circular(12);
   static BorderRadius borderRadius = BorderRadius.circular(6);

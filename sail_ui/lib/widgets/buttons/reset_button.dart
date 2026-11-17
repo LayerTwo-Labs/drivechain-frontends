@@ -5,7 +5,10 @@ import 'package:sail_ui/sail_ui.dart';
 class ResetButton extends StatelessWidget {
   final Future<void> Function() onTap;
 
-  const ResetButton({super.key, required this.onTap});
+  /// Shows only the icon.
+  final bool compact;
+
+  const ResetButton({super.key, required this.onTap, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +30,7 @@ class ResetButton extends StatelessWidget {
                 width: 12,
                 height: 12,
               ),
-              SailText.secondary12('Reset'),
+              if (!compact) SailText.secondary12('Reset'),
             ],
           ),
         ),

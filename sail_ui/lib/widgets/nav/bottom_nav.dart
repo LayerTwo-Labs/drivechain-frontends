@@ -135,6 +135,7 @@ class BottomNav extends StatelessWidget {
               ),
               fireOnViewModelReadyOnce: true,
               builder: ((context, model, child) {
+                final compact = SailStyleValues.compactBars(context);
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -153,7 +154,11 @@ class BottomNav extends StatelessWidget {
                         );
                       },
                       child: Tooltip(
-                        message: statusOverride == null ? 'Open daemon status dialog' : 'Open the swap progress',
+                        message: compact
+                            ? statusOverride?.label ?? model.connectionStatus
+                            : statusOverride == null
+                            ? 'Open daemon status dialog'
+                            : 'Open the swap progress',
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -185,7 +190,7 @@ class BottomNav extends StatelessWidget {
                             ),
                             const SizedBox(width: SailStyleValues.padding08),
                             ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 200),
+                              constraints: BoxConstraints(maxWidth: compact ? 140 : 200),
                               child: statusOverride != null
                                   ? SailText.primary12(
                                       statusOverride!.label,
@@ -445,7 +450,7 @@ class DividerDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: EdgeInsets.symmetric(horizontal: SailStyleValues.compactBars(context) ? 4 : 8),
       child: SailText.primary10(
         '|',
         color: SailTheme.of(context).colors.divider,
@@ -772,7 +777,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
     final additionalSynced = additionalConnected && viewModel.additionalSyncInfo!.isSynced;
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 300),
+      constraints: BoxConstraints(maxWidth: SailStyleValues.compactBars(context) ? 180 : 300),
       child: SailRow(
         spacing: 0,
         mainAxisAlignment: MainAxisAlignment.center,
