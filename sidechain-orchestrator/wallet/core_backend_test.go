@@ -681,21 +681,71 @@ func TestCoreBackendSendFixedFeeSelectsInputsAndChange(t *testing.T) {
 	assert.Equal(t, builtHex, mustString(t, signs[0].Params[0]))
 }
 
-func TestCoreBackendSendFixedFeeRejectsSubtractFee(t *testing.T) {
-	backend, fake, coreID := newCoreBackendFixture(t)
-	fake.stubEnsureFlow()
+func TestCoreBackendSendFixedFeeFromTheAmount(t *testing.T) {
+	net := &chaincfg.RegressionNetParams
+	dest := p2wpkhAddr(t, fixedKey(0x88), net)
+	change := p2wpkhAddr(t, fixedKey(0x99), net)
 
-	dest := p2wpkhAddr(t, fixedKey(0x88), &chaincfg.RegressionNetParams)
+	newFixture := func(t *testing.T) (*CoreBackend, *fakeBitcoind, string) {
+		backend, fake, coreID := newCoreBackendFixture(t)
+		fake.stubEnsureFlow()
+		fake.handle("listunspent", func(bitcoindCall) (any, string) {
+			return []map[string]any{
+				{"txid": strings.Repeat("11", 32), "vout": 0, "amount": 1.0, "spendable": true},
+			}, ""
+		})
+		fake.handle("getrawchangeaddress", func(bitcoindCall) (any, string) { return change, "" })
+		fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return "deadbeef", "" })
+		fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+			return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
+		})
+		fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "txid-fixed", "" })
+		return backend, fake, coreID
+	}
 
-	_, err := backend.Send(context.Background(), coreID, SendRequest{
-		DestinationsSats:      map[string]int64{dest: 50_000},
-		FixedFeeSats:          1_000,
-		SubtractFeeFromAmount: true,
+	t.Run("the payment pays the fee", func(t *testing.T) {
+		backend, fake, coreID := newFixture(t)
+
+		txid, err := backend.Send(context.Background(), coreID, SendRequest{
+			DestinationsSats:      map[string]int64{dest: 25_000_000},
+			FixedFeeSats:          226,
+			SubtractFeeFromAmount: true,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "txid-fixed", txid)
+
+		creates := fake.callsFor("createrawtransaction")
+		require.Len(t, creates, 1)
+		var outputs []map[string]any
+		require.NoError(t, json.Unmarshal(creates[0].Params[1], &outputs))
+		assert.Equal(t, []map[string]any{{dest: 0.24999774}, {change: 0.75}}, outputs)
 	})
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-	assert.Empty(t, fake.callsFor("createrawtransaction"))
-	assert.Empty(t, fake.callsFor("sendtoaddress"))
+
+	t.Run("refuses a payment below dust", func(t *testing.T) {
+		backend, fake, coreID := newFixture(t)
+
+		_, err := backend.Send(context.Background(), coreID, SendRequest{
+			DestinationsSats:      map[string]int64{dest: 1_000},
+			FixedFeeSats:          900,
+			SubtractFeeFromAmount: true,
+		})
+		require.Error(t, err)
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		assert.Empty(t, fake.callsFor("createrawtransaction"))
+	})
+
+	t.Run("refuses more than one destination", func(t *testing.T) {
+		backend, fake, coreID := newFixture(t)
+
+		_, err := backend.Send(context.Background(), coreID, SendRequest{
+			DestinationsSats:      map[string]int64{dest: 50_000, change: 50_000},
+			FixedFeeSats:          226,
+			SubtractFeeFromAmount: true,
+		})
+		require.Error(t, err)
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		assert.Empty(t, fake.callsFor("createrawtransaction"))
+	})
 }
 
 func TestCoreBackendSendFixedFeeResolvesRequiredInputValue(t *testing.T) {
