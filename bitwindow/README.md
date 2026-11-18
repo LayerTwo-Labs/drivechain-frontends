@@ -16,3 +16,17 @@ just run
 ```
 
 This downloads all required binaries and starts the app.
+
+## Regtest
+
+`scripts/regtest.sh` runs the app on a regtest datadir that stays between runs.
+
+```bash
+scripts/regtest.sh start         # start the app on regtest
+scripts/regtest.sh mine 101      # mine blocks
+scripts/regtest.sh save funded   # save the state
+scripts/regtest.sh restore funded
+scripts/regtest.sh reset         # delete the wallet and the chain, keep the binaries
+```
+
+Run `scripts/regtest.sh help` for all commands.
