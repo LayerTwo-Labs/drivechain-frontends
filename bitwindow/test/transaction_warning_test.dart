@@ -297,4 +297,23 @@ void main() {
     expect(provider.error, isNull);
     expect(provider.walletTransactions.map((transaction) => transaction.txid), ['kept']);
   });
+
+  test('a replaced transaction leaves the history', () async {
+    orchestrator.wallet.transactions = [
+      wmpb.TransactionEntry(txid: 'replaced', confirmations: 0, replacedByTxid: true, amountSats: Int64(-1000)),
+      wmpb.TransactionEntry(txid: 'replacement', confirmations: 0, amountSats: Int64(-1000)),
+    ];
+    final provider = TransactionProvider();
+    addTearDown(provider.dispose);
+    final loaded = Completer<void>();
+    provider.addListener(() {
+      if ((provider.initialized || provider.error != null) && !loaded.isCompleted) {
+        loaded.complete();
+      }
+    });
+    await loaded.future;
+
+    expect(provider.error, isNull);
+    expect(provider.walletTransactions.map((transaction) => transaction.txid), ['replacement']);
+  });
 }
