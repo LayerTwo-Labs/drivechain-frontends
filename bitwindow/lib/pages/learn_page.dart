@@ -97,26 +97,24 @@ class ArticleGroupCard extends StatefulWidget {
 class _ArticleGroupCardState extends State<ArticleGroupCard> {
   final ScrollController _scrollController = ScrollController();
   bool _isScrolled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_scrollListener);
-  }
+  bool _isAtEnd = false;
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _scrollListener() {
-    if (_scrollController.position.pixels > 0 && !_isScrolled) {
-      setState(() => _isScrolled = true);
-    } else if (_scrollController.position.pixels <= 0 && _isScrolled) {
-      setState(() => _isScrolled = false);
+  bool _updateEdges(ScrollMetrics metrics) {
+    final isScrolled = metrics.pixels > metrics.minScrollExtent;
+    final isAtEnd = metrics.pixels >= metrics.maxScrollExtent;
+    if (isScrolled != _isScrolled || isAtEnd != _isAtEnd) {
+      setState(() {
+        _isScrolled = isScrolled;
+        _isAtEnd = isAtEnd;
+      });
     }
+    return false;
   }
 
   void _scroll(double offset) {
@@ -165,27 +163,33 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
             height: 280,
             child: Stack(
               children: [
-                ListView.separated(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding20),
-                  itemCount: widget.group.articles.length,
-                  separatorBuilder: (context, index) => const SizedBox(width: SailStyleValues.padding20),
-                  itemBuilder: (context, index) {
-                    return SizedBox(
-                      width: MediaQuery.of(context).size.width >= 768 ? 400 : 280,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: theme.colors.backgroundSecondary,
-                          borderRadius: SailStyleValues.borderRadiusLarge,
-                        ),
-                        child: ArticleCard(
-                          groupTitle: widget.group.title,
-                          article: widget.group.articles[index],
-                        ),
-                      ),
-                    );
-                  },
+                NotificationListener<ScrollMetricsNotification>(
+                  onNotification: (notification) => _updateEdges(notification.metrics),
+                  child: NotificationListener<ScrollUpdateNotification>(
+                    onNotification: (notification) => _updateEdges(notification.metrics),
+                    child: ListView.separated(
+                      controller: _scrollController,
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding20),
+                      itemCount: widget.group.articles.length,
+                      separatorBuilder: (context, index) => const SizedBox(width: SailStyleValues.padding20),
+                      itemBuilder: (context, index) {
+                        return SizedBox(
+                          width: MediaQuery.of(context).size.width >= 768 ? 400 : 280,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: theme.colors.backgroundSecondary,
+                              borderRadius: SailStyleValues.borderRadiusLarge,
+                            ),
+                            child: ArticleCard(
+                              groupTitle: widget.group.title,
+                              article: widget.group.articles[index],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
                 if (showArrows) ...[
                   if (_isScrolled)
@@ -214,31 +218,32 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                         ],
                       ),
                     ),
-                  Positioned(
-                    right: 0,
-                    top: 100,
-                    child: Row(
-                      children: [
-                        _ScrollButton(
-                          onPressed: () => _scroll(scrollDistance),
-                          isLeft: false,
-                        ),
-                        Container(
-                          width: 24,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerRight,
-                              end: Alignment.centerLeft,
-                              colors: [
-                                theme.colors.background,
-                                theme.colors.background.withValues(alpha: 0),
-                              ],
+                  if (!_isAtEnd)
+                    Positioned(
+                      right: 0,
+                      top: 100,
+                      child: Row(
+                        children: [
+                          _ScrollButton(
+                            onPressed: () => _scroll(scrollDistance),
+                            isLeft: false,
+                          ),
+                          Container(
+                            width: 24,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerRight,
+                                end: Alignment.centerLeft,
+                                colors: [
+                                  theme.colors.background,
+                                  theme.colors.background.withValues(alpha: 0),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ],
             ),
