@@ -351,6 +351,8 @@ class SidechainProposal extends $pb.GeneratedMessage {
     $core.int? voteCount,
     $core.int? proposalHeight,
     $core.int? proposalAge,
+    $core.String? title,
+    $core.String? description,
   }) {
     final result = SidechainProposal._();
     if (slot != null) result.slot = slot;
@@ -359,6 +361,8 @@ class SidechainProposal extends $pb.GeneratedMessage {
     if (voteCount != null) result.voteCount = voteCount;
     if (proposalHeight != null) result.proposalHeight = proposalHeight;
     if (proposalAge != null) result.proposalAge = proposalAge;
+    if (title != null) result.title = title;
+    if (description != null) result.description = description;
     return result;
   }
 
@@ -380,6 +384,8 @@ class SidechainProposal extends $pb.GeneratedMessage {
     ..aI(4, _omitFieldNames ? '' : 'voteCount', fieldType: $pb.PbFieldType.OU3)
     ..aI(5, _omitFieldNames ? '' : 'proposalHeight', fieldType: $pb.PbFieldType.OU3)
     ..aI(6, _omitFieldNames ? '' : 'proposalAge', fieldType: $pb.PbFieldType.OU3)
+    ..aOS(7, _omitFieldNames ? '' : 'title')
+    ..aOS(8, _omitFieldNames ? '' : 'description')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -455,6 +461,24 @@ class SidechainProposal extends $pb.GeneratedMessage {
   $core.bool hasProposalAge() => $_has(5);
   @$pb.TagNumber(6)
   void clearProposalAge() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get title => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set title($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasTitle() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearTitle() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get description => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set description($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasDescription() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearDescription() => $_clearField(8);
 }
 
 class ListSidechainProposalsResponse extends $pb.GeneratedMessage {

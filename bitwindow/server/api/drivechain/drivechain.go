@@ -144,6 +144,8 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *pb.ListSidechain
 			VoteCount:      proposal.VoteCount.Value,
 			ProposalHeight: proposal.ProposalHeight.Value,
 			ProposalAge:    proposal.ProposalAge.Value,
+			Title:          proposal.GetDeclaration().GetV0().GetTitle().GetValue(),
+			Description:    proposal.GetDeclaration().GetV0().GetDescription().GetValue(),
 		})
 	}
 

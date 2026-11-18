@@ -42,6 +42,8 @@ message SidechainProposal {
   uint32 vote_count = 4;
   uint32 proposal_height = 5;
   uint32 proposal_age = 6;
+  string title = 7;
+  string description = 8;
 }
 
 message ListSidechainProposalsResponse {
