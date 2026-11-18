@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -109,6 +110,33 @@ func TestGather_SoftwareComesFromTheDataDir(t *testing.T) {
 
 	paths := lo.Map(files, func(f ResetFileInfo, _ int) string { return f.Path })
 	assert.Contains(t, paths, installed)
+}
+
+func TestGather_BitwindowPathsComeFromTheBitwindowDir(t *testing.T) {
+	setTestHome(t)
+	dataDir, bitwindowDir := t.TempDir(), t.TempDir()
+	o := New(dataDir, "signet", bitwindowDir, AllDefaults(), testLogger(t))
+	defaultDir := config.BitWindowDirs.RootDir()
+	for _, dir := range []string{defaultDir, bitwindowDir} {
+		seedFile(t, filepath.Join(dir, logfile.Name))
+		seedFile(t, filepath.Join(dir, "settings.json"))
+		seedFile(t, filepath.Join(dir, "signet", "wallet.json"))
+	}
+
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{Binary: ResetBinaryBitwindowd, Categories: []ResetCategory{catLogs, catSettings, catWallet}},
+	})
+	require.NoError(t, err)
+
+	paths := lo.Map(files, func(f ResetFileInfo, _ int) string { return f.Path })
+	assert.Contains(t, paths, filepath.Join(bitwindowDir, logfile.Name))
+	assert.Contains(t, paths, filepath.Join(bitwindowDir, "settings.json"))
+	assert.Contains(t, paths, filepath.Join(bitwindowDir, "signet", "wallet.json"))
+	for _, p := range paths {
+		assert.False(t, strings.HasPrefix(p, defaultDir+string(filepath.Separator)), "path outside the BitWindow dir: %s", p)
+	}
+	assert.True(t, o.allWalletPaths()[filepath.Join(bitwindowDir, "signet", "wallet.json")],
+		"a wallet in the BitWindow dir must move to a backup, not be deleted")
 }
 
 func TestResetClearsTheSavedNodeMode(t *testing.T) {

@@ -166,6 +166,15 @@ func (o *Orchestrator) coreVariantDirs(binDir string) []string {
 	return dirs
 }
 
+// withBitwindowDir points BitWindow's paths at the directory this
+// orchestrator runs with, not the platform default.
+func (o *Orchestrator) withBitwindowDir(dc config.BinaryDirConfig) config.BinaryDirConfig {
+	if dc.BinaryName == config.BitWindowDirs.BinaryName && o.BitwindowDir != "" {
+		dc.RootOverride = o.BitwindowDir
+	}
+	return dc
+}
+
 // GatherFilesToDelete resolves, per binary, the on-disk paths for each
 // requested category. No side effects. The returned list is deduplicated by
 // path so a file shared between two categories (e.g. a frontend wallet.json
@@ -200,6 +209,7 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 
 	for _, spec := range specs {
 		dc, ok := spec.Binary.dirConfig()
+		dc = o.withBitwindowDir(dc)
 		if !ok {
 			o.log.Warn().Int("binary", int(spec.Binary)).Msg("gather: unknown binary, skipping")
 			continue
@@ -735,6 +745,7 @@ func (o *Orchestrator) allWalletPaths() map[string]bool {
 
 	set := make(map[string]bool)
 	for _, dc := range config.AllDirConfigs() {
+		dc = o.withBitwindowDir(dc)
 		for _, p := range dc.GetWalletPaths(dc.DatadirNetwork(network, bitcoinOverride), network, o.log) {
 			set[p] = true
 		}
@@ -763,6 +774,7 @@ func (o *Orchestrator) BinaryWalletPaths() []string {
 		if !ok {
 			continue
 		}
+		dirConfig = o.withBitwindowDir(dirConfig)
 		paths = append(paths, dirConfig.GetWalletPaths(dirConfig.DatadirNetwork(network, bitcoinOverride), network, o.log)...)
 	}
 	return paths
