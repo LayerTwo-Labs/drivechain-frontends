@@ -117,23 +117,23 @@ class ContentProvider extends ChangeNotifier {
       // Extract title from front matter
       final titleRegex = RegExp(r'title:(.+)$', multiLine: true);
       final titleMatch = titleRegex.firstMatch(frontMatter);
-      final title = titleMatch?.group(1)?.trim().replaceAll("'", '').replaceAll('"', '') ?? 'Untitled';
+      final title = _unquote(titleMatch?.group(1)) ?? 'Untitled';
 
       // Extract background from front matter
       final backgroundRegex = RegExp(r'background:(.+)$', multiLine: true);
       final backgroundMatch = backgroundRegex.firstMatch(frontMatter);
-      final backgroundFile = backgroundMatch?.group(1)?.trim().replaceAll("'", '');
+      final backgroundFile = _unquote(backgroundMatch?.group(1));
       final background = backgroundFile != null ? 'assets/articles/images/$backgroundFile' : null;
 
       // Extract author from front matter
       final authorRegex = RegExp(r'author:(.+)$', multiLine: true);
       final authorMatch = authorRegex.firstMatch(frontMatter);
-      final author = authorMatch?.group(1)?.trim().replaceAll("'", '').replaceAll('"', '');
+      final author = _unquote(authorMatch?.group(1));
 
       // Extract authorImage from front matter
       final authorImageRegex = RegExp(r'authorImage:(.+)$', multiLine: true);
       final authorImageMatch = authorImageRegex.firstMatch(frontMatter);
-      final authorImageFile = authorImageMatch?.group(1)?.trim().replaceAll("'", '');
+      final authorImageFile = _unquote(authorImageMatch?.group(1));
       final authorImage = authorImageFile != null ? 'assets/articles/images/$authorImageFile' : null;
 
       return Article(
@@ -147,4 +147,15 @@ class ContentProvider extends ChangeNotifier {
     }
     return null;
   }
+}
+
+String? _unquote(String? value) {
+  if (value == null) {
+    return null;
+  }
+  final trimmed = value.trim();
+  if (trimmed.length >= 2 && (trimmed[0] == '"' || trimmed[0] == "'") && trimmed.endsWith(trimmed[0])) {
+    return trimmed.substring(1, trimmed.length - 1);
+  }
+  return trimmed;
 }
