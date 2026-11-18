@@ -121,7 +121,7 @@ class SailTextFormField extends StatelessWidget {
               fontSize: textSize,
             ),
           ),
-          style: SailStyleValues.thirteen,
+          style: SailStyleValues.thirteen.copyWith(color: theme.colors.text, fontSize: textSize),
           keyboardType: keyboardType,
           validator: validator,
           onChanged: onChanged,
