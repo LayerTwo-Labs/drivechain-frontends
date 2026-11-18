@@ -22,7 +22,7 @@ case "$(uname -s)" in
     *)       app_support="$HOME/.local/share"; core="$HOME/.ecash" ;;
 esac
 enforcer="$app_support/bip300301_enforcer"
-export BITWINDOW_REGTEST_DIR="$TMP/regtest"
+export BITWINDOW_REGTEST_DIR="$TMP/regtest dir"
 D=$BITWINDOW_REGTEST_DIR
 
 regtest() { "$SCRIPT" "$@" >/dev/null 2>&1; }
@@ -75,6 +75,14 @@ regtest save base && fail "save onto an existing snapshot passed"
 regtest restore missing && fail "restore of a missing snapshot passed"
 regtest save "../escape" && fail "save with a path in the name passed"
 
+# A trailing slash on the datadir keeps the snapshots outside it.
+seed
+BITWINDOW_REGTEST_DIR="$D/" "$SCRIPT" save slash >/dev/null 2>&1 || fail "save with a trailing slash exited non-zero"
+expect_gone "$D/.snapshots" "trailing slash"
+echo changed >"$D/wallet.json"
+BITWINDOW_REGTEST_DIR="$D/" "$SCRIPT" restore slash >/dev/null 2>&1 || fail "restore with a trailing slash exited non-zero"
+expect_file "$D/wallet.json" wallet "trailing slash"
+
 # reset refuses a datadir that holds other data.
 seed
 BITWINDOW_REGTEST_DIR="$HOME" "$SCRIPT" reset >/dev/null 2>&1 && fail "reset of HOME passed"
@@ -84,16 +92,24 @@ expect_file "$app_support/bitwindow/keep" keep "refused reset"
 
 # stop ends the daemons that name the datadir, and only those.
 seed
-bash -c "exec -a '$D/assets/bin/fake-daemon' sleep 300" &
+bash -c "exec -a '$D/assets/bin/fake-daemon' sleep 300" >/dev/null 2>&1 &
 pids+=($!)
 own=$!
-bash -c "exec -a '$D-other/fake-daemon' sleep 300" &
+bash -c "exec -a '$D-other/fake-daemon' sleep 300" >/dev/null 2>&1 &
 pids+=($!)
 other=$!
+bash -c "exec -a bash perl -e 'sleep 300' -- $D/regtest.log" >/dev/null 2>&1 &
+pids+=($!)
+shell=$!
+bash -c "exec -a drivechaind perl -e 'sleep 300' -- --datadir $D" >/dev/null 2>&1 &
+pids+=($!)
+named=$!
 sleep 1
 regtest stop || fail "stop exited non-zero"
 kill -0 "$own" 2>/dev/null && fail "stop left a daemon of the datadir"
 kill -0 "$other" 2>/dev/null || fail "stop ended a daemon of another datadir"
+kill -0 "$shell" 2>/dev/null || fail "stop ended a shell that names the datadir"
+kill -0 "$named" 2>/dev/null && fail "stop left a drivechaind that names the datadir"
 
 if ((failures > 0)); then
     echo "$failures failure(s)" >&2
