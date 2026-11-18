@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as path;
 import 'package:sidechain_core/utils/file_utils.dart';
+import 'package:sidechain_core/utils/instance.dart';
 
 /// APPLICATION_ID in linux/CMakeLists.txt of each app, by executable name.
 const linuxApplicationIds = {
@@ -79,7 +80,7 @@ String macosSupportPath(Map<String, String> env, String bundleIdentifier) =>
 /// The application id folder under the XDG data home. An old folder named for the
 /// executable wins when only that one exists.
 Future<Directory> linuxSupportDirectory(Map<String, String> env, String applicationId, String executable) async {
-  final xdgDataHome = env['XDG_DATA_HOME'] ?? '';
+  final xdgDataHome = bitwindowHome(env) != null ? '' : env['XDG_DATA_HOME'] ?? '';
   final dataHome = xdgDataHome.isEmpty ? path.join(_home(env), '.local/share') : xdgDataHome;
 
   final dir = Directory(path.join(dataHome, applicationId));
@@ -94,7 +95,8 @@ Future<Directory> linuxSupportDirectory(Map<String, String> env, String applicat
 }
 
 String windowsSupportPath(Map<String, String> env, String productName) {
-  final appData = env['APPDATA'] ?? '';
+  final home = bitwindowHome(env);
+  final appData = home != null ? path.windows.join(home, 'AppData', 'Roaming') : env['APPDATA'] ?? '';
   if (appData.isEmpty) {
     throw StateError('APPDATA is not set');
   }
@@ -102,7 +104,7 @@ String windowsSupportPath(Map<String, String> env, String productName) {
 }
 
 String _home(Map<String, String> env) {
-  final home = env['HOME'] ?? '';
+  final home = bitwindowHome(env) ?? env['HOME'] ?? '';
   if (home.isEmpty) {
     throw StateError('HOME is not set');
   }

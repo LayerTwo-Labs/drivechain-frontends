@@ -208,6 +208,7 @@ export 'settings/homepage_configuration_setting.dart';
 export 'utils/change_tracker.dart';
 export 'utils/file_overrides.dart';
 export 'utils/encryption_key.dart';
+export 'utils/instance.dart';
 export 'utils/file_utils.dart';
 export 'utils/open_url.dart';
 export 'utils/log_file.dart';

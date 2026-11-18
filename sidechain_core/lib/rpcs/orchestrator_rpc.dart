@@ -12,6 +12,7 @@ import 'package:sidechain_core/rpcs/orchestrator_explorer_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_multisig_lounge_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_stratum_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_wallet_rpc.dart';
+import 'package:sidechain_core/utils/instance.dart';
 
 /// RPC client for the orchestrator daemon.
 ///
@@ -26,7 +27,9 @@ import 'package:sidechain_core/rpcs/orchestrator_wallet_rpc.dart';
 /// The drivechaind endpoint, overridable via --dart-define.
 class OrchestratorEndpoint {
   static const host = String.fromEnvironment('ORCHESTRATOR_HOST', defaultValue: '127.0.0.1');
-  static const port = int.fromEnvironment('ORCHESTRATOR_PORT', defaultValue: 30400);
+  static int get port => const bool.hasEnvironment('ORCHESTRATOR_PORT')
+      ? const int.fromEnvironment('ORCHESTRATOR_PORT')
+      : instancePort(30400);
   static String get url => 'http://$host:$port';
 }
 

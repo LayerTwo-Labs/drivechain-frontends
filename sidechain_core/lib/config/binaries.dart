@@ -1025,7 +1025,7 @@ extension BinaryPaths on Binary {
   }
 
   String appdir() {
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    final home = bitwindowHome() ?? Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home == null) {
       throw 'unable to determine HOME location';
     }
