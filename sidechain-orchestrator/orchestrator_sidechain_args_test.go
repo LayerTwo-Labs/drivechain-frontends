@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 )
 
 func thunderOrchestrator(t *testing.T, settings map[string]string) *Orchestrator {
@@ -124,6 +125,19 @@ func TestPrepareSidechainArgsSkipsCoreAndLayerOne(t *testing.T) {
 		if len(opts.TargetArgs) != 0 {
 			t.Errorf("%+v got args %v, want none", cfg, opts.TargetArgs)
 		}
+	}
+}
+
+// A Core derived sidechain binds the RPC port its client dials.
+func TestPrepareSidechainArgsMovesTheCoreSidechainRPCPort(t *testing.T) {
+	t.Setenv(instance.PortOffsetEnv, "1000")
+	orch := thunderOrchestrator(t, nil)
+	cfg := jsonToBinaryConfig("bbc", jsonBinaryConf{Name: "Big Block Covenant", Port: 18743, ChainLayer: 2, IsBitcoinCore: true})
+
+	var opts StartOpts
+	prepareArgs(t, orch, cfg, &opts)
+	if want := []string{"-rpcport=19743"}; !slices.Equal(opts.TargetArgs, want) {
+		t.Errorf("args = %v, want %v", opts.TargetArgs, want)
 	}
 }
 

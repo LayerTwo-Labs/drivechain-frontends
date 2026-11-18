@@ -47,6 +47,7 @@ import (
 	truthcoinrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1/truthcoinv1connect"
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	zsiderpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1/zsidev1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
@@ -70,6 +71,10 @@ import (
 var version = "dev"
 
 func main() {
+	if _, err := instance.PortOffset(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
 	app := &cli.App{
 		Name:    "drivechaind",
 		Usage:   "Sidechain orchestrator daemon",
@@ -90,7 +95,7 @@ func main() {
 			&cli.StringFlag{
 				Name:    "rpclisten",
 				Usage:   "gRPC listen address",
-				Value:   "localhost:30400",
+				Value:   instance.Addr("localhost", 30400),
 				EnvVars: []string{"ORCHESTRATOR_RPCLISTEN"},
 			},
 			&cli.StringFlag{
@@ -431,7 +436,7 @@ func run(cctx *cli.Context) error {
 		} {
 			mux.Handle("/"+svc+"/", localauth.Middleware(authDir, enforcerBridge))
 		}
-		mux.Handle("/enforcer/jsonrpc", localauth.Middleware(authDir, enforcerproxy.JSONRPC(enforcerproxy.DefaultJSONRPCAddr)))
+		mux.Handle("/enforcer/jsonrpc", localauth.Middleware(authDir, enforcerproxy.JSONRPC(config.EnforcerJSONRPCAddr())))
 	}
 
 	// Electrum wallet provider — derives BIP84 keys locally and reads/broadcasts

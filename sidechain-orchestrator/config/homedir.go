@@ -4,6 +4,8 @@ import (
 	"os"
 	"sync"
 	"testing"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 )
 
 var (
@@ -26,13 +28,22 @@ func SetHomeDir(dir string) {
 
 // HomeDir returns the directory every binary path resolves against.
 func HomeDir() string {
+	if dir := AppHome(); dir != "" {
+		return dir
+	}
+	return UserHomeDir()
+}
+
+// AppHome returns the home set by [SetHomeDir] or BITWINDOW_HOME, or "" for
+// the user's home.
+func AppHome() string {
 	homeMu.RLock()
 	dir := homeOverride
 	homeMu.RUnlock()
 	if dir != "" {
 		return dir
 	}
-	return UserHomeDir()
+	return instance.Home()
 }
 
 var (

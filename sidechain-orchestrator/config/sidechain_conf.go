@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
@@ -108,6 +109,20 @@ type SidechainConfSpec struct {
 	// in, under the same platform base. The first load moves the conf out of
 	// it, so a value the user set by hand survives the move.
 	LegacyRootDirName string
+}
+
+// InstanceRPCArgs moves the RPC port by the port offset. The daemon binds the
+// base port on every network, and the orchestrator dials it there. It is empty
+// when the offset is 0.
+func (s SidechainConfSpec) InstanceRPCArgs() []string {
+	port := instance.Port(s.BasePort)
+	if port == s.BasePort {
+		return nil
+	}
+	if key := s.rpcEndpointKey(); key == "rpc-port" {
+		return []string{fmt.Sprintf("--%s=%d", key, port)}
+	}
+	return []string{fmt.Sprintf("--%s=127.0.0.1:%d", s.rpcEndpointKey(), port)}
 }
 
 // rpcEndpointKey names the conf key that holds the RPC endpoint.
@@ -292,8 +307,8 @@ func (m *SidechainConfManager) getNetworkPorts(network string) map[string]string
 func (m *SidechainConfManager) endpointsForOffset(offset int) map[string]string {
 	base := m.Spec.BasePort
 
-	rpcPort := base + offset
-	netPort := m.Spec.netPort(offset)
+	rpcPort := instance.Port(base + offset)
+	netPort := instance.Port(m.Spec.netPort(offset))
 
 	endpoints := map[string]string{
 		"net-addr": fmt.Sprintf("0.0.0.0:%d", netPort),
@@ -306,9 +321,9 @@ func (m *SidechainConfManager) endpointsForOffset(offset int) map[string]string 
 	}
 	switch m.Spec.PortStyle {
 	case "zmq":
-		endpoints["zmq-addr"] = fmt.Sprintf("127.0.0.1:%d", base+22000+offset)
+		endpoints["zmq-addr"] = fmt.Sprintf("127.0.0.1:%d", instance.Port(base+22000+offset))
 	default: // "grpc"
-		endpoints["mainchain-grpc-url"] = "http://localhost:50051"
+		endpoints["mainchain-grpc-url"] = EnforcerGRPCURL()
 	}
 	return endpoints
 }
@@ -330,6 +345,11 @@ func (m *SidechainConfManager) GetCliArgs() []string {
 		default:
 			args = append(args, fmt.Sprintf("--%s=%s", key, value))
 		}
+	}
+
+	args = append(args, m.Spec.InstanceRPCArgs()...)
+	if m.Spec.PortStyle == "zmq" && instance.Port(enforcerGRPCPort) != enforcerGRPCPort {
+		args = append(args, fmt.Sprintf("--mainchain-grpc-port=%d", instance.Port(enforcerGRPCPort)))
 	}
 
 	if m.BitcoinConf != nil {

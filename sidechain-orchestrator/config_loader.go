@@ -10,6 +10,8 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 )
 
 const configFileName = "chains_config.json"
@@ -260,6 +262,12 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		name = key
 	}
 
+	// An external node runs outside this install, so its port does not move.
+	port := jb.Port
+	if !jb.External {
+		port = instance.Port(port)
+	}
+
 	bc := BinaryConfig{
 		ArtifactPins:       jb.ArtifactPins,
 		Name:               name,
@@ -267,7 +275,7 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		Version:            jb.Version,
 		Description:        jb.Description,
 		RepoURL:            jb.RepoURL,
-		Port:               jb.Port,
+		Port:               port,
 		ChainLayer:         jb.ChainLayer,
 		Slot:               jb.Slot,
 		IsBitcoinCore:      jb.IsBitcoinCore,

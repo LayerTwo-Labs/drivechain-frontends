@@ -19,9 +19,6 @@ import (
 	"golang.org/x/net/http2"
 )
 
-// DefaultJSONRPCAddr is the enforcer's JSON-RPC listen address.
-const DefaultJSONRPCAddr = "127.0.0.1:8122"
-
 // Connect reverse-proxies Connect/gRPC requests to the enforcer's main
 // gRPC endpoint, preserving the request path. upstream is e.g.
 // "http://127.0.0.1:50051". errorLog takes the transport failures; a nil

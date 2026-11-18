@@ -24,7 +24,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/cgminer"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/stratum/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/stratum/v1/stratumv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/stratum"
@@ -143,7 +142,7 @@ func NewStratumHandler(ctx context.Context, deps StratumDeps) *StratumHandler {
 		history:    stratum.NewHistory(deps.HistoryPath),
 		log:        deps.Log,
 		newNode: func() (stratum.Node, error) {
-			return stratum.NewEnforcerNode(enforcerproxy.DefaultJSONRPCAddr)
+			return stratum.NewEnforcerNode(config.EnforcerJSONRPCAddr())
 		},
 		listen: func(port uint32) (net.Listener, error) {
 			return net.Listen("tcp", net.JoinHostPort("0.0.0.0", strconv.FormatUint(uint64(port), 10)))

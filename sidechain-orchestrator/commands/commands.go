@@ -26,6 +26,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -42,7 +43,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:    "rpcserver",
 		Usage:   "drivechaind RPC address",
-		Value:   "localhost:30400",
+		Value:   instance.Addr("localhost", 30400),
 		EnvVars: []string{"ORCHESTRATOR_RPCSERVER"},
 	},
 	&cli.StringFlag{
