@@ -270,6 +270,14 @@ func TestService_ListSidechainProposals(t *testing.T) {
 						VoteCount:      wrapperspb.UInt32(50),
 						ProposalHeight: wrapperspb.UInt32(80),
 						ProposalAge:    wrapperspb.UInt32(20),
+						Declaration: &mainchainv1.SidechainDeclaration{
+							SidechainDeclaration: &mainchainv1.SidechainDeclaration_V0_{
+								V0: &mainchainv1.SidechainDeclaration_V0{
+									Title:       wrapperspb.String("CoinShift"),
+									Description: wrapperspb.String("Swap coins"),
+								},
+							},
+						},
 					},
 				},
 			}, nil)
@@ -282,6 +290,8 @@ func TestService_ListSidechainProposals(t *testing.T) {
 		assert.Equal(t, uint32(5), resp.Proposals[0].Slot)
 		assert.Equal(t, uint32(50), resp.Proposals[0].VoteCount)
 		assert.Equal(t, []byte{0xde, 0xad, 0xbe, 0xef}, resp.Proposals[0].Data)
+		assert.Equal(t, "CoinShift", resp.Proposals[0].Title)
+		assert.Equal(t, "Swap coins", resp.Proposals[0].Description)
 	})
 
 	t.Run("handles empty proposals", func(t *testing.T) {

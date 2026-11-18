@@ -145,6 +145,8 @@ type SidechainProposal struct {
 	VoteCount      uint32                 `protobuf:"varint,4,opt,name=vote_count,json=voteCount,proto3" json:"vote_count,omitempty"`
 	ProposalHeight uint32                 `protobuf:"varint,5,opt,name=proposal_height,json=proposalHeight,proto3" json:"proposal_height,omitempty"`
 	ProposalAge    uint32                 `protobuf:"varint,6,opt,name=proposal_age,json=proposalAge,proto3" json:"proposal_age,omitempty"`
+	Title          string                 `protobuf:"bytes,7,opt,name=title,proto3" json:"title,omitempty"`
+	Description    string                 `protobuf:"bytes,8,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -219,6 +221,20 @@ func (x *SidechainProposal) GetProposalAge() uint32 {
 		return x.ProposalAge
 	}
 	return 0
+}
+
+func (x *SidechainProposal) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *SidechainProposal) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
 }
 
 type ListSidechainProposalsResponse struct {
@@ -984,7 +1000,7 @@ const file_drivechain_v1_drivechain_proto_rawDesc = "" +
 	"\x0fbalance_satoshi\x18\v \x01(\x03R\x0ebalanceSatoshi\x12#\n" +
 	"\rchaintip_txid\x18\f \x01(\tR\fchaintipTxid\x12#\n" +
 	"\rchaintip_vout\x18\r \x01(\rR\fchaintipVout\"\x1f\n" +
-	"\x1dListSidechainProposalsRequest\"\xc3\x01\n" +
+	"\x1dListSidechainProposalsRequest\"\xfb\x01\n" +
 	"\x11SidechainProposal\x12\x12\n" +
 	"\x04slot\x18\x01 \x01(\rR\x04slot\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\x12\x1b\n" +
@@ -992,7 +1008,9 @@ const file_drivechain_v1_drivechain_proto_rawDesc = "" +
 	"\n" +
 	"vote_count\x18\x04 \x01(\rR\tvoteCount\x12'\n" +
 	"\x0fproposal_height\x18\x05 \x01(\rR\x0eproposalHeight\x12!\n" +
-	"\fproposal_age\x18\x06 \x01(\rR\vproposalAge\"`\n" +
+	"\fproposal_age\x18\x06 \x01(\rR\vproposalAge\x12\x14\n" +
+	"\x05title\x18\a \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\b \x01(\tR\vdescription\"`\n" +
 	"\x1eListSidechainProposalsResponse\x12>\n" +
 	"\tproposals\x18\x01 \x03(\v2 .drivechain.v1.SidechainProposalR\tproposals\"\xb3\x01\n" +
 	"\x17ProposeSidechainRequest\x12\x12\n" +

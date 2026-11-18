@@ -91,6 +91,8 @@ const SidechainProposal$json = {
     {'1': 'vote_count', '3': 4, '4': 1, '5': 13, '10': 'voteCount'},
     {'1': 'proposal_height', '3': 5, '4': 1, '5': 13, '10': 'proposalHeight'},
     {'1': 'proposal_age', '3': 6, '4': 1, '5': 13, '10': 'proposalAge'},
+    {'1': 'title', '3': 7, '4': 1, '5': 9, '10': 'title'},
+    {'1': 'description', '3': 8, '4': 1, '5': 9, '10': 'description'},
   ],
 };
 
@@ -99,7 +101,8 @@ final $typed_data.Uint8List sidechainProposalDescriptor =
     $convert.base64Decode('ChFTaWRlY2hhaW5Qcm9wb3NhbBISCgRzbG90GAEgASgNUgRzbG90EhIKBGRhdGEYAiABKAxSBG'
         'RhdGESGwoJZGF0YV9oYXNoGAMgASgJUghkYXRhSGFzaBIdCgp2b3RlX2NvdW50GAQgASgNUgl2'
         'b3RlQ291bnQSJwoPcHJvcG9zYWxfaGVpZ2h0GAUgASgNUg5wcm9wb3NhbEhlaWdodBIhCgxwcm'
-        '9wb3NhbF9hZ2UYBiABKA1SC3Byb3Bvc2FsQWdl');
+        '9wb3NhbF9hZ2UYBiABKA1SC3Byb3Bvc2FsQWdlEhQKBXRpdGxlGAcgASgJUgV0aXRsZRIgCgtk'
+        'ZXNjcmlwdGlvbhgIIAEoCVILZGVzY3JpcHRpb24=');
 
 @$core.Deprecated('Use listSidechainProposalsResponseDescriptor instead')
 const ListSidechainProposalsResponse$json = {
