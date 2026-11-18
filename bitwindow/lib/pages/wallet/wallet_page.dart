@@ -102,8 +102,20 @@ class WalletPage extends StatelessWidget {
     super.key,
   });
 
+  /// The URI a caller sent before the send form existed. The form takes it
+  /// once it is ready.
+  static BitcoinURI? _pendingBitcoinURI;
+
+  @visibleForTesting
+  static BitcoinURI? get pendingBitcoinURI => _pendingBitcoinURI;
+
   static void handleBitcoinURI(BitcoinURI uri) {
-    _sendViewModel?.handleBitcoinURI(uri);
+    final model = _sendViewModel;
+    if (model == null) {
+      _pendingBitcoinURI = uri;
+      return;
+    }
+    model.handleBitcoinURI(uri);
   }
 
   static void selectSendDraft(String draftId) {
@@ -154,7 +166,13 @@ class WalletPage extends StatelessWidget {
               // Store reference to be able to set it's values from outside this particular file
               return _sendViewModel!;
             },
-            onViewModelReady: (model) => model.init(),
+            onViewModelReady: (model) async {
+              await model.init();
+              if (_pendingBitcoinURI case final uri?) {
+                _pendingBitcoinURI = null;
+                model.handleBitcoinURI(uri);
+              }
+            },
             onDispose: (model) => _sendViewModel = null,
             builder: (context, model, child) {
               // Create the list of regular tabs

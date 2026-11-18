@@ -651,12 +651,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         if (result != null) {
                           final tabsRouter = _routerKey.currentState?.controller;
                           tabsRouter?.setActiveIndex(1);
-
-                          if (WalletPage.tabKey.currentState != null) {
-                            WalletPage.tabKey.currentState!.setIndex(1, null);
-                          }
-
-                          // Handle the URI in the wallet page
+                          WalletPage.openSubtab('Send');
                           WalletPage.handleBitcoinURI(result);
                         }
                       },

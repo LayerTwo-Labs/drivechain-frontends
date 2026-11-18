@@ -1,4 +1,5 @@
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
+import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -42,5 +43,13 @@ void main() {
     WalletPage.openSubtab(WalletPage.consolidateSubtabLabel);
 
     expect(WalletPage.pendingSubtab, WalletPage.consolidateSubtabLabel);
+  });
+
+  test('a URI sent before the send form exists waits for it', () {
+    final uri = BitcoinURI.parse('bitcoin:bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq?amount=0.001');
+
+    WalletPage.handleBitcoinURI(uri);
+
+    expect(WalletPage.pendingBitcoinURI, same(uri));
   });
 }
