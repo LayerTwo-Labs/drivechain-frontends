@@ -4,11 +4,8 @@ import 'dart:io';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
-// First-run theme: the eCash builds (BITWINDOW_NETWORK=ecash) default
-// to the eCash theme; every other build defaults to Sail. A user's choice persists
-// and overrides this.
-const String _bitwindowNetwork = String.fromEnvironment('BITWINDOW_NETWORK');
-const String defaultThemeStyleId = _bitwindowNetwork == 'ecash' ? 'ecash' : 'sail';
+// First-run theme. A user's choice persists and overrides this.
+const String defaultThemeStyleId = 'flat';
 
 // BitwindowSettings is a special kind of setting. It is *global* bitwindow
 // settings that can be accessed by bitwindow (duh), but also all sidechains!

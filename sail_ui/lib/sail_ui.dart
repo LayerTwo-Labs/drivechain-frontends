@@ -56,6 +56,7 @@ export 'style/shadows.dart';
 export 'style/style.dart';
 export 'style/style_values.dart';
 export 'theme/sail_chrome.dart';
+export 'theme/flat_theme.dart';
 export 'theme/ecash_theme.dart';
 export 'theme/theme.dart';
 export 'theme/theme_data.dart';

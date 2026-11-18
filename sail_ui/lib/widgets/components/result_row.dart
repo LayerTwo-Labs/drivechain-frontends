@@ -54,7 +54,7 @@ class ResultRow extends StatelessWidget {
                   child: SelectableText(
                     value,
                     style: TextStyle(
-                      fontFamily: monospace ? SailFonts.mono : SailFonts.inter,
+                      fontFamily: theme.chrome.textFamily(monospace: monospace),
                       fontSize: 13,
                       color: color ?? theme.colors.text,
                     ),

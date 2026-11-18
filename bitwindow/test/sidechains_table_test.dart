@@ -7,7 +7,6 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -209,9 +208,7 @@ void main() {
 
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    for (final (family, file) in [(SailFonts.inter, 'Inter'), (SailFonts.mono, 'IBMPlexMono')]) {
-      await (FontLoader(family)..addFont(rootBundle.load('packages/sail_ui/assets/fonts/$file-Regular.ttf'))).load();
-    }
+    await loadBundledFonts();
   });
 
   _Binaries setUpChain(Thunder thunder) {

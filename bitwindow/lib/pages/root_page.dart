@@ -1451,7 +1451,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colors.text,
-                  fontFamily: SailFonts.inter,
+                  fontFamily: theme.chrome.textFamily(),
                   height: 1.5,
                 ),
                 children: [

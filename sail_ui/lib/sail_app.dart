@@ -66,7 +66,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   ClientSettings get settings => GetIt.I.get<ClientSettings>();
 
   late SailThemeData theme;
-  SailThemeStyle _style = SailThemeStyle.sail;
+  SailThemeStyle _style = SailThemeStyle.flat;
   double _fontScale = 1.0;
 
   @override
@@ -75,6 +75,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
       SailColorScheme.orange,
       widget.dense,
       SailFontValues.inter,
+      _style,
     );
     super.initState();
     WidgetsBinding.instance.addObserver(this);
@@ -148,7 +149,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   }
 
   /// Read the global theme style from bitwindow's app-dir settings; falls back
-  /// to 'sail' when bitwindow's settings are unreachable.
+  /// to the default style when bitwindow's settings are unreachable.
   Future<SailThemeStyle> _resolveStyle() async {
     try {
       if (GetIt.I.isRegistered<BitwindowClientSettings>()) {
@@ -159,7 +160,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     } catch (_) {
       // Fall through to the default below.
     }
-    return SailThemeStyle.sail;
+    return sailBundleForId(defaultThemeStyleId).style;
   }
 
   SailThemeData _themeDataFromTheme(

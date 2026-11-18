@@ -92,14 +92,24 @@ final SailThemeBundle _ecashBundle = SailThemeBundle(
   ),
 );
 
+final SailThemeBundle _flatBundle = SailThemeBundle(
+  style: SailThemeStyle.flat,
+  displayName: 'Flat',
+  light: flatLightTheme,
+  dark: flatDarkTheme,
+  supportsDarkMode: true,
+  chrome: flatChrome,
+);
+
 /// All registered theme bundles, keyed by style.
 final Map<SailThemeStyle, SailThemeBundle> sailThemeBundles = {
   SailThemeStyle.sail: _sailBundle,
   SailThemeStyle.win95: _win95Bundle,
   SailThemeStyle.ecash: _ecashBundle,
+  SailThemeStyle.flat: _flatBundle,
 };
 
-SailThemeBundle sailBundleFor(SailThemeStyle style) => sailThemeBundles[style] ?? _sailBundle;
+SailThemeBundle sailBundleFor(SailThemeStyle style) => sailThemeBundles[style] ?? _flatBundle;
 
 SailThemeBundle sailBundleForId(String? id) =>
-    sailThemeBundles.values.firstWhere((b) => b.id == id, orElse: () => _sailBundle);
+    sailThemeBundles.values.firstWhere((b) => b.id == id, orElse: () => _flatBundle);

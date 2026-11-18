@@ -1,6 +1,7 @@
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -125,5 +126,19 @@ Future<void> registerTestDependencies() async {
     GetIt.I.registerLazySingleton<BlockchainProvider>(
       () => BlockchainProvider(),
     );
+  }
+}
+
+/// Loads the sail_ui fonts, so text measures as in the app.
+Future<void> loadBundledFonts() async {
+  for (final (family, file) in [
+    (SailFonts.inter, 'Inter'),
+    (SailFonts.mono, 'IBMPlexMono'),
+  ]) {
+    final loader = FontLoader(family);
+    for (final weight in ['Regular', 'Medium', 'Bold']) {
+      loader.addFont(rootBundle.load('packages/sail_ui/assets/fonts/$file-$weight.ttf'));
+    }
+    await loader.load();
   }
 }

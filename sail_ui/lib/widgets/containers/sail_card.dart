@@ -110,7 +110,7 @@ class SailCard extends StatelessWidget {
                 : BoxDecoration(
                     border: Border.all(color: theme.colors.border, width: 1.0),
                     borderRadius: radius,
-                    color: color ?? theme.colors.background,
+                    color: color ?? theme.chrome.panel(theme.colors).color,
                   ),
             child: SizedBox(
               width: width,
@@ -446,7 +446,7 @@ class SailCardStats extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border.all(color: theme.colors.border, width: 1.0),
               borderRadius: theme.chrome.radiusLarge,
-              color: theme.colors.background,
+              color: theme.chrome.panel(theme.colors).color,
             ),
             child: SizedBox(
               width: double.infinity,

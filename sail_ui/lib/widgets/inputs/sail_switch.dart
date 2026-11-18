@@ -5,16 +5,16 @@ class SailSwitch extends StatefulWidget {
   final bool value;
   final ValueChanged<bool>? onChanged;
   final bool disabled;
-  final double width;
-  final double height;
+  final double? width;
+  final double? height;
 
   const SailSwitch({
     super.key,
     required this.value,
     required this.onChanged,
     this.disabled = false,
-    this.width = 36,
-    this.height = 20,
+    this.width,
+    this.height,
   });
 
   bool get _isEnabled => !disabled && onChanged != null;
@@ -68,13 +68,16 @@ class _SailSwitchState extends State<SailSwitch> with SingleTickerProviderStateM
     final theme = SailTheme.of(context);
     final enabled = widget._isEnabled;
 
-    final activeColor = theme.colors.primary;
-    final inactiveColor = theme.colors.backgroundSecondary;
-    final borderColor = theme.colors.border;
-    final thumbColor = theme.colors.background;
+    final flat = theme.chrome.flatControls;
+    final width = widget.width ?? (flat ? 30.0 : 36.0);
+    final height = widget.height ?? (flat ? 18.0 : 20.0);
 
-    final padding = 2.0;
-    final thumbSize = widget.height - padding * 2;
+    final activeColor = theme.colors.primary;
+    final inactiveColor = flat ? theme.colors.border : theme.colors.backgroundSecondary;
+    final thumbColor = flat ? theme.colors.backgroundSecondary : theme.colors.background;
+
+    final padding = flat ? 1.0 : 2.0;
+    final thumbSize = height - padding * 2;
 
     return MouseRegion(
       cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.forbidden,
@@ -90,12 +93,12 @@ class _SailSwitchState extends State<SailSwitch> with SingleTickerProviderStateM
               final terminal = theme.chrome.terminalStyle;
               final trackColor = Color.lerp(inactiveColor, activeColor, t)!;
               return Container(
-                width: widget.width,
-                height: widget.height,
+                width: width,
+                height: height,
                 decoration: BoxDecoration(
                   color: trackColor,
-                  borderRadius: BorderRadius.circular(terminal ? 3 : widget.height),
-                  border: Border.all(color: borderColor, width: 1),
+                  borderRadius: BorderRadius.circular(terminal ? 3 : height),
+                  border: flat ? null : Border.all(color: theme.colors.border, width: 1),
                 ),
                 child: Padding(
                   padding: EdgeInsets.all(padding),
@@ -112,13 +115,15 @@ class _SailSwitchState extends State<SailSwitch> with SingleTickerProviderStateM
                           : BoxDecoration(
                               color: thumbColor,
                               shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: theme.colors.shadow,
-                                  blurRadius: 2,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
+                              boxShadow: flat
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: theme.colors.shadow,
+                                        blurRadius: 2,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
                             ),
                     ),
                   ),
