@@ -198,6 +198,8 @@ class MockBitwindowdAPI implements BitwindowAPI {
 }
 
 class MockWalletAPI implements WalletAPI {
+  bool verifyResult = true;
+
   @override
   Future<String> sendTransaction(
     String walletId,
@@ -260,7 +262,7 @@ class MockWalletAPI implements WalletAPI {
     String address, {
     String signerPublicKey = '',
   }) async {
-    return true;
+    return verifyResult;
   }
 
   @override
