@@ -61,107 +61,108 @@ class _SettingsResetState extends State<SettingsReset> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    final theme = SailTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailSettingsBody(
-          bottomPadding: 80,
-          children: [
-            SailSettingsGroup(
-              title: 'What to delete',
-              description: 'Pick the data to remove, then reset.',
-              children: [
-                _option(
-                  value: _deleteNodeSoftware,
-                  onChanged: (v) => setState(() {
-                    _deleteNodeSoftware = v;
-                    _updateObliterate();
-                  }),
-                  label: 'Node software',
-                  description: 'Deletes all binaries, so they download again',
-                ),
-                _option(
-                  value: _deleteBlockchainData,
-                  onChanged: (v) => setState(() {
-                    _deleteBlockchainData = v;
-                    _updateObliterate();
-                  }),
-                  label: 'Blockchain data',
-                  description: 'Syncs the blockchain again from scratch',
-                ),
-                _option(
-                  value: _deleteLogs,
-                  onChanged: (v) => setState(() {
-                    _deleteLogs = v;
-                    _updateObliterate();
-                  }),
-                  label: 'Log files',
-                  description: 'Removes all debug and server logs',
-                ),
-                _option(
-                  value: _deleteSettings,
-                  onChanged: (v) => setState(() {
-                    _deleteSettings = v;
-                    _updateObliterate();
-                  }),
-                  label: 'BitWindow settings',
-                  description: 'Sets all configuration back to the defaults',
-                ),
-                _option(
-                  value: _deleteWalletFiles,
-                  onChanged: (v) => setState(() {
-                    _deleteWalletFiles = v;
-                    _updateObliterate();
-                  }),
-                  label: 'Wallet files',
-                  description: 'Back up your seed phrase first',
-                  destructive: true,
-                ),
-                _option(
-                  value: _alsoResetSidechains,
-                  onChanged: (v) => setState(() {
-                    _alsoResetSidechains = v;
-                    _updateObliterate();
-                  }),
-                  label: 'Apply to sidechains too',
-                  description: 'Deletes the same data for every sidechain',
-                ),
-              ],
-            ),
-            SailSettingsGroup(
-              children: [
-                _option(
-                  value: _obliterateEverything,
-                  onChanged: (v) => setState(() {
-                    _obliterateEverything = v;
-                    _deleteNodeSoftware = v;
-                    _deleteBlockchainData = v;
-                    _deleteLogs = v;
-                    _deleteWalletFiles = v;
-                    _deleteSettings = v;
-                    _alsoResetSidechains = v;
-                  }),
-                  label: 'Obliterate everything',
-                  description: 'Selects every option above, sidechains included',
-                  destructive: true,
-                ),
-              ],
-            ),
-          ],
+        Expanded(
+          child: SailSettingsBody(
+            children: [
+              SailSettingsGroup(
+                title: 'What to delete',
+                description: 'Pick the data to remove, then reset.',
+                children: [
+                  _option(
+                    value: _deleteNodeSoftware,
+                    onChanged: (v) => setState(() {
+                      _deleteNodeSoftware = v;
+                      _updateObliterate();
+                    }),
+                    label: 'Node software',
+                    description: 'Deletes all binaries, so they download again',
+                  ),
+                  _option(
+                    value: _deleteBlockchainData,
+                    onChanged: (v) => setState(() {
+                      _deleteBlockchainData = v;
+                      _updateObliterate();
+                    }),
+                    label: 'Blockchain data',
+                    description: 'Syncs the blockchain again from scratch',
+                  ),
+                  _option(
+                    value: _deleteLogs,
+                    onChanged: (v) => setState(() {
+                      _deleteLogs = v;
+                      _updateObliterate();
+                    }),
+                    label: 'Log files',
+                    description: 'Removes all debug and server logs',
+                  ),
+                  _option(
+                    value: _deleteSettings,
+                    onChanged: (v) => setState(() {
+                      _deleteSettings = v;
+                      _updateObliterate();
+                    }),
+                    label: 'BitWindow settings',
+                    description: 'Sets all configuration back to the defaults',
+                  ),
+                  _option(
+                    value: _deleteWalletFiles,
+                    onChanged: (v) => setState(() {
+                      _deleteWalletFiles = v;
+                      _updateObliterate();
+                    }),
+                    label: 'Wallet files',
+                    description: 'Back up your seed phrase first',
+                    destructive: true,
+                  ),
+                  _option(
+                    value: _alsoResetSidechains,
+                    onChanged: (v) => setState(() {
+                      _alsoResetSidechains = v;
+                      _updateObliterate();
+                    }),
+                    label: 'Apply to sidechains too',
+                    description: 'Deletes the same data for every sidechain',
+                  ),
+                ],
+              ),
+              SailSettingsGroup(
+                children: [
+                  _option(
+                    value: _obliterateEverything,
+                    onChanged: (v) => setState(() {
+                      _obliterateEverything = v;
+                      _deleteNodeSoftware = v;
+                      _deleteBlockchainData = v;
+                      _deleteLogs = v;
+                      _deleteWalletFiles = v;
+                      _deleteSettings = v;
+                      _alsoResetSidechains = v;
+                    }),
+                    label: 'Obliterate everything',
+                    description: 'Selects every option above, sidechains included',
+                    destructive: true,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        BottomActionBar(
-          maxWidth: double.infinity,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SailButton(
-              label: 'Reset Selected',
-              variant: ButtonVariant.destructive,
-              skipLoading: true,
-              disabled: !_hasSelection,
-              onPressed: () async {
-                await _executeReset(context);
-              },
-            ),
-          ],
+        SailSeparator(thickness: 1, color: theme.colors.divider),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
+          child: SailButton(
+            label: 'Reset Selected',
+            variant: ButtonVariant.destructive,
+            skipLoading: true,
+            disabled: !_hasSelection,
+            onPressed: () async {
+              await _executeReset(context);
+            },
+          ),
         ),
       ],
     );
