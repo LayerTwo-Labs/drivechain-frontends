@@ -23,6 +23,9 @@ case "$(uname -s)" in
 esac
 enforcer="$app_support/bip300301_enforcer"
 export BITWINDOW_REGTEST_DIR="$TMP/regtest dir"
+# Keeps the stop checks clear of a BitWindow on the default ports.
+export BITWINDOW_PORT_OFFSET=7000
+unset BITWINDOW_HOME
 D=$BITWINDOW_REGTEST_DIR
 
 regtest() { "$SCRIPT" "$@" >/dev/null 2>&1; }
@@ -110,6 +113,41 @@ kill -0 "$own" 2>/dev/null && fail "stop left a daemon of the datadir"
 kill -0 "$other" 2>/dev/null || fail "stop ended a daemon of another datadir"
 kill -0 "$shell" 2>/dev/null || fail "stop ended a shell that names the datadir"
 kill -0 "$named" 2>/dev/null && fail "stop left a drivechaind that names the datadir"
+
+# BITWINDOW_HOME moves the state outside the datadir, and reset leaves HOME alone.
+seed
+instance="$TMP/instance"
+case "$(uname -s)" in
+    Darwin*) instance_core="$instance/Library/Application Support/Ecash" ;;
+    *)       instance_core="$instance/.ecash" ;;
+esac
+mkdir -p "$instance_core/regtest"
+echo chain >"$instance_core/regtest/w"
+BITWINDOW_HOME="$instance" regtest reset || fail "reset with BITWINDOW_HOME exited non-zero"
+expect_gone "$instance_core/regtest" "reset with BITWINDOW_HOME"
+expect_file "$core/regtest/wallets/w" chain "reset with BITWINDOW_HOME"
+BITWINDOW_HOME="$instance" BITWINDOW_REGTEST_DIR="$instance" "$SCRIPT" reset >/dev/null 2>&1 &&
+    fail "reset of BITWINDOW_HOME passed"
+[[ "$(BITWINDOW_HOME="$instance" "$SCRIPT" env)" == *"export BITWINDOW_HOME=$instance"* ]] ||
+    fail "env does not export BITWINDOW_HOME"
+
+# BITWINDOW_PORT_OFFSET moves every port the script checks.
+status=$("$SCRIPT" status)
+for port in 37301 37400 25443; do
+    [[ "$status" == *"port $port:"* ]] || fail "status with an offset does not check port $port"
+done
+[[ "$status" == *"port 30301:"* ]] && fail "status with an offset checks the default port"
+status=$(env -u BITWINDOW_PORT_OFFSET "$SCRIPT" status)
+for port in 30301 30400 18443; do
+    [[ "$status" == *"port $port:"* ]] || fail "status with no offset does not check port $port"
+done
+[[ "$("$SCRIPT" env)" == *"export BITWINDOW_PORT_OFFSET=7000"* ]] ||
+    fail "env does not export BITWINDOW_PORT_OFFSET"
+[[ "$(env -u BITWINDOW_PORT_OFFSET "$SCRIPT" env)" == *BITWINDOW_PORT_OFFSET* ]] &&
+    fail "env exports an offset that is not set"
+for bad in abc -1 7501 08; do
+    BITWINDOW_PORT_OFFSET=$bad "$SCRIPT" status >/dev/null 2>&1 && fail "offset $bad passed"
+done
 
 if ((failures > 0)); then
     echo "$failures failure(s)" >&2
