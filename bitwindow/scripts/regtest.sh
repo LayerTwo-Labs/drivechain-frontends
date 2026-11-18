@@ -29,6 +29,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 bitwindow_dir=$(dirname "$script_dir")
 
 D=${BITWINDOW_REGTEST_DIR:-$HOME/.bitwindow-regtest}
+while [[ "$D" == */ && "$D" != / ]]; do D=${D%/}; done
+[[ "$D" == /* ]] || D="$PWD/$D"
 snapshots_dir="$D.snapshots"
 pgid_file="$D/regtest.pgid"
 log_file="$D/regtest.log"
@@ -84,45 +86,53 @@ node_ready() {
 
 cmd_start() {
     check_datadir
+    local pgid deadline
     if pgid=$(running_pgid); then
         echo "regtest: already runs (process group $pgid)"
-        return 0
+    else
+        for port in "${app_ports[@]}" "$rpc_port"; do
+            port_in_use "$port" && die "port $port is in use; another BitWindow or node runs"
+        done
+        mkdir -p "$D"
+
+        # A drivechaind built for regtest writes a current regtest conf on the first start.
+        (
+            cd "$bitwindow_dir"
+            BITWINDOW_DEFAULT_NETWORK=regtest BITWINDOWD_DATADIR="$D" BITWINDOWD_LOG_CONSOLE=1 \
+                nohup perl -e 'setpgrp(0, 0); exec @ARGV' just run >"$log_file" 2>&1 &
+            echo $! >"$pgid_file"
+        )
+        pgid=$(<"$pgid_file")
+        echo "regtest: started process group $pgid; log: $log_file"
     fi
-    for port in "${app_ports[@]}" "$rpc_port"; do
-        port_in_use "$port" && die "port $port is in use; another BitWindow or node runs"
-    done
 
-    mkdir -p "$D"
-    [[ -f "$D/bitwindow-bitcoin.conf" ]] || echo "chain=regtest" >"$D/bitwindow-bitcoin.conf"
-
-    (
-        cd "$bitwindow_dir"
-        BITWINDOWD_DATADIR="$D" BITWINDOWD_LOG_CONSOLE=1 \
-            nohup perl -e 'setpgrp(0, 0); exec @ARGV' just run >"$log_file" 2>&1 &
-        echo $! >"$pgid_file"
-    )
-    local pgid deadline
-    pgid=$(<"$pgid_file")
     deadline=$((SECONDS + ${REGTEST_START_TIMEOUT:-600}))
-    echo "regtest: started process group $pgid; log: $log_file"
-
     until node_ready; do
-        kill -0 -- "-$pgid" 2>/dev/null || { tail -20 "$log_file" >&2; die "the app stopped before the node was ready"; }
+        # The leader pid lives before setpgrp makes the group.
+        kill -0 "$pgid" 2>/dev/null || kill -0 -- "-$pgid" 2>/dev/null ||
+            { tail -20 "$log_file" >&2; die "the app stopped before the node was ready"; }
         ((SECONDS < deadline)) || { tail -20 "$log_file" >&2; die "the node was not ready after ${REGTEST_START_TIMEOUT:-600}s"; }
         sleep 2
     done
     echo "regtest: ready at block $(bitcoin_cli getblockcount)"
 }
 
-# Daemons that name $D on their command line. drivechaind and bitcoind detach from the process group.
+# Daemons of $D that detach from the process group: binaries under $D, and known daemons that name $D.
 stray_pids() {
     [[ -n "$D" ]] || die "empty datadir"
     ps -axo pid=,command= | REGTEST_DIR="$D" awk '
         BEGIN { d = ENVIRON["REGTEST_DIR"] }
-        { pid = $1; cmd = substr($0, index($0, $2)) }
-        { i = index(cmd, d); if (i == 0) next
-          c = substr(cmd, i + length(d), 1)
-          if (c == "" || c == " " || c == "/") print pid }'
+        {
+            cmd = substr($0, index($0, $2))
+            if (index(cmd, d "/") == 1) { print $1; next }
+            exe = cmd; j = index(exe, " -"); if (j > 0) exe = substr(exe, 1, j - 1)
+            n = split(exe, part, "/"); name = part[n]
+            if (name !~ /^(drivechaind|bitwindowd|bitcoind|bip300301_enforcer)$/) next
+            i = index(cmd, d)
+            if (i == 0) next
+            c = substr(cmd, i + length(d), 1)
+            if (c == "" || c == " " || c == "/") print $1
+        }'
 }
 
 cmd_stop() {
