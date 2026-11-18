@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show GetBlockRequest;
+import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show GetBlockRequest, GetBlockResponse;
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -37,6 +37,19 @@ String humanizeTransactionLoadError(Object e) {
 
 /// The next block hash, or "None" for the chain tip.
 String nextBlockHashText(Block block) => block.nextBlockHash.isEmpty ? 'None' : block.nextBlockHash;
+
+/// Maps a failed block search to text for the user.
+String blockSearchError(String query, Object e) {
+  final raw = e.toString().toLowerCase();
+  final isHeight = int.tryParse(query) != null;
+  if (isHeight && (raw.contains('out of range') || raw.contains('not found'))) {
+    return 'No block at height $query.';
+  }
+  if (!isHeight && (raw.contains('not found') || raw.contains('hex') || raw.contains('length'))) {
+    return 'No block with this hash.';
+  }
+  return 'Could not load the block. Make sure the node runs, and try again.';
+}
 
 class BlockExplorerDialog extends StatelessWidget {
   const BlockExplorerDialog({
@@ -68,6 +81,7 @@ class BlockExplorerDialog extends StatelessWidget {
                     child: SailTextField(
                       controller: model.searchController,
                       hintText: 'Enter a block height or hash',
+                      onSubmitted: model.searchBlock,
                     ),
                   ),
                   SailButton(
@@ -81,6 +95,13 @@ class BlockExplorerDialog extends StatelessWidget {
                   ),
                 ],
               ),
+              if (model.searchError != null) ...[
+                SailSpacing(SailStyleValues.padding08),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SailText.primary13(model.searchError!, color: context.sailTheme.colors.error),
+                ),
+              ],
               SailSpacing(SailStyleValues.padding16),
               Expanded(
                 child: SizedBox(
@@ -250,18 +271,18 @@ class DetailRow extends StatelessWidget {
 }
 
 class BlockExplorerViewModel extends BaseViewModel {
-  final BitcoindConnection mainchain = GetIt.I.get<BitcoindConnection>();
   final BlockchainProvider blockchainProvider = GetIt.I.get<BlockchainProvider>();
   final searchController = TextEditingController();
   late final ScrollController scrollController;
-  final BitwindowRPC bitwindow = GetIt.I.get<BitwindowRPC>();
   final OrchestratorRPC orchestrator = GetIt.I.get<OrchestratorRPC>();
+  Logger get log => GetIt.I.get<Logger>();
 
   final Future<void> Function(Block) blockViewBuilder;
 
+  String? searchError;
+
   BlockExplorerViewModel({required this.blockViewBuilder}) {
     blockchainProvider.addListener(notifyListeners);
-    searchController.addListener(_onSearch);
     scrollController = ScrollController();
     scrollController.addListener(() {
       if (scrollController.position.pixels >= scrollController.position.maxScrollExtent * 0.8) {
@@ -270,32 +291,36 @@ class BlockExplorerViewModel extends BaseViewModel {
     });
   }
 
-  void _onSearch() {
-    final search = searchController.text.trim();
-    if (search.isEmpty) {
+  Future<void> searchBlock(String input) async {
+    final query = input.trim();
+    if (query.isEmpty) {
       return;
     }
 
-    // If enter is pressed
-    if (search.endsWith('\n')) {
-      searchController.text = search.substring(0, search.length - 1);
-      searchBlock(search.substring(0, search.length - 1));
+    final req = GetBlockRequest();
+    final asHeight = int.tryParse(query);
+    if (asHeight != null) {
+      req.height = asHeight;
+    } else {
+      req.hash = query;
     }
-  }
 
-  Future<void> searchBlock(String query) async {
+    final GetBlockResponse block;
     try {
-      final req = GetBlockRequest();
-      final asHeight = int.tryParse(query);
-      if (asHeight != null) {
-        req.height = asHeight;
-      } else {
-        req.hash = query;
-      }
-      final block = await orchestrator.bitcoind.getBlock(req);
-      // the bitcoind rpc `getblock` returns a slightly
-      // different data model than the bitwindowd rpc `listblocks`
-      final converted = Block(
+      block = await orchestrator.bitcoind.getBlock(req);
+    } catch (e) {
+      log.e('block search for $query failed: $e');
+      searchError = blockSearchError(query, e);
+      notifyListeners();
+      return;
+    }
+
+    searchError = null;
+    notifyListeners();
+    // the bitcoind rpc `getblock` returns a slightly
+    // different data model than the bitwindowd rpc `listblocks`
+    await blockViewBuilder(
+      Block(
         hash: block.hash,
         height: block.height,
         blockTime: block.time,
@@ -312,11 +337,8 @@ class BlockExplorerViewModel extends BaseViewModel {
         versionHex: block.versionHex,
         nextBlockHash: block.nextBlockHash,
         strippedSize: block.strippedSize,
-      );
-      await blockViewBuilder(converted);
-    } catch (e) {
-      // Show error dialog
-    }
+      ),
+    );
   }
 
   List<Block> get blocks {
