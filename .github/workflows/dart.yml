@@ -43,6 +43,14 @@ jobs:
       - run: sudo apt-get install -y libxml2-utils
       - run: ./scripts/appcast/build-appcast_test.sh
 
+  regtest-script:
+    name: regtest script
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: ./bitwindow/scripts/regtest_test.sh
+
   format-lint-test:
     name: ${{ matrix.package }}
     runs-on: ubuntu-latest
