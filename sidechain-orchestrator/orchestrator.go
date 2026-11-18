@@ -32,6 +32,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
@@ -581,7 +582,11 @@ func (o *Orchestrator) discoverPid(cfg BinaryConfig) int {
 		}
 	}
 
-	// 3. Fall back to pgrep
+	// 3. Fall back to pgrep. It finds a process of any install, so an
+	// isolated install skips it: the daemon of another install is not ours.
+	if instance.Isolated() || config.AppHome() != "" {
+		return 0
+	}
 	pid, err := findPidByName(cfg.BinaryName)
 	if err == nil && pid > 0 {
 		o.log.Info().Str("binary", cfg.Name).Int("pid", pid).Msg("found PID via pgrep")
@@ -1134,6 +1139,7 @@ func (o *Orchestrator) prepareCoreArgs(opts *StartOpts) error {
 		fmt.Sprintf("-conf=%s", confPath),
 		fmt.Sprintf("-datadir=%s", o.BitcoinConf.RootDataDir()),
 	}, reader...)
+	opts.CoreArgs = append(opts.CoreArgs, o.BitcoinConf.InstancePortArgs()...)
 	o.log.Info().Str("conf", confPath).Msg("auto-built core args from config")
 	return nil
 }
@@ -1335,7 +1341,14 @@ func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) e
 	if cfg.ChainLayer == 2 && o.NodeMode() == NodeModeLight {
 		return o.prepareRemoteSidechainArgs(cfg, opts)
 	}
-	if cfg.ChainLayer != 2 || cfg.IsBitcoinCore {
+	if cfg.ChainLayer != 2 {
+		return nil
+	}
+	if cfg.IsBitcoinCore {
+		// cfg.Port carries the port offset, so the node binds the port the client dials.
+		if rpcPort := fmt.Sprintf("-rpcport=%d", cfg.Port); instance.Port(1) != 1 && !hasCLIFlag(opts.TargetArgs, rpcPort) {
+			opts.TargetArgs = append(opts.TargetArgs, rpcPort)
+		}
 		return nil
 	}
 	spec, known := config.SidechainSpecByName(cfg.Name)

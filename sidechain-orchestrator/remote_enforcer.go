@@ -225,6 +225,7 @@ func (o *Orchestrator) prepareRemoteSidechainArgs(cfg BinaryConfig, opts *StartO
 	for _, name := range []string{"--mainchain-grpc-url", "--mainchain-grpc-host", "--mainchain-grpc-port"} {
 		opts.TargetArgs = replaceCLIFlag(opts.TargetArgs, name, "")
 	}
+	args = append(args, spec.InstanceRPCArgs()...)
 	args = append(args, config.CliNetworkFlag+"="+network)
 	for _, arg := range args {
 		name, _, _ := strings.Cut(arg, "=")

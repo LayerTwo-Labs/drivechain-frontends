@@ -850,6 +850,7 @@ func (o *Orchestrator) startMigrationCore(ctx context.Context, state *ecashMigra
 	}
 	if !o.process.IsRunning("bitcoind") {
 		args := []string{"-conf=" + o.BitcoinConf.GetConfFilePath(), "-datadir=" + state.RootDir, "-networkactive=0", "-walletbroadcast=0"}
+		args = append(args, o.BitcoinConf.InstancePortArgs()...)
 		args = append(args, extra...)
 		if _, err := o.process.Start(ctx, cfg, args, nil); err != nil {
 			return nil, err

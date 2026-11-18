@@ -187,24 +187,18 @@ func (m *EnforcerConfManager) SaveConfig() error {
 // Dart: getExpectedNodeRpcSettings (L71)
 func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
 	host := m.bitcoinConf.GetRPCHost()
-	const defaultZmqSequence = "tcp://127.0.0.1:29000"
-
 	port := m.bitcoinConf.GetRPCPort()
+	zmqSequence := m.bitcoinConf.ZMQSequenceAddress()
 
 	if m.bitcoinConf.Config == nil {
 		return map[string]string{
 			"node-rpc-cookie-path":   m.bitcoinConf.GetRPCCookiePath(),
 			"node-rpc-addr":          fmt.Sprintf("%s:%d", host, port),
-			"node-zmq-addr-sequence": defaultZmqSequence,
+			"node-zmq-addr-sequence": zmqSequence,
 		}
 	}
 
 	networkSection := CoreSectionForNetwork(m.bitcoinConf.Network)
-
-	zmqSequence := m.bitcoinConf.Config.GetEffectiveSetting("zmqpubsequence", networkSection)
-	if zmqSequence == "" {
-		zmqSequence = defaultZmqSequence
-	}
 
 	settings := map[string]string{
 		"node-rpc-addr":          fmt.Sprintf("%s:%d", host, port),
@@ -336,6 +330,13 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 		}
 		if v := expected[key]; v != "" {
 			args = append(args, fmt.Sprintf("--%s=%s", key, v))
+		}
+	}
+
+	listen := enforcerListenArgs()
+	for _, key := range slices.Sorted(maps.Keys(listen)) {
+		if !seen[key] {
+			args = append(args, fmt.Sprintf("--%s=%s", key, listen[key]))
 		}
 	}
 

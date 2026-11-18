@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
 )
@@ -131,18 +131,14 @@ func (m *BitcoinConfManager) GetConfFilePath() string {
 	return confInfo.path
 }
 
-// GetRPCPort returns the effective RPC port (config or network default).
+// GetRPCPort returns the effective RPC port (config or network default). The
+// port offset moves the port of a local Core.
 func (m *BitcoinConfManager) GetRPCPort() int {
-	if m.Config != nil {
-		section := CoreSectionForNetwork(m.Network)
-		portStr := m.Config.GetEffectiveSetting("rpcport", section)
-		if portStr != "" {
-			if port, err := strconv.Atoi(portStr); err == nil {
-				return port
-			}
-		}
+	port := m.effectivePort("rpcport", RPCPortForNetwork(m.Network))
+	if !m.isLocalCore() {
+		return port
 	}
-	return RPCPortForNetwork(m.Network)
+	return instance.Port(port)
 }
 
 // GetRPCHost returns the effective RPC host (rpcconnect or local default).
@@ -443,10 +439,13 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 		content := string(data)
 		config := ParseBitcoinConfig(content)
 
-		if migrated, wipeNetworks := RunBitcoinConfMigrations(config); migrated {
+		migrated, wipeNetworks := RunBitcoinConfMigrations(config)
+		if migrated {
 			if err := m.wipeStaleChainData(config, wipeNetworks); err != nil {
 				m.log.Warn().Err(err).Msg("stale chain data left in place")
 			}
+		}
+		if moved := moveGeneratedZMQPublishers(config); migrated || moved {
 			content = config.Serialize()
 			if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
 				return "", fmt.Errorf("write migrated bitcoin config %s: %w", confPath, err)
@@ -483,6 +482,9 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 	}
 
 	content := m.GetDefaultConfig()
+	if config := ParseBitcoinConfig(content); moveGeneratedZMQPublishers(config) {
+		content = config.Serialize()
+	}
 	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
 		m.log.Error().Err(err).Msg("failed to create config directory")
 	} else if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {

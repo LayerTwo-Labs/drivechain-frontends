@@ -15,6 +15,9 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+
+	appconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 )
 
 // LogEntry represents a line of output from a managed process.
@@ -377,7 +380,7 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 	}
 
 	// Set environment
-	cmd.Env = os.Environ()
+	cmd.Env = instance.Environ(appconfig.AppHome())
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, k+"="+v)
 	}
