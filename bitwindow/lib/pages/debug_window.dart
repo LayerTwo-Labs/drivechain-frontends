@@ -515,8 +515,21 @@ class DetailSection extends StatelessWidget {
   }
 }
 
-class ProcessesTab extends StatelessWidget {
+class ProcessesTab extends StatefulWidget {
   const ProcessesTab({super.key});
+
+  @override
+  State<ProcessesTab> createState() => _ProcessesTabState();
+}
+
+class _ProcessesTabState extends State<ProcessesTab> {
+  final _drivechaind = DrivechaindState();
+
+  @override
+  void dispose() {
+    _drivechaind.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -524,7 +537,7 @@ class ProcessesTab extends StatelessWidget {
     final theme = context.sailTheme;
 
     return ListenableBuilder(
-      listenable: binaryProvider,
+      listenable: _drivechaind,
       builder: (context, _) {
         final allBinaries = binaryProvider.binaries;
 
@@ -542,8 +555,10 @@ class ProcessesTab extends StatelessWidget {
             ],
             rowBuilder: (context, row, selected) {
               final binary = allBinaries[row];
-              final connected = binaryProvider.isConnected(binary);
-              final initializing = binaryProvider.isInitializing(binary);
+              // bitwindowd spawns drivechaind, so only the orchestrator poll knows its state.
+              final DaemonState? daemon = binary is Drivechaind ? _drivechaind : null;
+              final connected = daemon?.connected ?? binaryProvider.isConnected(binary);
+              final initializing = daemon?.initializingBinary ?? binaryProvider.isInitializing(binary);
 
               final status = connected
                   ? 'Connected'
