@@ -169,7 +169,7 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
 
     return SailCard(
       title: 'Verify Message',
-      subtitle: "Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any",
+      subtitle: "Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!",
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.only(bottom: 16),
@@ -193,24 +193,37 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
                 label: 'Signature',
                 hintText: '',
               ),
-              SailButton(
-                label: 'Verify Message',
-                icon: SailSVGAsset.iconQuestion,
-                onPressed: _verifyMessage,
+              SailRow(
+                spacing: SailStyleValues.padding16,
+                children: [
+                  SailButton(
+                    label: 'Verify Message',
+                    icon: SailSVGAsset.iconQuestion,
+                    onPressed: _verifyMessage,
+                  ),
+                  if (_error != null)
+                    Expanded(child: SailInlineError(_error!))
+                  else if (_isValid case final valid?)
+                    Expanded(
+                      child: SailRow(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailSVG.fromAsset(
+                            valid ? SailSVGAsset.circleCheck : SailSVGAsset.circleAlert,
+                            color: valid ? theme.colors.success : theme.colors.error,
+                          ),
+                          Flexible(
+                            child: SailText.primary13(
+                              valid ? 'Message verified' : 'Invalid signature',
+                              color: valid ? theme.colors.success : theme.colors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
-              if (_error != null) SailInlineError(_error!),
-              if (_isValid != null && _error == null) ...[
-                const SizedBox(width: 16),
-                SailSVG.fromAsset(
-                  _isValid! ? SailSVGAsset.circleCheck : SailSVGAsset.circleAlert,
-                  color: _isValid! ? theme.colors.success : theme.colors.error,
-                ),
-                const SizedBox(width: 8),
-                SailText.primary13(
-                  _isValid! ? 'Message verified' : 'Invalid signature',
-                  color: _isValid! ? theme.colors.success : theme.colors.error,
-                ),
-              ],
             ],
           ),
         ),
