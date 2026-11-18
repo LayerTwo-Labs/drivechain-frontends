@@ -218,10 +218,20 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 		Version: 13,
 		Apply:   dropRawBlockPublisher,
 	},
+	{
+		// Core does not relay an OP_DRIVECHAIN deposit output as standard.
+		Version:   14,
+		SkipIfSet: true,
+		Changes: map[string]map[string]string{
+			"regtest": {
+				"acceptnonstdtxn": "1",
+			},
+		},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 13
+var BitcoinConfMigrationsVersion = 14
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // Returns whether any migration was applied, plus the networks whose chain
