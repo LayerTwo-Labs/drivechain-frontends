@@ -27,32 +27,37 @@ class ChatPage extends StatelessWidget {
             // Disconnected view (inlined)
             return Center(
               child: SailCard(
+                width: 520,
                 title: 'BitNames Required',
                 subtitle: 'Chat requires BitNames sidechain to be running',
                 child: Padding(
                   padding: const EdgeInsets.all(SailStyleValues.padding20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SailSVG.fromAsset(
-                        SailSVGAsset.iconWarning,
-                        color: theme.colors.textSecondary,
-                        height: 48,
-                      ),
-                      const SizedBox(height: SailStyleValues.padding16),
-                      SailText.primary15(
-                        'BitNames sidechain is not connected',
-                        bold: true,
-                      ),
-                      const SizedBox(height: SailStyleValues.padding08),
-                      SailText.secondary13(
-                        'To use the Chat feature, you need to:\n'
-                        '1. Go to the Sidechains tab\n'
-                        '2. Download and start BitNames\n'
-                        '3. Register at least one BitName identity',
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                  child: SizedBox(
+                    key: const ValueKey('chat-bitnames-required'),
+                    width: double.infinity,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SailSVG.fromAsset(
+                          SailSVGAsset.iconWarning,
+                          color: theme.colors.textSecondary,
+                          height: 48,
+                        ),
+                        const SizedBox(height: SailStyleValues.padding16),
+                        SailText.primary15(
+                          'BitNames sidechain is not connected',
+                          bold: true,
+                        ),
+                        const SizedBox(height: SailStyleValues.padding08),
+                        SailText.secondary13(
+                          'To use the Chat feature, you need to:\n'
+                          '1. Go to the Sidechains tab\n'
+                          '2. Download and start BitNames\n'
+                          '3. Register at least one BitName identity',
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
