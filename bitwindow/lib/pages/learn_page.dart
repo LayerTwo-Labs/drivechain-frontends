@@ -352,6 +352,8 @@ class _StoryCardContent extends StatelessWidget {
                       SailText.primary15(
                         title,
                         bold: true,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       SailText.secondary12(
                         subtitle,
