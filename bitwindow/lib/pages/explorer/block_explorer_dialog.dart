@@ -366,19 +366,13 @@ class TXIDTransactionTable extends StatefulWidget {
 }
 
 class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
-  String sortColumn = 'txid';
+  String? sortColumn;
   bool sortAscending = true;
-  late List<String> sortedTransactions;
+  late List<int> sortedIndexes;
 
   @override
   void initState() {
     super.initState();
-    sortedTransactions = List.from(widget.transactions);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
     sortTransactions();
   }
 
@@ -386,33 +380,18 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
   void didUpdateWidget(TXIDTransactionTable oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.transactions, widget.transactions)) {
-      sortedTransactions = List.from(widget.transactions);
       sortTransactions();
     }
   }
 
-  void onSort(String column) {
-    setState(() {
-      if (sortColumn == column) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = column;
-        sortAscending = true;
-      }
-      sortTransactions();
-    });
-  }
+  static const columns = ['n', 'txid'];
 
   void sortTransactions() {
-    if (sortColumn == 'n') {
-      // Don't sort when sorting by index
-      return;
-    }
-
-    sortedTransactions.sort((a, b) {
-      String aValue = a;
-      String bValue = b;
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    final txids = widget.transactions;
+    sortedIndexes = List.generate(txids.length, (i) => i);
+    sortedIndexes.sort((a, b) {
+      final cmp = sortColumn == 'txid' ? txids[a].compareTo(txids[b]) : a.compareTo(b);
+      return sortAscending ? cmp : -cmp;
     });
   }
 
@@ -429,24 +408,24 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
       child: SailTable(
         backgroundColor: context.sailTheme.colors.background,
         altBackgroundColor: context.sailTheme.colors.backgroundSecondary,
-        getRowId: (index) => widget.transactions[index],
+        getRowId: (index) => widget.transactions[sortedIndexes[index]],
         onDoubleTap: widget.onTransactionSelected != null ? (rowId) => widget.onTransactionSelected!(rowId) : null,
         headerBuilder: (context) => [
-          SailTableHeaderCell(
-            name: 'n',
-            onSort: () => onSort('n'),
-          ),
-          SailTableHeaderCell(
-            name: 'txid',
-            onSort: () => onSort('txid'),
-          ),
+          for (final column in columns) SailTableHeaderCell(name: column),
         ],
         rowBuilder: (context, index, selected) => [
-          SailTableCell(value: index.toString()),
-          SailTableCell(value: widget.transactions[index]),
+          SailTableCell(value: sortedIndexes[index].toString()),
+          SailTableCell(value: widget.transactions[sortedIndexes[index]]),
         ],
         rowCount: widget.transactions.length,
         emptyPlaceholder: 'No transactions in block',
+        sortColumnIndex: sortColumn == null ? null : columns.indexOf(sortColumn!),
+        sortAscending: sortAscending,
+        onSort: (columnIndex, ascending) => setState(() {
+          sortColumn = columns[columnIndex];
+          sortAscending = ascending;
+          sortTransactions();
+        }),
       ),
     );
   }
