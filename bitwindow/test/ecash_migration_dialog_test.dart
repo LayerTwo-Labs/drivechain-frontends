@@ -6,7 +6,6 @@ import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -175,9 +174,7 @@ void main() {
   late List<bool?> results;
 
   setUpAll(() async {
-    for (final (family, file) in [(SailFonts.inter, 'Inter'), (SailFonts.mono, 'IBMPlexMono')]) {
-      await (FontLoader(family)..addFont(rootBundle.load('packages/sail_ui/assets/fonts/$file-Regular.ttf'))).load();
-    }
+    await loadBundledFonts();
   });
 
   setUp(() async {

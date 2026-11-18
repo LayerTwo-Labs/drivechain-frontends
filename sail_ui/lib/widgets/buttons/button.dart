@@ -616,6 +616,17 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
                           ),
                           child: widget.child,
                         )
+                      : theme.chrome.flatControls
+                      ? DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: widget.variant != ButtonVariant.link ? currentColor : Colors.transparent,
+                            borderRadius: widget.variant != ButtonVariant.link ? theme.chrome.radius : null,
+                            border: widget.borderColor != null
+                                ? Border.all(color: widget.borderColor!, width: 1)
+                                : null,
+                          ),
+                          child: widget.child,
+                        )
                       : Stack(
                           children: [
                             // Bottom shadow layer
@@ -641,6 +652,9 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
                               decoration: BoxDecoration(
                                 color: widget.variant != ButtonVariant.link ? currentColor : Colors.transparent,
                                 borderRadius: widget.variant != ButtonVariant.link ? theme.chrome.radius : null,
+                                border: widget.borderColor != null
+                                    ? Border.all(color: widget.borderColor!, width: 1)
+                                    : null,
                               ),
                               child: widget.child,
                             ),

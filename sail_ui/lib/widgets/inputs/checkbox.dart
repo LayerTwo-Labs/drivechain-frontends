@@ -34,8 +34,9 @@ class _SailCheckboxState extends State<SailCheckbox> {
     if (widget.value) {
       Color color;
 
+      final flat = context.sailTheme.chrome.flatControls;
       if (enabled) {
-        color = context.sailTheme.colors.text;
+        color = flat ? context.sailTheme.colors.primary : context.sailTheme.colors.text;
         if (_pressed) {
           color = Color.lerp(color, Colors.black, 0.2)!;
         }
@@ -64,12 +65,16 @@ class _SailCheckboxState extends State<SailCheckbox> {
             : BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
                 color: color,
-                boxShadow: enabled ? sailBoxShadow(context) : null,
+                boxShadow: enabled && !flat ? sailBoxShadow(context) : null,
               ),
         child: Icon(
           Icons.check,
           size: widget.size - 2,
-          color: chrome.beveled ? context.sailTheme.colors.text : context.sailTheme.colors.background,
+          color: chrome.beveled
+              ? context.sailTheme.colors.text
+              : flat
+              ? context.sailTheme.colors.primaryButtonText
+              : context.sailTheme.colors.background,
         ),
       );
     } else {

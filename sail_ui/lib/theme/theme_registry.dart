@@ -92,14 +92,24 @@ final SailThemeBundle _ecashBundle = SailThemeBundle(
   ),
 );
 
+final SailThemeBundle _bitwindowV2Bundle = SailThemeBundle(
+  style: SailThemeStyle.bitwindowV2,
+  displayName: 'BitWindow v2',
+  light: bitwindowV2LightTheme,
+  dark: bitwindowV2DarkTheme,
+  supportsDarkMode: true,
+  chrome: bitwindowV2Chrome,
+);
+
 /// All registered theme bundles, keyed by style.
 final Map<SailThemeStyle, SailThemeBundle> sailThemeBundles = {
   SailThemeStyle.sail: _sailBundle,
   SailThemeStyle.win95: _win95Bundle,
   SailThemeStyle.ecash: _ecashBundle,
+  SailThemeStyle.bitwindowV2: _bitwindowV2Bundle,
 };
 
-SailThemeBundle sailBundleFor(SailThemeStyle style) => sailThemeBundles[style] ?? _sailBundle;
+SailThemeBundle sailBundleFor(SailThemeStyle style) => sailThemeBundles[style] ?? _bitwindowV2Bundle;
 
 SailThemeBundle sailBundleForId(String? id) =>
-    sailThemeBundles.values.firstWhere((b) => b.id == id, orElse: () => _sailBundle);
+    sailThemeBundles.values.firstWhere((b) => b.id == id, orElse: () => _bitwindowV2Bundle);

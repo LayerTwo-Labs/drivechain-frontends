@@ -59,6 +59,9 @@ class SailChrome {
   /// null = theme default tooltip surface; non-null forces it (win95 cream).
   final Color? tooltipBackground;
 
+  /// Flat controls: buttons with no 3D layer, a 30x18 switch with no border, and a primary checkbox.
+  final bool flatControls;
+
   const SailChrome({
     required this.radius,
     required this.radiusSmall,
@@ -71,7 +74,11 @@ class SailChrome {
     required this.titleBar,
     this.tooltipBackground,
     this.terminalStyle = false,
+    this.flatControls = false,
   });
 
   bool get beveled => bevel != null;
+
+  /// The family for a run of text: the forced [fontFamily], else mono or Inter.
+  String textFamily({bool monospace = false}) => fontFamily ?? (monospace ? SailFonts.mono : SailFonts.inter);
 }
