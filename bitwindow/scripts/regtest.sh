@@ -21,9 +21,13 @@ Usage: scripts/regtest.sh <command> [args]
 
 Environment:
   BITWINDOW_REGTEST_DIR   App datadir. Default: ~/.bitwindow-regtest
+  BITWINDOW_HOME          Home for all other data of this instance. Default: ~
+  BITWINDOW_PORT_OFFSET   Number added to every port of this instance. Default: 0
   REGTEST_START_TIMEOUT   Seconds that start waits for the node. Default: 600
 EOF
 }
+
+die() { echo "regtest: $*" >&2; exit 1; }
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 bitwindow_dir=$(dirname "$script_dir")
@@ -35,9 +39,15 @@ snapshots_dir="$D.snapshots"
 pgid_file="$D/regtest.pgid"
 log_file="$D/regtest.log"
 
+home=${BITWINDOW_HOME:-$HOME}
+offset=${BITWINDOW_PORT_OFFSET:-0}
+if ! [[ "$offset" =~ ^(0|[1-9][0-9]{0,4})$ ]] || ((offset > 7500)); then
+    die "BITWINDOW_PORT_OFFSET=$offset: give an integer from 0 to 7500"
+fi
+
 case "$(uname -s)" in
-    Darwin*) app_support="$HOME/Library/Application Support"; core_dir="$app_support/Ecash" ;;
-    *)       app_support="$HOME/.local/share"; core_dir="$HOME/.ecash" ;;
+    Darwin*) app_support="$home/Library/Application Support"; core_dir="$app_support/Ecash" ;;
+    *)       app_support="$home/.local/share"; core_dir="$home/.ecash" ;;
 esac
 enforcer_dir="$app_support/bip300301_enforcer"
 
@@ -49,14 +59,12 @@ external_state=(
     "$enforcer_dir/wallet/regtest"
 )
 
-app_ports=(30301 30400)
-rpc_port=18443
-
-die() { echo "regtest: $*" >&2; exit 1; }
+app_ports=($((30301 + offset)) $((30400 + offset)))
+rpc_port=$((18443 + offset))
 
 check_datadir() {
     case "$D" in
-        ""|/|"$HOME"|"$app_support"|"$app_support/bitwindow") die "refuse to use $D as the regtest datadir" ;;
+        ""|/|"$HOME"|"$home"|"$app_support"|"$app_support/bitwindow") die "refuse to use $D as the regtest datadir" ;;
     esac
 }
 
@@ -75,13 +83,13 @@ bitcoin_cli() {
     local cli
     cli=$(find_cli)
     [[ -n "$cli" ]] || die "no bitcoin-cli in $D/assets/bin; run start first"
-    "$cli" -regtest -datadir="$core_dir" "$@"
+    "$cli" -regtest -datadir="$core_dir" -rpcport="$rpc_port" "$@"
 }
 
 node_ready() {
     local cli
     cli=$(find_cli)
-    [[ -n "$cli" ]] && "$cli" -regtest -datadir="$core_dir" getblockcount >/dev/null 2>&1 && port_in_use 30301
+    [[ -n "$cli" ]] && "$cli" -regtest -datadir="$core_dir" -rpcport="$rpc_port" getblockcount >/dev/null 2>&1 && port_in_use "${app_ports[0]}"
 }
 
 cmd_start() {
@@ -271,7 +279,12 @@ case "$command" in
     snapshots) cmd_snapshots ;;
     cli) bitcoin_cli "$@" ;;
     mine) cmd_mine "$@" ;;
-    env) check_datadir; printf 'export BITWINDOWD_DATADIR=%q BITWINDOWD_LOG_CONSOLE=1\n' "$D" ;;
+    env)
+        check_datadir
+        printf 'export BITWINDOWD_DATADIR=%q BITWINDOWD_LOG_CONSOLE=1\n' "$D"
+        if [[ -n "${BITWINDOW_HOME:-}" ]]; then printf 'export BITWINDOW_HOME=%q\n' "$BITWINDOW_HOME"; fi
+        if ((offset != 0)); then printf 'export BITWINDOW_PORT_OFFSET=%d\n' "$offset"; fi
+        ;;
     log) tail -f "$log_file" ;;
     -h|--help|help) usage ;;
     *) usage >&2; exit 2 ;;
