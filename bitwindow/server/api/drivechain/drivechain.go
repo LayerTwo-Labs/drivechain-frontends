@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 
 	"connectrpc.com/connect/v2"
@@ -278,22 +279,21 @@ func (s *Server) ProposeSidechain(
 			fmt.Sprintf("block producer unavailable: %s", err)).WithCause(err)
 	}
 
-	// Build SidechainDeclaration V0
+	// The enforcer needs both hashes. A zero hash means "not given".
+	hashid1 := c.Hashid1
+	if hashid1 == "" {
+		hashid1 = strings.Repeat("0", 64)
+	}
+	hashid2 := c.Hashid2
+	if hashid2 == "" {
+		hashid2 = strings.Repeat("0", 40)
+	}
+
 	declarationV0 := &validatorpb.SidechainDeclaration_V0{
 		Title:       wrapperspb.String(c.Title),
 		Description: wrapperspb.String(c.Description),
-	}
-
-	// Add hash IDs if provided
-	if c.Hashid1 != "" {
-		declarationV0.HashId_1 = &commonpb.ConsensusHex{
-			Hex: wrapperspb.String(c.Hashid1),
-		}
-	}
-	if c.Hashid2 != "" {
-		declarationV0.HashId_2 = &commonpb.Hex{
-			Hex: wrapperspb.String(c.Hashid2),
-		}
+		HashId_1:    &commonpb.ConsensusHex{Hex: wrapperspb.String(hashid1)},
+		HashId_2:    &commonpb.Hex{Hex: wrapperspb.String(hashid2)},
 	}
 
 	declaration := &validatorpb.SidechainDeclaration{

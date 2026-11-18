@@ -2,6 +2,7 @@ package drivechain_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect/v2"
@@ -400,6 +401,17 @@ func TestService_ProposeSidechain(t *testing.T) {
 		require.NotNil(t, producer.submitted)
 		assert.Equal(t, uint32(3), producer.submitted.GetSidechainId().GetValue())
 		assert.Equal(t, "RISCy", producer.submitted.GetDeclaration().GetV0().GetTitle().GetValue())
+	})
+
+	t.Run("sends zero hashes when none are given", func(t *testing.T) {
+		t.Parallel()
+
+		producer := &fakeProducer{}
+		_, err := proposeWith(t, producer)
+		require.NoError(t, err)
+		v0 := producer.submitted.GetDeclaration().GetV0()
+		assert.Equal(t, strings.Repeat("0", 64), v0.GetHashId_1().GetHex().GetValue())
+		assert.Equal(t, strings.Repeat("0", 40), v0.GetHashId_2().GetHex().GetValue())
 	})
 
 	t.Run("reports an enforcer refusal", func(t *testing.T) {
