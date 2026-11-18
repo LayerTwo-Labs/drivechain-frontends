@@ -367,6 +367,7 @@ fallbackfee=0.00021
 
 # Regtest-specific settings
 [regtest]
+acceptnonstdtxn=1
 fallbackfee=0.00021
 `, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, defaultDBCacheSetting(), currentNetwork, mainSection)
 }

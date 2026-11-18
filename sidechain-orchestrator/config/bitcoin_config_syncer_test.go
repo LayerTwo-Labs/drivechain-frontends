@@ -406,6 +406,30 @@ func TestRunBitcoinConfMigrationsBackfillsRest(t *testing.T) {
 	}
 }
 
+// Core relays a regtest deposit only with acceptnonstdtxn, and a value the
+// user set by hand stays.
+func TestRunBitcoinConfMigrationsAcceptsNonstandardOnRegtest(t *testing.T) {
+	config := NewBitcoinConfig()
+	config.ConfigVersion = 13
+	config.GlobalSettings["chain"] = "regtest"
+
+	migrated, _ := RunBitcoinConfMigrations(config)
+	require.True(t, migrated)
+	require.Equal(t, "1", config.GetSetting("acceptnonstdtxn", "regtest"))
+
+	byHand := NewBitcoinConfig()
+	byHand.ConfigVersion = 13
+	byHand.SetSetting("acceptnonstdtxn", "0", "regtest")
+
+	RunBitcoinConfMigrations(byHand)
+	require.Equal(t, "0", byHand.GetSetting("acceptnonstdtxn", "regtest"))
+}
+
+func TestGetDefaultConfigRegtestAcceptsNonstandard(t *testing.T) {
+	config := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkRegtest}).GetDefaultConfig())
+	require.Equal(t, "1", config.GetSetting("acceptnonstdtxn", "regtest"))
+}
+
 // ---------------------------------------------------------------------------
 // Default config
 // ---------------------------------------------------------------------------
