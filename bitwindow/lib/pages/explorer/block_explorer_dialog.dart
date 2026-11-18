@@ -35,6 +35,9 @@ String humanizeTransactionLoadError(Object e) {
   return 'Could not load this transaction. Try again, or check the daemon logs if the problem persists.';
 }
 
+/// The next block hash, or "None" for the chain tip.
+String nextBlockHashText(Block block) => block.nextBlockHash.isEmpty ? 'None' : block.nextBlockHash;
+
 class BlockExplorerDialog extends StatelessWidget {
   const BlockExplorerDialog({
     super.key,
@@ -180,9 +183,8 @@ class BlockExplorerDialog extends StatelessWidget {
                   ),
                 ),
                 const SailSpacing(SailStyleValues.padding16),
-                DetailRow(label: 'Median time', value: block.blockTime.seconds.toString()),
-                DetailRow(label: 'Next Block Hash', value: '0' * 64),
-                DetailRow(label: 'Chain Work', value: '${block.difficulty}'),
+                DetailRow(label: 'Next Block Hash', value: nextBlockHashText(block)),
+                DetailRow(label: 'Difficulty', value: '${block.difficulty}'),
                 const SailSpacing(SailStyleValues.padding16),
                 SizedBox(
                   height: 300,
