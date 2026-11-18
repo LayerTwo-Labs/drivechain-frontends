@@ -80,6 +80,8 @@ class SidechainActivationManagementViewModel extends BaseViewModel {
 
   List<SidechainProposal> get sidechainProposals => sidechainProvider.sidechainProposals;
 
+  Set<int> get activeSlots => {for (final sidechain in activeSidechains) sidechain!.info.slot};
+
   SidechainActivationManagementViewModel() {
     sidechainProvider.addListener(notifyListeners);
   }
@@ -146,7 +148,10 @@ class SidechainActivationManagementView extends StatelessWidget {
                               ),
                               borderRadius: SailStyleValues.borderRadius,
                             ),
-                            child: PendingSidechainProposalsTable(proposals: model.sidechainProposals),
+                            child: PendingSidechainProposalsTable(
+                              proposals: model.sidechainProposals,
+                              activeSlots: model.activeSlots,
+                            ),
                           ),
                         ),
                       ],
@@ -298,10 +303,12 @@ Future<void> showSidechainActivationManagementModal(BuildContext context) {
 
 class PendingSidechainProposalsTable extends StatefulWidget {
   final List<SidechainProposal> proposals;
+  final Set<int> activeSlots;
 
   const PendingSidechainProposalsTable({
     super.key,
     required this.proposals,
+    required this.activeSlots,
   });
 
   @override
@@ -309,85 +316,44 @@ class PendingSidechainProposalsTable extends StatefulWidget {
 }
 
 class _PendingSidechainProposalsTableState extends State<PendingSidechainProposalsTable> {
+  static const columns = ['voteCount', 'slot', 'replacement', 'title', 'description', 'age', 'fails', 'hash'];
+
   String sortColumn = 'slot';
   bool sortAscending = true;
-  List<SidechainProposal> proposals = [];
 
-  @override
-  void initState() {
-    super.initState();
-    proposals = widget.proposals;
-    sortProposals();
-  }
+  bool isReplacement(SidechainProposal proposal) => widget.activeSlots.contains(proposal.slot);
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!listEquals(proposals, widget.proposals)) {
-      proposals = widget.proposals;
-      sortProposals();
-    }
+  Comparable<Object> sortValue(SidechainProposal proposal) {
+    return switch (sortColumn) {
+      'voteCount' => proposal.voteCount,
+      'replacement' => isReplacement(proposal) ? 1 : 0,
+      'title' => proposal.title,
+      'description' => proposal.description,
+      'age' => proposal.proposalAge,
+      'fails' => proposal.proposalHeight,
+      'hash' => proposal.dataHash,
+      _ => proposal.slot,
+    } as Comparable<Object>;
   }
 
   void onSort(String column) {
-    if (column == sortColumn) {
-      sortAscending = !sortAscending;
-    } else {
-      sortColumn = column;
-      sortAscending = true;
-    }
-    sortProposals();
-    setState(() {});
-  }
-
-  void sortProposals() {
-    proposals.sort((a, b) {
-      dynamic aValue = '';
-      dynamic bValue = '';
-
-      switch (sortColumn) {
-        case 'slot':
-          aValue = a.slot;
-          bValue = b.slot;
-          break;
-        case 'voteCount':
-          aValue = a.voteCount;
-          bValue = b.voteCount;
-          break;
-        /*case 'replacement':
-          aValue = a.replacement;
-          bValue = b.replacement;
-          break;*/
-        /*case 'title':
-          aValue = a.title;
-          bValue = b.title;
-          break;*/
-        /*case 'description':
-          aValue = a.description;
-          bValue = b.description;
-          break;*/
-        case 'age':
-          aValue = a.proposalAge;
-          bValue = b.proposalAge;
-          break;
-        case 'fails':
-          aValue = a.proposalHeight;
-          bValue = b.proposalHeight;
-          break;
-        case 'hash':
-          aValue = a.dataHash;
-          bValue = b.dataHash;
-          break;
+    setState(() {
+      if (column == sortColumn) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
       }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final proposals = [...widget.proposals]
+      ..sort((a, b) => sortAscending ? sortValue(a).compareTo(sortValue(b)) : sortValue(b).compareTo(sortValue(a)));
+
     return SailTable(
-      getRowId: (index) => widget.proposals[index].slot.toString(),
+      getRowId: (index) => proposals[index].slot.toString(),
       headerBuilder: (context) => [
         const SailTableHeaderCell(name: 'Vote'),
         const SailTableHeaderCell(name: 'SC #'),
@@ -399,25 +365,23 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
         const SailTableHeaderCell(name: 'Hash'),
       ],
       rowBuilder: (context, row, selected) {
-        final proposal = widget.proposals[row];
+        final proposal = proposals[row];
         return [
           SailTableCell(value: proposal.voteCount.toString()),
           SailTableCell(value: proposal.slot.toString()),
-          const SailTableCell(value: 'Replacement'),
-          SailTableCell(value: hexEncode(proposal.data)),
-          const SailTableCell(value: 'Description'),
+          SailTableCell(value: isReplacement(proposal) ? 'Yes' : 'No'),
+          SailTableCell(value: proposal.title),
+          SailTableCell(value: proposal.description),
           SailTableCell(value: proposal.proposalAge.toString()),
           SailTableCell(value: proposal.proposalHeight.toString()),
           SailTableCell(value: proposal.dataHash),
         ];
       },
-      rowCount: widget.proposals.length,
+      rowCount: proposals.length,
       emptyPlaceholder: 'No pending sidechain proposals',
-      sortColumnIndex: ['voteCount', 'slot', 'age', 'fails', 'hash'].indexOf(sortColumn),
+      sortColumnIndex: columns.indexOf(sortColumn),
       sortAscending: sortAscending,
-      onSort: (columnIndex, ascending) {
-        onSort(['voteCount', 'slot', 'age', 'fails', 'hash'][columnIndex]);
-      },
+      onSort: (columnIndex, ascending) => onSort(columns[columnIndex]),
     );
   }
 }
