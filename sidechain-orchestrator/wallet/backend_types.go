@@ -49,6 +49,15 @@ type WalletTransaction struct {
 	TxID          string  `json:"txid"`
 	Label         string  `json:"label"`
 	Abandoned     bool    `json:"abandoned"`
+	// MempoolConflicts lists the mempool transactions that spend an input of
+	// this one.
+	MempoolConflicts []string `json:"mempoolconflicts"`
+}
+
+// Replaced reports that a mempool transaction spends an input of this
+// unconfirmed one, so this one cannot confirm.
+func (t WalletTransaction) Replaced() bool {
+	return t.Confirmations == 0 && len(t.MempoolConflicts) > 0
 }
 
 // ReceivedByAddress aggregates what one wallet address has received,

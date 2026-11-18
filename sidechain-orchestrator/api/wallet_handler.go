@@ -1158,18 +1158,19 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *pb.ListTransa
 
 	pbTxs := lo.Map(txs, func(tx wallet.WalletTransaction, _ int) *pb.TransactionEntry {
 		return &pb.TransactionEntry{
-			Txid:          tx.TxID,
-			Vout:          int32(tx.Vout),
-			Address:       tx.Address,
-			Category:      tx.Category,
-			Amount:        tx.Amount,
-			AmountSats:    int64(math.Round(tx.Amount * 1e8)),
-			Confirmations: int32(tx.Confirmations),
-			BlockTime:     tx.BlockTime,
-			Time:          tx.Time,
-			Label:         tx.Label,
-			Fee:           tx.Fee,
-			WalletId:      walletID,
+			Txid:           tx.TxID,
+			Vout:           int32(tx.Vout),
+			Address:        tx.Address,
+			Category:       tx.Category,
+			Amount:         tx.Amount,
+			AmountSats:     int64(math.Round(tx.Amount * 1e8)),
+			Confirmations:  int32(tx.Confirmations),
+			BlockTime:      tx.BlockTime,
+			Time:           tx.Time,
+			Label:          tx.Label,
+			Fee:            tx.Fee,
+			ReplacedByTxid: tx.Replaced(),
+			WalletId:       walletID,
 		}
 	})
 
