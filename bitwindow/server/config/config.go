@@ -10,6 +10,7 @@ import (
 	"github.com/jessevdk/go-flags"
 
 	dir "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dir"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 )
 
@@ -27,18 +28,18 @@ const (
 type Config struct {
 	Version bool `long:"version" short:"v" description:"Print version information and exit"`
 
-	EnforcerHost        string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
-	EnforcerJSONRPCAddr string `long:"enforcer.jsonrpc.addr" description:"host:port for the enforcer's JSON-RPC endpoint" default:"localhost:8122"`
-	OrchestratorAddr    string `long:"orchestrator.addr" description:"URL for connecting to the orchestrator daemon" default:"http://localhost:30400"`
+	EnforcerHost        string `long:"enforcer.host" description:"host:port for connecting to the enforcer server (default: localhost:50051)"`
+	EnforcerJSONRPCAddr string `long:"enforcer.jsonrpc.addr" description:"host:port for the enforcer's JSON-RPC endpoint (default: localhost:8122)"`
+	OrchestratorAddr    string `long:"orchestrator.addr" description:"URL for connecting to the orchestrator daemon (default: http://localhost:30400)"`
 
-	ThunderAddr   string `long:"thunder.addr" description:"host:port for connecting to the thunder sidechain" default:"localhost:6009"`
-	BitnamesAddr  string `long:"bitnames.addr" description:"host:port for connecting to the bitnames sidechain" default:"localhost:6002"`
-	BitassetsAddr string `long:"bitassets.addr" description:"host:port for connecting to the bitassets sidechain" default:"localhost:6004"`
-	TruthcoinAddr string `long:"truthcoin.addr" description:"host:port for connecting to the truthcoin sidechain" default:"localhost:6013"`
-	PhotonAddr    string `long:"photon.addr" description:"host:port for connecting to the photon sidechain" default:"localhost:6099"`
-	CoinshiftAddr string `long:"coinshift.addr" description:"host:port for connecting to the coinshift sidechain" default:"localhost:6255"`
+	ThunderAddr   string `long:"thunder.addr" description:"host:port for connecting to the thunder sidechain (default: localhost:6009)"`
+	BitnamesAddr  string `long:"bitnames.addr" description:"host:port for connecting to the bitnames sidechain (default: localhost:6002)"`
+	BitassetsAddr string `long:"bitassets.addr" description:"host:port for connecting to the bitassets sidechain (default: localhost:6004)"`
+	TruthcoinAddr string `long:"truthcoin.addr" description:"host:port for connecting to the truthcoin sidechain (default: localhost:6013)"`
+	PhotonAddr    string `long:"photon.addr" description:"host:port for connecting to the photon sidechain (default: localhost:6099)"`
+	CoinshiftAddr string `long:"coinshift.addr" description:"host:port for connecting to the coinshift sidechain (default: localhost:6255)"`
 
-	APIHost   string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:30301"`
+	APIHost   string `long:"api.host" env:"API_HOST" description:"public address for the connect server (default: localhost:30301)"`
 	Datadir   string `long:"datadir" env:"BITWINDOWD_DATADIR" description:"Path to the data directory"`
 	PprofAddr string `long:"pprof.addr" env:"BITWINDOWD_PPROF_ADDR" description:"host:port for the pprof debug server; empty disables it"`
 
@@ -61,11 +62,37 @@ type Config struct {
 	baseLogPath string `no-flag:"true"`
 }
 
+// defaultConfig holds the default addresses. BITWINDOW_PORT_OFFSET moves each port.
+func defaultConfig() (Config, error) {
+	if _, err := instance.PortOffset(); err != nil {
+		return Config{}, err
+	}
+	return Config{
+		EnforcerHost:        instance.Addr("localhost", 50051),
+		EnforcerJSONRPCAddr: instance.Addr("localhost", 8122),
+		OrchestratorAddr:    "http://" + instance.Addr("localhost", 30400),
+		ThunderAddr:         instance.Addr("localhost", 6009),
+		BitnamesAddr:        instance.Addr("localhost", 6002),
+		BitassetsAddr:       instance.Addr("localhost", 6004),
+		TruthcoinAddr:       instance.Addr("localhost", 6013),
+		PhotonAddr:          instance.Addr("localhost", 6099),
+		CoinshiftAddr:       instance.Addr("localhost", 6255),
+		APIHost:             instance.Addr("localhost", 30301),
+	}, nil
+}
+
 func Parse() (Config, error) {
-	var conf Config
+	return parse(os.Args[1:])
+}
+
+func parse(args []string) (Config, error) {
+	conf, err := defaultConfig()
+	if err != nil {
+		return Config{}, err
+	}
 	parser := flags.NewParser(&conf, flags.AllowBoolValues|flags.Default)
 
-	if _, err := parser.Parse(); err != nil {
+	if _, err := parser.ParseArgs(args); err != nil {
 		return Config{}, err
 	}
 

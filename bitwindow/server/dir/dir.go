@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/instance"
 )
 
 // Flutter's path_provider on Linux uses the GApplication id when libgio is
@@ -22,10 +24,10 @@ const (
 
 func linuxDataDir() (string, error) {
 	var base string
-	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" && instance.Home() == "" {
 		base = xdgDataHome
 	} else {
-		home, err := os.UserHomeDir()
+		home, err := instance.UserHome()
 		if err != nil {
 			return "", err
 		}
@@ -62,7 +64,7 @@ func DefaultDataDir() (string, error) {
 	case "darwin":
 		const macosAppName = "bitwindow"
 
-		home, err := os.UserHomeDir()
+		home, err := instance.UserHome()
 		if err != nil {
 			return "", err
 		}
@@ -71,6 +73,9 @@ func DefaultDataDir() (string, error) {
 		const windowsAppName = "BitWindow"
 
 		appData, ok := os.LookupEnv("APPDATA")
+		if home := instance.Home(); home != "" {
+			appData, ok = filepath.Join(home, "AppData", "Roaming"), true
+		}
 		if !ok {
 			return "", errors.New("APPDATA environment variable not set")
 		}
