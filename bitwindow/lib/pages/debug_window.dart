@@ -126,7 +126,11 @@ class _InformationTabState extends State<InformationTab> {
               title: 'Network Info',
               details: {
                 'Chain': _blockchainInfo?.chain ?? 'Loading...',
-                'Network Activity': _blockchainInfo?.initialBlockDownload ?? true ? 'Disabled' : 'Enabled',
+                'Network Activity': switch (_networkInfo?.networkActive) {
+                  null => 'Loading...',
+                  true => 'Enabled',
+                  false => 'Disabled',
+                },
               },
             ),
             InfoSection(
