@@ -16,6 +16,7 @@ import (
 	"connectrpc.com/connect/v2"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
@@ -54,6 +55,11 @@ func (h *WalletHandler) CreateDeposit(
 	if err := h.requireActiveSlot(ctx, uint32(slot)); err != nil {
 		return nil, err
 	}
+	network, known := config.LookupNetwork(h.svc.Network())
+	if !known {
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "unknown network %q", h.svc.Network())
+	}
+	treasury := orchestrator.M8TreasuryScript(orchestrator.OpDrivechain(network), slot)
 
 	h.svc.Log().Info().Uint8("slot", slot).Str("destination", destination).
 		Int64("amount_sats", req.AmountSats).Int64("fee_sats", req.FeeSats).
@@ -61,7 +67,7 @@ func (h *WalletHandler) CreateDeposit(
 
 	send, err := h.SendTransaction(ctx, &wpb.SendTransactionRequest{
 		WalletId:     req.WalletId,
-		RawOutputs:   []*wpb.RawOutput{{ValueSats: req.AmountSats, ScriptHex: hex.EncodeToString(orchestrator.M8TreasuryScript(slot))}},
+		RawOutputs:   []*wpb.RawOutput{{ValueSats: req.AmountSats, ScriptHex: hex.EncodeToString(treasury)}},
 		OpReturnHex:  hex.EncodeToString([]byte(destination)),
 		FixedFeeSats: req.FeeSats,
 	})

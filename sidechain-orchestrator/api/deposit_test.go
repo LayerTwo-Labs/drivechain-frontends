@@ -77,7 +77,8 @@ func TestCreateDepositBroadcastsARequest(t *testing.T) {
 	assert.Equal(t, tx.TxID(), resp.Txid)
 
 	require.GreaterOrEqual(t, len(tx.TxOut), 2)
-	assert.Equal(t, orchestrator.M8TreasuryScript(9), tx.TxOut[0].PkScript, "the request output comes first")
+	assert.Equal(t, []byte{0xb4, 0x01, 9, 0x51}, tx.TxOut[0].PkScript,
+		"the request output comes first, under the OP_NOP5 that the signet enforcer reads")
 	assert.EqualValues(t, 100_000, tx.TxOut[0].Value, "the request holds only the amount")
 	assert.Equal(t, append([]byte{0x6a, byte(len("sidechainaddress"))}, "sidechainaddress"...), tx.TxOut[1].PkScript,
 		"the address follows the request output")
