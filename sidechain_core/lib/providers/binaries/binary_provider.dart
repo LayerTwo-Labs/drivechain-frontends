@@ -502,7 +502,7 @@ class BinaryProvider extends ChangeNotifier {
         }
         await Future.delayed(const Duration(milliseconds: 100));
       }
-    });
+    }, environment: instanceEnvironment());
   }
 
   /// Watch for daemon exit and auto-restart unless shutting down.

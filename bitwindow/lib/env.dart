@@ -19,18 +19,15 @@ class Environment {
     'BITWINDOWD_HOST',
     String.fromEnvironment('BITWINDOWD_HOST', defaultValue: '127.0.0.1'),
   );
-  static const bitwindowdPort = Variable(
+  static final bitwindowdPort = Variable(
     'BITWINDOWD_PORT',
-    int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 30301),
+    const bool.hasEnvironment('BITWINDOWD_PORT') ? const int.fromEnvironment('BITWINDOWD_PORT') : instancePort(30301),
   );
   static const orchestratorHost = Variable(
     'ORCHESTRATOR_HOST',
     String.fromEnvironment('ORCHESTRATOR_HOST', defaultValue: '127.0.0.1'),
   );
-  static const orchestratorPort = Variable(
-    'ORCHESTRATOR_PORT',
-    int.fromEnvironment('ORCHESTRATOR_PORT', defaultValue: 30400),
-  );
+  static final orchestratorPort = Variable('ORCHESTRATOR_PORT', OrchestratorEndpoint.port);
   static const network = Variable(
     'BITWINDOW_NETWORK',
     String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'ecash'),
@@ -62,6 +59,7 @@ class Environment {
   }
 
   static void validateAtRuntime() {
+    portOffset();
     _validate<String>(bitwindowdHost, (v) => v.isNotEmpty);
     _validate<int>(bitwindowdPort, (v) => v > 0 && v < 65536);
     // Add more validations for other variables if needed
