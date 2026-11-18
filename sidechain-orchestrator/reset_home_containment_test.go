@@ -19,8 +19,8 @@ func TestBinaryWalletPathsStayInsideTheAppHome(t *testing.T) {
 
 	o := newResetTestOrchestrator(t)
 
-	frontend := config.BitWindowDirs.FlutterFrontendPath()
-	require.NotEmpty(t, frontend)
+	frontend := o.withBitwindowDir(config.BitWindowDirs).FlutterFrontendPath()
+	require.Equal(t, o.BitwindowDir, frontend)
 	seedFile(t, filepath.Join(frontend, "wallet.json"))
 
 	paths := o.BinaryWalletPaths()
@@ -40,7 +40,7 @@ func TestGatherWalletFilesStayInsideTheAppHome(t *testing.T) {
 
 	o := newResetTestOrchestrator(t)
 
-	frontend := config.BitWindowDirs.FlutterFrontendPath()
+	frontend := o.withBitwindowDir(config.BitWindowDirs).FlutterFrontendPath()
 	seedFile(t, filepath.Join(frontend, "wallet.json"))
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{

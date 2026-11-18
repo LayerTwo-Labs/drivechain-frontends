@@ -57,6 +57,9 @@ type BinaryDirConfig struct {
 	DataDirMainnet     map[string]string // os -> subdir (mainnet override)
 	IsBitcoinCore      bool              // built on Bitcoin Core: Core datadir layout and Linux appdir
 	FlutterFrontendDir map[string]string // os -> Flutter app data subdir
+	// RootOverride, when set, is both the data dir and the frontend dir. Only
+	// BitWindow keeps the two in one directory.
+	RootOverride string
 }
 
 // AppDir returns the platform base directory for this binary.
@@ -85,6 +88,9 @@ func (b BinaryDirConfig) AppDir() string {
 // RootDirNetwork returns the root data directory for a specific network.
 // Dart: Binary.rootDirNetwork(network) (L1518-1523)
 func (b BinaryDirConfig) RootDirNetwork(network Network) string {
+	if b.RootOverride != "" {
+		return b.RootOverride
+	}
 	dirs := b.DataDir
 	if network == NetworkMainnet && len(b.DataDirMainnet) > 0 {
 		dirs = b.DataDirMainnet
@@ -152,6 +158,9 @@ func (b BinaryDirConfig) RootDir() string {
 // FlutterFrontendPath returns the Flutter app's getApplicationSupportDirectory() path.
 // Dart: flutterFrontendDir() (L1306-1353)
 func (b BinaryDirConfig) FlutterFrontendPath() string {
+	if b.RootOverride != "" {
+		return b.RootOverride
+	}
 	home := HomeDir()
 	subdir := b.FlutterFrontendDir[currentOSName()]
 	if subdir == "" {
@@ -592,7 +601,7 @@ func (b BinaryDirConfig) GetSettingsPaths(networkDir string, network Network, lo
 		paths = append(paths, GetExistingFilesInDir(b.RootDir(), []string{"bitwindow-enforcer.conf"}, log)...)
 
 	case "bitwindowd":
-		rootDir := BitWindowDirs.RootDir()
+		rootDir := b.RootDir()
 		paths = append(paths, GetExistingFilesInDir(rootDir, []string{
 			"assets", "bitwindow-bitcoin.conf", logfile.Name,
 			"downloads", "pids", "settings.json",
@@ -649,7 +658,7 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, network Network, log zer
 
 	case "bitwindowd":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"miner.log", "server.log"}, log)...)
-		rootDir := BitWindowDirs.RootDir()
+		rootDir := b.RootDir()
 		paths = append(paths, GetExistingFilesInDir(rootDir, []string{
 			logfile.Name, "debug.log", "drivechaind.log",
 		}, log)...)
