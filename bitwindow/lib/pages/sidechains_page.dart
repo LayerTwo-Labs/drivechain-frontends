@@ -405,7 +405,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
 
   double _nameColumnWidth(BuildContext context, SidechainsViewModel viewModel) {
     final style = DefaultTextStyle.of(context).style.merge(
-      SailStyleValues.thirteen.copyWith(fontFamily: context.sailTheme.chrome.fontFamily ?? SailFonts.inter),
+      SailStyleValues.thirteen.copyWith(fontFamily: context.sailTheme.chrome.textFamily()),
     );
     final painter = TextPainter(
       text: TextSpan(

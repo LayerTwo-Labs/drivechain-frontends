@@ -6,7 +6,6 @@ import 'package:bitwindow/widgets/burn_ecx_card.dart';
 import 'package:bitwindow/widgets/claim_ecx_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -176,9 +175,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    for (final (family, file) in [(SailFonts.inter, 'Inter'), (SailFonts.mono, 'IBMPlexMono')]) {
-      await (FontLoader(family)..addFont(rootBundle.load('packages/sail_ui/assets/fonts/$file-Regular.ttf'))).load();
-    }
+    await loadBundledFonts();
   });
 
   setUp(() async {

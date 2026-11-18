@@ -2,7 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// Identifies a theme bundle. The enum name is the persisted string id.
-enum SailThemeStyle { sail, win95, ecash }
+enum SailThemeStyle { sail, win95, ecash, bitwindowV2 }
 
 extension SailThemeStyleStringer on SailThemeStyle {
   String get id => name;

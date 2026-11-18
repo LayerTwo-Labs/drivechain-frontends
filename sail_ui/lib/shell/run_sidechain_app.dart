@@ -273,7 +273,7 @@ class _SidechainAppContent extends StatelessWidget {
       routeInformationParser: router.defaultRouteParser(),
       title: rpc.chain.name,
       theme: ThemeData(
-        fontFamily: theme.chrome.fontFamily ?? (font == SailFontValues.ibmMono ? SailFonts.mono : SailFonts.inter),
+        fontFamily: theme.chrome.textFamily(monospace: font == SailFontValues.ibmMono),
         colorScheme: ColorScheme.fromSwatch().copyWith(secondary: rpc.chain.color),
       ),
     );

@@ -6,8 +6,8 @@ import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -16,6 +16,7 @@ import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wm
 import 'package:sidechain_core/providers/price_provider.dart';
 
 import 'mocks/store_mock.dart';
+import 'test_utils.dart';
 
 class _Connection extends ChangeNotifier implements RPCConnection {
   _Connection(this.binary);
@@ -157,16 +158,7 @@ void main() {
   late SyncProvider sync;
 
   setUpAll(() async {
-    for (final (family, files) in [
-      (SailFonts.inter, ['Inter-Regular', 'Inter-Medium', 'Inter-Bold']),
-      (SailFonts.mono, ['IBMPlexMono-Regular', 'IBMPlexMono-Medium']),
-    ]) {
-      final loader = FontLoader(family);
-      for (final file in files) {
-        loader.addFont(rootBundle.load('packages/sail_ui/assets/fonts/$file.ttf'));
-      }
-      await loader.load();
-    }
+    await loadBundledFonts();
   });
 
   setUp(() async {
