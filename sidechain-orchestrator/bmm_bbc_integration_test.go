@@ -271,8 +271,6 @@ func startMainchain(
 		fmt.Sprintf("--node-zmq-addr-sequence=tcp://127.0.0.1:%d", mainchainZMQPort),
 		fmt.Sprintf("--serve-grpc-addr=127.0.0.1:%d", enforcerPort),
 		"--enable-block-template-server", "--enable-mempool",
-		// drivechaind builds betanet treasury scripts; regtest defaults to OP_NOP5.
-		"--op-drivechain=nop8",
 		// BDK syncs from an Esplora server we do not run; on regtest the ZMQ
 		// block stream is enough.
 		"--enable-wallet", "--wallet-sync-source=disabled", "--wallet-auto-create",
