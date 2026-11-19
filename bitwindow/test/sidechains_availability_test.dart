@@ -155,6 +155,21 @@ void main() {
     );
   });
 
+  testWidgets('the stopped card scrolls in a short window and keeps the start button', (tester) async {
+    nodeMode.mode = wmpb.NodeMode.NODE_MODE_FULL;
+    await loadBundledFonts();
+    tester.view.physicalSize = const Size(1200, 420);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await pumpOverview(tester);
+
+    expect(tester.takeException(), isNull);
+    final start = find.byWidgetPredicate((w) => w is SailButton && w.label == 'Start Bitcoin Core + Enforcer');
+    await tester.scrollUntilVisible(start, 100, scrollable: find.byType(Scrollable).last);
+    expect(start.hitTestable(), findsOneWidget);
+  });
+
   testWidgets('a change to light mode removes the controls without an endpoint', (tester) async {
     nodeMode.mode = wmpb.NodeMode.NODE_MODE_FULL;
     await pumpOverview(tester);

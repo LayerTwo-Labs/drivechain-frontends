@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -196,6 +197,53 @@ void main() {
             .map((b) => (b.decoration as BoxDecoration).color);
         expect(fills, contains(fill));
       }
+    });
+  });
+
+  group('flat ghost and progress', () {
+    TextDecoration? decoration(WidgetTester tester, String label) =>
+        tester.widgetList<Text>(find.byType(Text)).firstWhere((t) => t.data == label).style?.decoration;
+
+    testWidgets('a flat ghost button has no underline and a link keeps it', (tester) async {
+      await tester.pumpWidget(
+        _themed(
+          _v2(),
+          Column(
+            children: [
+              SailButton(label: 'View logs', variant: ButtonVariant.ghost, onPressed: () async {}),
+              SailButton(label: 'Open', variant: ButtonVariant.link, onPressed: () async {}),
+            ],
+          ),
+        ),
+      );
+
+      expect(decoration(tester, 'View logs'), isNull);
+      expect(decoration(tester, 'Open'), TextDecoration.underline);
+    });
+
+    testWidgets('a flat progress bar draws a border track and a primary fill', (tester) async {
+      await tester.pumpWidget(
+        _themed(_v2(light: true), const SizedBox(width: 300, child: ProgressBar(current: 1, goal: 2))),
+      );
+
+      final colors = tester
+          .widgetList<Container>(find.byType(Container))
+          .map((c) => (c.decoration as BoxDecoration?)?.color)
+          .whereType<Color>()
+          .toList();
+      expect(colors, containsAll([_v2(light: true).colors.border, _v2(light: true).colors.primary]));
+    });
+
+    testWidgets('an unknown goal shows the whole word', (tester) async {
+      await tester.pumpWidget(
+        _themed(_v2(), const SizedBox(width: 400, child: ProgressBar(current: 0, goal: 0))),
+      );
+
+      final label = tester.renderObject<RenderParagraph>(
+        find.descendant(of: find.text('unknown'), matching: find.byType(RichText)),
+      );
+      expect(label.didExceedMaxLines, isFalse);
+      expect(label.size.width, greaterThanOrEqualTo(label.getMaxIntrinsicWidth(double.infinity)));
     });
   });
 }

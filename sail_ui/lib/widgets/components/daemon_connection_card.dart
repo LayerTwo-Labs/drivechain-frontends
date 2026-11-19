@@ -245,7 +245,7 @@ TextStyle daemonStatusStyle(BuildContext context) {
   final theme = SailTheme.of(context);
   return SailStyleValues.twelve.copyWith(
     color: theme.colors.textSecondary,
-    fontFamily: theme.chrome.fontFamily ?? SailFonts.mono,
+    fontFamily: theme.chrome.textFamily(),
   );
 }
 

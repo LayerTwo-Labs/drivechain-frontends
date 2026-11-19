@@ -166,8 +166,8 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
         L1Gate.starting => 'The enforcer connection starts',
         _ => 'The enforcer sync is not complete',
       },
-      child: Padding(
-        padding: const EdgeInsets.all(SailStyleValues.padding12),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
