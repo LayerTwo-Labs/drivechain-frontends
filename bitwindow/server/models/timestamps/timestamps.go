@@ -33,6 +33,8 @@ type FileTimestamp struct {
 	ConfirmedAt *time.Time `db:"confirmed_at"`
 }
 
+// Create inserts timestamp and returns its id. If a row holds the same file
+// hash, Create returns the id of that row and sets its filename if it has none.
 func Create(ctx context.Context, db *sql.DB, timestamp FileTimestamp) (int64, error) {
 	builder := sq.
 		Insert("file_timestamps").
@@ -45,17 +47,13 @@ func Create(ctx context.Context, db *sql.DB, timestamp FileTimestamp) (int64, er
 			timestamp.Status,
 			timestamp.CreatedAt,
 			timestamp.ConfirmedAt,
-		)
+		).
+		Suffix("ON CONFLICT(file_hash) DO UPDATE SET filename = COALESCE(NULLIF(file_timestamps.filename, ''), excluded.filename) RETURNING id")
 
 	sql, args := builder.MustSql()
-	result, err := db.ExecContext(ctx, sql, args...)
-	if err != nil {
+	var id int64
+	if err := db.QueryRowContext(ctx, sql, args...).Scan(&id); err != nil {
 		return 0, fmt.Errorf("create file timestamp: %w", err)
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("get last insert ID: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().
