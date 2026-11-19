@@ -65,7 +65,7 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
               hintText: 'bitcoin:<address>?amount=1.23',
             ),
             if (_parsedURI != null) ...[
-              SailText.primary13('Address: ${_parsedURI!.address}'),
+              SailText.primary13('Address: ${_parsedURI!.address}', overflow: TextOverflow.visible),
               if (_parsedURI!.amount != null) SailText.primary13('Amount: ${formatter.formatBTC(_parsedURI!.amount!)}'),
               if (_parsedURI!.label != null) SailText.primary13('Label: ${_parsedURI!.label}'),
               if (_parsedURI!.message != null) SailText.primary13('Message: ${_parsedURI!.message}'),
