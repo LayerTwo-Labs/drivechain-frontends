@@ -1404,7 +1404,7 @@ class AboutBitwindowDialog extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadiusSmall,
+          borderRadius: context.sailTheme.chrome.radiusSmall,
           border: Border.all(color: theme.colors.border, width: 1),
         ),
         child: Column(

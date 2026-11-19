@@ -122,7 +122,7 @@ class SidechainActivationManagementView extends StatelessWidget {
                                 color: context.sailTheme.colors.divider,
                                 width: 1.0,
                               ),
-                              borderRadius: SailStyleValues.borderRadius,
+                              borderRadius: context.sailTheme.chrome.radius,
                             ),
                             child: ActiveSidechainsTable(blocks: model.activeSidechains),
                           ),
@@ -146,7 +146,7 @@ class SidechainActivationManagementView extends StatelessWidget {
                                 color: context.sailTheme.colors.divider,
                                 width: 1.0,
                               ),
-                              borderRadius: SailStyleValues.borderRadius,
+                              borderRadius: context.sailTheme.chrome.radius,
                             ),
                             child: PendingSidechainProposalsTable(
                               proposals: model.sidechainProposals,

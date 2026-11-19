@@ -237,7 +237,7 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     border: Border.all(color: context.sailTheme.colors.border),
-                    borderRadius: SailStyleValues.borderRadius,
+                    borderRadius: context.sailTheme.chrome.radius,
                   ),
                   child: ClipRRect(
                     borderRadius: const BorderRadius.only(
@@ -296,7 +296,7 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: context.sailTheme.colors.background,
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: context.sailTheme.chrome.radius,
           border: Border.all(color: context.sailTheme.colors.border),
         ),
         child: Column(
@@ -315,7 +315,7 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: context.sailTheme.colors.backgroundSecondary,
-                        borderRadius: SailStyleValues.borderRadius,
+                        borderRadius: context.sailTheme.chrome.radius,
                         border: Border.all(
                           color: context.sailTheme.colors.border,
                         ),
@@ -340,7 +340,7 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                                     : widget.size == WidgetSize.bar
                                     ? Colors.purple.withValues(alpha: 0.1)
                                     : Colors.green.withValues(alpha: 0.1),
-                                borderRadius: SailStyleValues.borderRadius,
+                                borderRadius: context.sailTheme.chrome.radius,
                               ),
                               child: SailText.secondary12(
                                 widget.size == WidgetSize.full

@@ -54,7 +54,7 @@ class ImportTxidModal extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: theme.colors.info.withValues(alpha: 0.1),
                       border: Border.all(color: theme.colors.info.withValues(alpha: 0.3)),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.sailTheme.chrome.radius,
                     ),
                     child: SailColumn(
                       spacing: SailStyleValues.padding08,
@@ -77,7 +77,7 @@ class ImportTxidModal extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: theme.colors.warning.withValues(alpha: 0.1),
                         border: Border.all(color: theme.colors.warning.withValues(alpha: 0.3)),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: context.sailTheme.chrome.radius,
                       ),
                       child: SailRow(
                         children: [

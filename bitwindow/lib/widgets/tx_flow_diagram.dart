@@ -39,7 +39,7 @@ class TxFlowDiagram extends StatelessWidget {
       padding: const EdgeInsets.all(SailStyleValues.padding20),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: theme.colors.divider),
       ),
       child: TxFlowPlot(inputs: inputs, outputs: outputs),
@@ -264,7 +264,7 @@ class FlowChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         border: Border.all(color: color.withValues(alpha: 0.4)),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: context.sailTheme.chrome.radiusSmall,
       ),
       child: SailText.secondary12(label, color: color),
     );

@@ -139,11 +139,11 @@ void showArticleDetails(
                               ),
                               blockquoteDecoration: BoxDecoration(
                                 color: Colors.transparent,
-                                borderRadius: SailStyleValues.borderRadius,
+                                borderRadius: context.sailTheme.chrome.radius,
                               ),
                               codeblockDecoration: BoxDecoration(
                                 color: SailColorScheme.blackLighter,
-                                borderRadius: SailStyleValues.borderRadius,
+                                borderRadius: context.sailTheme.chrome.radius,
                               ),
                               code: SailStyleValues.thirteen.copyWith(
                                 color: SailColorScheme.white,

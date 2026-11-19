@@ -131,7 +131,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                                 decoration: BoxDecoration(
                                   color: theme.colors.background,
                                   border: Border.all(color: theme.colors.divider),
-                                  borderRadius: SailStyleValues.borderRadius,
+                                  borderRadius: context.sailTheme.chrome.radius,
                                 ),
                                 // Sidechains list
                                 child: Builder(
@@ -361,7 +361,7 @@ class _BundleRow extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: context.sailTheme.chrome.radiusSmall,
                   ),
                   child: SailText.secondary12(bundle.status.toUpperCase(), color: statusColor),
                 ),
@@ -488,7 +488,7 @@ class _VoteEntry extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: voteColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: context.sailTheme.chrome.radius,
             ),
             child: SailSVG.fromAsset(voteIcon, color: voteColor, width: 16),
           ),

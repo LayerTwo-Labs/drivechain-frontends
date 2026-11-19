@@ -117,7 +117,7 @@ class _TransactionDetails extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: theme.colors.info.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: context.sailTheme.chrome.radius,
               border: Border.all(color: theme.colors.info.withValues(alpha: 0.2)),
             ),
             child: SailColumn(
@@ -220,7 +220,7 @@ class _SigningDetails extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: theme.colors.warning.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: context.sailTheme.chrome.radius,
               border: Border.all(color: theme.colors.warning.withValues(alpha: 0.3)),
             ),
             child: SailColumn(
@@ -335,7 +335,7 @@ class _KeyStatus extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: context.sailTheme.chrome.radius,
                   color: statusColor.withValues(alpha: 0.05),
                 ),
                 child: SailRow(
@@ -361,7 +361,7 @@ class _KeyStatus extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: theme.colors.info.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: context.sailTheme.chrome.radiusSmall,
                         ),
                         child: SailText.secondary12('Wallet Key'),
                       ),

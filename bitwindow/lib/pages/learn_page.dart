@@ -139,7 +139,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
       padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding40),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadiusLarge,
+        borderRadius: context.sailTheme.chrome.radiusLarge,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +179,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: theme.colors.backgroundSecondary,
-                              borderRadius: SailStyleValues.borderRadiusLarge,
+                              borderRadius: context.sailTheme.chrome.radiusLarge,
                             ),
                             child: ArticleCard(
                               groupTitle: widget.group.title,
@@ -301,7 +301,7 @@ class _StoryCardState extends State<StoryCard> {
   Widget build(BuildContext context) {
     return SailTappable(
       onTap: () async => widget.onPressed(),
-      borderRadius: SailStyleValues.borderRadiusLarge,
+      borderRadius: context.sailTheme.chrome.radiusLarge,
       child: _StoryCardContent(
         title: widget.title,
         subtitle: widget.subtitle,
@@ -391,11 +391,11 @@ class _ScrollButton extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colors.text,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       child: SailTappable(
         onTap: () async => onPressed(),
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         child: Container(
           width: 32,
           height: 32,

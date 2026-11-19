@@ -158,7 +158,7 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
       padding: const EdgeInsets.all(_padding),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: theme.colors.border, width: _border),
       ),
       child: widget.showKeys ? _keys(context) : _blank(context),

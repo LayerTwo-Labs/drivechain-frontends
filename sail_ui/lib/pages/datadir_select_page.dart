@@ -105,7 +105,7 @@ class _DataDirSelectPageState extends State<DataDirSelectPage> {
                           ),
                           decoration: BoxDecoration(
                             border: Border.all(color: theme.colors.border),
-                            borderRadius: SailStyleValues.borderRadiusSmall,
+                            borderRadius: context.sailTheme.chrome.radiusSmall,
                             color: theme.colors.backgroundSecondary,
                           ),
                           child: SailText.secondary13(

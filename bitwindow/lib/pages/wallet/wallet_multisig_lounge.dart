@@ -1286,7 +1286,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
                       ),
                       decoration: BoxDecoration(
                         color: _getStatusColor(transaction.status, SailTheme.of(context).colors),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: context.sailTheme.chrome.radiusSmall,
                       ),
                       child: SailText.primary12(
                         _getStatusText(transaction.status),
@@ -1327,7 +1327,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     border: Border.all(color: SailTheme.of(context).colors.border),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: context.sailTheme.chrome.radius,
                   ),
                   child: SailColumn(
                     spacing: SailStyleValues.padding08,
@@ -1366,7 +1366,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
                                 color: keyPSBT.isSigned
                                     ? SailTheme.of(context).colors.success
                                     : SailTheme.of(context).colors.textSecondary,
-                                borderRadius: BorderRadius.circular(3),
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                               ),
                               child: SailText.primary10(
                                 keyPSBT.isSigned ? 'Signed' : 'Pending',
@@ -1386,7 +1386,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     border: Border.all(color: SailTheme.of(context).colors.border),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: context.sailTheme.chrome.radius,
                   ),
                   child: SailColumn(
                     spacing: SailStyleValues.padding08,
@@ -1405,7 +1405,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
                             ),
                             decoration: BoxDecoration(
                               color: SailTheme.of(context).colors.textSecondary,
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: context.sailTheme.chrome.radiusSmall,
                             ),
                             child: SailText.primary10(
                               'Unsigned',
@@ -1456,7 +1456,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
                                 color: keyPSBT.isSigned
                                     ? SailTheme.of(context).colors.success
                                     : SailTheme.of(context).colors.textSecondary,
-                                borderRadius: BorderRadius.circular(3),
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                               ),
                               child: SailText.primary10(
                                 keyPSBT.isSigned ? 'Signed' : 'Unsigned',

@@ -398,7 +398,7 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
       padding: const EdgeInsets.all(SailStyleValues.padding12),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
       ),
       child: SailText.secondary12(text),
     );

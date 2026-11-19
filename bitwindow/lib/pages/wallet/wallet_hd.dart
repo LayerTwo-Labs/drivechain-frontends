@@ -69,7 +69,7 @@ class _ControlsCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               border: Border.all(color: context.sailTheme.colors.divider),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: context.sailTheme.chrome.radiusSmall,
                               color: context.sailTheme.colors.background,
                             ),
                             child: SailText.primary13(

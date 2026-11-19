@@ -169,25 +169,11 @@ class BlockExplorerDialog extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: context.sailTheme.colors.backgroundSecondary,
-                    borderRadius: SailStyleValues.borderRadius,
+                    borderRadius: context.sailTheme.chrome.radius,
                     border: Border.all(
                       color: context.sailTheme.colors.divider,
                       width: 1,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
-                        offset: const Offset(0, 1),
-                        blurRadius: 1,
-                        spreadRadius: 1,
-                      ),
-                      BoxShadow(
-                        color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
-                        offset: const Offset(0, -1),
-                        blurRadius: 1,
-                        spreadRadius: 1,
-                      ),
-                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,7 +413,7 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
           color: context.sailTheme.colors.info,
           width: 1,
         ),
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       child: SailTable(
         backgroundColor: context.sailTheme.colors.background,
@@ -806,7 +792,7 @@ class BorderedSection extends StatelessWidget {
               color: context.sailTheme.colors.divider,
               width: 1,
             ),
-            borderRadius: SailStyleValues.borderRadius,
+            borderRadius: context.sailTheme.chrome.radius,
           ),
           child: Padding(
             padding: const EdgeInsets.all(SailStyleValues.padding16),
@@ -859,18 +845,11 @@ class _BlockColumn extends StatelessWidget {
         padding: const EdgeInsets.all(SailStyleValues.padding16),
         decoration: BoxDecoration(
           color: context.sailTheme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: context.sailTheme.chrome.radius,
           border: Border.all(
             color: context.sailTheme.colors.divider,
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
-              offset: const Offset(0, 2),
-              blurRadius: 4,
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

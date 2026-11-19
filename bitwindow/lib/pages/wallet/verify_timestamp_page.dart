@@ -94,7 +94,7 @@ class VerifyTimestampPage extends StatelessWidget {
                           padding: const EdgeInsets.all(SailStyleValues.padding16),
                           decoration: BoxDecoration(
                             color: context.sailTheme.colors.success.withValues(alpha: 0.1),
-                            borderRadius: SailStyleValues.borderRadius,
+                            borderRadius: context.sailTheme.chrome.radius,
                             border: Border.all(
                               color: context.sailTheme.colors.success.withValues(alpha: 0.3),
                             ),
@@ -132,7 +132,7 @@ class VerifyTimestampPage extends StatelessWidget {
                           padding: const EdgeInsets.all(SailStyleValues.padding12),
                           decoration: BoxDecoration(
                             color: context.sailTheme.colors.error.withValues(alpha: 0.1),
-                            borderRadius: SailStyleValues.borderRadiusSmall,
+                            borderRadius: context.sailTheme.chrome.radiusSmall,
                             border: Border.all(color: context.sailTheme.colors.error),
                           ),
                           child: Column(

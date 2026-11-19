@@ -82,7 +82,7 @@ class _SidechainConfEditorPageContent extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: theme.colors.info.withValues(alpha: 0.1),
-                borderRadius: SailStyleValues.borderRadius,
+                borderRadius: context.sailTheme.chrome.radius,
               ),
               child: Row(
                 children: [

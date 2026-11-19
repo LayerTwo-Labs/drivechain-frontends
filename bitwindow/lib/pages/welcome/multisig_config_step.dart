@@ -1209,7 +1209,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               onTap: () async => _removeKey(i),
               child: Tooltip(
                 message: 'Remove this key',
-                child: Icon(Icons.delete_outline, size: 14, color: theme.colors.error),
+                child: SailSVG.icon(SailSVGAsset.trash, width: 14, color: theme.colors.error),
               ),
             )
           : null,
@@ -1308,7 +1308,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: SailTheme.of(context).colors.backgroundSecondary,
-                  borderRadius: SailStyleValues.borderRadius,
+                  borderRadius: context.sailTheme.chrome.radius,
                 ),
                 child: SailText.primary13(
                   k.mnemonic ?? '',
@@ -1378,7 +1378,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               message: editable
                   ? 'The account this key comes from. Pick a standard path or type your own.'
                   : 'Remove this key to read the device at another path.',
-              child: Icon(Icons.help_outline, size: 16, color: theme.colors.textSecondary),
+              child: SailSVG.icon(SailSVGAsset.circleHelp, width: 16, color: theme.colors.textSecondary),
             ),
           ],
         ),
@@ -1742,7 +1742,7 @@ Future<void> showMultisigExportDialog(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: SailTheme.of(context).colors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: context.sailTheme.chrome.radius,
           ),
           child: SailText.secondary12(value, monospace: true),
         ),

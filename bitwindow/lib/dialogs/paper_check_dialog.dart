@@ -178,7 +178,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
         constraints: const BoxConstraints(maxHeight: 750),
         decoration: BoxDecoration(
           color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadiusSmall,
+          borderRadius: context.sailTheme.chrome.radiusSmall,
           border: Border.all(color: theme.colors.border, width: 1),
         ),
         child: Column(
@@ -198,7 +198,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                   SailText.primary20('Write a Check'),
                   SailTappable(
                     onTap: () async => Navigator.of(context).pop(),
-                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    borderRadius: context.sailTheme.chrome.radiusSmall,
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: SailSVG.fromAsset(SailSVGAsset.x, color: theme.colors.text),
@@ -220,7 +220,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: theme.colors.actionHeader,
-                        borderRadius: SailStyleValues.borderRadiusSmall,
+                        borderRadius: context.sailTheme.chrome.radiusSmall,
                         border: Border.all(color: theme.colors.primary),
                       ),
                       child: Row(
@@ -289,7 +289,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: theme.colors.success.withValues(alpha: 0.1),
-                                borderRadius: SailStyleValues.borderRadiusSmall,
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                                 border: Border.all(color: theme.colors.success),
                               ),
                               child: Column(
@@ -333,7 +333,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: theme.colors.background,
-                                borderRadius: SailStyleValues.borderRadiusSmall,
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                                 border: Border.all(color: theme.colors.border),
                               ),
                               child: Row(
@@ -486,7 +486,7 @@ class _RecipientPanel extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
         border: Border.all(color: theme.colors.primary, width: 2),
       ),
       child: Column(
@@ -512,7 +512,7 @@ class _RecipientPanel extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: theme.colors.backgroundSecondary,
-              borderRadius: SailStyleValues.borderRadiusSmall,
+              borderRadius: context.sailTheme.chrome.radiusSmall,
             ),
             child: QrImageView(
               data: keypair.publicAddress,
@@ -583,7 +583,7 @@ class _RedemptionPanel extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
         border: Border.all(color: theme.colors.error, width: 2),
       ),
       child: Column(
@@ -600,7 +600,7 @@ class _RedemptionPanel extends StatelessWidget {
                 message: showPrivateKey ? 'Hide private key' : 'Show private key',
                 child: SailTappable(
                   onTap: () async => onToggleVisibility(),
-                  borderRadius: SailStyleValues.borderRadiusSmall,
+                  borderRadius: context.sailTheme.chrome.radiusSmall,
                   child: Padding(
                     padding: const EdgeInsets.all(6),
                     child: SailSVG.fromAsset(
@@ -626,7 +626,7 @@ class _RedemptionPanel extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: theme.colors.backgroundSecondary,
-                borderRadius: SailStyleValues.borderRadiusSmall,
+                borderRadius: context.sailTheme.chrome.radiusSmall,
               ),
               child: QrImageView(
                 data: keypair.privateKeyWif,

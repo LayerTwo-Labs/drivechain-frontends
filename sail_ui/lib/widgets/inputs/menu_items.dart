@@ -44,7 +44,7 @@ class SailMenu extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: context.sailTheme.colors.background,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: context.sailTheme.colors.border, width: 1),
       ),
       child: Column(

@@ -361,7 +361,7 @@ class CheckDetailPage extends StatelessWidget {
                               padding: const EdgeInsets.all(SailStyleValues.padding20),
                               decoration: BoxDecoration(
                                 color: context.sailTheme.colors.backgroundSecondary,
-                                borderRadius: SailStyleValues.borderRadiusSmall,
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                               ),
                               child: QrImageView(
                                 data: check.address,
@@ -391,7 +391,7 @@ class CheckDetailPage extends StatelessWidget {
                               padding: const EdgeInsets.all(SailStyleValues.padding16),
                               decoration: BoxDecoration(
                                 color: context.sailTheme.colors.backgroundSecondary,
-                                borderRadius: SailStyleValues.borderRadiusSmall,
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                                 border: Border.all(
                                   color: context.sailTheme.colors.orange.withValues(alpha: 0.3),
                                 ),
@@ -436,73 +436,17 @@ class CheckDetailPage extends StatelessWidget {
                           if (check.fundedTxids.isEmpty)
                             SizedBox(
                               width: 400,
-                              height: 64,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      context.sailTheme.colors.primary,
-                                      context.sailTheme.colors.primary,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: context.sailTheme.colors.shadow,
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: SailTappable(
-                                  onTap: () async => model.fundWithWallet(context),
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Center(
-                                    child: SailText.primary15(
-                                      'Fund with Wallet',
-                                      color: context.sailTheme.colors.primaryButtonText,
-                                      bold: true,
-                                    ),
-                                  ),
-                                ),
+                              child: SailButton(
+                                label: 'Fund with Wallet',
+                                onPressed: () async => model.fundWithWallet(context),
                               ),
                             ),
                           if (check.fundedTxids.isNotEmpty)
                             SizedBox(
                               width: 400,
-                              height: 64,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      context.sailTheme.colors.success,
-                                      context.sailTheme.colors.success,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: context.sailTheme.colors.shadow,
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: SailTappable(
-                                  onTap: () async => model.sweepCheck(context),
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Center(
-                                    child: SailText.primary15(
-                                      'Sweep Check to Wallet',
-                                      color: context.sailTheme.colors.primaryButtonText,
-                                      bold: true,
-                                    ),
-                                  ),
-                                ),
+                              child: SailButton(
+                                label: 'Sweep Check to Wallet',
+                                onPressed: () async => model.sweepCheck(context),
                               ),
                             ),
                           if (model.actionError != null)

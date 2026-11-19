@@ -116,7 +116,7 @@ class _SailCommandPaletteState extends State<SailCommandPalette> {
       child: Dialog(
         backgroundColor: theme.colors.backgroundSecondary,
         shape: RoundedRectangleBorder(
-          borderRadius: SailStyleValues.borderRadiusSmall,
+          borderRadius: context.sailTheme.chrome.radiusSmall,
           side: BorderSide(color: theme.colors.border, width: 1),
         ),
         child: Container(

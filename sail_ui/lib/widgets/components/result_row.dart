@@ -35,7 +35,7 @@ class ResultRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

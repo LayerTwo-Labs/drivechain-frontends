@@ -94,7 +94,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
         constraints: const BoxConstraints(maxHeight: 700),
         decoration: BoxDecoration(
           color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadiusSmall,
+          borderRadius: context.sailTheme.chrome.radiusSmall,
           border: Border.all(color: theme.colors.border, width: 1),
         ),
         child: Column(
@@ -114,7 +114,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                   SailText.primary20('Paper Wallet'), // Qt windowTitle
                   SailTappable(
                     onTap: () async => Navigator.of(context).pop(),
-                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    borderRadius: context.sailTheme.chrome.radiusSmall,
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: SailSVG.fromAsset(SailSVGAsset.x, color: theme.colors.text),
@@ -136,7 +136,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: theme.colors.actionHeader,
-                        borderRadius: SailStyleValues.borderRadiusSmall,
+                        borderRadius: context.sailTheme.chrome.radiusSmall,
                         border: Border.all(color: theme.colors.orangeLight),
                       ),
                       child: Row(
@@ -264,7 +264,7 @@ class _AddressPanel extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
         border: Border.all(color: theme.colors.success, width: 2),
       ),
       child: Column(
@@ -290,7 +290,7 @@ class _AddressPanel extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: theme.colors.backgroundSecondary,
-              borderRadius: SailStyleValues.borderRadiusSmall,
+              borderRadius: context.sailTheme.chrome.radiusSmall,
             ),
             child: QrImageView(
               data: keypair.publicAddress,
@@ -361,7 +361,7 @@ class _PrivateKeyPanel extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
         border: Border.all(color: theme.colors.error, width: 2),
       ),
       child: Column(
@@ -378,7 +378,7 @@ class _PrivateKeyPanel extends StatelessWidget {
                 message: showPrivateKey ? 'Hide private key' : 'Show private key',
                 child: SailTappable(
                   onTap: () async => onToggleVisibility(),
-                  borderRadius: SailStyleValues.borderRadiusSmall,
+                  borderRadius: context.sailTheme.chrome.radiusSmall,
                   child: Padding(
                     padding: const EdgeInsets.all(6),
                     child: SailSVG.fromAsset(
@@ -404,7 +404,7 @@ class _PrivateKeyPanel extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: theme.colors.backgroundSecondary,
-                borderRadius: SailStyleValues.borderRadiusSmall,
+                borderRadius: context.sailTheme.chrome.radiusSmall,
               ),
               child: QrImageView(
                 data: keypair.privateKeyWif,

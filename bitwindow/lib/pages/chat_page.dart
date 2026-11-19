@@ -229,7 +229,7 @@ class ChatPage extends StatelessWidget {
                                                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                                   decoration: BoxDecoration(
                                                     color: theme.colors.primary,
-                                                    borderRadius: BorderRadius.circular(10),
+                                                    borderRadius: context.sailTheme.chrome.radius,
                                                   ),
                                                   child: SailText.secondary12(
                                                     '${model.unreadCount(contact.id)}',
@@ -326,7 +326,7 @@ class ChatPage extends StatelessWidget {
                                                     color: isOwn
                                                         ? theme.colors.primary
                                                         : theme.colors.backgroundSecondary,
-                                                    borderRadius: BorderRadius.circular(14),
+                                                    borderRadius: context.sailTheme.chrome.radiusLarge,
                                                   ),
                                                   child: Column(
                                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,7 +459,7 @@ class _ClaimingStatusBar extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
       decoration: BoxDecoration(
         color: theme.colors.primary.withValues(alpha: 0.1),
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: theme.colors.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -608,7 +608,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
                 padding: const EdgeInsets.all(SailStyleValues.padding12),
                 decoration: BoxDecoration(
                   color: theme.colors.success.withValues(alpha: 0.1),
-                  borderRadius: SailStyleValues.borderRadius,
+                  borderRadius: context.sailTheme.chrome.radius,
                   border: Border.all(color: theme.colors.success.withValues(alpha: 0.3)),
                 ),
                 child: Row(
@@ -639,7 +639,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   border: Border.all(color: theme.colors.divider),
-                  borderRadius: SailStyleValues.borderRadius,
+                  borderRadius: context.sailTheme.chrome.radius,
                 ),
                 child: ListView.builder(
                   itemCount: filtered.length,

@@ -41,7 +41,7 @@ class SailNotification extends StatelessWidget {
                 color: theme.chrome.terminalStyle ? theme.colors.border : theme.colors.divider,
                 width: 1,
               ),
-              borderRadius: theme.chrome.terminalStyle ? theme.chrome.radiusSmall : SailStyleValues.borderRadius,
+              borderRadius: theme.chrome.terminalStyle ? theme.chrome.radiusSmall : context.sailTheme.chrome.radius,
               boxShadow: theme.chrome.terminalStyle
                   ? null
                   : [

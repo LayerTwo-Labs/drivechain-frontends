@@ -233,7 +233,7 @@ class _Field extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
       ),
       child: SailRow(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

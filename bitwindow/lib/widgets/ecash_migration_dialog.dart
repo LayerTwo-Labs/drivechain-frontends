@@ -498,7 +498,7 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
               padding: const EdgeInsets.all(SailStyleValues.padding12),
               decoration: BoxDecoration(
                 color: theme.colors.backgroundSecondary,
-                borderRadius: SailStyleValues.borderRadiusSmall,
+                borderRadius: context.sailTheme.chrome.radiusSmall,
               ),
               child: SailColumn(
                 spacing: SailStyleValues.padding12,

@@ -927,7 +927,7 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: theme.colors.backgroundSecondary,
-                      borderRadius: SailStyleValues.borderRadius,
+                      borderRadius: context.sailTheme.chrome.radius,
                     ),
                     child: ListView.builder(
                       itemCount: _filteredMethods.length,
@@ -1013,7 +1013,7 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: theme.colors.backgroundSecondary,
-                              borderRadius: SailStyleValues.borderRadius,
+                              borderRadius: context.sailTheme.chrome.radius,
                             ),
                             child: SingleChildScrollView(
                               child: SelectableText(

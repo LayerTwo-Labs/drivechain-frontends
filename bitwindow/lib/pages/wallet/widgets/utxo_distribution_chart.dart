@@ -251,7 +251,7 @@ class _Legend extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 6),
               decoration: BoxDecoration(
                 color: isHovered ? theme.colors.backgroundSecondary : SailColorScheme.transparent,
-                borderRadius: SailStyleValues.borderRadiusSmall,
+                borderRadius: context.sailTheme.chrome.radiusSmall,
               ),
               child: Row(
                 children: [

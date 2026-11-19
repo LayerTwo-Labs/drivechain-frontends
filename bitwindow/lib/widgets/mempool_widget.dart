@@ -128,7 +128,7 @@ class _StatCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       child: SailRow(
         spacing: SailStyleValues.padding08,
@@ -163,7 +163,7 @@ class FeeDistributionChart extends StatelessWidget {
       return DecoratedBox(
         decoration: BoxDecoration(
           color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: context.sailTheme.chrome.radius,
         ),
         child: Center(
           child: SailText.secondary12('No mempool data'),
@@ -178,7 +178,7 @@ class FeeDistributionChart extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +262,7 @@ class FeeEstimatesPanel extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

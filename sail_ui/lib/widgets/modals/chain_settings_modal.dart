@@ -305,7 +305,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
             padding: const EdgeInsets.all(SailStyleValues.padding25),
             decoration: BoxDecoration(
               color: theme.colors.backgroundSecondary,
-              borderRadius: SailStyleValues.borderRadius,
+              borderRadius: context.sailTheme.chrome.radius,
             ),
             child: SailColumn(
               spacing: SailStyleValues.padding16,
@@ -461,7 +461,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
           Container(
             padding: const EdgeInsets.all(SailStyleValues.padding16),
             decoration: BoxDecoration(
-              borderRadius: SailStyleValues.borderRadius,
+              borderRadius: context.sailTheme.chrome.radius,
               border: Border.all(color: theme.colors.border),
             ),
             child: SailColumn(

@@ -285,7 +285,7 @@ class HomepageWidgetCatalog {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               border: Border.all(color: theme.colors.error),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: context.sailTheme.chrome.radius,
             ),
             child: Center(
               child: SailText.primary13('Widget not found: $id'),
@@ -340,7 +340,7 @@ class HomepageWidgetCatalog {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: theme.colors.backgroundSecondary,
-                          borderRadius: SailStyleValues.borderRadius,
+                          borderRadius: context.sailTheme.chrome.radius,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,

@@ -543,7 +543,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       height: 8,
       decoration: BoxDecoration(
         color: theme.colors.border,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: context.sailTheme.chrome.radiusSmall,
       ),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
@@ -551,7 +551,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         child: Container(
           decoration: BoxDecoration(
             color: theme.colors.text,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: context.sailTheme.chrome.radiusSmall,
           ),
         ),
       ),

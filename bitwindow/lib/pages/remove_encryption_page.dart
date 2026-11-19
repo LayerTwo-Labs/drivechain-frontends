@@ -78,7 +78,7 @@ class _RemoveEncryptionPageState extends State<RemoveEncryptionPage> {
                     padding: const EdgeInsets.all(SailStyleValues.padding12),
                     decoration: BoxDecoration(
                       color: theme.colors.error.withValues(alpha: 0.1),
-                      borderRadius: SailStyleValues.borderRadiusSmall,
+                      borderRadius: context.sailTheme.chrome.radiusSmall,
                       border: Border.all(color: theme.colors.error),
                     ),
                     child: SailText.secondary13(_errorMessage!),

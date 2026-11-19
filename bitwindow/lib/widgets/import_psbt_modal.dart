@@ -380,7 +380,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: context.sailTheme.colors.info.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: context.sailTheme.chrome.radius,
                     border: Border.all(color: context.sailTheme.colors.info.withValues(alpha: 0.3)),
                   ),
                   child: SailRow(
@@ -418,7 +418,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                           ? context.sailTheme.colors.success.withValues(alpha: 0.5)
                           : context.sailTheme.colors.textSecondary.withValues(alpha: 0.3),
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: context.sailTheme.chrome.radius,
                     color: _selectedFileName != null ? context.sailTheme.colors.success.withValues(alpha: 0.05) : null,
                   ),
                   child: SailColumn(
@@ -477,7 +477,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: context.sailTheme.colors.info.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.sailTheme.chrome.radius,
                       border: Border.all(color: context.sailTheme.colors.info.withValues(alpha: 0.2)),
                     ),
                     child: SailColumn(

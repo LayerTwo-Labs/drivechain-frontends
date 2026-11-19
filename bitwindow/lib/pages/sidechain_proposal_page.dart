@@ -279,7 +279,7 @@ Future<void> showSidechainProposalModal(BuildContext context) {
           vertical: MediaQuery.of(context).size.height * 0.01,
         ),
         child: ClipRRect(
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: context.sailTheme.chrome.radius,
           child: const SidechainProposalPage(),
         ),
       );

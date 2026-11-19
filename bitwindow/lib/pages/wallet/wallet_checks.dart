@@ -315,7 +315,7 @@ class ChecksTable extends StatelessWidget {
                 padding: const EdgeInsets.all(SailStyleValues.padding12),
                 decoration: BoxDecoration(
                   color: context.sailTheme.colors.orange.withValues(alpha: 0.1),
-                  borderRadius: SailStyleValues.borderRadiusSmall,
+                  borderRadius: context.sailTheme.chrome.radiusSmall,
                   border: Border.all(
                     color: context.sailTheme.colors.orange.withValues(alpha: 0.3),
                   ),

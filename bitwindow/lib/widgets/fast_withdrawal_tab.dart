@@ -197,7 +197,7 @@ class _PaymentSectionState extends State<_PaymentSection> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: colors.backgroundSecondary,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: context.sailTheme.chrome.radius,
                 border: Border.all(color: colors.border),
               ),
               child: SailColumn(
@@ -227,7 +227,7 @@ class _PaymentSectionState extends State<_PaymentSection> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: colors.backgroundSecondary,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: context.sailTheme.chrome.radius,
                 border: Border.all(color: colors.border),
               ),
               child: Row(
@@ -282,7 +282,7 @@ class _PaymentSectionState extends State<_PaymentSection> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: colors.backgroundSecondary,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: context.sailTheme.chrome.radius,
                 border: Border.all(color: colors.border),
               ),
               child: Column(
@@ -317,7 +317,7 @@ class _SuccessSection extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: theme.colors.success.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: context.sailTheme.chrome.radiusLarge,
         border: Border.all(color: theme.colors.success),
       ),
       child: SailColumn(
