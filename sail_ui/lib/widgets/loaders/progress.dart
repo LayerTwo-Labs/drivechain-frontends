@@ -55,6 +55,8 @@ class ProgressBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.chrome.terminalStyle
                         ? theme.colors.backgroundSecondary
+                        : theme.chrome.flatControls
+                        ? theme.colors.border
                         : theme.colors.backgroundSecondary.withValues(
                             alpha: 0.5,
                           ),
@@ -80,7 +82,7 @@ class ProgressBar extends StatelessWidget {
                       decoration: BoxDecoration(
                         color:
                             color ??
-                            (theme.chrome.beveled || theme.chrome.terminalStyle
+                            (theme.chrome.beveled || theme.chrome.terminalStyle || theme.chrome.flatControls
                                 ? theme.colors.primary
                                 : theme.colors.text),
                         borderRadius: theme.chrome.beveled
@@ -116,7 +118,7 @@ class ProgressBar extends StatelessWidget {
           if (!small && !justPercent) const SizedBox(width: 8.0),
           if (!small && !justPercent)
             ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 50, maxWidth: 50),
+              constraints: const BoxConstraints(minWidth: 50),
               child: SailText.primary12(
                 unknownGoal ? 'unknown' : '${min(progress * 100, 100.0).toStringAsFixed(2)}%',
                 textAlign: TextAlign.left,
