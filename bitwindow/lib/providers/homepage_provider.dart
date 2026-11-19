@@ -38,6 +38,7 @@ const _largeWidgetIds = {
 };
 
 /// Turns each saved large news widget into its widget at full width. Null when nothing changes.
+/// The next save writes the new form; the old form stays on disk until then.
 HomepageConfiguration? migrateLargeNewsWidgets(HomepageConfiguration configuration) {
   if (!configuration.widgets.any((w) => _largeWidgetIds.containsKey(w.widgetId))) {
     return null;
@@ -65,12 +66,7 @@ class BitwindowHomepageProvider extends HomepageProvider {
   @override
   Future<HomepageConfiguration> read() async {
     final saved = (await _settings.getValue(HomepageConfigurationSetting())).value;
-    final migrated = migrateLargeNewsWidgets(saved);
-    if (migrated == null) {
-      return saved;
-    }
-    await write(migrated);
-    return migrated;
+    return migrateLargeNewsWidgets(saved) ?? saved;
   }
 
   @override
