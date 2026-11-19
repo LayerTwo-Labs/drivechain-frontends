@@ -104,9 +104,18 @@ class _AirgapSignStepState extends State<AirgapSignStep> {
       title: 'External signer (airgap)',
       subtitle: _stage == _Stage.export ? 'Show this unsigned PSBT to your signer' : 'Import the signed PSBT',
       error: _error,
-      child: SingleChildScrollView(
-        child: _stage == _Stage.export ? _exportBody() : _importBody(),
-      ),
+      child: _stage == _Stage.export
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(child: SingleChildScrollView(child: _exportBody())),
+                const SailSpacing(SailStyleValues.padding16),
+                Divider(height: 1, color: context.sailTheme.colors.divider),
+                const SailSpacing(SailStyleValues.padding16),
+                _exportActions(),
+              ],
+            )
+          : SingleChildScrollView(child: _importBody()),
     );
   }
 
@@ -124,21 +133,23 @@ class _AirgapSignStepState extends State<AirgapSignStep> {
             SailButton(label: 'Save .psbt', variant: ButtonVariant.secondary, onPressed: _saveUnsigned),
           ],
         ),
-        const SailSpacing(SailStyleValues.padding08),
-        SailRow(
-          mainAxisAlignment: MainAxisAlignment.end,
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailButton(
-              label: 'Cancel',
-              variant: ButtonVariant.ghost,
-              onPressed: () async => widget.onCancel(),
-            ),
-            SailButton(
-              label: 'Next: import signed',
-              onPressed: () async => setState(() => _stage = _Stage.import),
-            ),
-          ],
+      ],
+    );
+  }
+
+  Widget _exportActions() {
+    return SailRow(
+      mainAxisAlignment: MainAxisAlignment.end,
+      spacing: SailStyleValues.padding08,
+      children: [
+        SailButton(
+          label: 'Cancel',
+          variant: ButtonVariant.ghost,
+          onPressed: () async => widget.onCancel(),
+        ),
+        SailButton(
+          label: 'Next: import signed',
+          onPressed: () async => setState(() => _stage = _Stage.import),
         ),
       ],
     );
