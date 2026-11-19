@@ -313,6 +313,28 @@ String feeTargetLabel(int? confTarget) => switch (confTarget) {
   final blocks => '$blocks blocks',
 };
 
+/// The fee target the send shows after an estimate for [confTarget] with
+/// [estimate]. A null target is a fee the user types: the node gave no rate,
+/// or the estimate failed with [error].
+Future<({int? confTarget, double? satPerVByte, String? error})> estimateFeeTarget(
+  int confTarget,
+  Future<double?> Function(int confTarget) estimate,
+) async {
+  try {
+    final satPerVByte = await estimate(confTarget);
+    if (satPerVByte == null) {
+      return (confTarget: null, satPerVByte: null, error: null);
+    }
+    return (confTarget: confTarget, satPerVByte: satPerVByte, error: null);
+  } catch (error) {
+    return (
+      confTarget: null,
+      satPerVByte: null,
+      error: 'Could not estimate the fee for ${feeTargetLabel(confTarget).toLowerCase()}: $error',
+    );
+  }
+}
+
 /// The fee targets the fee menu offers, in blocks.
 const List<int> sendFeeTargets = [1, 3, 6];
 
@@ -1799,23 +1821,19 @@ class SendPageViewModel extends BaseViewModel {
   /// Prices the fee for a confirmation in [confTarget] blocks.
   Future<void> selectFeeTarget(int confTarget) async {
     final request = ++_feeTargetRequest;
-    try {
-      final satPerVByte = await feeRateForTarget(confTarget);
-      if (request != _feeTargetRequest) {
-        return;
-      }
-      if (satPerVByte == null) {
-        selectCustomFee();
-        return;
-      }
-      selectedConfTarget = confTarget;
+    final estimate = await estimateFeeTarget(confTarget, feeRateForTarget);
+    if (request != _feeTargetRequest) {
+      return;
+    }
+    if (estimate case (confTarget: final target?, satPerVByte: final satPerVByte?, error: _)) {
+      selectedConfTarget = target;
       _setEstimatedFee(satPerVByte);
       notifyListeners();
-    } catch (error) {
-      if (request != _feeTargetRequest) {
-        return;
-      }
-      setSendError('Could not estimate the fee for ${feeTargetLabel(confTarget).toLowerCase()}: $error');
+      return;
+    }
+    selectCustomFee();
+    if (estimate.error case final error?) {
+      setSendError(error);
     }
   }
 
