@@ -262,6 +262,37 @@ func TestListUnspentRoundsBTCToSats(t *testing.T) {
 	require.Equal(t, uint64(29_000_000), resp.Utxos[0].ValueSats)
 }
 
+func TestListUnspentShowsDenialOnUnconfirmedTip(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	db := database.Test(t)
+	denial, err := deniability.Create(ctx, db, testWalletID, "initial", 0, time.Hour, 2, nil)
+	require.NoError(t, err)
+	require.NoError(t, deniability.RecordExecution(ctx, db, denial.ID, "initial", 0, "hop", 0))
+
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	mockBitcoind.EXPECT().ListUnspent(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, req *connectv1.Request[bitcoindv1alpha.ListUnspentRequest]) (*connectv1.Response[bitcoindv1alpha.ListUnspentResponse], error) {
+			if req.Msg.MinimumConfirmations == nil || *req.Msg.MinimumConfirmations != 0 {
+				return connectv1.NewResponse(&bitcoindv1alpha.ListUnspentResponse{}), nil
+			}
+			return connectv1.NewResponse(&bitcoindv1alpha.ListUnspentResponse{
+				Unspent: []*bitcoindv1alpha.UnspentOutput{{Txid: "hop", Vout: 0, Amount: 0.01}},
+			}), nil
+		})
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
+	cli := walletv1connect.NewWalletServiceClient(apitests.RPC(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
+
+	resp, err := cli.ListUnspent(ctx, &walletv1.ListUnspentRequest{WalletId: testWalletID})
+	require.NoError(t, err)
+	require.Len(t, resp.Utxos, 1)
+	require.NotNil(t, resp.Utxos[0].DenialInfo)
+	assert.Equal(t, denial.ID, resp.Utxos[0].DenialInfo.Id)
+	assert.False(t, resp.Utxos[0].DenialInfo.IsChange)
+	assert.NotNil(t, resp.Utxos[0].DenialInfo.NextExecutionTime)
+}
+
 func TestListUnspentUsesExactDenialTip(t *testing.T) {
 	t.Parallel()
 

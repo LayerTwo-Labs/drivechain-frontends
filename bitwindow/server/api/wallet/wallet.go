@@ -698,7 +698,8 @@ func (s *Server) ListUnspent(ctx context.Context, c *pb.ListUnspentRequest) (*pb
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
 
-	utxos, err := s.listUnspent(ctx, c.WalletId, labels)
+	// Match the orchestrator UTXO list, which holds unconfirmed outputs too.
+	utxos, err := s.listUnspent(ctx, c.WalletId, labels, lo.ToPtr(uint32(0)))
 	if err != nil {
 		return nil, err
 	}
@@ -706,7 +707,8 @@ func (s *Server) ListUnspent(ctx context.Context, c *pb.ListUnspentRequest) (*pb
 	return &pb.ListUnspentResponse{Utxos: utxos}, nil
 }
 
-func (s *Server) listUnspent(ctx context.Context, walletID string, labels map[string]string) ([]*pb.UnspentOutput, error) {
+// listUnspent lists the wallet UTXOs. A nil minConf uses the Bitcoin Core default.
+func (s *Server) listUnspent(ctx context.Context, walletID string, labels map[string]string, minConf *uint32) ([]*pb.UnspentOutput, error) {
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -716,7 +718,7 @@ func (s *Server) listUnspent(ctx context.Context, walletID string, labels map[st
 	case engines.WalletTypeElectrum:
 		return s.listUnspentElectrum(ctx, walletID, labels)
 	case engines.WalletTypeBitcoinCore:
-		return s.listUnspentBitcoinCore(ctx, walletID, labels)
+		return s.listUnspentBitcoinCore(ctx, walletID, labels, minConf)
 	default:
 		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
 	}
@@ -739,7 +741,7 @@ func (s *Server) listUnspentElectrum(ctx context.Context, walletID string, label
 	return utxos, nil
 }
 
-func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletID string, labels map[string]string) ([]*pb.UnspentOutput, error) {
+func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletID string, labels map[string]string, minConf *uint32) ([]*pb.UnspentOutput, error) {
 	coreWalletName, err := s.walletEngine.CoreWalletName(ctx, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
@@ -751,7 +753,8 @@ func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletID string, la
 	}
 
 	resp, err := bitcoind.ListUnspent(ctx, connectv1.NewRequest(&corepb.ListUnspentRequest{
-		Wallet: coreWalletName,
+		Wallet:               coreWalletName,
+		MinimumConfirmations: minConf,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("bitcoin Core list unspent: %w", err)
@@ -871,7 +874,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *pb.ListReceiveAddr
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
 
-	utxos, err := s.listUnspent(ctx, c.WalletId, labels)
+	utxos, err := s.listUnspent(ctx, c.WalletId, labels, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -906,7 +909,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *pb.ListReceiveAddr
 func (s *Server) GetStats(ctx context.Context, c *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
 	walletID := c.WalletId
 
-	utxos, err := s.listUnspent(ctx, walletID, nil)
+	utxos, err := s.listUnspent(ctx, walletID, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1569,7 +1572,7 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *pb.GetUTXODistribut
 		maxBuckets = 6
 	}
 
-	utxos, err := s.listUnspent(ctx, walletID, nil)
+	utxos, err := s.listUnspent(ctx, walletID, nil, nil)
 	if err != nil {
 		return nil, keepConnectCode(fmt.Errorf("list unspent: %w", err))
 	}
@@ -1765,7 +1768,7 @@ func (s *Server) SelectCoins(ctx context.Context, c *pb.SelectCoinsRequest) (*pb
 	if err != nil {
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
-	utxos, err := s.listUnspent(ctx, c.WalletId, labels)
+	utxos, err := s.listUnspent(ctx, c.WalletId, labels, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list unspent: %w", err)
 	}
