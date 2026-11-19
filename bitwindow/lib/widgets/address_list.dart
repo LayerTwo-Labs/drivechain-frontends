@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -32,6 +33,11 @@ class AddressBookViewModel extends BaseViewModel {
 
   void prepareEdit(AddressBookEntry entry) {
     editLabelController.text = entry.label;
+  }
+
+  void clearError(String key) {
+    setErrorForObject(key, null);
+    notifyListeners();
   }
 
   void setDirection(Direction newDirection) {
@@ -305,7 +311,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
           if (direction == Direction.DIRECTION_SEND)
             SailButton(
               label: 'Add Address',
-              onPressed: () async => _showCreateDialog(context),
+              onPressed: () async => unawaited(_showCreateDialog(context)),
             ),
           SailButton(
             label: 'Import',
@@ -357,7 +363,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
                     child: SailButton(
                       variant: ButtonVariant.icon,
                       icon: SailSVGAsset.iconPen,
-                      onPressed: () async => _showEditDialog(context, entry),
+                      onPressed: () async => unawaited(_showEditDialog(context, entry)),
                       insideTable: true,
                     ),
                   ),
@@ -366,7 +372,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
                     child: SailButton(
                       variant: ButtonVariant.icon,
                       icon: SailSVGAsset.iconDelete,
-                      onPressed: () async => _showDeleteConfirmation(context, entry),
+                      onPressed: () async => unawaited(_showDeleteConfirmation(context, entry)),
                       insideTable: true,
                     ),
                   ),
@@ -388,26 +394,32 @@ class _AddressBookContentState extends State<AddressBookContent> {
     );
   }
 
-  void _showEditDialog(BuildContext context, AddressBookEntry entry) {
+  Future<void> _showEditDialog(BuildContext context, AddressBookEntry entry) async {
     widget.viewModel.prepareEdit(entry);
-    showThemedDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => _EditDialog(
         viewModel: widget.viewModel,
         entry: entry,
       ),
     );
+    if (mounted) {
+      widget.viewModel.clearError('edit');
+    }
   }
 
-  void _showCreateDialog(BuildContext context) {
-    showThemedDialog(
+  Future<void> _showCreateDialog(BuildContext context) async {
+    await showThemedDialog(
       context: context,
       builder: (context) => _CreateDialog(viewModel: widget.viewModel),
     );
+    if (mounted) {
+      widget.viewModel.clearError('create');
+    }
   }
 
-  void _showDeleteConfirmation(BuildContext context, AddressBookEntry entry) {
-    showThemedDialog(
+  Future<void> _showDeleteConfirmation(BuildContext context, AddressBookEntry entry) async {
+    await showThemedDialog(
       context: context,
       builder: (context) => ListenableBuilder(
         listenable: widget.viewModel,
@@ -451,6 +463,9 @@ class _AddressBookContentState extends State<AddressBookContent> {
         ),
       ),
     );
+    if (mounted) {
+      widget.viewModel.clearError('delete');
+    }
   }
 }
 
