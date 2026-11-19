@@ -65,9 +65,20 @@ class _BitwindowdWallet implements WalletAPI {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _BitwindowdAPI implements BitwindowAPI {
+  @override
+  Future<Map<String, String>> listTransactionNotes({String walletId = ''}) async => {};
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _Bitwindowd implements BitwindowRPC {
   @override
   final WalletAPI wallet = _BitwindowdWallet();
+
+  @override
+  final BitwindowAPI bitwindowd = _BitwindowdAPI();
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

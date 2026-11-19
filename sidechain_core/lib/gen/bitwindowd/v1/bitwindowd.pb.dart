@@ -1309,6 +1309,174 @@ class SetTransactionNoteRequest extends $pb.GeneratedMessage {
   void clearWalletId() => $_clearField(3);
 }
 
+class ListTransactionNotesRequest extends $pb.GeneratedMessage {
+  factory ListTransactionNotesRequest({
+    $core.String? walletId,
+  }) {
+    final result = ListTransactionNotesRequest._();
+    if (walletId != null) result.walletId = walletId;
+    return result;
+  }
+
+  ListTransactionNotesRequest._();
+
+  factory ListTransactionNotesRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ListTransactionNotesRequest()..mergeFromBuffer(data, registry);
+  factory ListTransactionNotesRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ListTransactionNotesRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListTransactionNotesRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'),
+      createEmptyInstance: ListTransactionNotesRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListTransactionNotesRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListTransactionNotesRequest copyWith(void Function(ListTransactionNotesRequest) updates) =>
+      super.copyWith((message) => updates(message as ListTransactionNotesRequest)) as ListTransactionNotesRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ListTransactionNotesRequest() / ListTransactionNotesRequest.new instead')
+  static ListTransactionNotesRequest create() => ListTransactionNotesRequest._();
+  static $pb.GeneratedMessage $_createMessage() => ListTransactionNotesRequest._();
+  @$core.override
+  ListTransactionNotesRequest createEmptyInstance() => ListTransactionNotesRequest._();
+  @$core.pragma('dart2js:noInline')
+  static ListTransactionNotesRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListTransactionNotesRequest>(ListTransactionNotesRequest.$_createMessage);
+  static ListTransactionNotesRequest? _defaultInstance;
+
+  /// Empty means the active wallet.
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => $_clearField(1);
+}
+
+class TransactionNote extends $pb.GeneratedMessage {
+  factory TransactionNote({
+    $core.String? txid,
+    $core.String? note,
+  }) {
+    final result = TransactionNote._();
+    if (txid != null) result.txid = txid;
+    if (note != null) result.note = note;
+    return result;
+  }
+
+  TransactionNote._();
+
+  factory TransactionNote.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TransactionNote()..mergeFromBuffer(data, registry);
+  factory TransactionNote.fromJson($core.String json, [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TransactionNote()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransactionNote',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'),
+      createEmptyInstance: TransactionNote.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..aOS(2, _omitFieldNames ? '' : 'note')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TransactionNote clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TransactionNote copyWith(void Function(TransactionNote) updates) =>
+      super.copyWith((message) => updates(message as TransactionNote)) as TransactionNote;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use TransactionNote() / TransactionNote.new instead')
+  static TransactionNote create() => TransactionNote._();
+  static $pb.GeneratedMessage $_createMessage() => TransactionNote._();
+  @$core.override
+  TransactionNote createEmptyInstance() => TransactionNote._();
+  @$core.pragma('dart2js:noInline')
+  static TransactionNote getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransactionNote>(TransactionNote.$_createMessage);
+  static TransactionNote? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get note => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set note($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasNote() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNote() => $_clearField(2);
+}
+
+class ListTransactionNotesResponse extends $pb.GeneratedMessage {
+  factory ListTransactionNotesResponse({
+    $core.Iterable<TransactionNote>? notes,
+  }) {
+    final result = ListTransactionNotesResponse._();
+    if (notes != null) result.notes.addAll(notes);
+    return result;
+  }
+
+  ListTransactionNotesResponse._();
+
+  factory ListTransactionNotesResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ListTransactionNotesResponse()..mergeFromBuffer(data, registry);
+  factory ListTransactionNotesResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ListTransactionNotesResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListTransactionNotesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'),
+      createEmptyInstance: ListTransactionNotesResponse.$_createMessage)
+    ..pPM<TransactionNote>(1, _omitFieldNames ? '' : 'notes', subBuilder: TransactionNote.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListTransactionNotesResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListTransactionNotesResponse copyWith(void Function(ListTransactionNotesResponse) updates) =>
+      super.copyWith((message) => updates(message as ListTransactionNotesResponse)) as ListTransactionNotesResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ListTransactionNotesResponse() / ListTransactionNotesResponse.new instead')
+  static ListTransactionNotesResponse create() => ListTransactionNotesResponse._();
+  static $pb.GeneratedMessage $_createMessage() => ListTransactionNotesResponse._();
+  @$core.override
+  ListTransactionNotesResponse createEmptyInstance() => ListTransactionNotesResponse._();
+  @$core.pragma('dart2js:noInline')
+  static ListTransactionNotesResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListTransactionNotesResponse>(ListTransactionNotesResponse.$_createMessage);
+  static ListTransactionNotesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<TransactionNote> get notes => $_getList(0);
+}
+
 class ExportLabelsResponse extends $pb.GeneratedMessage {
   factory ExportLabelsResponse({
     $core.String? jsonl,
@@ -3706,6 +3874,10 @@ class BitwindowdServiceApi {
       _client.invoke<GetSyncInfoResponse>(ctx, 'BitwindowdService', 'GetSyncInfo', request, GetSyncInfoResponse());
   $async.Future<$1.Empty> setTransactionNote($pb.ClientContext? ctx, SetTransactionNoteRequest request) =>
       _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'SetTransactionNote', request, $1.Empty());
+  $async.Future<ListTransactionNotesResponse> listTransactionNotes(
+          $pb.ClientContext? ctx, ListTransactionNotesRequest request) =>
+      _client.invoke<ListTransactionNotesResponse>(
+          ctx, 'BitwindowdService', 'ListTransactionNotes', request, ListTransactionNotesResponse());
 
   /// BIP329 label import/export. ExportLabels emits one JSONL object per
   /// labelled item (address book, tx note, UTXO label). ImportLabels parses

@@ -57,6 +57,9 @@ const (
 	// BitwindowdServiceSetTransactionNoteProcedure is the procedure name of the BitwindowdService's
 	// SetTransactionNote RPC.
 	BitwindowdServiceSetTransactionNoteProcedure = "/bitwindowd.v1.BitwindowdService/SetTransactionNote"
+	// BitwindowdServiceListTransactionNotesProcedure is the procedure name of the BitwindowdService's
+	// ListTransactionNotes RPC.
+	BitwindowdServiceListTransactionNotesProcedure = "/bitwindowd.v1.BitwindowdService/ListTransactionNotes"
 	// BitwindowdServiceExportLabelsProcedure is the procedure name of the BitwindowdService's
 	// ExportLabels RPC.
 	BitwindowdServiceExportLabelsProcedure = "/bitwindowd.v1.BitwindowdService/ExportLabels"
@@ -176,6 +179,13 @@ var (
 			Procedure:  BitwindowdServiceSetTransactionNoteProcedure,
 		}
 	})
+	bitwindowdServiceListTransactionNotesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("ListTransactionNotes"),
+			Procedure:  BitwindowdServiceListTransactionNotesProcedure,
+		}
+	})
 	bitwindowdServiceExportLabelsSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -289,6 +299,7 @@ type BitwindowdServiceClient interface {
 	DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error)
 	GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error)
 	SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error)
+	ListTransactionNotes(context.Context, *v1.ListTransactionNotesRequest) (*v1.ListTransactionNotesResponse, error)
 	// BIP329 label import/export. ExportLabels emits one JSONL object per
 	// labelled item (address book, tx note, UTXO label). ImportLabels parses
 	// BIP329 JSONL and writes into the matching store, skipping unknown or
@@ -347,6 +358,7 @@ type BitwindowdServiceHandler interface {
 	DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error)
 	GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error)
 	SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error)
+	ListTransactionNotes(context.Context, *v1.ListTransactionNotesRequest) (*v1.ListTransactionNotesResponse, error)
 	// BIP329 label import/export. ExportLabels emits one JSONL object per
 	// labelled item (address book, tx note, UTXO label). ImportLabels parses
 	// BIP329 JSONL and writes into the matching store, skipping unknown or
@@ -395,6 +407,7 @@ func RegisterBitwindowdServiceHandler(server *connect.Server, svc BitwindowdServ
 		connect.Method{Spec: bitwindowdServiceDeleteAddressBookEntrySpec(), Handler: adapter.deleteAddressBookEntry},
 		connect.Method{Spec: bitwindowdServiceGetSyncInfoSpec(), Handler: adapter.getSyncInfo},
 		connect.Method{Spec: bitwindowdServiceSetTransactionNoteSpec(), Handler: adapter.setTransactionNote},
+		connect.Method{Spec: bitwindowdServiceListTransactionNotesSpec(), Handler: adapter.listTransactionNotes},
 		connect.Method{Spec: bitwindowdServiceExportLabelsSpec(), Handler: adapter.exportLabels},
 		connect.Method{Spec: bitwindowdServiceImportLabelsSpec(), Handler: adapter.importLabels},
 		connect.Method{Spec: bitwindowdServiceGetFireplaceStatsSpec(), Handler: adapter.getFireplaceStats},
@@ -456,6 +469,10 @@ func (UnimplementedBitwindowdServiceHandler) GetSyncInfo(context.Context, *empty
 
 func (UnimplementedBitwindowdServiceHandler) SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.SetTransactionNote is not implemented")
+}
+
+func (UnimplementedBitwindowdServiceHandler) ListTransactionNotes(context.Context, *v1.ListTransactionNotesRequest) (*v1.ListTransactionNotesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ListTransactionNotes is not implemented")
 }
 
 func (UnimplementedBitwindowdServiceHandler) ExportLabels(context.Context, *emptypb.Empty) (*v1.ExportLabelsResponse, error) {
@@ -597,6 +614,14 @@ func (c *bitwindowdServiceClient) GetSyncInfo(ctx context.Context, req *emptypb.
 func (c *bitwindowdServiceClient) SetTransactionNote(ctx context.Context, req *v1.SetTransactionNoteRequest) (*emptypb.Empty, error) {
 	var res emptypb.Empty
 	if err := c.client.CallUnary(ctx, bitwindowdServiceSetTransactionNoteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) ListTransactionNotes(ctx context.Context, req *v1.ListTransactionNotesRequest) (*v1.ListTransactionNotesResponse, error) {
+	var res v1.ListTransactionNotesResponse
+	if err := c.client.CallUnary(ctx, bitwindowdServiceListTransactionNotesSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -834,6 +859,18 @@ func (h bitwindowdServiceHandler) setTransactionNote(ctx context.Context, _ conn
 		return err
 	}
 	res, err := h.svc.SetTransactionNote(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) listTransactionNotes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListTransactionNotesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTransactionNotes(ctx, &req)
 	if err != nil {
 		return err
 	}

@@ -387,6 +387,46 @@ final $typed_data.Uint8List setTransactionNoteRequestDescriptor =
     $convert.base64Decode('ChlTZXRUcmFuc2FjdGlvbk5vdGVSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEbm90ZR'
         'gCIAEoCVIEbm90ZRIbCgl3YWxsZXRfaWQYAyABKAlSCHdhbGxldElk');
 
+@$core.Deprecated('Use listTransactionNotesRequestDescriptor instead')
+const ListTransactionNotesRequest$json = {
+  '1': 'ListTransactionNotesRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `ListTransactionNotesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTransactionNotesRequestDescriptor =
+    $convert.base64Decode('ChtMaXN0VHJhbnNhY3Rpb25Ob3Rlc1JlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+        'RJZA==');
+
+@$core.Deprecated('Use transactionNoteDescriptor instead')
+const TransactionNote$json = {
+  '1': 'TransactionNote',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'note', '3': 2, '4': 1, '5': 9, '10': 'note'},
+  ],
+};
+
+/// Descriptor for `TransactionNote`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transactionNoteDescriptor =
+    $convert.base64Decode('Cg9UcmFuc2FjdGlvbk5vdGUSEgoEdHhpZBgBIAEoCVIEdHhpZBISCgRub3RlGAIgASgJUgRub3'
+        'Rl');
+
+@$core.Deprecated('Use listTransactionNotesResponseDescriptor instead')
+const ListTransactionNotesResponse$json = {
+  '1': 'ListTransactionNotesResponse',
+  '2': [
+    {'1': 'notes', '3': 1, '4': 3, '5': 11, '6': '.bitwindowd.v1.TransactionNote', '10': 'notes'},
+  ],
+};
+
+/// Descriptor for `ListTransactionNotesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTransactionNotesResponseDescriptor =
+    $convert.base64Decode('ChxMaXN0VHJhbnNhY3Rpb25Ob3Rlc1Jlc3BvbnNlEjQKBW5vdGVzGAEgAygLMh4uYml0d2luZG'
+        '93ZC52MS5UcmFuc2FjdGlvbk5vdGVSBW5vdGVz');
+
 @$core.Deprecated('Use exportLabelsResponseDescriptor instead')
 const ExportLabelsResponse$json = {
   '1': 'ExportLabelsResponse',
@@ -869,6 +909,11 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'DeleteAddressBookEntry', '2': '.bitwindowd.v1.DeleteAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
     {'1': 'GetSyncInfo', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetSyncInfoResponse'},
     {'1': 'SetTransactionNote', '2': '.bitwindowd.v1.SetTransactionNoteRequest', '3': '.google.protobuf.Empty'},
+    {
+      '1': 'ListTransactionNotes',
+      '2': '.bitwindowd.v1.ListTransactionNotesRequest',
+      '3': '.bitwindowd.v1.ListTransactionNotesResponse'
+    },
     {'1': 'ExportLabels', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.ExportLabelsResponse'},
     {'1': 'ImportLabels', '2': '.bitwindowd.v1.ImportLabelsRequest', '3': '.bitwindowd.v1.ImportLabelsResponse'},
     {'1': 'GetFireplaceStats', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetFireplaceStatsResponse'},
@@ -914,6 +959,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.DeleteAddressBookEntryRequest': DeleteAddressBookEntryRequest$json,
   '.bitwindowd.v1.GetSyncInfoResponse': GetSyncInfoResponse$json,
   '.bitwindowd.v1.SetTransactionNoteRequest': SetTransactionNoteRequest$json,
+  '.bitwindowd.v1.ListTransactionNotesRequest': ListTransactionNotesRequest$json,
+  '.bitwindowd.v1.ListTransactionNotesResponse': ListTransactionNotesResponse$json,
+  '.bitwindowd.v1.TransactionNote': TransactionNote$json,
   '.bitwindowd.v1.ExportLabelsResponse': ExportLabelsResponse$json,
   '.bitwindowd.v1.ImportLabelsRequest': ImportLabelsRequest$json,
   '.bitwindowd.v1.ImportLabelsResponse': ImportLabelsResponse$json,
@@ -961,25 +1009,27 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor =
         'LnByb3RvYnVmLkVtcHR5EkkKC0dldFN5bmNJbmZvEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gi'
         'IuYml0d2luZG93ZC52MS5HZXRTeW5jSW5mb1Jlc3BvbnNlElYKElNldFRyYW5zYWN0aW9uTm90'
         'ZRIoLmJpdHdpbmRvd2QudjEuU2V0VHJhbnNhY3Rpb25Ob3RlUmVxdWVzdBoWLmdvb2dsZS5wcm'
-        '90b2J1Zi5FbXB0eRJLCgxFeHBvcnRMYWJlbHMSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaIy5i'
-        'aXR3aW5kb3dkLnYxLkV4cG9ydExhYmVsc1Jlc3BvbnNlElcKDEltcG9ydExhYmVscxIiLmJpdH'
-        'dpbmRvd2QudjEuSW1wb3J0TGFiZWxzUmVxdWVzdBojLmJpdHdpbmRvd2QudjEuSW1wb3J0TGFi'
-        'ZWxzUmVzcG9uc2USVQoRR2V0RmlyZXBsYWNlU3RhdHMSFi5nb29nbGUucHJvdG9idWYuRW1wdH'
-        'kaKC5iaXR3aW5kb3dkLnYxLkdldEZpcmVwbGFjZVN0YXRzUmVzcG9uc2USdQoWTGlzdFJlY2Vu'
-        'dFRyYW5zYWN0aW9ucxIsLmJpdHdpbmRvd2QudjEuTGlzdFJlY2VudFRyYW5zYWN0aW9uc1JlcX'
-        'Vlc3QaLS5iaXR3aW5kb3dkLnYxLkxpc3RSZWNlbnRUcmFuc2FjdGlvbnNSZXNwb25zZRJRCgpM'
-        'aXN0QmxvY2tzEiAuYml0d2luZG93ZC52MS5MaXN0QmxvY2tzUmVxdWVzdBohLmJpdHdpbmRvd2'
-        'QudjEuTGlzdEJsb2Nrc1Jlc3BvbnNlElEKD0dldE5ldHdvcmtTdGF0cxIWLmdvb2dsZS5wcm90'
-        'b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEuR2V0TmV0d29ya1N0YXRzUmVzcG9uc2USUAoPU2'
-        'V0TWVtcG9vbFdhdGNoEiUuYml0d2luZG93ZC52MS5TZXRNZW1wb29sV2F0Y2hSZXF1ZXN0GhYu'
-        'Z29vZ2xlLnByb3RvYnVmLkVtcHR5EkMKEVJlc2V0TWVtcG9vbFdhdGNoEhYuZ29vZ2xlLnByb3'
-        'RvYnVmLkVtcHR5GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5El0KFUdldE1lbXBvb2xXYXRjaFN0'
-        'YXR1cxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRosLmJpdHdpbmRvd2QudjEuR2V0TWVtcG9vbF'
-        'dhdGNoU3RhdHVzUmVzcG9uc2USeAoXTGlzdE1lbXBvb2xUcmFuc2FjdGlvbnMSLS5iaXR3aW5k'
-        'b3dkLnYxLkxpc3RNZW1wb29sVHJhbnNhY3Rpb25zUmVxdWVzdBouLmJpdHdpbmRvd2QudjEuTG'
-        'lzdE1lbXBvb2xUcmFuc2FjdGlvbnNSZXNwb25zZRJdCg5MaXN0QmxvY2tTdGF0cxIkLmJpdHdp'
-        'bmRvd2QudjEuTGlzdEJsb2NrU3RhdHNSZXF1ZXN0GiUuYml0d2luZG93ZC52MS5MaXN0QmxvY2'
-        'tTdGF0c1Jlc3BvbnNlEmAKD0xpc3RNaW5pbmdQb29scxIlLmJpdHdpbmRvd2QudjEuTGlzdE1p'
-        'bmluZ1Bvb2xzUmVxdWVzdBomLmJpdHdpbmRvd2QudjEuTGlzdE1pbmluZ1Bvb2xzUmVzcG9uc2'
-        'USWgoNVXBkYXRlTmV0d29yaxIjLmJpdHdpbmRvd2QudjEuVXBkYXRlTmV0d29ya1JlcXVlc3Qa'
-        'JC5iaXR3aW5kb3dkLnYxLlVwZGF0ZU5ldHdvcmtSZXNwb25zZQ==');
+        '90b2J1Zi5FbXB0eRJvChRMaXN0VHJhbnNhY3Rpb25Ob3RlcxIqLmJpdHdpbmRvd2QudjEuTGlz'
+        'dFRyYW5zYWN0aW9uTm90ZXNSZXF1ZXN0GisuYml0d2luZG93ZC52MS5MaXN0VHJhbnNhY3Rpb2'
+        '5Ob3Rlc1Jlc3BvbnNlEksKDEV4cG9ydExhYmVscxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRoj'
+        'LmJpdHdpbmRvd2QudjEuRXhwb3J0TGFiZWxzUmVzcG9uc2USVwoMSW1wb3J0TGFiZWxzEiIuYm'
+        'l0d2luZG93ZC52MS5JbXBvcnRMYWJlbHNSZXF1ZXN0GiMuYml0d2luZG93ZC52MS5JbXBvcnRM'
+        'YWJlbHNSZXNwb25zZRJVChFHZXRGaXJlcGxhY2VTdGF0cxIWLmdvb2dsZS5wcm90b2J1Zi5FbX'
+        'B0eRooLmJpdHdpbmRvd2QudjEuR2V0RmlyZXBsYWNlU3RhdHNSZXNwb25zZRJ1ChZMaXN0UmVj'
+        'ZW50VHJhbnNhY3Rpb25zEiwuYml0d2luZG93ZC52MS5MaXN0UmVjZW50VHJhbnNhY3Rpb25zUm'
+        'VxdWVzdBotLmJpdHdpbmRvd2QudjEuTGlzdFJlY2VudFRyYW5zYWN0aW9uc1Jlc3BvbnNlElEK'
+        'Ckxpc3RCbG9ja3MSIC5iaXR3aW5kb3dkLnYxLkxpc3RCbG9ja3NSZXF1ZXN0GiEuYml0d2luZG'
+        '93ZC52MS5MaXN0QmxvY2tzUmVzcG9uc2USUQoPR2V0TmV0d29ya1N0YXRzEhYuZ29vZ2xlLnBy'
+        'b3RvYnVmLkVtcHR5GiYuYml0d2luZG93ZC52MS5HZXROZXR3b3JrU3RhdHNSZXNwb25zZRJQCg'
+        '9TZXRNZW1wb29sV2F0Y2gSJS5iaXR3aW5kb3dkLnYxLlNldE1lbXBvb2xXYXRjaFJlcXVlc3Qa'
+        'Fi5nb29nbGUucHJvdG9idWYuRW1wdHkSQwoRUmVzZXRNZW1wb29sV2F0Y2gSFi5nb29nbGUucH'
+        'JvdG9idWYuRW1wdHkaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSXQoVR2V0TWVtcG9vbFdhdGNo'
+        'U3RhdHVzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiwuYml0d2luZG93ZC52MS5HZXRNZW1wb2'
+        '9sV2F0Y2hTdGF0dXNSZXNwb25zZRJ4ChdMaXN0TWVtcG9vbFRyYW5zYWN0aW9ucxItLmJpdHdp'
+        'bmRvd2QudjEuTGlzdE1lbXBvb2xUcmFuc2FjdGlvbnNSZXF1ZXN0Gi4uYml0d2luZG93ZC52MS'
+        '5MaXN0TWVtcG9vbFRyYW5zYWN0aW9uc1Jlc3BvbnNlEl0KDkxpc3RCbG9ja1N0YXRzEiQuYml0'
+        'd2luZG93ZC52MS5MaXN0QmxvY2tTdGF0c1JlcXVlc3QaJS5iaXR3aW5kb3dkLnYxLkxpc3RCbG'
+        '9ja1N0YXRzUmVzcG9uc2USYAoPTGlzdE1pbmluZ1Bvb2xzEiUuYml0d2luZG93ZC52MS5MaXN0'
+        'TWluaW5nUG9vbHNSZXF1ZXN0GiYuYml0d2luZG93ZC52MS5MaXN0TWluaW5nUG9vbHNSZXNwb2'
+        '5zZRJaCg1VcGRhdGVOZXR3b3JrEiMuYml0d2luZG93ZC52MS5VcGRhdGVOZXR3b3JrUmVxdWVz'
+        'dBokLmJpdHdpbmRvd2QudjEuVXBkYXRlTmV0d29ya1Jlc3BvbnNl');

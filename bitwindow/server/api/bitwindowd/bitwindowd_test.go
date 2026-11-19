@@ -1118,6 +1118,50 @@ func TestService_SetTransactionNote(t *testing.T) {
 	})
 }
 
+func TestService_ListTransactionNotes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("lists the notes of one wallet", func(t *testing.T) {
+		t.Parallel()
+
+		database := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
+
+		for _, req := range []*v1.SetTransactionNoteRequest{
+			{Txid: "aa", Note: "rent", WalletId: "w1"},
+			{Txid: "bb", Note: "lunch", WalletId: "w1"},
+			{Txid: "aa", Note: "other wallet", WalletId: "w2"},
+		} {
+			_, err := cli.SetTransactionNote(t.Context(), req)
+			require.NoError(t, err)
+		}
+
+		resp, err := cli.ListTransactionNotes(t.Context(), &v1.ListTransactionNotesRequest{WalletId: "w1"})
+		require.NoError(t, err)
+		got := map[string]string{}
+		for _, n := range resp.Notes {
+			got[n.Txid] = n.Note
+		}
+		assert.Equal(t, map[string]string{"aa": "rent", "bb": "lunch"}, got)
+	})
+
+	t.Run("empty wallet id reads the active wallet", func(t *testing.T) {
+		t.Parallel()
+
+		database := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database))
+
+		_, err := cli.SetTransactionNote(t.Context(), &v1.SetTransactionNoteRequest{Txid: "cc", Note: "coffee"})
+		require.NoError(t, err)
+
+		resp, err := cli.ListTransactionNotes(t.Context(), &v1.ListTransactionNotesRequest{})
+		require.NoError(t, err)
+		require.Len(t, resp.Notes, 1)
+		assert.Equal(t, "cc", resp.Notes[0].Txid)
+		assert.Equal(t, "coffee", resp.Notes[0].Note)
+	})
+}
+
 func TestService_GetFireplaceStats(t *testing.T) {
 	t.Parallel()
 

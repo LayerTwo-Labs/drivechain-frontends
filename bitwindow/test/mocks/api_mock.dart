@@ -132,6 +132,11 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
+  Future<Map<String, String>> listTransactionNotes({String walletId = ''}) async {
+    return {};
+  }
+
+  @override
   Future<String> exportLabels() async {
     return '';
   }

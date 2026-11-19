@@ -34,6 +34,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> deleteAddressBookEntry($pb.ServerContext ctx, $2.DeleteAddressBookEntryRequest request);
   $async.Future<$2.GetSyncInfoResponse> getSyncInfo($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> setTransactionNote($pb.ServerContext ctx, $2.SetTransactionNoteRequest request);
+  $async.Future<$2.ListTransactionNotesResponse> listTransactionNotes(
+      $pb.ServerContext ctx, $2.ListTransactionNotesRequest request);
   $async.Future<$2.ExportLabelsResponse> exportLabels($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$2.ImportLabelsResponse> importLabels($pb.ServerContext ctx, $2.ImportLabelsRequest request);
   $async.Future<$2.GetFireplaceStatsResponse> getFireplaceStats($pb.ServerContext ctx, $1.Empty request);
@@ -74,6 +76,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
         return $1.Empty();
       case 'SetTransactionNote':
         return $2.SetTransactionNoteRequest();
+      case 'ListTransactionNotes':
+        return $2.ListTransactionNotesRequest();
       case 'ExportLabels':
         return $1.Empty();
       case 'ImportLabels':
@@ -130,6 +134,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
         return getSyncInfo(ctx, request as $1.Empty);
       case 'SetTransactionNote':
         return setTransactionNote(ctx, request as $2.SetTransactionNoteRequest);
+      case 'ListTransactionNotes':
+        return listTransactionNotes(ctx, request as $2.ListTransactionNotesRequest);
       case 'ExportLabels':
         return exportLabels(ctx, request as $1.Empty);
       case 'ImportLabels':
