@@ -307,8 +307,7 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
             const SizedBox(height: 16),
             SailText.secondary13('Select a widget to add to your homepage'),
             const SizedBox(height: 24),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 400),
+            Flexible(
               child: SingleChildScrollView(
                 child: Column(
                   children: availableWidgets.map((widget) {
