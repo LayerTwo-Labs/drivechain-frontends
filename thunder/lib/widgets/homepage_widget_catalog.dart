@@ -8,17 +8,13 @@ class ThunderWidgetCatalog {
     'quote_bar': HomepageWidgetInfo(
       id: 'quote_bar',
       name: 'Quotes',
-      description: 'Rotating Bitcoin and liberty quotes',
-      size: WidgetSize.bar,
-      icon: SailSVGAsset.quote,
+      sizes: [WidgetSize.bar],
       builder: (_) => const QuoteBar(),
     ),
     'balance_card': HomepageWidgetInfo(
       id: 'balance_card',
       name: 'Balance Card',
-      description: 'Shows Thunder balance',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconWallet,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -64,9 +60,7 @@ class ThunderWidgetCatalog {
     'receive_card': HomepageWidgetInfo(
       id: 'receive_card',
       name: 'Receive Card',
-      description: 'Shows receive address',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconReceive,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -106,9 +100,7 @@ class ThunderWidgetCatalog {
     'send_card': HomepageWidgetInfo(
       id: 'send_card',
       name: 'Send Card',
-      description: 'Send Thunder',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconSend,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -147,9 +139,7 @@ class ThunderWidgetCatalog {
     'thunder_table': HomepageWidgetInfo(
       id: 'thunder_table',
       name: 'Transaction History',
-      description: 'Shows transaction history',
-      size: WidgetSize.full,
-      icon: SailSVGAsset.iconTransactions,
+      sizes: [WidgetSize.full],
       builder: (_) => SizedBox(
         height: 400,
         child: ViewModelBuilder<LatestWalletTransactionsViewModel>.reactive(
@@ -170,9 +160,7 @@ class ThunderWidgetCatalog {
     'utxo_table': HomepageWidgetInfo(
       id: 'utxo_table',
       name: 'Your UTXOs',
-      description: 'Shows your unspent outputs',
-      size: WidgetSize.full,
-      icon: SailSVGAsset.iconTransactions,
+      sizes: [WidgetSize.full],
       builder: (_) => SizedBox(
         height: 400, // Fixed height to prevent layout issues
         child: const UTXOsTab(),

@@ -8,17 +8,13 @@ class BbcWidgetCatalog {
     'quote_bar': HomepageWidgetInfo(
       id: 'quote_bar',
       name: 'Quotes',
-      description: 'Rotating Bitcoin and liberty quotes',
-      size: WidgetSize.bar,
-      icon: SailSVGAsset.quote,
+      sizes: [WidgetSize.bar],
       builder: (_) => const QuoteBar(),
     ),
     'balance_card': HomepageWidgetInfo(
       id: 'balance_card',
       name: 'Balance Card',
-      description: 'Shows Bbc balance',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconWallet,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -64,9 +60,7 @@ class BbcWidgetCatalog {
     'receive_card': HomepageWidgetInfo(
       id: 'receive_card',
       name: 'Receive Card',
-      description: 'Shows receive address',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconReceive,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -106,9 +100,7 @@ class BbcWidgetCatalog {
     'send_card': HomepageWidgetInfo(
       id: 'send_card',
       name: 'Send Card',
-      description: 'Send Bbc',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconSend,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -147,9 +139,7 @@ class BbcWidgetCatalog {
     'utxo_table': HomepageWidgetInfo(
       id: 'utxo_table',
       name: 'Transaction History',
-      description: 'Shows UTXO and transaction history',
-      size: WidgetSize.full,
-      icon: SailSVGAsset.iconTransactions,
+      sizes: [WidgetSize.full],
       builder: (_) => SizedBox(
         height: 400, // Fixed height to prevent layout issues
         child: const UTXOsTab(),

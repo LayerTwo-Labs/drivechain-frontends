@@ -29,7 +29,6 @@ List<AutoRoute> sidechainShellRoutes(SidechainModule module) {
     ),
     AutoRoute(page: LogRoute.page),
     AutoRoute(page: ShutDownRoute.page),
-    AutoRoute(page: SidechainConfigureHomepageRoute.page),
     AutoRoute(page: UnlockWalletRoute.page),
     AutoRoute(page: SailCreateWalletRoute.page),
     AutoRoute(page: BackupWalletRoute.page),

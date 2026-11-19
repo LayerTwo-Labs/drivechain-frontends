@@ -278,7 +278,13 @@ class HostedChainHeader extends StatelessWidget {
       alignment: Alignment.topRight,
       menu: SailMenu(
         items: [
-          SailMenuItem(onSelected: model.configureHomepage, child: SailText.primary13('Configure homepage')),
+          SailMenuItem(
+            onSelected: () {
+              AutoTabsRouter.of(context).setActiveIndex(ShellTabIndex.of(model.module).homepage);
+              model.editHomepage();
+            },
+            child: SailText.primary13('Edit homepage'),
+          ),
           if (model.module.hasConfEditor)
             SailMenuItem(onSelected: model.editConf, child: SailText.primary13('Edit configuration')),
           SailMenuItem(onSelected: model.viewLogs, child: SailText.primary13('View logs')),
@@ -335,7 +341,7 @@ class HostedChainViewModel extends BaseViewModel {
 
   AppRouter get _router => GetIt.I.get<AppRouter>();
 
-  void configureHomepage() => unawaited(_router.push(SidechainConfigureHomepageRoute()));
+  void editHomepage() => GetIt.I.get<SidechainHomepageProvider>().startEdit();
 
   void editConf() => unawaited(_router.push(SidechainConfEditorRoute()));
 

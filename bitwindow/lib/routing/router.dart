@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/dialogs/network_statistics_dialog.dart';
 import 'package:bitwindow/pages/chat_page.dart';
-import 'package:bitwindow/pages/configure_homepage.dart';
 import 'package:bitwindow/pages/console_page.dart';
 import 'package:bitwindow/pages/explorer/m4_explorer_page.dart';
 import 'package:bitwindow/pages/learn_page.dart';
@@ -107,10 +106,6 @@ class AppRouter extends RootStackRouter {
       page: ShutDownRoute.page,
     ),
     AutoRoute(
-      path: '/configure-home',
-      page: ConfigureHomeRoute.page,
-    ),
-    AutoRoute(
       path: '/create-another-wallet',
       page: CreateAnotherWalletRoute.page,
     ),
@@ -129,10 +124,6 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/sidechain-config',
       page: SidechainConfEditorRoute.page,
-    ),
-    AutoRoute(
-      path: '/sidechain-homepage',
-      page: SidechainConfigureHomepageRoute.page,
     ),
     AutoRoute(
       path: '/create-check',

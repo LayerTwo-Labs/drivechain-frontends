@@ -23,7 +23,6 @@ SidechainHomeRoute initial=true guards=(NetworkGuard, WalletGuard, PasswordGuard
   ConsoleTabRoute initial=false guards=()
 LogRoute initial=false guards=()
 ShutDownRoute initial=false guards=()
-SidechainConfigureHomepageRoute initial=false guards=()
 UnlockWalletRoute initial=false guards=()
 SailCreateWalletRoute initial=false guards=()
 BackupWalletRoute initial=false guards=()

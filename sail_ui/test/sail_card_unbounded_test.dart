@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-// Overview's HomepageBuilder puts every SailCard in a SingleChildScrollView,
+// Overview's HomepageView puts every SailCard in a SingleChildScrollView,
 // so cards must survive unbounded height constraints.
 Widget _wrap(Widget child) {
   return MaterialApp(

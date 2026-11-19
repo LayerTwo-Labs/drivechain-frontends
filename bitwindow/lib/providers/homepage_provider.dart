@@ -1,5 +1,4 @@
 import 'package:bitwindow/models/bitwindow_homepage_configuration.dart';
-import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -33,123 +32,49 @@ class HomepageConfigurationSetting extends SettingValue<HomepageConfiguration> {
   }
 }
 
+const _largeWidgetIds = {
+  'coin_news_large': 'coin_news',
+  'hacker_coin_news_large': 'hacker_coin_news',
+};
+
+/// Turns each saved large news widget into its widget at full width. Null when nothing changes.
+HomepageConfiguration? migrateLargeNewsWidgets(HomepageConfiguration configuration) {
+  if (!configuration.widgets.any((w) => _largeWidgetIds.containsKey(w.widgetId))) {
+    return null;
+  }
+  final widgets = <HomepageWidgetConfig>[];
+  for (final widget in configuration.widgets) {
+    final id = _largeWidgetIds[widget.widgetId];
+    final next = id == null ? widget : HomepageWidgetConfig(widgetId: id, size: WidgetSize.full);
+    if (widgets.any((w) => w.widgetId == next.widgetId)) {
+      continue;
+    }
+    widgets.add(next);
+  }
+  return HomepageConfiguration(widgets: widgets);
+}
+
 class BitwindowHomepageProvider extends HomepageProvider {
-  final ClientSettings _settings = GetIt.I.get<ClientSettings>();
+  BitwindowHomepageProvider() : super(BitwindowHomepageConfiguration.defaultConfiguration);
 
-  HomepageConfiguration _configuration = BitwindowHomepageConfiguration.defaultConfiguration;
-  HomepageConfiguration _tempConfiguration = BitwindowHomepageConfiguration.defaultConfiguration;
-  bool _isLoading = false;
-  bool _hasUnsavedChanges = false;
+  ClientSettings get _settings => GetIt.I.get<ClientSettings>();
 
   @override
-  HomepageConfiguration get configuration => _configuration;
-  @override
-  HomepageConfiguration get tempConfiguration => _tempConfiguration;
-  @override
-  bool get isLoading => _isLoading;
-  @override
-  bool get hasUnsavedChanges => _hasUnsavedChanges;
+  Map<String, HomepageWidgetInfo> get catalog => HomepageWidgetCatalog.getCatalogMap();
 
-  bool get isConfiguredAwayFromDefault {
-    // Check if current configuration is different from default
-    final defaultConfig = BitwindowHomepageConfiguration.defaultConfiguration;
-    if (_configuration.widgets.length != defaultConfig.widgets.length) {
-      return true;
+  @override
+  Future<HomepageConfiguration> read() async {
+    final saved = (await _settings.getValue(HomepageConfigurationSetting())).value;
+    final migrated = migrateLargeNewsWidgets(saved);
+    if (migrated == null) {
+      return saved;
     }
-    for (int i = 0; i < _configuration.widgets.length; i++) {
-      if (_configuration.widgets[i].widgetId != defaultConfig.widgets[i].widgetId) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  BitwindowHomepageProvider() {
-    _loadConfiguration();
-  }
-
-  Future<void> _loadConfiguration() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final setting = HomepageConfigurationSetting();
-      final loadedSetting = await _settings.getValue(setting);
-      _configuration = loadedSetting.value;
-      _tempConfiguration = _configuration;
-    } catch (e) {
-      _configuration = BitwindowHomepageConfiguration.defaultConfiguration;
-      _tempConfiguration = _configuration;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    await write(migrated);
+    return migrated;
   }
 
   @override
-  Future<void> saveConfiguration() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final setting = HomepageConfigurationSetting(newValue: _tempConfiguration);
-      await _settings.setValue(setting);
-      _configuration = _tempConfiguration;
-      _hasUnsavedChanges = false;
-
-      // Mark homepage as configured if it's different from default
-      if (isConfiguredAwayFromDefault) {
-        final bitwindowSettingsProvider = GetIt.I.get<BitwindowSettingsProvider>();
-        await bitwindowSettingsProvider.markHomepageAsConfigured();
-      }
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  @override
-  void addWidget(String widgetId) {
-    _tempConfiguration = _tempConfiguration.addWidget(widgetId);
-    _hasUnsavedChanges = true;
-    notifyListeners();
-  }
-
-  @override
-  void removeWidget(int index) {
-    _tempConfiguration = _tempConfiguration.removeWidget(index);
-    _hasUnsavedChanges = true;
-    notifyListeners();
-  }
-
-  @override
-  void reorderWidgets(int oldIndex, int newIndex) {
-    _tempConfiguration = _tempConfiguration.reorderWidgets(oldIndex, newIndex);
-    _hasUnsavedChanges = true;
-    notifyListeners();
-  }
-
-  void updateWidgetSettings(int index, Map<String, dynamic> settings) {
-    _tempConfiguration = _tempConfiguration.updateWidgetSettings(index, settings);
-    _hasUnsavedChanges = true;
-    notifyListeners();
-  }
-
-  @override
-  void undoChanges() {
-    _tempConfiguration = _configuration;
-    _hasUnsavedChanges = false;
-    notifyListeners();
-  }
-
-  void cancelChanges() {
-    _tempConfiguration = _configuration;
-    _hasUnsavedChanges = false;
-    notifyListeners();
-  }
-
-  @override
-  Map<String, HomepageWidgetInfo> getWidgetCatalog() {
-    return HomepageWidgetCatalog.getCatalogMap();
+  Future<void> write(HomepageConfiguration configuration) async {
+    await _settings.setValue(HomepageConfigurationSetting(newValue: configuration));
   }
 }

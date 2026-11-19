@@ -34,7 +34,6 @@ import 'package:bitwindow/widgets/edit_wallet_flow.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fork_countdown_timer.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
-import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/pages/mining/mining_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
@@ -73,7 +72,6 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> with WidgetsBindingObserver, WindowListener {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final HomepageProvider _homepageProvider = GetIt.I.get<HomepageProvider>();
-  final BitwindowSettingsProvider _bitwindowSettingsProvider = GetIt.I.get<BitwindowSettingsProvider>();
   final BitcoinConfProvider _confProvider = GetIt.I.get<BitcoinConfProvider>();
   final BitnamesRPC _bitnamesRPC = GetIt.I.get<BitnamesRPC>();
   final _routerKey = GlobalKey<AutoTabsRouterState>();
@@ -116,8 +114,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _homepageProvider.addListener(_onProviderChanged);
-    _bitwindowSettingsProvider.addListener(_onProviderChanged);
+    _homepageProvider.addListener(_onHomepageChanged);
     _walletReader.addListener(_onProviderChanged);
     _bitnamesRPC.addListener(_onProviderChanged);
     _confProvider.addListener(_onNetworkChange);
@@ -166,6 +163,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     }
 
     return false;
+  }
+
+  void _onHomepageChanged() {
+    setState(() {});
   }
 
   void _onProviderChanged() {
@@ -481,9 +482,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       },
                     ),
                     PlatformMenuItem(
-                      label: 'Configure Home Page',
-                      onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(ConfigureHomeRoute());
+                      label: 'Edit Home Page',
+                      onSelected: () {
+                        _routerKey.currentState?.controller?.setActiveIndex(_tabIndex(TabIndices.overview));
+                        _homepageProvider.startEdit();
                       },
                     ),
                   ],
@@ -971,6 +973,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   child: SailScaffold(
                     backgroundColor: theme.colors.background,
                     appBar: TopNav(
+                      locked: _homepageProvider.editing,
                       leadingWidget: _isWalletSwitching
                           ? Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -1120,7 +1123,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                             ),
                           ),
                         ),
-                        const StatusBar(),
+                        if (!_homepageProvider.editing) const StatusBar(),
                       ],
                     ),
                   ),
@@ -1137,8 +1140,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
-    _homepageProvider.removeListener(_onProviderChanged);
-    _bitwindowSettingsProvider.removeListener(_onProviderChanged);
+    _homepageProvider.removeListener(_onHomepageChanged);
     _walletReader.removeListener(_onProviderChanged);
     _bitnamesRPC.removeListener(_onProviderChanged);
     _confProvider.removeListener(_onNetworkChange);

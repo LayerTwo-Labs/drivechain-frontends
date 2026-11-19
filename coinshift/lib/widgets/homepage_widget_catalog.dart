@@ -14,17 +14,13 @@ class CoinShiftWidgetCatalog {
     'quote_bar': HomepageWidgetInfo(
       id: 'quote_bar',
       name: 'Quotes',
-      description: 'Rotating Bitcoin and liberty quotes',
-      size: WidgetSize.bar,
-      icon: SailSVGAsset.quote,
+      sizes: [WidgetSize.bar],
       builder: (_) => const QuoteBar(),
     ),
     'balance_card': HomepageWidgetInfo(
       id: 'balance_card',
       name: 'Balance Card',
-      description: 'Shows CoinShift balance',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconWallet,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -70,9 +66,7 @@ class CoinShiftWidgetCatalog {
     'receive_card': HomepageWidgetInfo(
       id: 'receive_card',
       name: 'Receive Card',
-      description: 'Shows receive address',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconReceive,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -112,9 +106,7 @@ class CoinShiftWidgetCatalog {
     'send_card': HomepageWidgetInfo(
       id: 'send_card',
       name: 'Send Card',
-      description: 'Send CoinShift',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconSend,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -153,18 +145,14 @@ class CoinShiftWidgetCatalog {
     'swap_card': HomepageWidgetInfo(
       id: 'swap_card',
       name: 'Quick Swap',
-      description: 'Create a new L2→L1 swap',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconArrowForward,
+      sizes: [WidgetSize.half],
       builder: (_) => const SwapCard(),
     ),
 
     'active_swaps': HomepageWidgetInfo(
       id: 'active_swaps',
       name: 'Active Swaps',
-      description: 'Shows active swaps with claim buttons',
-      size: WidgetSize.full,
-      icon: SailSVGAsset.iconTransactions,
+      sizes: [WidgetSize.full],
       builder: (_) => SizedBox(
         height: 300,
         child: _ActiveSwapsWidget(),
@@ -174,9 +162,7 @@ class CoinShiftWidgetCatalog {
     'utxo_table': HomepageWidgetInfo(
       id: 'utxo_table',
       name: 'Transaction History',
-      description: 'Shows UTXO and transaction history',
-      size: WidgetSize.full,
-      icon: SailSVGAsset.iconTransactions,
+      sizes: [WidgetSize.full],
       builder: (_) => const SizedBox(
         height: 400,
         child: UTXOsTab(),
@@ -186,9 +172,7 @@ class CoinShiftWidgetCatalog {
     'swap_scheduler': HomepageWidgetInfo(
       id: 'swap_scheduler',
       name: 'Swap Scheduler',
-      description: 'Schedule and create new swaps with advanced options',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconCalendar,
+      sizes: [WidgetSize.half],
       builder: (_) => const SizedBox(
         height: 450,
         child: SwapSchedulerWidget(),
@@ -198,9 +182,7 @@ class CoinShiftWidgetCatalog {
     'liquidity_monitor': HomepageWidgetInfo(
       id: 'liquidity_monitor',
       name: 'Liquidity Monitor',
-      description: 'Monitor chain health and liquidity across all chains',
-      size: WidgetSize.full,
-      icon: SailSVGAsset.iconNetwork,
+      sizes: [WidgetSize.full],
       builder: (_) => const SizedBox(
         height: 350,
         child: LiquidityMonitorWidget(),
@@ -210,9 +192,7 @@ class CoinShiftWidgetCatalog {
     'swap_recovery': HomepageWidgetInfo(
       id: 'swap_recovery',
       name: 'Swap Recovery',
-      description: 'Recover and retry failed swaps',
-      size: WidgetSize.full,
-      icon: SailSVGAsset.iconRestart,
+      sizes: [WidgetSize.full],
       builder: (_) => const SizedBox(
         height: 400,
         child: SwapFailureRecoveryWidget(),

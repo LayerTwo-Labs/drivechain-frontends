@@ -22,7 +22,7 @@ void main() {
     mockRpc.shouldThrowOnMarketPositions = true;
     final widget = TruthcoinWidgetCatalog.getCatalogMap()['positions_summary']!;
 
-    await tester.pumpSailPage(widget.builder({}));
+    await tester.pumpSailPage(widget.builder(widget.sizes.first));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Failed to load positions'), findsOneWidget);
@@ -32,7 +32,7 @@ void main() {
     mockRpc.shouldThrowOnWalletAddresses = true;
     final widget = TruthcoinWidgetCatalog.getCatalogMap()['positions_summary']!;
 
-    await tester.pumpSailPage(widget.builder({}));
+    await tester.pumpSailPage(widget.builder(widget.sizes.first));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Failed to load wallet addresses'), findsOneWidget);

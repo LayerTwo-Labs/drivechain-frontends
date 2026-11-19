@@ -1,21 +1,39 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sidechain_core/models/homepage_configuration.dart';
-import 'package:sail_ui/widgets/core/sail_svg.dart';
+
+extension WidgetSizeLabel on WidgetSize {
+  String get label => switch (this) {
+    WidgetSize.bar => 'Bar',
+    WidgetSize.half => 'Half Width',
+    WidgetSize.full => 'Full Width',
+  };
+}
 
 class HomepageWidgetInfo {
   final String id;
   final String name;
-  final String description;
-  final WidgetSize size;
-  final SailSVGAsset icon;
-  final Widget Function(Map<String, dynamic> settings) builder;
+
+  /// The sizes the widget has, smallest first.
+  final List<WidgetSize> sizes;
+
+  /// The library section that lists the widget. Null puts it in the first section with no header.
+  final String? group;
+
+  final Widget Function(WidgetSize size) builder;
 
   const HomepageWidgetInfo({
     required this.id,
     required this.name,
-    required this.description,
-    required this.size,
-    required this.icon,
+    required this.sizes,
     required this.builder,
-  });
+    this.group,
+  }) : assert(sizes.length > 0);
+
+  WidgetSize sizeOf(HomepageWidgetConfig config) {
+    final size = config.size;
+    if (size != null && sizes.contains(size)) {
+      return size;
+    }
+    return sizes.first;
+  }
 }

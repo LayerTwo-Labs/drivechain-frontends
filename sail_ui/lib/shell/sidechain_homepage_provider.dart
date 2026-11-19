@@ -42,87 +42,22 @@ HomepageConfiguration defaultHomepage(SidechainModule module) {
 
 class SidechainHomepageProvider extends HomepageProvider {
   final SidechainModule module;
-  final ClientSettings _settings = GetIt.I.get<ClientSettings>();
+
+  SidechainHomepageProvider(this.module) : super(defaultHomepage(module));
+
+  ClientSettings get _settings => GetIt.I.get<ClientSettings>();
 
   @override
-  HomepageConfiguration configuration;
+  Map<String, HomepageWidgetInfo> get catalog => module.widgetCatalog;
+
   @override
-  HomepageConfiguration tempConfiguration;
-  @override
-  bool isLoading = false;
-  @override
-  bool hasUnsavedChanges = false;
-
-  late final Future<void> loaded;
-
-  SidechainHomepageProvider(this.module)
-    : configuration = defaultHomepage(module),
-      tempConfiguration = defaultHomepage(module) {
-    loaded = _loadConfiguration();
-  }
-
-  Future<void> _loadConfiguration() async {
-    isLoading = true;
-    notifyListeners();
-
-    try {
-      final loadedSetting = await _settings.getValue(SidechainHomepageSetting(module));
-      configuration = loadedSetting.value;
-      tempConfiguration = configuration;
-    } catch (e) {
-      configuration = defaultHomepage(module);
-      tempConfiguration = configuration;
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
+  Future<HomepageConfiguration> read() async {
+    final loaded = await _settings.getValue(SidechainHomepageSetting(module));
+    return loaded.value;
   }
 
   @override
-  Future<void> saveConfiguration() async {
-    isLoading = true;
-    notifyListeners();
-
-    try {
-      await _settings.setValue(SidechainHomepageSetting(module, newValue: tempConfiguration));
-      configuration = tempConfiguration;
-      hasUnsavedChanges = false;
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  @override
-  void addWidget(String widgetId) {
-    tempConfiguration = tempConfiguration.addWidget(widgetId);
-    hasUnsavedChanges = true;
-    notifyListeners();
-  }
-
-  @override
-  void removeWidget(int index) {
-    tempConfiguration = tempConfiguration.removeWidget(index);
-    hasUnsavedChanges = true;
-    notifyListeners();
-  }
-
-  @override
-  void reorderWidgets(int oldIndex, int newIndex) {
-    tempConfiguration = tempConfiguration.reorderWidgets(oldIndex, newIndex);
-    hasUnsavedChanges = true;
-    notifyListeners();
-  }
-
-  @override
-  void undoChanges() {
-    tempConfiguration = configuration;
-    hasUnsavedChanges = false;
-    notifyListeners();
-  }
-
-  @override
-  Map<String, HomepageWidgetInfo> getWidgetCatalog() {
-    return module.widgetCatalog;
+  Future<void> write(HomepageConfiguration configuration) async {
+    await _settings.setValue(SidechainHomepageSetting(module, newValue: configuration));
   }
 }

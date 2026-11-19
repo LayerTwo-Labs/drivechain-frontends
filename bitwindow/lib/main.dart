@@ -24,7 +24,6 @@ import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
-import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
 import 'package:bitwindow/providers/fast_withdrawal_provider.dart';
 import 'package:bitwindow/providers/backend_swap_provider.dart';
@@ -343,9 +342,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<TimestampProvider>(timestampProvider);
   final bitwindowHomepageProvider = BitwindowHomepageProvider();
   GetIt.I.registerLazySingleton<BitwindowHomepageProvider>(() => bitwindowHomepageProvider);
-  // Register the abstract HomepageProvider as an alias to the concrete implementation
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitwindowHomepageProvider);
-  GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
   GetIt.I.registerLazySingleton<MempoolProvider>(() => MempoolProvider());
   GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
   NetworkScopedRegistry.register<ForkProvider>(ForkProvider()..init());
