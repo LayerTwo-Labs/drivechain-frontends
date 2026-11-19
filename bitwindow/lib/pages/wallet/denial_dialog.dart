@@ -62,7 +62,17 @@ class _DenialDialogState extends State<DenialDialog> {
   int processedCount = 0;
   String? errorMessage;
 
-  int get maxTargetSizes => 1 << (int.tryParse(hopsController.text) ?? 3); // 2^hops
+  /// The server uses at most one target size per hop.
+  int get maxTargetSizes => max(int.tryParse(hopsController.text) ?? 3, 0);
+
+  /// The target sizes the current hop count can use. The rest stay for a higher hop count.
+  List<TextEditingController> get activeTargetSizeControllers => targetSizeControllers.take(maxTargetSizes).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    hopsController.addListener(() => setState(() {}));
+  }
 
   Future<void> setNormalDefaults() async {
     setState(() {
@@ -98,7 +108,7 @@ class _DenialDialogState extends State<DenialDialog> {
     final hops = int.tryParse(hopsController.text) ?? 3;
 
     // Parse the user-entered target sizes
-    final userSizes = targetSizeControllers
+    final userSizes = activeTargetSizeControllers
         .map((c) {
           final text = c.text.trim();
           if (text.isEmpty) {
@@ -241,6 +251,7 @@ class _DenialDialogState extends State<DenialDialog> {
   @override
   Widget build(BuildContext context) {
     final isBatch = widget.isBatchMode;
+    final targetSizes = activeTargetSizeControllers;
     final utxoCount = isBatch ? widget.utxos!.length : 1;
 
     String buttonLabel;
@@ -336,21 +347,21 @@ class _DenialDialogState extends State<DenialDialog> {
 
           // Target UTXO sizes (optional)
           SailText.secondary13('With at least one UTXO of size:'),
-          for (int i = 0; i < targetSizeControllers.length; i++)
+          for (int i = 0; i < targetSizes.length; i++)
             SailRow(
               spacing: SailStyleValues.padding08,
               children: [
                 SizedBox(
                   width: 150,
                   child: SailTextField(
-                    controller: targetSizeControllers[i],
+                    controller: targetSizes[i],
                     size: TextFieldSize.small,
                     textFieldType: currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
                     hintText: currentUnit.symbol,
                     enabled: !isProcessing,
                   ),
                 ),
-                if (i == targetSizeControllers.length - 1 && targetSizeControllers.length < maxTargetSizes)
+                if (i == targetSizes.length - 1 && targetSizeControllers.length < maxTargetSizes)
                   SailButton(
                     label: '+',
                     onPressed: () async => addTargetSize(),
