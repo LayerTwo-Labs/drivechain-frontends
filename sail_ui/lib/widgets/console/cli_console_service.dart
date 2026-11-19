@@ -211,7 +211,7 @@ class CLIConsole {
     try {
       final result = await Process.run(
         exePath,
-        _wrapArgs(cli, ['help']),
+        wrapArgs(cli, ['help']),
         runInShell: false,
       ).timeout(_helpTimeout);
       return _parseHelp('${result.stdout}\n${result.stderr}');
@@ -313,7 +313,7 @@ class CLIConsole {
     String exePath,
     List<String> args,
   ) async {
-    final effectiveArgs = _wrapArgs(cli, args);
+    final effectiveArgs = wrapArgs(cli, args);
 
     final ProcessResult result;
     try {
@@ -351,16 +351,18 @@ class CLIConsole {
     return text;
   }
 
-  static List<String> _wrapArgs(String cli, List<String> args) {
+  /// The argv for [cli]. bitcoin-cli gets the conf, datadir and RPC port of the node the app runs.
+  @visibleForTesting
+  static List<String> wrapArgs(String cli, List<String> args) {
     switch (cli) {
       case 'bitcoin-cli':
-        try {
-          final conf = BitcoinCore().confFile();
-          if (path.basename(conf) != 'bitcoin.conf') {
-            return ['-conf=$conf', ...args];
-          }
-        } catch (_) {}
-        return args;
+        final conf = GetIt.I.get<BitcoinConfProvider>();
+        return [
+          if (conf.configPath case final file?) '-conf=$file',
+          '-datadir=${BitcoinCore().datadir()}',
+          '-rpcport=${conf.rpcPort}',
+          ...args,
+        ];
       default:
         return args;
     }
