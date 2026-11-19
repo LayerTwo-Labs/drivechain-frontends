@@ -4,6 +4,27 @@ import 'package:bitwindow/widgets/airgap_psbt_dialog.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+const _psbtMagic = [0x70, 0x73, 0x62, 0x74, 0xff];
+
+/// Whether [text] is base64 that starts with the PSBT magic bytes.
+bool isBase64Psbt(String text) {
+  final List<int> bytes;
+  try {
+    bytes = base64.decode(text);
+  } on FormatException {
+    return false;
+  }
+  if (bytes.length < _psbtMagic.length) {
+    return false;
+  }
+  for (var i = 0; i < _psbtMagic.length; i++) {
+    if (bytes[i] != _psbtMagic[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /// Standalone PSBT signing tool: paste an unsigned PSBT and run it through the
 /// airgap (external signer) flow — export it, collect the signed PSBT back, and
 /// broadcast — without going through the send screen first.
@@ -30,9 +51,7 @@ class _PsbtSignerTabState extends State<PsbtSignerTab> {
       setState(() => _error = 'Paste an unsigned PSBT first');
       return;
     }
-    try {
-      base64.decode(psbt);
-    } catch (_) {
+    if (!isBase64Psbt(psbt)) {
       setState(() => _error = 'Not a valid base64 PSBT');
       return;
     }
