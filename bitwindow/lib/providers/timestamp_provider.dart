@@ -100,23 +100,9 @@ class TimestampProvider extends ChangeNotifier {
     }
   }
 
-  Future<VerifyTimestampResponse?> verifyFile(List<int> fileData, String filename) async {
-    if (fileData.length > maxFileSizeBytes) {
-      modelError = 'File too large. Maximum size: 1MB';
-      notifyListeners();
-      return null;
-    }
-
-    try {
-      final resp = await _bitwindowRPC.misc.verifyTimestamp(fileData, filename);
-      modelError = null;
-      return resp;
-    } catch (e) {
-      log.e('Failed to verify timestamp: $e');
-      modelError = e.toString();
-      notifyListeners();
-      return null;
-    }
+  /// Throws when the file has no confirmed timestamp.
+  Future<VerifyTimestampResponse> verifyFile(List<int> fileData, String filename) {
+    return _bitwindowRPC.misc.verifyTimestamp(fileData, filename);
   }
 
   void startPolling({Duration interval = const Duration(seconds: 10)}) {

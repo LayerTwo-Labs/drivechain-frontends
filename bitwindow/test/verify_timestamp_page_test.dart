@@ -58,9 +58,14 @@ class _Picker extends FilePickerPlatform {
 
 class _MiscAPI extends MockMiscAPI {
   @override
-  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename) async => VerifyTimestampResponse(
-    timestamp: FileTimestamp(filename: filename, status: 'confirmed'),
-  );
+  Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename) async {
+    if (filename.startsWith('unknown')) {
+      throw Exception('no timestamp found for this file');
+    }
+    return VerifyTimestampResponse(
+      timestamp: FileTimestamp(filename: filename, status: 'confirmed'),
+    );
+  }
 }
 
 class _BitwindowRPC extends ChangeNotifier implements BitwindowRPC {
@@ -110,5 +115,14 @@ void main() {
     expect(model.selectedFilename, 'big.bin');
     expect(model.verificationResult, isNull);
     expect(model.modelError, 'File too large. Maximum size: 1MB');
+  });
+
+  test('a file with no timestamp shows the error on the verify page only', () async {
+    final model = VerifyTimestampViewModel();
+    picker.next = File('${dir.path}/unknown.txt')..writeAsStringSync('unknown');
+    await model.pickAndVerifyFile();
+
+    expect(model.modelError, 'Exception: no timestamp found for this file');
+    expect(GetIt.I.get<TimestampProvider>().modelError, isNull);
   });
 }
