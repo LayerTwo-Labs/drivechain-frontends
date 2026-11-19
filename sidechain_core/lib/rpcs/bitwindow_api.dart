@@ -392,6 +392,9 @@ abstract class BitwindowAPI {
   // Transaction note methods here
   Future<void> setTransactionNote(String txid, String note, {String walletId = ''});
 
+  /// Notes of one wallet, by txid. An empty [walletId] reads the active wallet.
+  Future<Map<String, String>> listTransactionNotes({String walletId = ''});
+
   // BIP329 label import/export
   Future<String> exportLabels();
   Future<ImportLabelsResponse> importLabels(String jsonl);
@@ -501,6 +504,12 @@ class _BitwindowAPILive implements BitwindowAPI {
         ..note = note
         ..walletId = walletId,
     );
+  }
+
+  @override
+  Future<Map<String, String>> listTransactionNotes({String walletId = ''}) async {
+    final response = await _client.listTransactionNotes(ListTransactionNotesRequest()..walletId = walletId);
+    return {for (final n in response.notes) n.txid: n.note};
   }
 
   @override

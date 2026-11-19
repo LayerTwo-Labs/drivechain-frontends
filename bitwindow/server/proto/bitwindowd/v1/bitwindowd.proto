@@ -28,6 +28,7 @@ service BitwindowdService {
   rpc GetSyncInfo(google.protobuf.Empty) returns (GetSyncInfoResponse);
 
   rpc SetTransactionNote(SetTransactionNoteRequest) returns (google.protobuf.Empty);
+  rpc ListTransactionNotes(ListTransactionNotesRequest) returns (ListTransactionNotesResponse);
 
   // BIP329 label import/export. ExportLabels emits one JSONL object per
   // labelled item (address book, tx note, UTXO label). ImportLabels parses
@@ -210,6 +211,20 @@ message SetTransactionNoteRequest {
   // Notes are per-wallet: the same transaction can appear in two of the user's
   // wallets, and a note written on one must not show on the other.
   string wallet_id = 3;
+}
+
+message ListTransactionNotesRequest {
+  // Empty means the active wallet.
+  string wallet_id = 1;
+}
+
+message TransactionNote {
+  string txid = 1;
+  string note = 2;
+}
+
+message ListTransactionNotesResponse {
+  repeated TransactionNote notes = 1;
 }
 
 message ExportLabelsResponse {

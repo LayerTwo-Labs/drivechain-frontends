@@ -613,6 +613,29 @@ func (s *Server) SetTransactionNote(ctx context.Context, req *pb.SetTransactionN
 	return &emptypb.Empty{}, nil
 }
 
+// ListTransactionNotes implements bitwindowdv1connect.BitwindowdServiceHandler.
+func (s *Server) ListTransactionNotes(ctx context.Context, req *pb.ListTransactionNotesRequest) (*pb.ListTransactionNotesResponse, error) {
+	walletID := req.WalletId
+	if walletID == "" {
+		activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Sprintf("get active wallet: %s", err)).WithCause(err)
+		}
+		walletID = activeWallet.ID
+	}
+
+	notes, err := transactions.ListByWallet(ctx, s.db, walletID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+
+	resp := &pb.ListTransactionNotesResponse{Notes: make([]*pb.TransactionNote, 0, len(notes))}
+	for _, n := range notes {
+		resp.Notes = append(resp.Notes, &pb.TransactionNote{Txid: n.TxID, Note: n.Note})
+	}
+	return resp, nil
+}
+
 // ExportLabels implements bitwindowdv1connect.BitwindowdServiceHandler.
 func (s *Server) ExportLabels(ctx context.Context, req *emptypb.Empty) (*pb.ExportLabelsResponse, error) {
 	addrs, err := addressbook.List(ctx, s.db)

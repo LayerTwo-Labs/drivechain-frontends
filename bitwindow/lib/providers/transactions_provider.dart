@@ -163,9 +163,10 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
         update<List<WalletTransaction>>(
           walletTransactions,
           () async {
-            final fetchedTransactions = await orchestratorWallet.listTransactions(
-              walletId: walletId,
-            );
+            final (fetchedTransactions, notes) = await (
+              orchestratorWallet.listTransactions(walletId: walletId),
+              bitwindowd.bitwindowd.listTransactionNotes(walletId: walletId),
+            ).wait;
             // A replaced or conflicted tx never confirms. Core gives a conflicted
             // tx a negative count, and the unsigned height field cannot hold it.
             final transactions = fetchedTransactions.transactions
@@ -178,7 +179,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                     sentSatoshi: tx.amountSats < Int64.ZERO ? -tx.amountSats : Int64.ZERO,
                     address: tx.hasSidechainDeposit() ? tx.sidechainDeposit.destination : tx.address,
                     addressLabel: tx.label,
-                    note: '',
+                    note: notes[tx.txid] ?? '',
                     warningMessage: tx.warningMessage,
                     immature: tx.category == 'immature',
                     confirmationTime: Confirmation(

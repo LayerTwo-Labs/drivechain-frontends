@@ -97,6 +97,13 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
   );
 
+  static const listTransactionNotes = connect.Spec(
+    '/$name/ListTransactionNotes',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.ListTransactionNotesRequest.new,
+    bitwindowdv1bitwindowd.ListTransactionNotesResponse.new,
+  );
+
   /// BIP329 label import/export. ExportLabels emits one JSONL object per
   /// labelled item (address book, tx note, UTXO label). ImportLabels parses
   /// BIP329 JSONL and writes into the matching store, skipping unknown or
