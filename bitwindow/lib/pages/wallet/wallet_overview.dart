@@ -801,7 +801,11 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       log.i('CPFP child broadcast: ${result.childTxid} (parent ${tx.txid})');
       if (context.mounted) {
         showSailToast(context, 'Accelerated! Child txid: ${result.childTxid}');
+        Navigator.of(context).pop();
       }
+      // The network holds the child already. A refresh that fails changes
+      // nothing about that.
+      unawaited(_txProvider.fetch());
       return null;
     } catch (e) {
       log.e('Failed to accelerate (CPFP): $e');
