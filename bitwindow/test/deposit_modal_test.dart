@@ -101,6 +101,22 @@ void main() {
     expect(tester.widget<SailButton>(_depositButton()).disabled, isTrue);
   });
 
+  testWidgets('a stopped sidechain shows the message with no exception prefix', (tester) async {
+    await pumpModal(tester);
+
+    expect(find.text('Thunder is not running. Paste a deposit address.'), findsOneWidget);
+    expect(find.textContaining('Exception'), findsNothing);
+  });
+
+  testWidgets('the deposit button shows in a 1200x600 window', (tester) async {
+    await pumpModal(tester);
+    await tester.binding.setSurfaceSize(const Size(1200, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pump();
+
+    expect(tester.getRect(_depositButton()).bottom, lessThanOrEqualTo(600 - SailStyleValues.padding25));
+  });
+
   testWidgets('a paste during the address read survives the answer', (tester) async {
     final rpc = _SlowThunderRPC();
     GetIt.I.registerSingleton<ThunderRPC>(rpc);
