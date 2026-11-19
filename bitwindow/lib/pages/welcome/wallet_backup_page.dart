@@ -617,15 +617,14 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  SailSVG.icon(
-                    SailSVGAsset.iconInfo,
-                    width: 12,
-                    color: theme.colors.text,
-                  ),
-                  const SizedBox(width: 6),
+                  _EntropyLegendEntry(label: 'OS entropy', color: theme.colors.text),
+                  const SizedBox(width: 16),
+                  _EntropyLegendEntry(label: 'Your entropy', color: theme.colors.primary),
+                  const SizedBox(width: 16),
                   Expanded(
-                    child: SailText.primary12(
-                      "The text in white is os entropy added by default. Remove it if you don't want it mixed in.",
+                    child: SailText.secondary12(
+                      "Remove the OS entropy if you don't want it mixed in.",
+                      monospace: true,
                     ),
                   ),
                 ],
@@ -916,6 +915,34 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One swatch and label of the entropy field legend, in the color the field draws that part in.
+class _EntropyLegendEntry extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _EntropyLegendEntry({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          key: ValueKey('entropy-legend-swatch-$label'),
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        SailText.secondary12(label, monospace: true),
+      ],
     );
   }
 }
