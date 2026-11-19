@@ -62,7 +62,8 @@ class _DenialDialogState extends State<DenialDialog> {
   int processedCount = 0;
   String? errorMessage;
 
-  int get maxTargetSizes => 1 << (int.tryParse(hopsController.text) ?? 3); // 2^hops
+  /// The engine uses one target size per hop.
+  int get maxTargetSizes => max(0, int.tryParse(hopsController.text) ?? 3);
 
   Future<void> setNormalDefaults() async {
     setState(() {
