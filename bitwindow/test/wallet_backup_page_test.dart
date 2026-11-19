@@ -186,6 +186,27 @@ void main() {
     expect(tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Continue')).first.disabled, isFalse);
   });
 
+  testWidgets('the legend swatches match the field colors', (tester) async {
+    await _pumpPage(tester);
+
+    final colors = SailTheme.of(tester.element(find.text('OS entropy'))).colors;
+    Color swatch(String label) {
+      final box = tester.widget<Container>(find.byKey(ValueKey('entropy-legend-swatch-$label')));
+      return (box.decoration! as BoxDecoration).color!;
+    }
+
+    expect(swatch('OS entropy'), colors.text);
+    expect(swatch('Your entropy'), colors.primary);
+    expect(find.textContaining('white'), findsNothing);
+
+    final field = tester.widget<EditableText>(find.byType(EditableText));
+    final span = field.controller.buildTextSpan(
+      context: tester.element(find.byType(EditableText)),
+      withComposing: false,
+    );
+    expect((span.children!.first as TextSpan).style!.color, colors.text);
+  });
+
   testWidgets('a key appends one character and derives at once', (tester) async {
     await _pumpPage(tester);
     final before = _wordsFor(_osHex, 12).first;
