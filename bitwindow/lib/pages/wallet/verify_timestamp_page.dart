@@ -25,6 +25,8 @@ class VerifyTimestampViewModel extends BaseViewModel {
       if (result?.path != null) {
         final file = File(result!.path!);
         final size = await file.length();
+        selectedFilename = result.name;
+        verificationResult = null;
 
         if (size > maxFileSizeBytes) {
           modelError = 'File too large. Maximum size: 1MB';
@@ -32,9 +34,7 @@ class VerifyTimestampViewModel extends BaseViewModel {
           return;
         }
 
-        selectedFilename = result.name;
         isVerifying = true;
-        verificationResult = null;
         modelError = null;
         notifyListeners();
 
