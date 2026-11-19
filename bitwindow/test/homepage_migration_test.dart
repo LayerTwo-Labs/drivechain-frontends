@@ -33,11 +33,9 @@ void main() {
 
   tearDown(() => GetIt.I.reset());
 
-  test('a saved large news widget opens at full width, and a second start changes nothing', () async {
-    await store.setString(
-      _key,
-      _oldShape(['quote_bar', 'coin_news_large', 'hacker_coin_news_large', 'latest_blocks']),
-    );
+  test('a saved large news widget opens at full width, and the next save writes the new form', () async {
+    final old = _oldShape(['quote_bar', 'coin_news_large', 'hacker_coin_news_large', 'latest_blocks']);
+    await store.setString(_key, old);
     const expected = [
       ('quote_bar', null),
       ('coin_news', WidgetSize.full),
@@ -48,15 +46,20 @@ void main() {
     final first = BitwindowHomepageProvider();
     await first.loaded;
     expect(_layout(first.configuration.widgets), expected);
-
-    final stored = HomepageConfiguration.fromJson((await store.getString(_key))!);
-    expect(_layout(stored.widgets), expected);
-    final rewritten = await store.getString(_key);
+    expect(await store.getString(_key), old);
 
     final second = BitwindowHomepageProvider();
     await second.loaded;
     expect(_layout(second.configuration.widgets), expected);
-    expect(await store.getString(_key), rewritten);
+
+    second.startEdit();
+    await second.finishEdit();
+    final stored = HomepageConfiguration.fromJson((await store.getString(_key))!);
+    expect(_layout(stored.widgets), expected);
+
+    final third = BitwindowHomepageProvider();
+    await third.loaded;
+    expect(_layout(third.configuration.widgets), expected);
   });
 
   test('a layout with the large and the half news widget keeps one news widget', () {
