@@ -36,6 +36,57 @@ func TestCreate(t *testing.T) {
 	require.Equal(t, timestamps.StatusConfirming, result.Status)
 }
 
+func TestCreateNamesADiscoveredTimestamp(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+
+	txid := "abc123"
+	discovered := timestamps.FileTimestamp{
+		FileHash:  "hash123",
+		TxID:      &txid,
+		Status:    timestamps.StatusConfirming,
+		CreatedAt: time.Now(),
+	}
+	discoveredID, err := timestamps.Create(ctx, db, discovered)
+	require.NoError(t, err)
+
+	named := discovered
+	named.Filename = "test.txt"
+	id, err := timestamps.Create(ctx, db, named)
+	require.NoError(t, err)
+	require.Equal(t, discoveredID, id)
+
+	result, err := timestamps.Get(ctx, db, id)
+	require.NoError(t, err)
+	require.Equal(t, "test.txt", result.Filename)
+}
+
+func TestCreateKeepsTheFilenameOfAStoredTimestamp(t *testing.T) {
+	ctx := t.Context()
+	db := database.Test(t)
+
+	txid := "abc123"
+	named := timestamps.FileTimestamp{
+		Filename:  "test.txt",
+		FileHash:  "hash123",
+		TxID:      &txid,
+		Status:    timestamps.StatusConfirming,
+		CreatedAt: time.Now(),
+	}
+	namedID, err := timestamps.Create(ctx, db, named)
+	require.NoError(t, err)
+
+	discovered := named
+	discovered.Filename = ""
+	id, err := timestamps.Create(ctx, db, discovered)
+	require.NoError(t, err)
+	require.Equal(t, namedID, id)
+
+	result, err := timestamps.Get(ctx, db, id)
+	require.NoError(t, err)
+	require.Equal(t, "test.txt", result.Filename)
+}
+
 func TestList(t *testing.T) {
 	ctx := t.Context()
 	db := database.Test(t)
