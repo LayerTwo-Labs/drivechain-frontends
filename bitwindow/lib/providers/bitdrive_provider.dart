@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -148,7 +149,7 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> setTextContent(String content) async {
-    if (content.length > 1024 * 1024) {
+    if (utf8.encode(content).length > 1024 * 1024) {
       error = 'Text size must be less than 1MB';
       notifyListeners();
       return;
@@ -179,7 +180,7 @@ class BitDriveProvider extends ChangeNotifier {
     error = null;
 
     try {
-      final content = fileContent ?? Uint8List.fromList(textContent?.codeUnits ?? []);
+      final content = fileContent ?? utf8.encode(textContent ?? '');
       if (content.isEmpty) {
         throw Exception('No content to store');
       }
