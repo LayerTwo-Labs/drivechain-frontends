@@ -137,7 +137,7 @@ class _L1RestartPageState extends State<L1RestartPage> {
                             DecoratedBox(
                               decoration: BoxDecoration(
                                 color: theme.colors.backgroundSecondary,
-                                borderRadius: SailStyleValues.borderRadiusSmall,
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(SailStyleValues.padding12),

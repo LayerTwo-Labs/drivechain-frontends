@@ -512,7 +512,7 @@ class _SidebarRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding08),
           decoration: BoxDecoration(
             color: selected ? colors.backgroundSecondary : null,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: context.sailTheme.chrome.radius,
           ),
           child: Row(
             children: [

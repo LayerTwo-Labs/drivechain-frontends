@@ -297,7 +297,7 @@ class _TransactionDetails extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: context.sailTheme.colors.info.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: context.sailTheme.colors.info.withValues(alpha: 0.2)),
       ),
       child: SailColumn(

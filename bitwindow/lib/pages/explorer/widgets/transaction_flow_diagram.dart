@@ -69,7 +69,7 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
       height: 300,
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: theme.colors.divider),
       ),
       child: LayoutBuilder(
@@ -451,7 +451,7 @@ class _TooltipContent extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 250),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
         border: Border.all(color: theme.colors.divider),
         boxShadow: [
           BoxShadow(

@@ -163,7 +163,7 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             border: Border.all(color: theme.colors.border),
-                            borderRadius: SailStyleValues.borderRadiusSmall,
+                            borderRadius: context.sailTheme.chrome.radiusSmall,
                           ),
                           child: Row(
                             children: [

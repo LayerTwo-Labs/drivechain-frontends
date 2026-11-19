@@ -27,7 +27,7 @@ class SailShadow extends StatelessWidget {
           child: Container(
             margin: EdgeInsets.all(2),
             decoration: BoxDecoration(
-              borderRadius: SailStyleValues.borderRadiusLarge,
+              borderRadius: context.sailTheme.chrome.radiusLarge,
               boxShadow: [
                 BoxShadow(
                   color: theme.colors.shadow,

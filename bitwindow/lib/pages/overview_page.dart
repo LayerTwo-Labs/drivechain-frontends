@@ -976,12 +976,12 @@ class _CreateTopicTab extends StatelessWidget {
             ...pendingTopics.map(
               (topic) => SailTappable(
                 onDoubleTap: () async => showTransactionDetails(context, topic.txid),
-                borderRadius: SailStyleValues.borderRadius,
+                borderRadius: context.sailTheme.chrome.radius,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   decoration: BoxDecoration(
                     color: context.sailTheme.colors.backgroundSecondary,
-                    borderRadius: SailStyleValues.borderRadius,
+                    borderRadius: context.sailTheme.chrome.radius,
                   ),
                   child: SailRow(
                     spacing: SailStyleValues.padding08,
@@ -1467,12 +1467,12 @@ class _DatePickerField extends StatelessWidget {
         );
         onChanged(picked);
       },
-      borderRadius: SailStyleValues.borderRadius,
+      borderRadius: context.sailTheme.chrome.radius,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: context.sailTheme.chrome.radius,
           border: Border.all(color: theme.colors.border),
         ),
         child: SailRow(

@@ -24,7 +24,7 @@ class SideNav extends StatelessWidget {
       padding: const EdgeInsets.all(SailStyleValues.padding08),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,7 +83,7 @@ class _SideNavItemState extends State<_SideNavItem> {
           ),
           decoration: BoxDecoration(
             color: widget.isSelected || isHovered ? theme.colors.backgroundSecondary : Colors.transparent,
-            borderRadius: SailStyleValues.borderRadius,
+            borderRadius: context.sailTheme.chrome.radius,
           ),
           child: SailText.primary13(widget.label, bold: true),
         ),

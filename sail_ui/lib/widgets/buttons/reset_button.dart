@@ -18,7 +18,7 @@ class ResetButton extends StatelessWidget {
       message: 'Reset / Troubleshoot',
       child: SailTappable(
         onTap: onTap,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: SailRow(

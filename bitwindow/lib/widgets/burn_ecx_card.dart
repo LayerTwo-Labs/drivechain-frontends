@@ -410,7 +410,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
     padding: const EdgeInsets.all(SailStyleValues.padding12),
     decoration: BoxDecoration(
       color: theme.colors.background,
-      borderRadius: SailStyleValues.borderRadius,
+      borderRadius: context.sailTheme.chrome.radius,
       border: Border.all(color: theme.colors.border),
     ),
     child: child,

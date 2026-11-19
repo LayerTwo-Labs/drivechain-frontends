@@ -56,7 +56,7 @@ class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
             padding: const EdgeInsets.all(SailStyleValues.padding12),
             decoration: BoxDecoration(
               color: theme.colors.orangeLight,
-              borderRadius: SailStyleValues.borderRadiusSmall,
+              borderRadius: context.sailTheme.chrome.radiusSmall,
               border: Border.all(color: theme.colors.orange),
             ),
             child: SailColumn(
@@ -87,7 +87,7 @@ class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
             padding: const EdgeInsets.all(SailStyleValues.padding12),
             decoration: BoxDecoration(
               color: theme.colors.backgroundSecondary,
-              borderRadius: SailStyleValues.borderRadiusSmall,
+              borderRadius: context.sailTheme.chrome.radiusSmall,
               border: Border.all(color: theme.colors.border),
             ),
             child: SailColumn(
@@ -182,7 +182,7 @@ class StartersTab extends StatelessWidget {
                               color: SailTheme.of(context).colors.divider,
                               width: 1,
                             ),
-                            borderRadius: SailStyleValues.borderRadius,
+                            borderRadius: context.sailTheme.chrome.radius,
                           ),
                           child: Table(
                             columnWidths: const {
@@ -195,9 +195,9 @@ class StartersTab extends StatelessWidget {
                               TableRow(
                                 decoration: BoxDecoration(
                                   color: SailTheme.of(context).colors.formField,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(8),
-                                    topRight: Radius.circular(8),
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: context.sailTheme.chrome.radius.topLeft,
+                                    topRight: context.sailTheme.chrome.radius.topRight,
                                   ),
                                 ),
                                 children: [

@@ -459,15 +459,15 @@ class _ConsoleViewState extends State<ConsoleView> {
                       minHeight: 0,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadius,
+                      borderRadius: context.sailTheme.chrome.radius,
                       borderSide: BorderSide(color: theme.colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadius,
+                      borderRadius: context.sailTheme.chrome.radius,
                       borderSide: BorderSide(color: theme.colors.primary, width: 1.5),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadius,
+                      borderRadius: context.sailTheme.chrome.radius,
                       borderSide: BorderSide(color: theme.colors.border),
                     ),
                     fillColor: theme.colors.background,
@@ -490,7 +490,7 @@ class _ConsoleViewState extends State<ConsoleView> {
       decoration: BoxDecoration(
         color: theme.colors.background,
         border: Border.all(color: theme.colors.border),
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       child: ListView.builder(
         shrinkWrap: true,
@@ -514,7 +514,7 @@ class _ConsoleViewState extends State<ConsoleView> {
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         border: Border.all(color: theme.colors.border),
-                        borderRadius: SailStyleValues.borderRadius,
+                        borderRadius: context.sailTheme.chrome.radius,
                       ),
                       child: SailText.secondary12(completion.service.name, monospace: true),
                     ),

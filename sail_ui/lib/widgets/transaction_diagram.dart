@@ -33,7 +33,7 @@ class TransactionDiagram extends StatelessWidget {
       padding: const EdgeInsets.all(SailStyleValues.padding12),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: theme.colors.divider),
       ),
       child: IntrinsicHeight(
@@ -97,7 +97,7 @@ class _FeeJunction extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: theme.colors.orange.withValues(alpha: 0.15),
-            borderRadius: SailStyleValues.borderRadiusSmall,
+            borderRadius: context.sailTheme.chrome.radiusSmall,
             border: Border.all(color: theme.colors.orange),
           ),
           child: Column(
@@ -194,7 +194,7 @@ class _Node extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
         border: Border(
           left: alignEnd ? BorderSide.none : BorderSide(color: accent, width: 3),
           right: alignEnd ? BorderSide(color: accent, width: 3) : BorderSide.none,
@@ -227,7 +227,7 @@ class _Node extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: theme.colors.success.withValues(alpha: 0.15),
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: theme.chrome.radiusSmall,
       ),
       child: SailText.secondary12(tag!, color: theme.colors.success),
     );

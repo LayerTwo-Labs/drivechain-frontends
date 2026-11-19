@@ -245,7 +245,7 @@ class _HashMismatchBanner extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
         decoration: BoxDecoration(
           color: theme.colors.error.withValues(alpha: 0.1),
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: context.sailTheme.chrome.radius,
           border: Border.all(color: theme.colors.error.withValues(alpha: 0.3)),
         ),
         child: Row(
@@ -489,7 +489,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           border: Border.all(color: colors.border),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: context.sailTheme.chrome.radius,
         ),
         child: ListenableBuilder(
           listenable: formatter,
@@ -815,7 +815,7 @@ class _ExternalWalletBadge extends StatelessWidget {
         padding: padding,
         decoration: BoxDecoration(
           border: Border.all(color: context.sailTheme.colors.border),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: context.sailTheme.chrome.radiusSmall,
         ),
         child: SailText.secondary12(label),
       ),
@@ -951,7 +951,7 @@ class _StartMenuButtonState extends State<_StartMenuButton> {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: theme.colors.background,
-            borderRadius: SailStyleValues.borderRadius,
+            borderRadius: context.sailTheme.chrome.radius,
             border: Border.all(color: theme.colors.border),
           ),
           child: Column(
@@ -2401,7 +2401,7 @@ class _DepositModalState extends State<DepositModal> {
         vertical: MediaQuery.of(context).size.height * 0.2,
       ),
       child: ClipRRect(
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         child: SailCard(
           title: 'Deposit to ${widget.sidechainName}',
           subtitle: 'Slot ${widget.slot}',

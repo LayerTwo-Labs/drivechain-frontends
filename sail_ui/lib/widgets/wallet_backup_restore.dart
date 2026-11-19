@@ -1175,7 +1175,7 @@ class _RestoreProgressCard extends StatelessWidget {
                   padding: const EdgeInsets.all(SailStyleValues.padding12),
                   decoration: BoxDecoration(
                     color: theme.colors.backgroundSecondary,
-                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    borderRadius: context.sailTheme.chrome.radiusSmall,
                     border: Border.all(color: theme.colors.border),
                   ),
                   child: SailColumn(

@@ -109,7 +109,7 @@ class _QuoteBarState extends State<QuoteBar> {
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
         border: Border.all(color: colors.border),
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(

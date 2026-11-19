@@ -43,10 +43,10 @@ class BackendSwapBar extends StatelessWidget {
           return child;
         }
         final colors = SailTheme.of(context).colors;
-        return Material(
+        return ColoredBox(
           color: colors.backgroundSecondary,
-          child: InkWell(
-            onTap: () => unawaited(openBackendSwap(context)),
+          child: SailTappable(
+            onTap: () => openBackendSwap(context),
             child: SizedBox(
               height: 36,
               child: DecoratedBox(

@@ -373,7 +373,7 @@ class _NodeModePopoverState extends State<NodeModePopover> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(color: theme.colors.border),
-            borderRadius: SailStyleValues.borderRadiusSmall,
+            borderRadius: context.sailTheme.chrome.radiusSmall,
           ),
           child: Row(
             children: [
@@ -433,7 +433,7 @@ class NodeModeCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colors.backgroundSecondary,
           border: Border.all(color: selected ? theme.colors.primary : theme.colors.divider),
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: context.sailTheme.chrome.radius,
         ),
         child: SailColumn(
           spacing: SailStyleValues.padding04,

@@ -282,7 +282,7 @@ class _GenerateReportTabState extends State<GenerateReportTab> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: theme.colors.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: context.sailTheme.chrome.radius,
                 ),
                 child: Row(
                   children: [
@@ -303,7 +303,7 @@ class _GenerateReportTabState extends State<GenerateReportTab> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: theme.colors.success.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: context.sailTheme.chrome.radius,
                 ),
                 child: Row(
                   children: [
@@ -486,7 +486,7 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.colors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: context.sailTheme.chrome.radius,
                   ),
                   child: Row(
                     children: [
@@ -678,7 +678,7 @@ class _StatCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(

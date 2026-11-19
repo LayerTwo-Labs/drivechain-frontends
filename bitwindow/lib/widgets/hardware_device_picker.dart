@@ -368,7 +368,7 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: theme.colors.background,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: context.sailTheme.chrome.radius,
             border: Border.all(color: theme.colors.border),
           ),
           child: Row(

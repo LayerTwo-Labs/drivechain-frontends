@@ -177,7 +177,7 @@ class CreateMultisigModal extends StatelessWidget {
                           padding: const EdgeInsets.all(SailStyleValues.padding12),
                           decoration: BoxDecoration(
                             color: context.sailTheme.colors.orange.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: context.sailTheme.chrome.radius,
                           ),
                           child: SailRow(
                             spacing: SailStyleValues.padding08,
@@ -312,7 +312,7 @@ class CreateMultisigModal extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: context.sailTheme.colors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                               ),
                               child: SailText.secondary12(
                                 'Ready to save',
@@ -324,7 +324,7 @@ class CreateMultisigModal extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: context.sailTheme.colors.orange.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: context.sailTheme.chrome.radiusSmall,
                               ),
                               child: SailText.secondary12(
                                 'Need ${viewModel.n - viewModel.keys.length} more',
@@ -364,7 +364,7 @@ class CreateMultisigModal extends StatelessWidget {
                                                 color: key.isWallet
                                                     ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
                                                     : context.sailTheme.colors.orange.withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(4),
+                                                borderRadius: context.sailTheme.chrome.radiusSmall,
                                               ),
                                               child: SailText.secondary12(
                                                 key.isWallet ? 'Wallet Key' : 'External Key',
@@ -1025,7 +1025,7 @@ class ImportMultisigModal extends StatelessWidget {
                                       color: key.isWallet
                                           ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
                                           : context.sailTheme.colors.text.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(4),
+                                      borderRadius: context.sailTheme.chrome.radiusSmall,
                                     ),
                                     child: SailText.secondary12(
                                       key.isWallet ? 'Wallet Key' : 'External Key',

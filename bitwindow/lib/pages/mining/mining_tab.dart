@@ -403,7 +403,7 @@ class _MiningTabState extends State<MiningTab> {
       padding: const EdgeInsets.all(SailStyleValues.padding16),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
       ),
       child: SailColumn(
         spacing: SailStyleValues.padding08,

@@ -63,7 +63,7 @@ class ActionEntryTile extends StatelessWidget {
     if (entry.onTap != null) {
       return InkWell(
         onTap: entry.onTap,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
           child: content,

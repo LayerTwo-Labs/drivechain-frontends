@@ -399,7 +399,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     padding: EdgeInsets.symmetric(horizontal: SailStyleValues.padding12, vertical: vertical),
     decoration: BoxDecoration(
       color: theme.colors.background,
-      borderRadius: SailStyleValues.borderRadius,
+      borderRadius: context.sailTheme.chrome.radius,
       border: Border.all(color: theme.colors.border),
     ),
     child: child,

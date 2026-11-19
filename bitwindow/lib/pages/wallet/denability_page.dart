@@ -80,12 +80,12 @@ class DenyAllButton extends StatelessWidget {
 
     return SailTappable(
       onTap: utxoCount > 0 ? () async => onPressed() : null,
-      borderRadius: SailStyleValues.borderRadius,
+      borderRadius: context.sailTheme.chrome.radius,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24),
         decoration: BoxDecoration(
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: context.sailTheme.chrome.radius,
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,

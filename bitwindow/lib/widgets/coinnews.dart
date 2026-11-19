@@ -774,7 +774,7 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isHovered ? context.sailTheme.colors.backgroundSecondary : SailColorScheme.transparent,
-            borderRadius: SailStyleValues.borderRadius,
+            borderRadius: context.sailTheme.chrome.radius,
           ),
           child: SailRow(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1127,11 +1127,11 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
                                   pPadding: const EdgeInsets.only(bottom: 16),
                                   blockquoteDecoration: BoxDecoration(
                                     color: SailColorScheme.transparent,
-                                    borderRadius: SailStyleValues.borderRadius,
+                                    borderRadius: context.sailTheme.chrome.radius,
                                   ),
                                   codeblockDecoration: BoxDecoration(
                                     color: theme.colors.backgroundSecondary,
-                                    borderRadius: SailStyleValues.borderRadius,
+                                    borderRadius: context.sailTheme.chrome.radius,
                                   ),
                                   code: SailStyleValues.thirteen.copyWith(
                                     color: theme.colors.text,
@@ -1208,7 +1208,7 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
     final author = comment.author.length > 10 ? '${comment.author.substring(0, 10)}…' : comment.author;
     return Container(
       padding: const EdgeInsets.all(SailStyleValues.padding08),
-      decoration: BoxDecoration(color: theme.colors.backgroundSecondary, borderRadius: SailStyleValues.borderRadius),
+      decoration: BoxDecoration(color: theme.colors.backgroundSecondary, borderRadius: context.sailTheme.chrome.radius),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

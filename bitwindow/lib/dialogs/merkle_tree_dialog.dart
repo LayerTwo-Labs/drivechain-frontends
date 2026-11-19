@@ -111,7 +111,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
         constraints: const BoxConstraints(maxHeight: 800),
         decoration: BoxDecoration(
           color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadiusSmall,
+          borderRadius: context.sailTheme.chrome.radiusSmall,
           border: Border.all(color: theme.colors.border, width: 1),
         ),
         child: Column(
@@ -131,7 +131,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
                   SailText.primary20('Merkle Tree'), // Qt windowTitle
                   SailTappable(
                     onTap: () async => Navigator.of(context).pop(),
-                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    borderRadius: context.sailTheme.chrome.radiusSmall,
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: SailSVG.fromAsset(SailSVGAsset.x, color: theme.colors.text),
@@ -259,7 +259,7 @@ class _TreeTab extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: theme.colors.background,
-              borderRadius: SailStyleValues.borderRadiusSmall,
+              borderRadius: context.sailTheme.chrome.radiusSmall,
               border: Border.all(color: theme.colors.border),
             ),
             child: Column(
@@ -313,7 +313,7 @@ class _TreeTab extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: theme.colors.background,
-                borderRadius: SailStyleValues.borderRadiusSmall,
+                borderRadius: context.sailTheme.chrome.radiusSmall,
                 border: Border.all(color: theme.colors.success, width: 2),
               ),
               child: Column(
@@ -335,7 +335,7 @@ class _TreeTab extends StatelessWidget {
                           onTap: () async => () {
                             onCopy(formattedText ?? '', 'Merkle tree');
                           }(),
-                          borderRadius: SailStyleValues.borderRadiusSmall,
+                          borderRadius: context.sailTheme.chrome.radiusSmall,
                           child: Padding(
                             padding: const EdgeInsets.all(6),
                             child: SailSVG.fromAsset(SailSVGAsset.copy, color: theme.colors.primary),
@@ -351,7 +351,7 @@ class _TreeTab extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: theme.colors.success.withValues(alpha: 0.1),
-                      borderRadius: SailStyleValues.borderRadiusSmall,
+                      borderRadius: context.sailTheme.chrome.radiusSmall,
                       border: Border.all(color: theme.colors.success),
                     ),
                     child: Column(
@@ -384,7 +384,7 @@ class _TreeTab extends StatelessWidget {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: (isValid ? theme.colors.success : theme.colors.error).withValues(alpha: 0.1),
-                            borderRadius: SailStyleValues.borderRadiusSmall,
+                            borderRadius: context.sailTheme.chrome.radiusSmall,
                             border: Border.all(
                               color: isValid ? theme.colors.success : theme.colors.error,
                               width: 2,
@@ -445,7 +445,7 @@ class _TreeTab extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: theme.colors.backgroundSecondary,
-                      borderRadius: SailStyleValues.borderRadiusSmall,
+                      borderRadius: context.sailTheme.chrome.radiusSmall,
                     ),
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -483,7 +483,7 @@ class _HelpTab extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: theme.colors.background,
-          borderRadius: SailStyleValues.borderRadiusSmall,
+          borderRadius: context.sailTheme.chrome.radiusSmall,
           border: Border.all(color: theme.colors.border),
         ),
         child: Column(

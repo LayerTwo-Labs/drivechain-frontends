@@ -37,7 +37,7 @@ class SailInfoBox extends StatelessWidget {
       padding: withoutPadding ? EdgeInsets.zero : const EdgeInsets.all(SailStyleValues.padding20),
       decoration: BoxDecoration(
         color: secondary ? theme.colors.background : theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
       ),
       child: onPressed != null
           ? SailButton(

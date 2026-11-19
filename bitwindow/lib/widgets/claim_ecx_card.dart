@@ -431,7 +431,7 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
       ),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: theme.colors.border),
       ),
       child: Row(
@@ -537,7 +537,7 @@ class _ClaimedCard extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: theme.colors.background,
-              borderRadius: SailStyleValues.borderRadius,
+              borderRadius: context.sailTheme.chrome.radius,
               border: Border.all(color: theme.colors.border),
             ),
             child: Row(
@@ -594,7 +594,7 @@ class _FailedCard extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: theme.colors.background,
-              borderRadius: SailStyleValues.borderRadius,
+              borderRadius: context.sailTheme.chrome.radius,
               border: Border.all(color: theme.colors.border),
             ),
             child: SailText.secondary12(reason),

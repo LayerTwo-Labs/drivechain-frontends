@@ -220,7 +220,7 @@ class _UsefulSection extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colors.orange.withValues(alpha: 0.1),
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: theme.colors.orange.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -269,7 +269,7 @@ class _CategorySection extends StatelessWidget {
       padding: const EdgeInsets.all(0),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: SailStyleValues.borderRadius,
+        borderRadius: context.sailTheme.chrome.radius,
         border: Border.all(color: theme.colors.border),
       ),
       child: Column(
@@ -279,7 +279,7 @@ class _CategorySection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: theme.colors.primary.withValues(alpha: 0.1),
-              borderRadius: SailStyleValues.borderRadiusSmall,
+              borderRadius: context.sailTheme.chrome.radiusSmall,
             ),
             child: SailText.primary15(
               category,
