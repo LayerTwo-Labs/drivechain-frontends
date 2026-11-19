@@ -370,35 +370,33 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
 
                     return [
                       SailMenuItem(
-                        closeOnSelect: false,
-                        onSelected: () async {
-                          await Future.microtask(() async {
-                            if (!context.mounted) {
-                              return;
-                            }
-                            await showThemedDialog(
-                              context: context,
-                              builder: (context) => SailModal(
-                                constraints: const BoxConstraints(maxWidth: 400),
-                                child: SailCardEditValues(
-                                  title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
-                                  subtitle:
-                                      "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
-                                  fields: [EditField(name: 'Label', currentValue: entry.label)],
-                                  onSave: (updatedFields) async {
-                                    final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
-                                    await widget.model.saveLabel(context, entry.address, newLabel);
-                                    return null;
-                                  },
-                                ),
+                        onSelected: () {
+                          Navigator.of(context).pop();
+                          showThemedDialog(
+                            context: context,
+                            builder: (context) => SailModal(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              child: SailCardEditValues(
+                                title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
+                                subtitle:
+                                    "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
+                                fields: [EditField(name: 'Label', currentValue: entry.label)],
+                                onSave: (updatedFields) async {
+                                  final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
+                                  await widget.model.saveLabel(context, entry.address, newLabel);
+                                  return null;
+                                },
                               ),
-                            );
-                          });
+                            ),
+                          );
                         },
                         child: SailText.primary12(entry.label.isEmpty ? 'Add Label' : 'Update Label'),
                       ),
                       SailMenuItem(
-                        onSelected: () => openUrl(Uri.parse(mempoolAddressUrl(entry.address, network))),
+                        onSelected: () {
+                          Navigator.of(context).pop();
+                          openUrl(Uri.parse(mempoolAddressUrl(entry.address, network)));
+                        },
                         child: SailText.primary12('View on mempool.space'),
                       ),
                     ];
