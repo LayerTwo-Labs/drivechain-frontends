@@ -13,17 +13,13 @@ class TruthcoinWidgetCatalog {
     'quote_bar': HomepageWidgetInfo(
       id: 'quote_bar',
       name: 'Quotes',
-      description: 'Rotating Bitcoin and liberty quotes',
-      size: WidgetSize.bar,
-      icon: SailSVGAsset.quote,
+      sizes: [WidgetSize.bar],
       builder: (_) => const QuoteBar(),
     ),
     'balance_card': HomepageWidgetInfo(
       id: 'balance_card',
       name: 'Balance Card',
-      description: 'Shows Truthcoin balance',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconWallet,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -69,9 +65,7 @@ class TruthcoinWidgetCatalog {
     'receive_card': HomepageWidgetInfo(
       id: 'receive_card',
       name: 'Receive Card',
-      description: 'Shows receive address',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconReceive,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -111,9 +105,7 @@ class TruthcoinWidgetCatalog {
     'send_card': HomepageWidgetInfo(
       id: 'send_card',
       name: 'Send Card',
-      description: 'Send Truthcoin',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconSend,
+      sizes: [WidgetSize.half],
       builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
         viewModelBuilder: () => OverviewTabViewModel(),
         builder: (context, model, child) {
@@ -153,9 +145,7 @@ class TruthcoinWidgetCatalog {
     'utxo_table': HomepageWidgetInfo(
       id: 'utxo_table',
       name: 'Transaction History',
-      description: 'Shows UTXO and transaction history',
-      size: WidgetSize.full,
-      icon: SailSVGAsset.iconTransactions,
+      sizes: [WidgetSize.full],
       builder: (_) => SizedBox(
         height: 400, // Fixed height to prevent layout issues
         child: const UTXOsTab(),
@@ -165,27 +155,21 @@ class TruthcoinWidgetCatalog {
     'market_summary': HomepageWidgetInfo(
       id: 'market_summary',
       name: 'Top Markets',
-      description: 'Shows top prediction markets by volume',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconHome,
+      sizes: [WidgetSize.half],
       builder: (_) => const _MarketSummaryWidget(),
     ),
 
     'positions_summary': HomepageWidgetInfo(
       id: 'positions_summary',
       name: 'Your Positions',
-      description: 'Shows your market positions summary',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconWallet,
+      sizes: [WidgetSize.half],
       builder: (_) => const _PositionsSummaryWidget(),
     ),
 
     'voting_status': HomepageWidgetInfo(
       id: 'voting_status',
       name: 'Voting Status',
-      description: 'Shows current voting period and your status',
-      size: WidgetSize.half,
-      icon: SailSVGAsset.iconPen,
+      sizes: [WidgetSize.half],
       builder: (_) => const _VotingStatusWidget(),
     ),
   };

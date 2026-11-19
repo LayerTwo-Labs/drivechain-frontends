@@ -11,6 +11,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/shell/run_sidechain_app.dart';
+import 'package:sail_ui/shell/sidechain_homepage_provider.dart';
 import 'package:sail_ui/shell/sidechain_module.dart';
 import 'package:sail_ui/shell/sidechain_settings_page.dart';
 import 'package:window_manager/legacy.dart';
@@ -30,6 +31,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
   ShellTabIndex get tabIndex => ShellTabIndex.of(module);
 
   bool _shutdownInProgress = false;
+  TabsRouter? _tabsRouter;
   DateTime? _lastShiftPress;
   final CodeSearchService _codeSearchService = CodeSearchService();
 
@@ -110,7 +112,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
       return;
     }
 
-    AutoRouterX(context).tabsRouter.setActiveIndex(target.tabIndex);
+    _tabsRouter?.setActiveIndex(target.tabIndex);
 
     if (target.sectionIndex != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -152,7 +154,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'Parent Chain',
         category: 'Navigation',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.parentChain);
+          _tabsRouter?.setActiveIndex(tabIndex.parentChain);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -160,7 +162,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: module.homeTabLabel,
         category: 'Navigation',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.homepage);
+          _tabsRouter?.setActiveIndex(tabIndex.homepage);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -169,7 +171,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
           label: tab.commandLabel ?? tab.label,
           category: 'Navigation',
           onSelected: () {
-            AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.chainTab(n));
+            _tabsRouter?.setActiveIndex(tabIndex.chainTab(n));
             Navigator.of(dialogContext).pop();
           },
         ),
@@ -177,7 +179,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'Console',
         category: 'Navigation',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.console);
+          _tabsRouter?.setActiveIndex(tabIndex.console);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -185,15 +187,17 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'Settings',
         category: 'Navigation',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.settings);
+          _tabsRouter?.setActiveIndex(tabIndex.settings);
           Navigator.of(dialogContext).pop();
         },
       ),
       CommandItem(
-        label: 'Configure Homepage',
+        label: 'Edit Homepage',
         category: 'Navigation',
-        onSelected: () async {
-          await router.push(SidechainConfigureHomepageRoute());
+        onSelected: () {
+          _tabsRouter?.setActiveIndex(tabIndex.homepage);
+          GetIt.I.get<SidechainHomepageProvider>().startEdit();
+          Navigator.of(dialogContext).pop();
         },
       ),
 
@@ -221,7 +225,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'Appearance Settings',
         category: 'Settings',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.settings);
+          _tabsRouter?.setActiveIndex(tabIndex.settings);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -229,7 +233,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'Theme Settings',
         category: 'Settings',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.settings);
+          _tabsRouter?.setActiveIndex(tabIndex.settings);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -237,7 +241,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'Font Settings',
         category: 'Settings',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.settings);
+          _tabsRouter?.setActiveIndex(tabIndex.settings);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -245,7 +249,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'Bitcoin Unit Settings',
         category: 'Settings',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.settings);
+          _tabsRouter?.setActiveIndex(tabIndex.settings);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -253,7 +257,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'Reset ${module.appName} Data',
         category: 'Settings',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.settings);
+          _tabsRouter?.setActiveIndex(tabIndex.settings);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -261,7 +265,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
         label: 'About',
         category: 'Settings',
         onSelected: () {
-          AutoRouterX(context).tabsRouter.setActiveIndex(tabIndex.settings);
+          _tabsRouter?.setActiveIndex(tabIndex.settings);
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -396,6 +400,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
               homeIndex: tabIndex.homepage,
               routes: shellTabRoutes(module),
               builder: (context, children, tabsRouter) {
+                _tabsRouter = tabsRouter;
                 return ViewModelBuilder.reactive(
                   viewModelBuilder: () => SidechainHomePageViewModel(),
                   fireOnViewModelReadyOnce: true,
@@ -403,6 +408,7 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
                     return SailScaffold(
                       backgroundColor: theme.colors.background,
                       appBar: TopNav(
+                        locked: model.editingHomepage,
                         routes: shellTopNavRoutes(module, tabsRouter.setActiveIndex),
                         endWidget: SailRow(
                           spacing: SailStyleValues.padding08,
@@ -420,55 +426,49 @@ class _SidechainHomePageState extends State<SidechainHomePage> with WidgetsBindi
                                 await _confProvider.swapNetworkById(context, id);
                               },
                             ),
-                            SailButton(
-                              label: 'Configure Homepage',
-                              small: true,
-                              onPressed: () async {
-                                await GetIt.I.get<RootStackRouter>().push(SidechainConfigureHomepageRoute());
-                              },
-                            ),
                           ],
                         ),
                       ),
                       body: Column(
                         children: [
                           Expanded(child: children[tabsRouter.activeIndex]),
-                          BottomNav(
-                            mainchainInfo: false,
-                            additionalConnection: ConnectionMonitor(
-                              rpc: sidechainRPC,
-                              name: sidechainRPC.chain.name,
-                            ),
-                            navigateToLogs: (title, logPath, binaryType) {
-                              GetIt.I.get<RootStackRouter>().push(
-                                LogRoute(
-                                  title: title,
-                                  logPath: logPath,
-                                  binaryType: binaryType,
-                                ),
-                              );
-                            },
-                            onOpenConfConfigurator: () {
-                              GetIt.I.get<RootStackRouter>().push(BitcoinConfEditorRoute());
-                            },
-                            onOpenEnforcerConfConfigurator: () {
-                              GetIt.I.get<RootStackRouter>().push(EnforcerConfEditorRoute());
-                            },
-                            onOpenAdditionalConfConfigurator: module.hasConfEditor
-                                ? () {
-                                    GetIt.I.get<RootStackRouter>().push(SidechainConfEditorRoute());
-                                  }
-                                : null,
-                            endWidgets: [
-                              ResetButton(
-                                onTap: () async {
-                                  SidechainSettingsPage.setSection(1);
-                                  tabsRouter.setActiveIndex(tabIndex.settings);
-                                },
+                          if (!model.editingHomepage)
+                            BottomNav(
+                              mainchainInfo: false,
+                              additionalConnection: ConnectionMonitor(
+                                rpc: sidechainRPC,
+                                name: sidechainRPC.chain.name,
                               ),
-                            ],
-                            onlyShowAdditional: true,
-                          ),
+                              navigateToLogs: (title, logPath, binaryType) {
+                                GetIt.I.get<RootStackRouter>().push(
+                                  LogRoute(
+                                    title: title,
+                                    logPath: logPath,
+                                    binaryType: binaryType,
+                                  ),
+                                );
+                              },
+                              onOpenConfConfigurator: () {
+                                GetIt.I.get<RootStackRouter>().push(BitcoinConfEditorRoute());
+                              },
+                              onOpenEnforcerConfConfigurator: () {
+                                GetIt.I.get<RootStackRouter>().push(EnforcerConfEditorRoute());
+                              },
+                              onOpenAdditionalConfConfigurator: module.hasConfEditor
+                                  ? () {
+                                      GetIt.I.get<RootStackRouter>().push(SidechainConfEditorRoute());
+                                    }
+                                  : null,
+                              endWidgets: [
+                                ResetButton(
+                                  onTap: () async {
+                                    SidechainSettingsPage.setSection(1);
+                                    tabsRouter.setActiveIndex(tabIndex.settings);
+                                  },
+                                ),
+                              ],
+                              onlyShowAdditional: true,
+                            ),
                         ],
                       ),
                     );
@@ -667,13 +667,19 @@ class SidechainHomePageViewModel extends BaseViewModel {
 
   Binary get chain => _rpc.chain;
 
+  SidechainHomepageProvider get _homepage => GetIt.I.get<SidechainHomepageProvider>();
+
+  bool get editingHomepage => _homepage.editing;
+
   SidechainHomePageViewModel() {
     _balanceProvider.addListener(notifyListeners);
+    _homepage.addListener(notifyListeners);
   }
 
   @override
   void dispose() {
     super.dispose();
     _balanceProvider.removeListener(notifyListeners);
+    _homepage.removeListener(notifyListeners);
   }
 }

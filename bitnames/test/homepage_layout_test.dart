@@ -47,16 +47,17 @@ void main() {
     await provider.loaded;
     expect(provider.configuration.widgets.map((w) => w.widgetId), ['balance_card', 'quote_bar']);
 
-    provider.addWidget('quote_bar');
-    await provider.saveConfiguration();
+    provider.startEdit();
+    provider.moveTo('quote_bar', 'balance_card');
+    await provider.finishEdit();
 
     final stored = jsonDecode(await settingsFile.readAsString()) as Map<String, dynamic>;
     final layout = HomepageConfiguration.fromJson(stored[_key] as String);
-    expect(layout.widgets.map((w) => w.widgetId), ['balance_card', 'quote_bar', 'quote_bar']);
+    expect(layout.widgets.map((w) => w.widgetId), ['quote_bar', 'balance_card']);
 
     final reread = SidechainHomepageProvider(BitnamesModule());
     await reread.loaded;
-    expect(reread.configuration.widgets.map((w) => w.widgetId), ['balance_card', 'quote_bar', 'quote_bar']);
+    expect(reread.configuration.widgets.map((w) => w.widgetId), ['quote_bar', 'balance_card']);
   });
 
   test('the homepage provider shows the old default layout when no layout is saved', () async {

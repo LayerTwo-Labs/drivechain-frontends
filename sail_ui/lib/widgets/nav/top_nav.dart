@@ -8,12 +8,16 @@ class TopNav extends StatefulWidget implements PreferredSizeWidget {
   final Widget? leadingWidget;
   final Widget? endWidget;
 
+  /// Dims the bar and blocks its taps, while the user edits the homepage.
+  final bool locked;
+
   const TopNav({
     super.key,
     required this.routes,
     this.leadingPadding = true,
     this.leadingWidget,
     this.endWidget,
+    this.locked = false,
   });
 
   @override
@@ -38,47 +42,53 @@ class _TopNavState extends State<TopNav> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Padding(
-                padding: EdgeInsets.only(
-                  left: widget.leadingPadding ? 16 : 0,
-                  bottom: 4,
-                ),
-                child: SailRow(
-                  spacing: SailStyleValues.compactBars(context) ? 16 : 30,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (widget.leadingWidget != null) widget.leadingWidget!,
-                    ...widget.routes.asMap().entries.map(
-                      (entry) => DecoratedBox(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: tabsRouter.activeIndex == (entry.value.optionalKey ?? entry.key)
-                                  ? Colors.orange
-                                  : Colors.transparent,
-                              width: 1,
+              IgnorePointer(
+                ignoring: widget.locked,
+                child: Opacity(
+                  opacity: widget.locked ? 0.4 : 1,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: widget.leadingPadding ? 16 : 0,
+                      bottom: 4,
+                    ),
+                    child: SailRow(
+                      spacing: SailStyleValues.compactBars(context) ? 16 : 30,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (widget.leadingWidget != null) widget.leadingWidget!,
+                        ...widget.routes.asMap().entries.map(
+                          (entry) => DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: tabsRouter.activeIndex == (entry.value.optionalKey ?? entry.key)
+                                      ? Colors.orange
+                                      : Colors.transparent,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: QtTab(
+                              label: entry.value.label,
+                              icon: entry.value.icon,
+                              active: tabsRouter.activeIndex == entry.key,
+                              onTap: () {
+                                if (entry.value.onTap != null) {
+                                  entry.value.onTap!();
+                                } else {
+                                  tabsRouter.setActiveIndex(entry.key);
+                                }
+                              },
                             ),
                           ),
                         ),
-                        child: QtTab(
-                          label: entry.value.label,
-                          icon: entry.value.icon,
-                          active: tabsRouter.activeIndex == entry.key,
-                          onTap: () {
-                            if (entry.value.onTap != null) {
-                              entry.value.onTap!();
-                            } else {
-                              tabsRouter.setActiveIndex(entry.key);
-                            }
-                          },
-                        ),
-                      ),
+                        const Expanded(child: SizedBox()),
+                        if (widget.endWidget != null) widget.endWidget!,
+                        const NotificationBell(),
+                      ],
                     ),
-                    const Expanded(child: SizedBox()),
-                    if (widget.endWidget != null) widget.endWidget!,
-                    const NotificationBell(),
-                  ],
+                  ),
                 ),
               ),
               Divider(height: 1, thickness: 1, color: theme.colors.divider),

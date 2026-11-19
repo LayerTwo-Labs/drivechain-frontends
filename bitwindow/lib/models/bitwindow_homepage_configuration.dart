@@ -3,9 +3,9 @@ import 'package:sail_ui/sail_ui.dart';
 class BitwindowHomepageConfiguration {
   static HomepageConfiguration get defaultConfiguration {
     return HomepageConfiguration(
-      widgets: [
+      widgets: const [
         HomepageWidgetConfig(widgetId: 'quote_bar'),
-        HomepageWidgetConfig(widgetId: 'coin_news_large'),
+        HomepageWidgetConfig(widgetId: 'coin_news', size: WidgetSize.full),
         HomepageWidgetConfig(widgetId: 'latest_transactions'),
         HomepageWidgetConfig(widgetId: 'latest_blocks'),
       ],

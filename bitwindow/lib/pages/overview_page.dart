@@ -7,11 +7,9 @@ import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
-import 'package:bitwindow/providers/homepage_provider.dart' as bitwindow;
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
-import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -29,31 +27,7 @@ class OverviewPage extends StatefulWidget {
 class _OverviewPageState extends State<OverviewPage> {
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<OverviewViewModel>.reactive(
-      viewModelBuilder: () => OverviewViewModel(),
-      builder: (context, viewModel, child) => QtPage(
-        child: HomepageBuilder(
-          configuration: viewModel.homepageConfiguration,
-          widgetCatalog: HomepageWidgetCatalog.getCatalogMap(),
-          isPreview: false,
-        ),
-      ),
-    );
-  }
-}
-
-class OverviewViewModel extends BaseViewModel {
-  bitwindow.BitwindowHomepageProvider get _homepageProvider => GetIt.I.get<bitwindow.BitwindowHomepageProvider>();
-  HomepageConfiguration get homepageConfiguration => _homepageProvider.configuration;
-
-  OverviewViewModel() {
-    _homepageProvider.addListener(notifyListeners);
-  }
-
-  @override
-  void dispose() {
-    _homepageProvider.removeListener(notifyListeners);
-    super.dispose();
+    return QtPage(child: HomepageView(provider: GetIt.I.get<HomepageProvider>()));
   }
 }
 

@@ -4,7 +4,6 @@ export 'messaging_view.dart';
 export 'run_sidechain_app.dart';
 export 'sidechain_conf_editor_page.dart';
 export 'sidechain_conf_editor_viewmodel.dart';
-export 'sidechain_configure_homepage_page.dart';
 export 'sidechain_home_page.dart';
 export 'sidechain_homepage.dart';
 export 'sidechain_homepage_provider.dart';
