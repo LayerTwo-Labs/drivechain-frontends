@@ -27,6 +27,66 @@ BmmBid _bmmBid(wmpb.BmmBid bid) => BmmBid(
   lost: bid.lost,
 );
 
+/// One row per txid, newest first. Core gives one entry per output, so the
+/// entries of a txid add up to one transaction.
+@visibleForTesting
+List<WalletTransaction> walletTransactionsFromEntries(
+  List<wmpb.TransactionEntry> entries,
+  Map<String, String> notes,
+) {
+  final byTxid = <String, WalletTransaction>{};
+  // A replaced or conflicted tx never confirms. Core gives a conflicted
+  // tx a negative count, and the unsigned height field cannot hold it.
+  for (final tx in entries.where((tx) => tx.confirmations >= 0 && !tx.replacedByTxid)) {
+    final received = tx.amountSats > Int64.ZERO ? tx.amountSats : Int64.ZERO;
+    final sent = tx.amountSats < Int64.ZERO ? -tx.amountSats : Int64.ZERO;
+    final fee = Int64((tx.fee.abs() * 100000000).round());
+    final merged = byTxid[tx.txid];
+    if (merged != null) {
+      merged
+        ..receivedSatoshi += received
+        ..sentSatoshi += sent
+        ..feeSats = merged.feeSats > fee ? merged.feeSats : fee
+        ..immature = merged.immature || tx.category == 'immature';
+      if (merged.warningMessage.isEmpty) {
+        merged.warningMessage = tx.warningMessage;
+      }
+      continue;
+    }
+    byTxid[tx.txid] = WalletTransaction(
+      txid: tx.txid,
+      feeSats: fee,
+      receivedSatoshi: received,
+      sentSatoshi: sent,
+      address: tx.hasSidechainDeposit() ? tx.sidechainDeposit.destination : tx.address,
+      addressLabel: tx.label,
+      note: notes[tx.txid] ?? '',
+      warningMessage: tx.warningMessage,
+      immature: tx.category == 'immature',
+      confirmationTime: Confirmation(
+        height: tx.confirmations,
+        // Unconfirmed txs have blockTime 0, which would sink them
+        // to the bottom of the list (off-screen) until a block
+        // lands. Fall back to the wallet tx time so pending txs
+        // sort to the top and show immediately.
+        timestamp: Timestamp(seconds: tx.blockTime != Int64.ZERO ? tx.blockTime : tx.time),
+      ),
+      bmmBid: tx.hasBmmBid() ? _bmmBid(tx.bmmBid) : null,
+      depositRequest: tx.hasSidechainDeposit()
+          ? DepositRequest(slot: tx.sidechainDeposit.slot, destination: tx.sidechainDeposit.destination)
+          : null,
+    );
+  }
+  return byTxid.values.toList()..sort((a, b) {
+    final aTime = a.confirmationTime.timestamp.seconds;
+    final bTime = b.confirmationTime.timestamp.seconds;
+    if (aTime == bTime) {
+      return b.txid.compareTo(a.txid);
+    }
+    return bTime.compareTo(aTime);
+  });
+}
+
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
 class TransactionProvider extends ChangeNotifier implements NetworkScoped {
@@ -167,46 +227,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
               orchestratorWallet.listTransactions(walletId: walletId),
               bitwindowd.bitwindowd.listTransactionNotes(walletId: walletId),
             ).wait;
-            // A replaced or conflicted tx never confirms. Core gives a conflicted
-            // tx a negative count, and the unsigned height field cannot hold it.
-            final transactions = fetchedTransactions.transactions
-                .where((tx) => tx.confirmations >= 0 && !tx.replacedByTxid)
-                .map(
-                  (tx) => WalletTransaction(
-                    txid: tx.txid,
-                    feeSats: Int64((tx.fee.abs() * 100000000).round()),
-                    receivedSatoshi: tx.amountSats > Int64.ZERO ? tx.amountSats : Int64.ZERO,
-                    sentSatoshi: tx.amountSats < Int64.ZERO ? -tx.amountSats : Int64.ZERO,
-                    address: tx.hasSidechainDeposit() ? tx.sidechainDeposit.destination : tx.address,
-                    addressLabel: tx.label,
-                    note: notes[tx.txid] ?? '',
-                    warningMessage: tx.warningMessage,
-                    immature: tx.category == 'immature',
-                    confirmationTime: Confirmation(
-                      height: tx.confirmations,
-                      // Unconfirmed txs have blockTime 0, which would sink them
-                      // to the bottom of the list (off-screen) until a block
-                      // lands. Fall back to the wallet tx time so pending txs
-                      // sort to the top and show immediately.
-                      timestamp: Timestamp(seconds: tx.blockTime != Int64.ZERO ? tx.blockTime : tx.time),
-                    ),
-                    bmmBid: tx.hasBmmBid() ? _bmmBid(tx.bmmBid) : null,
-                    depositRequest: tx.hasSidechainDeposit()
-                        ? DepositRequest(slot: tx.sidechainDeposit.slot, destination: tx.sidechainDeposit.destination)
-                        : null,
-                  ),
-                )
-                .toList();
-            // Sort by confirmation time, newest first
-            transactions.sort((a, b) {
-              final aTime = a.confirmationTime.timestamp.seconds;
-              final bTime = b.confirmationTime.timestamp.seconds;
-              if (aTime == bTime) {
-                return b.txid.compareTo(a.txid);
-              }
-              return bTime.compareTo(aTime);
-            });
-            return transactions;
+            return walletTransactionsFromEntries(fetchedTransactions.transactions, notes);
           },
           (v) => walletTransactions = v,
           equals: const DeepCollectionEquality().equals,
