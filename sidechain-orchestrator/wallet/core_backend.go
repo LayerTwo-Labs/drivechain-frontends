@@ -1386,14 +1386,25 @@ func (p *CoreBackend) previewBumpFee(ctx context.Context, name string, req BumpF
 	}
 
 	preview.CanReplace = true
-	// Core's own bumpfee adds a coin when the change cannot pay the higher fee,
-	// so the change path holds even when the planner finds no room.
-	preview.AddsInputs = req.FeeFromVout == nil
-
 	rate := req.NewFeeRate
 	if rate <= 0 {
 		rate = suggested
 	}
+	bumpTx := bumpFeeTx{
+		OldFeeSats:  oldFee,
+		VsizeBytes:  entry.Vsize,
+		InputCount:  len(tx.Vin),
+		OutputCount: len(tx.Vout),
+	}
+	// No coin Core adds can lift a rate under the replacement floor.
+	if err := checkBumpFeeRate(bumpTx, rate); err != nil {
+		preview.Reason = err.Error()
+		return preview, tx, nil
+	}
+	// Core's own bumpfee adds a coin when the change cannot pay the higher fee,
+	// so the change path holds even when the planner finds no room.
+	preview.AddsInputs = req.FeeFromVout == nil
+
 	target, err := pickBumpFeeOutput(outputs, req.FeeFromVout)
 	if err != nil {
 		preview.Reason = err.Error()
@@ -1402,12 +1413,7 @@ func (p *CoreBackend) previewBumpFee(ctx context.Context, name string, req BumpF
 	// A rebuild spends exactly what the transaction it replaces spends, so only
 	// the change path reaches Core's own coin selection.
 	preview.AddsInputs = target.IsChange
-	plan, err := planBumpFee(bumpFeeTx{
-		OldFeeSats:  oldFee,
-		VsizeBytes:  entry.Vsize,
-		InputCount:  len(tx.Vin),
-		OutputCount: len(tx.Vout),
-	}, rate, target)
+	plan, err := planBumpFee(bumpTx, rate, target)
 	if err != nil {
 		preview.Reason = err.Error()
 		return preview, tx, nil

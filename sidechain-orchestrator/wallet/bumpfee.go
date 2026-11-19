@@ -144,23 +144,32 @@ type bumpFeeTx struct {
 	OutputCount int
 }
 
+// checkBumpFeeRate returns an error when no replacement of tx can pay
+// newFeeRate, whatever output or coin funds it.
+func checkBumpFeeRate(tx bumpFeeTx, newFeeRate int64) error {
+	if tx.VsizeBytes <= 0 {
+		return fmt.Errorf("transaction size %d vB is not valid", tx.VsizeBytes)
+	}
+	if newFeeRate <= 0 {
+		return fmt.Errorf("fee rate must be positive")
+	}
+	minRate := minBumpFeeRate(tx.OldFeeSats, tx.VsizeBytes, tx.InputCount)
+	if newFeeRate < minRate {
+		return fmt.Errorf("fee rate %d sat/vB does not replace a transaction that pays %d sats; use %d sat/vB or more", newFeeRate, tx.OldFeeSats, minRate)
+	}
+	if newFeeRate > math.MaxInt64/tx.VsizeBytes {
+		return fmt.Errorf("fee rate %d sat/vB is too high for a transaction of %d vB", newFeeRate, tx.VsizeBytes)
+	}
+	return nil
+}
+
 // planBumpFee computes the replacement that pays newFeeRate, and takes the
 // higher fee out of target.
 func planBumpFee(tx bumpFeeTx, newFeeRate int64, target BumpFeeOutput) (BumpFeePlan, error) {
-	oldFeeSats, vsize, inputCount := tx.OldFeeSats, tx.VsizeBytes, tx.InputCount
-	if vsize <= 0 {
-		return BumpFeePlan{}, fmt.Errorf("transaction size %d vB is not valid", vsize)
+	if err := checkBumpFeeRate(tx, newFeeRate); err != nil {
+		return BumpFeePlan{}, err
 	}
-	if newFeeRate <= 0 {
-		return BumpFeePlan{}, fmt.Errorf("fee rate must be positive")
-	}
-	minRate := minBumpFeeRate(oldFeeSats, vsize, inputCount)
-	if newFeeRate < minRate {
-		return BumpFeePlan{}, fmt.Errorf("fee rate %d sat/vB does not replace a transaction that pays %d sats; use %d sat/vB or more", newFeeRate, oldFeeSats, minRate)
-	}
-	if newFeeRate > math.MaxInt64/vsize {
-		return BumpFeePlan{}, fmt.Errorf("fee rate %d sat/vB is too high for a transaction of %d vB", newFeeRate, vsize)
-	}
+	oldFeeSats, vsize := tx.OldFeeSats, tx.VsizeBytes
 
 	newFee := vsize * newFeeRate
 	extra := newFee - oldFeeSats

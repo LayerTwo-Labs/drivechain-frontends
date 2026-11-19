@@ -2070,6 +2070,45 @@ func TestCoreBackendPreviewBumpFeeRefusesAFinalTransaction(t *testing.T) {
 
 // Core adds a coin when the change cannot pay the higher fee, so the change
 // path holds even when the planner finds no room in that output.
+func TestCoreBackendBumpFeeRefusesARateUnderTheFloor(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		noChange bool
+	}{
+		{name: "change"},
+		{name: "no change", noChange: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			backend, fake, coreID, _, _ := coreBumpFeeFixture(t)
+			if tc.noChange {
+				previous := fake.handlers["getrawtransaction"]
+				fake.handle("getrawtransaction", func(c bitcoindCall) (any, string) {
+					result, err := previous(c)
+					if mustString(t, c.Params[0]) == coreBumpTxid {
+						tx := result.(map[string]any)
+						tx["vout"] = tx["vout"].([]map[string]any)[:1]
+					}
+					return result, err
+				})
+			}
+			req := BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 1}
+
+			preview, err := backend.PreviewBumpFee(context.Background(), coreID, req)
+			require.NoError(t, err)
+			assert.True(t, preview.CanReplace)
+			assert.False(t, preview.AddsInputs)
+			assert.Nil(t, preview.Plan)
+			assert.Contains(t, preview.Reason, "use 3 sat/vB or more")
+
+			_, err = backend.BumpFee(context.Background(), coreID, req)
+			require.Error(t, err)
+			assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+			assert.Empty(t, fake.callsFor("bumpfee"))
+			assert.Empty(t, fake.callsFor("sendrawtransaction"))
+		})
+	}
+}
+
 func TestCoreBackendPreviewBumpFeeAddsInputsForTheChangePath(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
