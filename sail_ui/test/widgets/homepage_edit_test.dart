@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -65,7 +66,12 @@ Future<_MemoryHomepageProvider> _pump(WidgetTester tester) async {
         data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
         child: child!,
       ),
-      home: Scaffold(body: HomepageView(provider: provider)),
+      home: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(SailStyleValues.padding12),
+          child: HomepageView(provider: provider),
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -92,6 +98,26 @@ Future<void> _addFromLibrary(WidgetTester tester, String id, WidgetSize? size) a
   await tester.pumpAndSettle();
 }
 
+/// The part of [finder] that its clipping ancestors let paint, in global coordinates.
+Rect _visibleRect(WidgetTester tester, Finder finder) {
+  final box = tester.renderObject<RenderBox>(finder);
+  var visible = MatrixUtils.transformRect(box.getTransformTo(null), Offset.zero & box.size);
+  for (RenderObject? node = box.parent; node != null; node = node.parent) {
+    if (node is! RenderBox) {
+      continue;
+    }
+    final Rect? clip = switch (node) {
+      RenderClipRect() => node.clipper?.getClip(node.size) ?? Offset.zero & node.size,
+      RenderAbstractViewport() when (node as dynamic).clipBehavior != Clip.none => Offset.zero & node.size,
+      _ => null,
+    };
+    if (clip != null) {
+      visible = visible.intersect(MatrixUtils.transformRect(node.getTransformTo(null), clip));
+    }
+  }
+  return visible;
+}
+
 void main() {
   testWidgets('edit homepage starts edit mode, and done saves and ends it', (tester) async {
     final provider = await _pump(tester);
@@ -110,6 +136,16 @@ void main() {
     expect(find.byKey(const Key('HomepageEditBar')), findsNothing);
     expect(find.byKey(const Key('HomepageEdit')), findsOneWidget);
   });
+
+  testWidgets('the remove badges on the top and left edge show in full', (tester) async {
+    await _pump(tester);
+    await _startEdit(tester);
+
+    for (final id in ['quotes', 'news']) {
+      final badge = find.byKey(Key('HomepageRemove-$id'));
+      expect(_visibleRect(tester, badge), tester.getRect(badge), reason: id);
+    }
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
   testWidgets('a widget dragged onto another widget takes its place', (tester) async {
     final provider = await _pump(tester);

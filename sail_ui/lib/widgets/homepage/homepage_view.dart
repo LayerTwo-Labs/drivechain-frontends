@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+const _badgeOverhang = 8.0;
+
 /// The homepage widgets. In edit mode the user drags, removes and adds widgets.
 class HomepageView extends StatefulWidget {
   final HomepageProvider provider;
@@ -37,25 +39,29 @@ class _HomepageViewState extends State<HomepageView> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                child: SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final row in homepageRows(provider.widgets, provider.catalog)) _row(row, editing),
-                    if (!editing)
-                      Center(
-                        child: SailButton(
-                          key: const Key('HomepageEdit'),
-                          label: 'Edit homepage',
-                          variant: ButtonVariant.outline,
-                          small: true,
-                          skipLoading: true,
-                          disabled: !provider.ready,
-                          onPressed: () async => provider.startEdit(),
+              child: ClipRect(
+                clipper: _OutsetClipper(editing ? _badgeOverhang : 0),
+                child: SingleChildScrollView(
+                  clipBehavior: Clip.none,
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final row in homepageRows(provider.widgets, provider.catalog)) _row(row, editing),
+                      if (!editing)
+                        Center(
+                          child: SailButton(
+                            key: const Key('HomepageEdit'),
+                            label: 'Edit homepage',
+                            variant: ButtonVariant.outline,
+                            small: true,
+                            skipLoading: true,
+                            disabled: !provider.ready,
+                            onPressed: () async => provider.startEdit(),
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -200,8 +206,8 @@ class _EditableWidget extends StatelessWidget {
                 child: IgnorePointer(child: child),
               ),
               Positioned(
-                left: -8,
-                top: -8,
+                left: -_badgeOverhang,
+                top: -_badgeOverhang,
                 child: HomepageRoundBadge(
                   key: Key('HomepageRemove-$widgetId'),
                   icon: SailSVGAsset.minus,
@@ -286,6 +292,19 @@ class _EditBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Clips to the child's box grown by [outset] on the top, left and right.
+class _OutsetClipper extends CustomClipper<Rect> {
+  final double outset;
+
+  const _OutsetClipper(this.outset);
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(-outset, -outset, size.width + outset, size.height);
+
+  @override
+  bool shouldReclip(_OutsetClipper old) => old.outset != outset;
 }
 
 class _DashedOutline extends CustomPainter {
