@@ -95,4 +95,38 @@ void main() {
     expect(find.byType(Dialog), findsNothing);
     expect(provider.tempConfiguration.widgets.map((w) => w.widgetId), ['a', 'b', 'c']);
   });
+
+  testWidgets('the add widget dialog fits a short window and closes with Close', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final catalog = {
+      for (var i = 0; i < 40; i++) '$i': _info('$i'),
+    };
+    final provider = _FakeHomepageProvider(catalog);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(0.5)),
+          child: child!,
+        ),
+        home: SailTheme(
+          data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+          child: SailConfigureHomePage(widgetCatalog: catalog, provider: provider),
+        ),
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(SailButton, 'Add Widget').first);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    final close = find.widgetWithText(SailButton, 'Close').first;
+    expect(tester.getRect(close).bottom, lessThanOrEqualTo(600));
+
+    await tester.tap(close);
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsNothing);
+  });
 }
