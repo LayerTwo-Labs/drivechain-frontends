@@ -82,16 +82,13 @@ class TimestampProvider extends ChangeNotifier {
 
     try {
       final resp = await _bitwindowRPC.misc.timestampFile(filename, fileData);
-
-      final timestamp = FileTimestamp(
-        id: resp.id,
-        filename: filename,
-        fileHash: resp.fileHash,
-        txid: resp.txid,
-        status: 'confirming',
+      final stored = await _bitwindowRPC.misc.listTimestamps();
+      final timestamp = stored.firstWhere(
+        (t) => t.id == resp.id,
+        orElse: () => throw StateError('timestamp ${resp.id} is not in the list'),
       );
 
-      timestamps.insert(0, timestamp);
+      timestamps = stored;
       notifyListeners();
       startPolling();
       return timestamp;
