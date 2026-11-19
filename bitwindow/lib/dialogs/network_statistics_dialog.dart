@@ -215,6 +215,12 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
   }
 }
 
+/// Top of the bandwidth graph Y axis: the peak rate plus 10%, at least 1 KB/s.
+double bandwidthGraphMaxY(Iterable<FlSpot> spots) {
+  final peak = spots.fold<double>(1024, (max, s) => s.y > max ? s.y : max);
+  return peak * 1.1;
+}
+
 class _BandwidthGraph extends StatelessWidget {
   final List<BandwidthDataPoint> bandwidthHistory;
   final String Function(double) formatBandwidth;
@@ -250,10 +256,7 @@ class _BandwidthGraph extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Find max value for Y axis scaling
-    final maxRx = rxSpots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    final maxTx = txSpots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    final maxY = (maxRx > maxTx ? maxRx : maxTx) * 1.1; // Add 10% padding
+    final maxY = bandwidthGraphMaxY([...rxSpots, ...txSpots]);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
