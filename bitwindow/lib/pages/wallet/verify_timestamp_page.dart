@@ -39,12 +39,10 @@ class VerifyTimestampViewModel extends BaseViewModel {
         notifyListeners();
 
         final bytes = await file.readAsBytes();
-        final verifyResult = await _timestampProvider.verifyFile(bytes, selectedFilename!);
-
-        if (verifyResult != null) {
-          verificationResult = verifyResult;
-        } else {
-          modelError = _timestampProvider.modelError ?? 'File not found in timestamps';
+        try {
+          verificationResult = await _timestampProvider.verifyFile(bytes, selectedFilename!);
+        } catch (e) {
+          modelError = e.toString();
         }
 
         isVerifying = false;
