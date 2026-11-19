@@ -50,6 +50,12 @@ import 'package:sail_ui/pages/router.gr.dart' as sail_routes;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/legacy.dart';
 
+/// Opens a tab of the Wallet page.
+void openWalletSubtab(String subtab) {
+  GetIt.I.get<AppRouter>().navigate(WalletRoute());
+  WalletPage.openSubtab(subtab);
+}
+
 /// Opens a tab of the Mining page.
 void _openMining(String subtab) {
   GetIt.I.get<AppRouter>().navigate(const MiningRoute());
@@ -226,35 +232,17 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
       CommandItem(
         label: 'Send Money',
         category: 'Banking',
-        onSelected: () {
-          final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(1);
-          if (WalletPage.tabKey.currentState != null) {
-            WalletPage.tabKey.currentState!.setIndex(1, null);
-          }
-        },
+        onSelected: () => openWalletSubtab('Send'),
       ),
       CommandItem(
         label: 'Request Money',
         category: 'Banking',
-        onSelected: () {
-          final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(1);
-          if (WalletPage.tabKey.currentState != null) {
-            WalletPage.tabKey.currentState!.setIndex(2, null);
-          }
-        },
+        onSelected: () => openWalletSubtab('Receive'),
       ),
       CommandItem(
         label: 'See Wallet Transactions',
         category: 'Banking',
-        onSelected: () {
-          final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(1);
-          if (WalletPage.tabKey.currentState != null) {
-            WalletPage.tabKey.currentState!.setIndex(0, null);
-          }
-        },
+        onSelected: () => openWalletSubtab('Overview'),
       ),
       CommandItem(
         label: 'Deniability',
@@ -605,34 +593,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   members: [
                     PlatformMenuItem(
                       label: 'Send Money',
-                      onSelected: () {
-                        final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(1);
-
-                        if (WalletPage.tabKey.currentState != null) {
-                          WalletPage.tabKey.currentState!.setIndex(1, null);
-                        }
-                      },
+                      onSelected: () => openWalletSubtab('Send'),
                     ),
                     PlatformMenuItem(
                       label: 'Request Money',
-                      onSelected: () {
-                        final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(1);
-                        if (WalletPage.tabKey.currentState != null) {
-                          WalletPage.tabKey.currentState!.setIndex(2, null);
-                        }
-                      },
+                      onSelected: () => openWalletSubtab('Receive'),
                     ),
                     PlatformMenuItem(
                       label: 'See Wallet Transactions',
-                      onSelected: () {
-                        final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(1);
-                        if (WalletPage.tabKey.currentState != null) {
-                          WalletPage.tabKey.currentState!.setIndex(0, null);
-                        }
-                      },
+                      onSelected: () => openWalletSubtab('Overview'),
                     ),
                     PlatformMenuItem(
                       label: 'Address Book',
@@ -649,9 +618,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           builder: (context) => const BitcoinURIDialog(),
                         );
                         if (result != null) {
-                          final tabsRouter = _routerKey.currentState?.controller;
-                          tabsRouter?.setActiveIndex(1);
-                          WalletPage.openSubtab('Send');
+                          openWalletSubtab('Send');
                           WalletPage.handleBitcoinURI(result);
                         }
                       },
