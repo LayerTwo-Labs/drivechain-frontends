@@ -266,7 +266,7 @@ class _Legend extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: SailText.primary12(
-                      '${bucket.label} ${activeTicker.symbol}',
+                      '${SailStyleValues.phoneLayout(context) ? phoneBucketLabel(buckets, index) : bucket.label} ${activeTicker.symbol}',
                       monospace: true,
                     ),
                   ),
@@ -286,4 +286,29 @@ class _Legend extends StatelessWidget {
       },
     );
   }
+}
+
+/// The short label of bucket [index] on a phone: ".001–.01", "<.001" for the first bucket, ">10" for the last.
+String phoneBucketLabel(List<UTXOBucket> buckets, int index) {
+  final bounds = buckets[index].label.split(' - ');
+  if (bounds.length != 2) {
+    return buckets[index].label;
+  }
+  final low = _shortAmount(bounds[0]);
+  final high = _shortAmount(bounds[1]);
+  if (buckets.length > 1 && index == 0) {
+    return '<$high';
+  }
+  if (buckets.length > 1 && index == buckets.length - 1) {
+    return '>$low';
+  }
+  return '$low–$high';
+}
+
+String _shortAmount(String amount) {
+  var s = amount.trim();
+  if (s.contains('.')) {
+    s = s.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+  }
+  return s.startsWith('0.') ? s.substring(1) : s;
 }
