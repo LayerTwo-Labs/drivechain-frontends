@@ -93,17 +93,17 @@ void main(List<String> args) async {
         try {
           WidgetsFlutterBinding.ensureInitialized();
 
-          // Get the current window controller to check if this is a sub-window
-          final windowController = await WindowController.fromCurrentEngine();
+          final windowController = hasDesktopWindow ? await WindowController.fromCurrentEngine() : null;
+          final windowArguments = windowController?.arguments ?? '';
 
-          final (applicationDir, logFile, log) = await init(windowController.arguments);
-          if (subWindowTimers != null) {
+          final (applicationDir, logFile, log) = await init(windowArguments);
+          if (windowController != null && subWindowTimers != null) {
             return await runPooledSubWindow(windowController, subWindowTimers, log, logFile);
           }
 
           // If arguments are not empty, this is a sub-window
-          if (windowController.arguments.isNotEmpty) {
-            return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
+          if (windowArguments.isNotEmpty) {
+            return runMultiWindow(windowArguments, log, applicationDir, logFile);
           }
 
           await runMainWindow(log, applicationDir, logFile);
@@ -486,11 +486,13 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
     title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
   );
 
-  await windowManager.ensureInitialized();
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
+  if (hasDesktopWindow) {
+    await windowManager.ensureInitialized();
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
 
   await setupSignalHandlers(log);
 

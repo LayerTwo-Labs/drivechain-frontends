@@ -56,7 +56,7 @@ class WindowProvider extends ChangeNotifier {
   Future<void> _initialize({required bool isMainWindow}) async {
     // Only the main window registers the handler in unidirectional mode
     // Sub-windows can invoke methods but don't register
-    if (isMainWindow) {
+    if (isMainWindow && hasDesktopWindow) {
       const channel = WindowMethodChannel(
         _windowChannel,
         mode: ChannelMode.unidirectional,
