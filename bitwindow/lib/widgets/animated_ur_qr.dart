@@ -30,6 +30,8 @@ class _AnimatedURQRState extends State<AnimatedURQR> {
   late List<String> _frames;
   int _index = 0;
   Timer? _timer;
+  final Map<int, QrPainter> _painters = {};
+  Color? _paintersColor;
 
   @override
   void initState() {
@@ -48,6 +50,7 @@ class _AnimatedURQRState extends State<AnimatedURQR> {
 
   void _buildFrames() {
     _frames = URPsbt.encode(widget.psbt, maxFragmentLen: widget.maxFragmentLen);
+    _painters.clear();
     _index = 0;
     if (_frames.length > 1) {
       _timer = Timer.periodic(Duration(milliseconds: (1000 / widget.fps).round()), (_) {
@@ -65,6 +68,24 @@ class _AnimatedURQRState extends State<AnimatedURQR> {
     super.dispose();
   }
 
+  /// One painter per frame, so a frame computes its QR matrix one time.
+  QrPainter _painter(Color color) {
+    if (color != _paintersColor) {
+      _painters.clear();
+      _paintersColor = color;
+    }
+    return _painters.putIfAbsent(
+      _index,
+      () => QrPainter(
+        data: _frames[_index].toUpperCase(),
+        version: QrVersions.auto,
+        gapless: true,
+        eyeStyle: QrEyeStyle(color: color, eyeShape: QrEyeShape.square),
+        dataModuleStyle: QrDataModuleStyle(color: color),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
@@ -77,12 +98,9 @@ class _AnimatedURQRState extends State<AnimatedURQR> {
           child: SizedBox(
             width: widget.size,
             height: widget.size,
-            child: QrImageView(
-              padding: EdgeInsets.zero,
-              data: _frames[_index].toUpperCase(),
-              version: QrVersions.auto,
-              eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
-              dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+            child: Semantics(
+              label: 'qr code',
+              child: CustomPaint(painter: _painter(theme.colors.text)),
             ),
           ),
         ),
