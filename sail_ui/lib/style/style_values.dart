@@ -50,6 +50,10 @@ abstract class SailStyleValues {
     fontSize: 20,
     fontWeight: regularWeight,
   );
+  static const TextStyle eighteen = TextStyle(
+    fontSize: 18,
+    fontWeight: regularWeight,
+  );
   static const TextStyle sixteen = TextStyle(
     fontSize: 16,
     fontWeight: regularWeight,
