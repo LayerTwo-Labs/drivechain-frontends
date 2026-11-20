@@ -26,6 +26,7 @@ class BitDriveTab extends StatelessWidget {
               ? SailButton(
                   label: 'Open Folder',
                   variant: ButtonVariant.secondary,
+                  small: SailStyleValues.phoneLayout(context),
                   icon: SailSVGAsset.folderOpen,
                   onPressed: () async => model.openBitdriveDir(),
                 )
@@ -219,6 +220,9 @@ class _MyFilesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return _PhoneMyFiles(model: model);
+    }
     return SailColumn(
       spacing: SailStyleValues.padding16,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,15 +321,87 @@ class _MyFilesTab extends StatelessWidget {
       ],
     );
   }
+}
 
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) {
-      return '$bytes B';
-    }
-    if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    }
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+String _formatFileSize(int bytes) {
+  if (bytes < 1024) {
+    return '$bytes B';
+  }
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
+DateTime _fileDate(bitdrivepb.BitDriveFile file) =>
+    file.hasCreatedAt() ? file.createdAt.toDateTime() : DateTime.fromMillisecondsSinceEpoch(file.timestamp * 1000);
+
+class _PhoneMyFiles extends StatelessWidget {
+  final BitDriveViewModel model;
+
+  const _PhoneMyFiles({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final files = model.downloadedFiles;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SailText.primary15('Your files stored on ${activeTicker.name}', bold: true),
+        SailText.secondary12(
+          '${files.length} files downloaded${model.pendingDownloadsCount > 0 ? ', ${model.pendingDownloadsCount} pending' : ''}',
+        ),
+        const SizedBox(height: SailStyleValues.padding04),
+        SailRow(
+          spacing: SailStyleValues.padding08,
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SailButton(
+              label: 'Scan for new',
+              variant: model.pendingDownloadsCount > 0 ? ButtonVariant.secondary : ButtonVariant.primary,
+              small: true,
+              loading: model.isScanning,
+              loadingLabel: 'Scanning...',
+              onPressed: () async => model.scanFiles(),
+            ),
+            SailButton(
+              label: 'Download all',
+              variant: model.pendingDownloadsCount > 0 ? ButtonVariant.primary : ButtonVariant.secondary,
+              small: true,
+              disabled: model.pendingDownloadsCount == 0,
+              loading: model.isDownloading,
+              loadingLabel: 'Downloading...',
+              onPressed: () async => model.downloadFiles(),
+            ),
+          ],
+        ),
+        const SizedBox(height: SailStyleValues.padding12),
+        Expanded(
+          child: files.isEmpty
+              ? Center(child: SailText.secondary13('No files downloaded yet'))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(height: 1, color: SailTheme.of(context).colors.divider),
+                    Expanded(
+                      child: SailDividedList(
+                        itemCount: files.length,
+                        itemBuilder: (context, index) {
+                          final file = files[index];
+                          return SailListRow(
+                            title: file.filename,
+                            subtitle: DateFormat('MMM d, yyyy').format(_fileDate(file)),
+                            trailing: SailText.primary13(_formatFileSize(file.sizeBytes.toInt())),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ],
+    );
   }
 }
 
