@@ -1563,7 +1563,7 @@ func (h *WalletHandler) DecodeTransaction(ctx context.Context, req *pb.DecodeTra
 
 	response := decodedToResponse(decoded)
 	if decoded.Form == wallet.DecodedFormTxid {
-		result, err := h.decodeTxidResponse(ctx, decoded.TxID, req.WalletId)
+		result, err := h.decodeTxidResponse(ctx, decoded.TxID, req.WalletId, req.BlockHash)
 		if err != nil {
 			return nil, err
 		}
@@ -1591,13 +1591,38 @@ func (h *WalletHandler) DecodeTransaction(ctx context.Context, req *pb.DecodeTra
 	return response, nil
 }
 
-func (h *WalletHandler) decodeTxidResponse(ctx context.Context, txid, walletID string) (*pb.DecodeTransactionResponse, error) {
+// readTx reads txid with no txindex where it can: from blockHash when the
+// caller knows it, else from the block that the wallet names. A mempool tx
+// reads by txid alone.
+func (h *WalletHandler) readTx(ctx context.Context, walletID, txid, blockHash string) (*wallet.RawTransaction, error) {
+	chain := h.engine.ChainForWallet(walletID)
+	blocks, readsBlocks := chain.(wallet.BlockTxSource)
+	if !readsBlocks {
+		return chain.GetRawTransaction(ctx, txid)
+	}
+	if blockHash == "" {
+		// A wallet error says only that the wallet cannot name the block.
+		if tx, err := h.engine.Backend().GetWalletTransaction(ctx, walletID, txid); err == nil {
+			blockHash = tx.Blockhash
+		}
+	}
+	if blockHash != "" {
+		return blocks.GetBlockTransaction(ctx, txid, blockHash)
+	}
+	rawTx, err := chain.GetRawTransaction(ctx, txid)
+	if errors.Is(err, wallet.ErrTxUnreadable) {
+		return nil, fmt.Errorf("not in the wallet or the mempool, and the node keeps no txindex: %w", err)
+	}
+	return rawTx, err
+}
+
+func (h *WalletHandler) decodeTxidResponse(ctx context.Context, txid, walletID, blockHash string) (*pb.DecodeTransactionResponse, error) {
 	resolved, err := h.engine.ResolveWalletID(walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	rawTx, err := h.engine.ChainForWallet(resolved).GetRawTransaction(ctx, txid)
+	rawTx, err := h.readTx(ctx, resolved, txid, blockHash)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction %s not found: %w", txid, err).Error())
 	}
@@ -1651,9 +1676,20 @@ func (h *WalletHandler) rawTxInputs(ctx context.Context, walletID string, rawTx 
 			input.ScriptSigHex = vin.ScriptSig.Hex
 		}
 		resolved := false
-		if !input.IsCoinbase && vin.TxID != "" {
-			prevTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, vin.TxID)
-			if err == nil && vin.Vout >= 0 && vin.Vout < len(prevTx.Vout) {
+		switch {
+		case vin.Prevout != nil:
+			input.ValueSats = int64(math.Round(vin.Prevout.Value * 1e8))
+			input.Address = vin.Prevout.ScriptPubKey.Address
+			total += input.ValueSats
+			resolved = true
+		case input.IsCoinbase || vin.TxID == "":
+		default:
+			if prevOut, ok := h.walletTxOutput(ctx, walletID, vin.TxID, vin.Vout); ok {
+				input.ValueSats = prevOut.ValueSats
+				input.Address = prevOut.Address
+				total += input.ValueSats
+				resolved = true
+			} else if prevTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, vin.TxID); err == nil && vin.Vout >= 0 && vin.Vout < len(prevTx.Vout) {
 				prevOut := prevTx.Vout[vin.Vout]
 				input.ValueSats = int64(math.Round(prevOut.Value * 1e8))
 				input.Address = prevOut.ScriptPubKey.Address

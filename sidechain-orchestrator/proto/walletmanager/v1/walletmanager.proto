@@ -1219,6 +1219,9 @@ message DecodeTransactionRequest {
   string wallet_id = 2;
   // Check output ownership with the wallet backend. This can read the network.
   bool check_ownership = 3;
+  // Block that holds a txid input, when the caller knows it. Core with no
+  // txindex reads a confirmed tx outside the wallet only from its block.
+  string block_hash = 4;
 }
 
 // DecodedForm reports which artifact the input was recognized as.

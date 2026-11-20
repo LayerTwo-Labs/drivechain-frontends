@@ -8789,8 +8789,11 @@ type DecodeTransactionRequest struct {
 	WalletId string `protobuf:"bytes,2,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
 	// Check output ownership with the wallet backend. This can read the network.
 	CheckOwnership bool `protobuf:"varint,3,opt,name=check_ownership,json=checkOwnership,proto3" json:"check_ownership,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Block that holds a txid input, when the caller knows it. Core with no
+	// txindex reads a confirmed tx outside the wallet only from its block.
+	BlockHash     string `protobuf:"bytes,4,opt,name=block_hash,json=blockHash,proto3" json:"block_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DecodeTransactionRequest) Reset() {
@@ -8842,6 +8845,13 @@ func (x *DecodeTransactionRequest) GetCheckOwnership() bool {
 		return x.CheckOwnership
 	}
 	return false
+}
+
+func (x *DecodeTransactionRequest) GetBlockHash() string {
+	if x != nil {
+		return x.BlockHash
+	}
+	return ""
 }
 
 type DecodeTransactionResponse struct {
@@ -12104,11 +12114,13 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x11script_pubkey_asm\x18\x05 \x01(\tR\x0fscriptPubkeyAsm\x12*\n" +
 	"\x11script_pubkey_hex\x18\x06 \x01(\tR\x0fscriptPubkeyHex\x12\x1b\n" +
 	"\tis_change\x18\a \x01(\bR\bisChange\x12\x17\n" +
-	"\ais_mine\x18\b \x01(\bR\x06isMine\"v\n" +
+	"\ais_mine\x18\b \x01(\bR\x06isMine\"\x95\x01\n" +
 	"\x18DecodeTransactionRequest\x12\x14\n" +
 	"\x05input\x18\x01 \x01(\tR\x05input\x12\x1b\n" +
 	"\twallet_id\x18\x02 \x01(\tR\bwalletId\x12'\n" +
-	"\x0fcheck_ownership\x18\x03 \x01(\bR\x0echeckOwnership\"\xc4\x05\n" +
+	"\x0fcheck_ownership\x18\x03 \x01(\bR\x0echeckOwnership\x12\x1d\n" +
+	"\n" +
+	"block_hash\x18\x04 \x01(\tR\tblockHash\"\xc4\x05\n" +
 	"\x19DecodeTransactionResponse\x121\n" +
 	"\x04form\x18\x01 \x01(\x0e2\x1d.walletmanager.v1.DecodedFormR\x04form\x12\x12\n" +
 	"\x04txid\x18\x02 \x01(\tR\x04txid\x12\x18\n" +

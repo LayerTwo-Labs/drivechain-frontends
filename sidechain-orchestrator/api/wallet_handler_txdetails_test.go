@@ -28,6 +28,7 @@ type detailsProvider struct {
 	rawTxErr   error
 	walletTx   *wallet.WalletTx
 	walletTxs  map[string]*wallet.WalletTx
+	walletErr  error
 	unreadable map[string]bool
 	blockTx    *wallet.RawTransaction
 	owned      map[string]bool
@@ -39,6 +40,9 @@ type detailsProvider struct {
 func (f *detailsProvider) GetWalletTransaction(_ context.Context, _, txid string) (*wallet.WalletTx, error) {
 	if tx, ok := f.walletTxs[txid]; ok {
 		return tx, nil
+	}
+	if f.walletErr != nil {
+		return nil, f.walletErr
 	}
 	if f.walletTx != nil {
 		return f.walletTx, nil
