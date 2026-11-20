@@ -486,6 +486,7 @@ class ReceivePageViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    _bitwindowRPC.removeListener(generateNewAddress);
     transactionsProvider.removeListener(notifyListeners);
     _addressBookProvider.removeListener(notifyListeners);
     _hdWalletProvider.removeListener(notifyListeners);
