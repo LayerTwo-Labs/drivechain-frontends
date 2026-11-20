@@ -7,8 +7,24 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 final _proposals = [
-  SidechainProposal(slot: 9, title: 'Zeta', description: 'Second', voteCount: 1, proposalAge: 30, dataHash: 'bb'),
-  SidechainProposal(slot: 7, title: 'Alpha', description: 'First', voteCount: 4, proposalAge: 10, dataHash: 'aa'),
+  SidechainProposal(
+    slot: 9,
+    title: 'Zeta',
+    description: 'Second',
+    voteCount: 1,
+    proposalAge: 30,
+    proposalHeight: 1204,
+    dataHash: 'bb',
+  ),
+  SidechainProposal(
+    slot: 7,
+    title: 'Alpha',
+    description: 'First',
+    voteCount: 4,
+    proposalAge: 10,
+    proposalHeight: 1180,
+    dataHash: 'aa',
+  ),
 ];
 
 void main() {
@@ -46,6 +62,15 @@ void main() {
     expect(find.text('No'), findsOneWidget);
   });
 
+  testWidgets('shows the proposal height under Height', (tester) async {
+    await pumpTable(tester);
+
+    expect(find.text('Fails'), findsNothing);
+    expect(find.text('Height'), findsOneWidget);
+    expect(find.text('1204'), findsOneWidget);
+    expect(find.text('1180'), findsOneWidget);
+  });
+
   testWidgets('sorts the rows by slot at first', (tester) async {
     await pumpTable(tester);
 
@@ -67,7 +92,7 @@ void main() {
   testWidgets('a tap on each header sorts without an error', (tester) async {
     await pumpTable(tester);
 
-    for (final header in ['Vote', 'SC #', 'Replacement', 'Title', 'Description', 'Age', 'Fails', 'Hash']) {
+    for (final header in ['Vote', 'SC #', 'Replacement', 'Title', 'Description', 'Age', 'Height', 'Hash']) {
       await tester.tap(find.text(header));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: header);
