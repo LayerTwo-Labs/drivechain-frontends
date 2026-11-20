@@ -1,8 +1,13 @@
 import 'package:intl/intl.dart';
 
+final _defaultFormats = <String, DateFormat>{};
+
+/// The default [DateFormat] of [locale], built on first use.
+DateFormat defaultDateFormat(String locale) => _defaultFormats.putIfAbsent(locale, () => DateFormat(null, locale));
+
 extension FormatTime on DateTime {
   String format() {
-    return DateFormat().format(toLocal());
+    return defaultDateFormat(Intl.getCurrentLocale()).format(toLocal());
   }
 }
 
