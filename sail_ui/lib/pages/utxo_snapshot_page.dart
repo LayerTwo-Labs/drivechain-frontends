@@ -74,7 +74,6 @@ class _UTXOSnapshotPageState extends State<UTXOSnapshotPage> {
         return;
       }
       setState(() {
-        _step.endTime = DateTime.now();
         _error = e.toString();
       });
     }
@@ -173,7 +172,7 @@ class _UTXOSnapshotPageState extends State<UTXOSnapshotPage> {
                             child: ProgressStepTile(
                               name: _step.name,
                               isCompleted: _step.isCompleted,
-                              isActive: _running && !_step.isCompleted,
+                              isActive: _running && _error == null && !_step.isCompleted,
                               duration: _step.duration,
                             ),
                           ),
