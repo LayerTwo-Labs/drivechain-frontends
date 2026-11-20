@@ -49,4 +49,29 @@ void main() {
     await backend.poll();
     expect(notifies, 1);
   });
+
+  test('a watch frame that only moves the uptime or beats does not notify', () async {
+    final backend = BackendStateProvider(_Orchestrator());
+    var notifies = 0;
+    backend.addListener(() => notifies++);
+
+    backend.applyWatchFrame(
+      WatchBinariesResponse(
+        binaries: [BinaryStatusMsg(name: 'enforcer', running: true, uptimeSeconds: Int64(1))],
+      ),
+    );
+    expect(notifies, 1);
+
+    backend.applyWatchFrame(WatchBinariesResponse(heartbeat: true));
+    backend.applyWatchFrame(
+      WatchBinariesResponse(
+        binaries: [BinaryStatusMsg(name: 'enforcer', running: true, uptimeSeconds: Int64(9))],
+      ),
+    );
+    expect(notifies, 1);
+    expect(backend.binaries['enforcer']!.running, isTrue);
+
+    backend.applyWatchFrame(WatchBinariesResponse(binaries: [BinaryStatusMsg(name: 'enforcer')]));
+    expect(notifies, 2);
+  });
 }
