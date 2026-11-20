@@ -102,12 +102,24 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     if (resp.heartbeat) {
       return;
     }
+    final frame = resp.deepCopy()..clearSeq();
+    if (frame == _lastFrame && identical(wallets, _lastFrameWallets) && activeWalletId == _lastFrameActiveId) {
+      return;
+    }
     _applyState(
       protoWallets: resp.wallets,
       newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId,
       state: resp.state,
     );
+    _lastFrame = frame;
+    _lastFrameWallets = wallets;
+    _lastFrameActiveId = activeWalletId;
   }
+
+  // The stream repeats a frame with the same data on each backend event.
+  wmpb.WatchWalletDataResponse? _lastFrame;
+  List<WalletData>? _lastFrameWallets;
+  String? _lastFrameActiveId;
 
   void _applyState({
     required Iterable<dynamic> protoWallets,
