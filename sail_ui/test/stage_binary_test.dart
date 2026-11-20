@@ -147,9 +147,25 @@ void main() {
       });
 
       test('writes nothing when the bundle file did not change', () async {
-        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+        final reported = <String>[];
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, onStaged: (name, _) => reported.add(name));
 
         expect(staged.readAsBytesSync(), [7, 7, 7]);
+        expect(reported, isEmpty);
+      });
+
+      test('reports each binary it wrote', () async {
+        File('${staged.path}.stamp').deleteSync();
+        final reported = <(String, String)>[];
+
+        await stageEmbeddedBinaries(
+          Logger(level: Level.off),
+          bundle,
+          out,
+          onStaged: (name, file) => reported.add((name, file.path)),
+        );
+
+        expect(reported, [('hwi-daemon', staged.path)]);
       });
 
       test('copies a bundle file with a new modification time', () async {
