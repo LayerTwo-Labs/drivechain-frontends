@@ -196,6 +196,7 @@ class PaymentCodeField extends StatelessWidget {
       readOnly: true,
       minLines: phone ? 1 : null,
       maxLines: phone ? null : 1,
+      alignSuffixTop: phone,
       suffixWidget: CopyButton(text: code),
     );
   }

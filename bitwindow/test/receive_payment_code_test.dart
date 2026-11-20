@@ -42,6 +42,8 @@ void main() {
     final copy = tester.getRect(find.byType(CopyButton));
     expect(text.height, greaterThan(30));
     expect(copy.left, greaterThanOrEqualTo(text.right - 1));
+    expect(copy.center.dy, lessThan(text.center.dy));
+    expect(copy.top, lessThan(text.top + 8));
     expect(copy.right, lessThanOrEqualTo(390));
   });
 
