@@ -140,6 +140,7 @@ class TrafficGraphContent extends StatelessWidget {
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 50,
+                    interval: maxY / 4,
                     getTitlesWidget: (value, meta) {
                       return SailText.secondary12(_formatBandwidth(value));
                     },
