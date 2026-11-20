@@ -1087,7 +1087,10 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary16('Keys', bold: true),
+          if (SailStyleValues.phoneLayout(context))
+            SailText.primary15('Keys', bold: true)
+          else
+            SailText.primary16('Keys', bold: true),
           if (_total > 1) ...[
             const SizedBox(height: 12),
             SailSlider.range(
@@ -1420,6 +1423,55 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       ('Hardware Wallet', _pathError == null && !_restoringBackup, () async => _addFromDevice(context, index)),
       ('Restore backup', !_restoringBackup, () async => _restoreFromBackup(context)),
     ];
+    if (SailStyleValues.phoneLayout(context)) {
+      final enabled = _pathError == null && !_restoringBackup;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              SailButton(
+                label: 'Generate new seed',
+                disabled: !enabled,
+                onPressed: () async => _addSoftwareKeystore(context, index),
+              ),
+              SailButton(
+                label: 'Paste seed phrase',
+                variant: ButtonVariant.secondary,
+                disabled: !enabled,
+                onPressed: () async => _addSoftwareKeystore(context, index, mode: SeedEntryMode.importExisting),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              for (final (label, linkEnabled, onPressed) in links)
+                Opacity(
+                  opacity: linkEnabled ? 1 : 0.5,
+                  child: SailButton(
+                    label: label,
+                    variant: ButtonVariant.ghost,
+                    small: true,
+                    disabled: !linkEnabled,
+                    onPressed: onPressed,
+                  ),
+                ),
+            ],
+          ),
+          if (!urCameraScanSupported)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SailText.secondary12('Camera not available here', color: theme.colors.textSecondary),
+            ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

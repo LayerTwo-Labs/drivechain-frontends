@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bitwindow/pages/welcome/multisig_config_step.dart';
+import 'package:bitwindow/widgets/setup_action_button.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -80,7 +81,39 @@ void main() {
   });
 
   tearDown(() async {
+    SailStyleValues.phoneLayoutOverride = null;
     await GetIt.I.reset();
+  });
+
+  testWidgets('on a phone the key sources are normal buttons and links with no dots', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    await loadBundledFonts();
+    await tester.pumpSailPage(
+      SizedBox(width: 390, height: 720, child: MultisigConfigStep(onConfigured: (_) async {})),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SetupActionButton), findsNothing);
+    expect(find.text('\u00b7'), findsNothing);
+    expect(tester.widget<Text>(find.text('Keys')).style!.fontSize, 15);
+    final generate = tester.getRect(find.widgetWithText(SailButton, 'Generate new seed').first);
+    expect(generate.height, lessThan(44));
+    expect(generate.width, lessThan(200));
+    final keys = tester.getRect(find.text('Keys'));
+    expect(generate.left, closeTo(keys.left, 2));
+    expect(tester.getRect(find.text('xPub/ Watch Only').first).left, closeTo(keys.left, 16));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('on the desktop the key sources keep the large buttons and dotted links', (tester) async {
+    SailStyleValues.phoneLayoutOverride = false;
+    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    await tester.pumpSailPage(MultisigConfigStep(onConfigured: (_) async {}));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SetupActionButton), findsNWidgets(2));
+    expect(find.text('\u00b7'), findsWidgets);
   });
 
   testWidgets('a hardware wallet reads the account the user picks', (tester) async {
