@@ -443,7 +443,6 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                 small: true,
                 variant: ButtonVariant.secondary,
                 onPressed: () async {
-                  await Future.delayed(const Duration(milliseconds: 100));
                   final router = GetIt.I.get<AppRouter>();
                   await router.push(BitcoinConfEditorRoute());
                 },
