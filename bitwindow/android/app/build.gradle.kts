@@ -22,14 +22,6 @@ android {
         versionName = flutter.versionName
     }
 
-    // bitwindowd and drivechaind ship as lib*.so. Android executes them only
-    // from the extracted native library folder.
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")

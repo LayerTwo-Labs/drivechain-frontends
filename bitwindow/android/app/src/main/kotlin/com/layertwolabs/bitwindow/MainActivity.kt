@@ -21,7 +21,6 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.layertwolabs.bitwindow/native").setMethodCallHandler { call, result ->
             when (call.method) {
-                "nativeLibraryDir" -> result.success(applicationInfo.nativeLibraryDir)
                 "openUrl" -> try {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(call.arguments as String)))
                     result.success(null)

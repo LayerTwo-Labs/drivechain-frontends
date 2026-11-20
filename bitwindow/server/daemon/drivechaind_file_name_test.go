@@ -7,7 +7,6 @@ func TestDrivechaindFileName(t *testing.T) {
 		"darwin":  "drivechaind",
 		"linux":   "drivechaind",
 		"windows": "drivechaind.exe",
-		"android": "libdrivechaind.so",
 	} {
 		if got := drivechaindFileName(goos); got != want {
 			t.Errorf("drivechaindFileName(%q) = %q, want %q", goos, got, want)
