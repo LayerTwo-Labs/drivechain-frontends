@@ -19,7 +19,7 @@ Widget _app(Widget child) {
   return MaterialApp(
     home: SailTheme(
       data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
-      child: Scaffold(body: SizedBox(width: 360, height: 600, child: child)),
+      child: Scaffold(body: SizedBox(width: 390, height: 600, child: child)),
     ),
   );
 }
@@ -46,7 +46,7 @@ void main() {
     final pending = tester.getRect(find.text('Pending'));
     expect(available.top, greaterThan(total.bottom));
     expect(pending.top, greaterThan(available.bottom));
-    expect(tester.getRect(find.text('1.10000000')).right, closeTo(360, 1));
+    expect(tester.getRect(find.text('1.10000000')).right, closeTo(390, 1));
   });
 
   for (final (phone, header) in [(true, 'Conf.'), (false, 'Confirmations')]) {
