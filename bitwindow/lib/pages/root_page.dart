@@ -1199,6 +1199,7 @@ class _StatusBarState extends State<StatusBar> {
   void initState() {
     super.initState();
     blockchainProvider.addListener(_onChange);
+    blockchainProvider.mainchain.addListener(_onChange);
     balanceProvider.addListener(_onChange);
     confProvider.addListener(_onChange);
   }
@@ -1295,6 +1296,7 @@ class _StatusBarState extends State<StatusBar> {
   @override
   void dispose() {
     blockchainProvider.removeListener(_onChange);
+    blockchainProvider.mainchain.removeListener(_onChange);
     balanceProvider.removeListener(_onChange);
     confProvider.removeListener(_onChange);
     super.dispose();
