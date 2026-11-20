@@ -127,4 +127,24 @@ void main() {
       expect(tester.widget<ModalBarrier>(find.byType(ModalBarrier).last).color, Colors.black54);
     });
   });
+
+  group('a dialog body with no Dialog around it', () {
+    Widget body(BuildContext context) => SailDialogFrame(
+      child: SailCard(title: 'Deposit', child: const SizedBox(height: 40)),
+    );
+
+    testWidgets('sits at the bottom edge on a phone', (tester) async {
+      SailStyleValues.phoneLayoutOverride = true;
+      await _open(tester, body);
+
+      expect(tester.getRect(find.widgetWithText(SailCard, 'Deposit')).bottom, _screen.height);
+    });
+
+    testWidgets('stays in the middle on a desktop', (tester) async {
+      SailStyleValues.phoneLayoutOverride = false;
+      await _open(tester, body);
+
+      expect(tester.getRect(find.widgetWithText(SailCard, 'Deposit')).center.dy, closeTo(_screen.height / 2, 1));
+    });
+  });
 }

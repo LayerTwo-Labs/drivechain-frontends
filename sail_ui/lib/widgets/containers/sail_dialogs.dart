@@ -108,6 +108,21 @@ class _DialogSheet extends StatelessWidget {
   }
 }
 
+/// Centers a dialog body that has no [Dialog] around it. In a phone sheet it sits at the bottom edge.
+class SailDialogFrame extends StatelessWidget {
+  final Widget child;
+
+  const SailDialogFrame({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: SailSheetScope.of(context) ? Alignment.bottomCenter : Alignment.center,
+      child: child,
+    );
+  }
+}
+
 /// Marks content that shows in a bottom sheet. The first [SailCard] below it
 /// draws as the sheet surface: round top corners and room for the bottom inset.
 class SailSheetScope extends InheritedWidget {
