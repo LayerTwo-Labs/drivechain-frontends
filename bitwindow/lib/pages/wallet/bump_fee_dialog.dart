@@ -27,7 +27,7 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   final TextEditingController _rateController = TextEditingController();
-  Timer? _debounce;
+  DateTime _rateChangedAt = DateTime.now();
 
   wmpb.PreviewBumpFeeResponse? _preview;
   int? _feeFromVout;
@@ -50,7 +50,6 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _rateController.dispose();
     super.dispose();
   }
@@ -63,7 +62,9 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
     return rate;
   }
 
-  Future<void> _loadPreview() async {
+  /// A failure of a preview for a typed rate shows when the rate stayed the
+  /// same for [feePreviewErrorDelay].
+  Future<void> _loadPreview({bool typed = false}) async {
     final requestId = ++_requestId;
     setState(() {
       _loading = true;
@@ -96,18 +97,28 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
       if (!mounted || requestId != _requestId) {
         return;
       }
-      setState(() {
+      void showError() => setState(() {
         _error = e.toString();
         // The plan on screen belongs to a question this one failed to answer.
         // It stays visible, but it cannot broadcast anything.
         _stale = true;
         _loading = false;
       });
+      final wait = feePreviewErrorWait(_rateChangedAt);
+      if (!typed || wait <= Duration.zero) {
+        showError();
+        return;
+      }
+      Timer(wait, () {
+        if (mounted && requestId == _requestId) {
+          showError();
+        }
+      });
     }
   }
 
   void _onRateChanged(String _) {
-    _debounce?.cancel();
+    _rateChangedAt = DateTime.now();
     // The plan on screen belongs to the rate before this keystroke, and so does
     // any answer still in flight. Both go stale here, or a fast press
     // broadcasts a fee the user never read.
@@ -117,9 +128,7 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
       _stale = false;
       _error = null;
     });
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      unawaited(_loadPreview());
-    });
+    unawaited(_loadPreview(typed: true));
   }
 
   Future<void> _selectOutput(int vout) async {
@@ -427,7 +436,6 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
     if (confTarget == null || _replacing) {
       return;
     }
-    _debounce?.cancel();
     setState(() {
       _requestId++;
       _loading = true;
