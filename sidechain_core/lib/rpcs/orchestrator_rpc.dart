@@ -263,6 +263,22 @@ class OrchestratorRPC {
 
   // ─── server-streaming ─────────────────────────────────────────────────────
 
+  Stream<WatchSyncStatusResponse> watchSyncStatus() {
+    return _streamClient.watchSyncStatus(WatchSyncStatusRequest());
+  }
+
+  Stream<WatchDownloadStatusResponse> watchDownloadStatus() {
+    return _streamClient.watchDownloadStatus(WatchDownloadStatusRequest());
+  }
+
+  Stream<WatchECashMigrationStatusResponse> watchECashMigrationStatus() {
+    return _streamClient.watchECashMigrationStatus(WatchECashMigrationStatusRequest());
+  }
+
+  Stream<WatchBinariesResponse> watchBinaries({bool forceBackend = false}) {
+    return _streamClient.watchBinaries(WatchBinariesRequest(forceBackend: forceBackend));
+  }
+
   Stream<StreamLogsResponse> streamLogs(String name, {int tail = 0, String runId = '', Int64? afterSequence}) {
     return _streamClient.streamLogs(
       StreamLogsRequest(name: name, tail: tail, runId: runId, afterSequence: afterSequence),

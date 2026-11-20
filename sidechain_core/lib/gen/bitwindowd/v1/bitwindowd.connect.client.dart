@@ -187,6 +187,25 @@ extension type BitwindowdServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// Stream GetSyncInfo. The first frame holds the info, later frames only a
+  /// changed info or a heartbeat.
+  Stream<bitwindowdv1bitwindowd.WatchSyncInfoResponse> watchSyncInfo(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.BitwindowdService.watchSyncInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<googleprotobufempty.Empty> setTransactionNote(
     bitwindowdv1bitwindowd.SetTransactionNoteRequest input, {
     connect.Headers? headers,

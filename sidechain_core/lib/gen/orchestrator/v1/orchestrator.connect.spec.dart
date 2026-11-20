@@ -19,6 +19,15 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.ListBinariesResponse.new,
   );
 
+  /// Stream the status of all configured binaries. The first frame holds the
+  /// full list, later frames only a changed list or a heartbeat.
+  static const watchBinaries = connect.Spec(
+    '/$name/WatchBinaries',
+    connect.StreamType.server,
+    orchestratorv1orchestrator.WatchBinariesRequest.new,
+    orchestratorv1orchestrator.WatchBinariesResponse.new,
+  );
+
   /// Get the status of a single binary.
   static const getBinaryStatus = connect.Spec(
     '/$name/GetBinaryStatus',
@@ -215,6 +224,15 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetSyncStatusResponse.new,
   );
 
+  /// Stream the GetSyncStatus snapshot. The first frame holds the snapshot,
+  /// later frames only a changed snapshot or a heartbeat.
+  static const watchSyncStatus = connect.Spec(
+    '/$name/WatchSyncStatus',
+    connect.StreamType.server,
+    orchestratorv1orchestrator.WatchSyncStatusRequest.new,
+    orchestratorv1orchestrator.WatchSyncStatusResponse.new,
+  );
+
   /// Snapshot of every binary the orchestrator is currently downloading.
   /// Reads from the in-memory DownloadManager state — light, polled by the
   /// frontend's DownloadProvider on a fast (100ms) cadence while a download
@@ -224,6 +242,15 @@ abstract final class OrchestratorService {
     connect.StreamType.unary,
     orchestratorv1orchestrator.GetDownloadStatusRequest.new,
     orchestratorv1orchestrator.GetDownloadStatusResponse.new,
+  );
+
+  /// Stream the GetDownloadStatus list. The first frame holds the list, later
+  /// frames only a changed list or a heartbeat.
+  static const watchDownloadStatus = connect.Spec(
+    '/$name/WatchDownloadStatus',
+    connect.StreamType.server,
+    orchestratorv1orchestrator.WatchDownloadStatusRequest.new,
+    orchestratorv1orchestrator.WatchDownloadStatusResponse.new,
   );
 
   /// Get wallet balance from Bitcoin Core (proxied via orchestrator).
@@ -351,6 +378,15 @@ abstract final class OrchestratorService {
     connect.StreamType.unary,
     orchestratorv1orchestrator.GetECashMigrationStatusRequest.new,
     orchestratorv1orchestrator.GetECashMigrationStatusResponse.new,
+  );
+
+  /// Stream the GetECashMigrationStatus status. The first frame holds the
+  /// status, later frames only a changed status or a heartbeat.
+  static const watchECashMigrationStatus = connect.Spec(
+    '/$name/WatchECashMigrationStatus',
+    connect.StreamType.server,
+    orchestratorv1orchestrator.WatchECashMigrationStatusRequest.new,
+    orchestratorv1orchestrator.WatchECashMigrationStatusResponse.new,
   );
 
   /// Read the network the blocks on disk belong to, next to the one the app

@@ -1228,6 +1228,76 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
   void clearWaitsForCore() => $_clearField(8);
 }
 
+class WatchSyncInfoResponse extends $pb.GeneratedMessage {
+  factory WatchSyncInfoResponse({
+    GetSyncInfoResponse? info,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchSyncInfoResponse._();
+    if (info != null) result.info = info;
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchSyncInfoResponse._();
+
+  factory WatchSyncInfoResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchSyncInfoResponse()..mergeFromBuffer(data, registry);
+  factory WatchSyncInfoResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchSyncInfoResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchSyncInfoResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'),
+      createEmptyInstance: WatchSyncInfoResponse.$_createMessage)
+    ..aOM<GetSyncInfoResponse>(1, _omitFieldNames ? '' : 'info', subBuilder: GetSyncInfoResponse.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchSyncInfoResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchSyncInfoResponse copyWith(void Function(WatchSyncInfoResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchSyncInfoResponse)) as WatchSyncInfoResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchSyncInfoResponse() / WatchSyncInfoResponse.new instead')
+  static WatchSyncInfoResponse create() => WatchSyncInfoResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchSyncInfoResponse._();
+  @$core.override
+  WatchSyncInfoResponse createEmptyInstance() => WatchSyncInfoResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchSyncInfoResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchSyncInfoResponse>(WatchSyncInfoResponse.$_createMessage);
+  static WatchSyncInfoResponse? _defaultInstance;
+
+  /// Unset in a heartbeat frame.
+  @$pb.TagNumber(1)
+  GetSyncInfoResponse get info => $_getN(0);
+  @$pb.TagNumber(1)
+  set info(GetSyncInfoResponse value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasInfo() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInfo() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GetSyncInfoResponse ensureInfo() => $_ensure(0);
+
+  /// True for an idle keepalive frame that carries no info.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 /// Request to set a transaction note
 class SetTransactionNoteRequest extends $pb.GeneratedMessage {
   factory SetTransactionNoteRequest({
@@ -3872,6 +3942,11 @@ class BitwindowdServiceApi {
       _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'DeleteAddressBookEntry', request, $1.Empty());
   $async.Future<GetSyncInfoResponse> getSyncInfo($pb.ClientContext? ctx, $1.Empty request) =>
       _client.invoke<GetSyncInfoResponse>(ctx, 'BitwindowdService', 'GetSyncInfo', request, GetSyncInfoResponse());
+
+  /// Stream GetSyncInfo. The first frame holds the info, later frames only a
+  /// changed info or a heartbeat.
+  $async.Future<WatchSyncInfoResponse> watchSyncInfo($pb.ClientContext? ctx, $1.Empty request) => _client
+      .invoke<WatchSyncInfoResponse>(ctx, 'BitwindowdService', 'WatchSyncInfo', request, WatchSyncInfoResponse());
   $async.Future<$1.Empty> setTransactionNote($pb.ClientContext? ctx, SetTransactionNoteRequest request) =>
       _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'SetTransactionNote', request, $1.Empty());
   $async.Future<ListTransactionNotesResponse> listTransactionNotes(
