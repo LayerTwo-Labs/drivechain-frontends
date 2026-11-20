@@ -568,11 +568,11 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
                         ),
                         TabItem(
                           label: 'Inputs (${_details!.inputs.length})',
-                          child: _InputsTab(inputs: _details!.inputs),
+                          child: TxInputsTable(inputs: _details!.inputs),
                         ),
                         TabItem(
                           label: 'Outputs (${_details!.outputs.length})',
-                          child: _OutputsTab(outputs: _details!.outputs),
+                          child: TxOutputsTable(outputs: _details!.outputs),
                         ),
                         TabItem(
                           label: 'Diagram',
@@ -654,17 +654,20 @@ class _OverviewTab extends StatelessWidget {
   }
 }
 
-class _InputsTab extends StatelessWidget {
+class TxInputsTable extends StatelessWidget {
   final List<TransactionInput> inputs;
 
-  const _InputsTab({required this.inputs});
+  const TxInputsTable({super.key, required this.inputs});
 
   @override
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
 
+    final phone = SailStyleValues.phoneLayout(context);
+
     return SailTable(
       getRowId: (i) => '${inputs[i].prevTxid}:${inputs[i].prevVout}',
+      phoneColumns: const [0, 1],
       headerBuilder: (_) => [
         SailTableHeaderCell(name: '#'),
         SailTableHeaderCell(name: 'Amount'),
@@ -677,7 +680,7 @@ class _InputsTab extends StatelessWidget {
         final prevOutput = input.isCoinbase ? 'Coinbase' : '${input.prevTxid.substring(0, 8)}...:${input.prevVout}';
 
         return [
-          SailTableCell(value: '${input.index}'),
+          SailTableCell(value: '${input.index}', width: phone ? 32 : null),
           SailTableCell(
             value: input.isCoinbase ? 'N/A' : formatter.formatSats(input.valueSats.toInt()),
             monospace: true,
@@ -701,10 +704,10 @@ class _InputsTab extends StatelessWidget {
   }
 }
 
-class _OutputsTab extends StatelessWidget {
+class TxOutputsTable extends StatelessWidget {
   final List<TransactionOutput> outputs;
 
-  const _OutputsTab({required this.outputs});
+  const TxOutputsTable({super.key, required this.outputs});
 
   String _decodeOpReturnData(String scriptPubkeyHex) {
     // scriptPubkeyHex for OP_RETURN: "6a" (OP_RETURN) + push opcode + data
@@ -742,8 +745,11 @@ class _OutputsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
 
+    final phone = SailStyleValues.phoneLayout(context);
+
     return SailTable(
       getRowId: (i) => '${outputs[i].index}',
+      phoneColumns: const [0, 3, 4],
       headerBuilder: (_) => [
         SailTableHeaderCell(name: '#'),
         SailTableHeaderCell(name: 'Amount'),
@@ -757,7 +763,7 @@ class _OutputsTab extends StatelessWidget {
         final decodedData = isOpReturn ? _decodeOpReturnData(output.scriptPubkeyHex) : '';
 
         return [
-          SailTableCell(value: '${output.index}'),
+          SailTableCell(value: '${output.index}', width: phone ? 32 : null),
           SailTableCell(
             value: formatter.formatSats(output.valueSats.toInt()),
             monospace: true,
@@ -767,7 +773,7 @@ class _OutputsTab extends StatelessWidget {
             monospace: true,
             copyValue: isOpReturn ? decodedData : (output.address.isNotEmpty ? output.address : null),
           ),
-          SailTableCell(value: outputOwnerLabel(output) ?? ''),
+          SailTableCell(value: outputOwnerLabel(output) ?? '', width: phone ? 112 : null),
           SailTableCell(value: output.scriptType),
         ];
       },
