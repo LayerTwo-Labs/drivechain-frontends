@@ -69,11 +69,17 @@ class SailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final radius = borderRadius ?? (theme.chrome.terminalStyle ? theme.chrome.radius : theme.chrome.radiusLarge);
+    final sheet = SailSheetScope.of(context);
+    var radius = borderRadius ?? (theme.chrome.terminalStyle ? theme.chrome.radius : theme.chrome.radiusLarge);
+    if (sheet) {
+      radius = BorderRadius.vertical(top: radius.topLeft);
+    }
+    final bottomInset = sheet ? MediaQuery.paddingOf(context).bottom : 0.0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) => _build(context, theme, radius, constraints.hasBoundedHeight),
+    final card = LayoutBuilder(
+      builder: (context, constraints) => _build(context, theme, radius, constraints.hasBoundedHeight, bottomInset),
     );
+    return sheet ? SailSheetScope(active: false, child: card) : card;
   }
 
   Widget _build(
@@ -81,6 +87,7 @@ class SailCard extends StatelessWidget {
     SailThemeData theme,
     BorderRadius radius,
     bool boundedHeight,
+    double bottomInset,
   ) {
     return SelectionArea(
       child: SailShadow(
@@ -166,9 +173,9 @@ class SailCard extends StatelessWidget {
                               top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
                               left: SailStyleValues.padding16,
                               right: SailStyleValues.padding16,
-                              bottom: bottomPadding ? SailStyleValues.padding16 : 0,
+                              bottom: (bottomPadding ? SailStyleValues.padding16 : 0) + bottomInset,
                             )
-                          : EdgeInsets.zero,
+                          : EdgeInsets.only(bottom: bottomInset),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,

@@ -8,6 +8,18 @@ Future<T?> showThemedDialog<T>({
   required WidgetBuilder builder,
   bool barrierDismissible = true,
 }) async {
+  if (SailStyleValues.phoneLayout(context)) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    return await navigator.push<T>(
+      _DialogSheetRoute<T>(
+        context: context,
+        builder: (context) => _DialogSheet(child: builder(context)),
+        barrierColor: SailColorScheme.black.withValues(alpha: 0.55),
+        barrierDismissible: barrierDismissible,
+        themes: InheritedTheme.capture(from: context, to: navigator.context),
+      ),
+    );
+  }
   return await showDialog(
     context: context,
     // Black, not the theme background: on a light theme that washed the page
@@ -19,6 +31,75 @@ Future<T?> showThemedDialog<T>({
       child: builder(context),
     ),
   );
+}
+
+/// A dialog route that slides its page up from the bottom edge.
+class _DialogSheetRoute<T> extends DialogRoute<T> {
+  _DialogSheetRoute({
+    required super.context,
+    required super.builder,
+    required super.barrierColor,
+    required super.barrierDismissible,
+    required super.themes,
+  }) : super(useSafeArea: false, animationStyle: const AnimationStyle(duration: Duration(milliseconds: 250)));
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final slide = animation
+        .drive(CurveTween(curve: Curves.easeOutCubic))
+        .drive(Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero));
+    return FadeTransition(
+      opacity: animation,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        child: SlideTransition(position: slide, child: child),
+      ),
+    );
+  }
+}
+
+/// Puts a dialog at the bottom edge at full width, with round top corners.
+class _DialogSheet extends StatelessWidget {
+  final Widget child;
+
+  const _DialogSheet({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final media = MediaQuery.of(context);
+    final top = BorderRadius.vertical(top: theme.chrome.radiusLarge.topLeft);
+    return Theme(
+      data: Theme.of(context).copyWith(
+        dialogTheme: DialogThemeData(
+          alignment: Alignment.bottomCenter,
+          insetPadding: EdgeInsets.only(top: media.padding.top + SailStyleValues.padding32),
+          constraints: BoxConstraints.tightFor(width: media.size.width),
+          shape: RoundedRectangleBorder(borderRadius: top),
+        ),
+      ),
+      child: SailSheetScope(child: child),
+    );
+  }
+}
+
+/// Marks content that shows in a bottom sheet. The first [SailCard] below it
+/// draws as the sheet surface: round top corners and room for the bottom inset.
+class SailSheetScope extends InheritedWidget {
+  final bool active;
+
+  const SailSheetScope({super.key, this.active = true, required super.child});
+
+  /// True when the nearest scope marks a sheet surface that no card claimed yet.
+  static bool of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<SailSheetScope>()?.active ?? false;
+
+  @override
+  bool updateShouldNotify(SailSheetScope oldWidget) => active != oldWidget.active;
 }
 
 Future<T?> infoDialog<T>({
