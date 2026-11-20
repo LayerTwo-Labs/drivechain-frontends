@@ -30,7 +30,7 @@ class StatSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.primary20(title),
+        if (SailStyleValues.phoneLayout(context)) SailText.primary15(title, bold: true) else SailText.primary20(title),
         const SizedBox(height: 16),
         ...children,
       ],
