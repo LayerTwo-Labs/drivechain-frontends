@@ -2169,17 +2169,18 @@ func TestService_GetNetworkStats(t *testing.T) {
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{
-					Blocks: 1000,
-					Chain:  "signet",
+					Blocks:        1000,
+					BestBlockHash: "latesthash",
+					Chain:         "signet",
 				},
-			}, nil)
+			}, nil).Times(2)
 
-		// Mock GetBlockHash for calculating avg block time and difficulty
+		// The second call reads the same tip, so it reads no block.
 		mockBitcoind.EXPECT().
 			GetBlockHash(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetBlockHashResponse]{
-				Msg: &corepb.GetBlockHashResponse{Hash: "latesthash"},
-			}, nil).AnyTimes()
+				Msg: &corepb.GetBlockHashResponse{Hash: "firsthash"},
+			}, nil).Times(1)
 
 		// Core sends only the hex for raw data, so the difficulty stays empty.
 		mockBitcoind.EXPECT().
@@ -2194,7 +2195,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 					Time:       timestamppb.Now(),
 					Difficulty: 12345.67,
 				}), nil
-			}).AnyTimes()
+			}).Times(2)
 
 		// Mock GetNetworkInfo
 		mockBitcoind.EXPECT().
@@ -2204,7 +2205,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 					Version:    250000,
 					Subversion: "/Satoshi:25.0.0/",
 				},
-			}, nil)
+			}, nil).Times(2)
 
 		// Mock GetNetTotals
 		mockBitcoind.EXPECT().
@@ -2214,7 +2215,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 					TotalBytesRecv: 1000000,
 					TotalBytesSent: 500000,
 				},
-			}, nil)
+			}, nil).Times(2)
 
 		// Mock GetPeerInfo
 		mockBitcoind.EXPECT().
@@ -2227,10 +2228,12 @@ func TestService_GetNetworkStats(t *testing.T) {
 						{Inbound: false},
 					},
 				},
-			}, nil)
+			}, nil).Times(2)
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
+		_, err := cli.GetNetworkStats(t.Context(), &emptypb.Empty{})
+		require.NoError(t, err)
 		resp, err := cli.GetNetworkStats(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
 
