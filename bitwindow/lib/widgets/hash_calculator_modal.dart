@@ -24,9 +24,68 @@ class _HashCalculatorState extends State<HashCalculator> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final phone = SailStyleValues.phoneLayout(context);
+    final inputLabel = SailText.primary13('Input');
+    final hexBox = SailCheckbox(
+      value: _isHexMode,
+      onChanged: (value) {
+        setState(() {
+          _isHexMode = value;
+          _calculateHash();
+        });
+      },
+      label: 'Hex',
+    );
+    final hmacBox = SailCheckbox(
+      value: _useHmac,
+      onChanged: (value) {
+        setState(() {
+          _useHmac = value;
+          _calculateHash();
+        });
+      },
+      label: 'HMAC',
+    );
+    final hexError = _isHexMode && _hexValidationError.isNotEmpty
+        ? SailText.primary13(
+            _hexValidationError,
+            color: theme.colors.error,
+          )
+        : null;
+    final clearButton = SailButton(
+      label: 'Clear',
+      onPressed: () async {
+        _inputController.clear();
+        _hmacKeyController.clear();
+      },
+      variant: ButtonVariant.secondary,
+    );
+    final pasteButton = SailButton(
+      label: 'Paste',
+      onPressed: () async {
+        final data = await Clipboard.getData(Clipboard.kTextPlain);
+        final text = data?.text;
+        if (text != null) {
+          _inputController.text = text;
+        }
+      },
+      variant: ButtonVariant.secondary,
+    );
+    final flipButton = _isHexMode
+        ? SailButton(
+            label: 'Flip Bytes',
+            onPressed: () async {
+              if (_isValidHex(_inputController.text)) {
+                final bytes = _getInputBytes().toList().reversed.toList();
+                _inputController.text = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+              }
+            },
+            variant: ButtonVariant.secondary,
+          )
+        : null;
 
     return SailCard(
-      title: SailStyleValues.phoneLayout(context) ? 'Hash Calculator' : null,
+      title: phone ? 'Hash Calculator' : null,
       padding: true,
       widgetHeaderEnd: SailButton(
         label: '?',
@@ -35,7 +94,7 @@ class _HashCalculatorState extends State<HashCalculator> {
       ),
       withCloseButton: false,
       child: Padding(
-        padding: const EdgeInsets.all(SailStyleValues.padding16),
+        padding: phone ? EdgeInsets.zero : const EdgeInsets.all(SailStyleValues.padding16),
         child: SailColumn(
           spacing: SailStyleValues.padding12,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -48,69 +107,41 @@ class _HashCalculatorState extends State<HashCalculator> {
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      SailText.primary13('Input'),
-                      SailCheckbox(
-                        value: _isHexMode,
-                        onChanged: (value) {
-                          setState(() {
-                            _isHexMode = value;
-                            _calculateHash();
-                          });
-                        },
-                        label: 'Hex',
-                      ),
-                      SailCheckbox(
-                        value: _useHmac,
-                        onChanged: (value) {
-                          setState(() {
-                            _useHmac = value;
-                            _calculateHash();
-                          });
-                        },
-                        label: 'HMAC',
-                      ),
-                      if (_isHexMode && _hexValidationError.isNotEmpty)
-                        SailText.primary13(
-                          _hexValidationError,
-                          color: theme.colors.error,
+                  if (phone) ...[
+                    Wrap(
+                      spacing: SailStyleValues.padding08,
+                      runSpacing: SailStyleValues.padding08,
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        SailRow(
+                          spacing: SailStyleValues.padding08,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [inputLabel, hexBox, hmacBox],
                         ),
-                      const Spacer(),
-                      SailButton(
-                        label: 'Clear',
-                        onPressed: () async {
-                          _inputController.clear();
-                          _hmacKeyController.clear();
-                        },
-                        variant: ButtonVariant.secondary,
-                      ),
-                      SailButton(
-                        label: 'Paste',
-                        onPressed: () async {
-                          final data = await Clipboard.getData(Clipboard.kTextPlain);
-                          final text = data?.text;
-                          if (text != null) {
-                            _inputController.text = text;
-                          }
-                        },
-                        variant: ButtonVariant.secondary,
-                      ),
-                      if (_isHexMode)
-                        SailButton(
-                          label: 'Flip Bytes',
-                          onPressed: () async {
-                            if (_isValidHex(_inputController.text)) {
-                              final bytes = _getInputBytes().toList().reversed.toList();
-                              _inputController.text = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-                            }
-                          },
-                          variant: ButtonVariant.secondary,
+                        SailRow(
+                          spacing: SailStyleValues.padding08,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [clearButton, pasteButton, ?flipButton],
                         ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    ?hexError,
+                  ] else
+                    SailRow(
+                      spacing: SailStyleValues.padding08,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        inputLabel,
+                        hexBox,
+                        hmacBox,
+                        ?hexError,
+                        const Spacer(),
+                        clearButton,
+                        pasteButton,
+                        ?flipButton,
+                      ],
+                    ),
                   SailTextField(
                     controller: _inputController,
                     hintText: _isHexMode ? 'Enter hex without spaces or 0x prefix' : 'Enter text to hash',
@@ -671,7 +702,7 @@ class _ResultRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SailText.primary13(label, bold: true),
+                SailText.primary13('$label:'),
                 if (value != null) SailText.primary13(value, color: theme.colors.textSecondary),
               ],
             ),

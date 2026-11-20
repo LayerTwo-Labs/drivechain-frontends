@@ -20,9 +20,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('on a phone the header has a title with ? at the right, and labels sit above values', (tester) async {
+  Future<void> pumpPhone(WidgetTester tester) async {
     SailStyleValues.phoneLayoutOverride = true;
-    await pumpCalculator(tester);
+    await loadBundledFonts();
+    await tester.pumpSailPage(const HashCalculator());
+    await tester.binding.setSurfaceSize(const Size(390, 800));
+    await tester.enterText(find.byType(EditableText).first, 'abc');
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('on a phone the header has a title with ? at the right, and labels sit above values', (tester) async {
+    await pumpPhone(tester);
 
     expect(tester.takeException(), isNull);
     final title = tester.getRect(find.text('Hash Calculator'));
@@ -30,7 +38,10 @@ void main() {
     expect(help.center.dy, closeTo(title.center.dy, 8));
     expect(help.left, greaterThan(title.right));
 
-    final label = tester.getRect(find.text('SHA256D'));
+    expect(tester.getCenter(find.text('Paste')).dy, closeTo(tester.getCenter(find.text('Input')).dy, 4));
+    expect(tester.getRect(find.text('Paste')).right, greaterThan(300));
+
+    final label = tester.getRect(find.text('SHA256D:'));
     final value = tester.getRect(find.text(_sha256d));
     expect(value.top, greaterThanOrEqualTo(label.bottom));
     expect(value.left, closeTo(label.left, 1));
@@ -49,5 +60,21 @@ void main() {
     final value = tester.getRect(find.text(_sha256d));
     expect(value.center.dy, closeTo(label.center.dy, 1));
     expect(value.left, greaterThan(label.right));
+  });
+
+  testWidgets('on a phone the input controls fit at 390 px in hex and HMAC mode', (tester) async {
+    await pumpPhone(tester);
+    await tester.tap(find.text('Hex'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('HMAC'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    for (final label in ['Input', 'Hex', 'HMAC', 'Clear', 'Paste', 'Flip Bytes']) {
+      final rect = tester.getRect(find.text(label));
+      expect(rect.right, lessThanOrEqualTo(390), reason: label);
+    }
+    final hmac = tester.getRect(find.text('HMAC'));
+    expect(tester.getRect(find.byType(SailTextField).first).top, greaterThan(hmac.bottom));
   });
 }
