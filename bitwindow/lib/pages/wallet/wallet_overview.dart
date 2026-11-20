@@ -859,7 +859,9 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     searchController.removeListener(_onChange);
     _txProvider.removeListener(_onChange);
     _txProvider.removeListener(_debouncedGetStats);
+    _balanceProvider.removeListener(_onChange);
     _balanceProvider.removeListener(_debouncedGetStats);
+    _enforcerRPC.removeListener(_onChange);
     super.dispose();
   }
 }
