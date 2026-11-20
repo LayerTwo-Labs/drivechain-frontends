@@ -156,6 +156,40 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   final storage = await KeyValueStore.create(dir: applicationDir);
 
+  // A sub-window builds a provider at its first read, so it runs only the
+  // polls of its own page.
+  void put<T extends Object>(T Function() create) {
+    if (isSubWindow) {
+      GetIt.I.registerLazySingleton<T>(create);
+    } else {
+      GetIt.I.registerSingleton<T>(create());
+    }
+  }
+
+  void putScoped<T extends Object>(T Function() create) {
+    if (!isSubWindow) {
+      NetworkScopedRegistry.register<T>(create());
+      return;
+    }
+    GetIt.I.registerLazySingleton<T>(() {
+      final provider = create();
+      if (provider is NetworkScoped) {
+        NetworkScopedRegistry.enrol<NetworkScoped>(provider);
+      }
+      return provider;
+    });
+  }
+
+  var refetchWired = false;
+  T refetchOnNewBlock<T extends Object>(T provider) {
+    if (!isSubWindow || refetchWired) {
+      return provider;
+    }
+    refetchWired = true;
+    scheduleMicrotask(() => GetIt.I<SyncProvider>().onNewBlock((_) => refetchBuiltOnNewBlock()));
+    return provider;
+  }
+
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: !isSubWindow);
@@ -200,7 +234,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
   GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
 
-  await copyBinariesFromAssets(log, applicationDir, onStaged: isSubWindow ? null : _daemonWarmUp.onStaged);
+  if (!isSubWindow) {
+    await copyBinariesFromAssets(log, applicationDir, onStaged: _daemonWarmUp.onStaged);
+  }
 
   // Register LogProvider for process output capture
   GetIt.I.registerSingleton<LogProvider>(LogProvider());
@@ -215,10 +251,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     },
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
-  GetIt.I.registerSingleton<BitcoindConnection>(BitcoindConnection());
+  put<BitcoindConnection>(() => BitcoindConnection());
   // Enforcer services are bridged by bitwindowd — same endpoint as BitwindowRPC.
-  GetIt.I.registerSingleton<EnforcerRPC>(
-    EnforcerLive(host: Environment.bitwindowdHost.value, port: Environment.bitwindowdPort.value),
+  put<EnforcerRPC>(
+    () => EnforcerLive(host: Environment.bitwindowdHost.value, port: Environment.bitwindowdPort.value),
   );
   // Shared system boundary for runtime and wallet flows used across apps.
   final orchestrator = OrchestratorRPC(
@@ -227,9 +263,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
   // Eager, and after the orchestrator it polls: nothing ever resolves it.
-  GetIt.I.registerSingleton<ECashUpgradeWatcher>(ECashUpgradeWatcher());
-  final backendStateProvider = BackendStateProvider(orchestrator);
-  GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
+  put<ECashUpgradeWatcher>(() => ECashUpgradeWatcher());
+  put<BackendStateProvider>(() => BackendStateProvider(orchestrator));
 
   final bitwindow = BitwindowRPCLive(host: Environment.bitwindowdHost.value, port: Environment.bitwindowdPort.value);
   GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
@@ -240,18 +275,18 @@ Future<(Directory, File, Logger)> init(String arguments) async {
       bitwindow.bitwindowd.updateNetwork(network, dataDir: dataDir, networkId: networkId);
 
   // now register all sidedchains
-  GetIt.I.registerSingleton<BitAssetsRPC>(BitAssetsLive());
-  GetIt.I.registerSingleton<BitnamesRPC>(BitnamesLive());
-  GetIt.I.registerSingleton<ThunderRPC>(ThunderLive());
-  GetIt.I.registerSingleton<ZSideRPC>(ZSideLive());
-  GetIt.I.registerSingleton<CoinShiftRPC>(CoinShiftLive());
-  GetIt.I.registerSingleton<PhotonRPC>(PhotonLive());
-  GetIt.I.registerSingleton<TruthcoinRPC>(TruthcoinLive());
+  put<BitAssetsRPC>(() => BitAssetsLive());
+  put<BitnamesRPC>(() => BitnamesLive());
+  put<ThunderRPC>(() => ThunderLive());
+  put<ZSideRPC>(() => ZSideLive());
+  put<CoinShiftRPC>(() => CoinShiftLive());
+  put<PhotonRPC>(() => PhotonLive());
+  put<TruthcoinRPC>(() => TruthcoinLive());
 
   registerNodeMode();
   // After the node mode: the watcher reads it at the first check, and the mode
   // decides whether any process reads the blocks.
-  GetIt.I.registerSingleton<DatadirNetworkWatcher>(DatadirNetworkWatcher());
+  put<DatadirNetworkWatcher>(() => DatadirNetworkWatcher());
 
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
@@ -266,21 +301,23 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();
 
-  GetIt.I.registerSingleton<HwiProvider>(HwiProvider());
+  put<HwiProvider>(() => HwiProvider());
 
   GetIt.I.registerLazySingleton<BalanceProvider>(
-    () => BalanceProvider(
-      mainConnection: bitwindow,
-      connections: [
-        bitwindow,
-        GetIt.I.get<BitnamesRPC>(),
-        GetIt.I.get<BitAssetsRPC>(),
-        GetIt.I.get<ThunderRPC>(),
-        GetIt.I.get<ZSideRPC>(),
-        GetIt.I.get<PhotonRPC>(),
-        GetIt.I.get<TruthcoinRPC>(),
-        GetIt.I.get<CoinShiftRPC>(),
-      ],
+    () => refetchOnNewBlock(
+      BalanceProvider(
+        mainConnection: bitwindow,
+        connections: [
+          bitwindow,
+          GetIt.I.get<BitnamesRPC>(),
+          GetIt.I.get<BitAssetsRPC>(),
+          GetIt.I.get<ThunderRPC>(),
+          GetIt.I.get<ZSideRPC>(),
+          GetIt.I.get<PhotonRPC>(),
+          GetIt.I.get<TruthcoinRPC>(),
+          GetIt.I.get<CoinShiftRPC>(),
+        ],
+      ),
     ),
   );
   GetIt.I.registerLazySingleton<SyncProvider>(
@@ -291,27 +328,29 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   NetworkScopedRegistry.enrolLazy<BalanceProvider>();
   NetworkScopedRegistry.enrolLazy<SyncProvider>();
   GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
-  NetworkScopedRegistry.register<BlockchainProvider>(BlockchainProvider());
-  GetIt.I.registerSingleton<NetworkProvider>(NetworkProvider());
-  NetworkScopedRegistry.register<TransactionProvider>(TransactionProvider());
+  putScoped<BlockchainProvider>(() => refetchOnNewBlock(BlockchainProvider()));
+  put<NetworkProvider>(() => NetworkProvider());
+  putScoped<TransactionProvider>(() => refetchOnNewBlock(TransactionProvider()));
 
   // Refetch live on every new mainchain block so the user sees fresh blocks,
   // balance, and transactions without waiting for each provider's slower
   // independent poll (#1766). SyncProvider's onNewBlock fires only on a
   // strict height increment, so this is a no-op outside of actual new-block
   // events. Tracked here in main so the wiring is explicit and one-shot.
-  GetIt.I<SyncProvider>().onNewBlock((_) {
-    unawaited(GetIt.I<BalanceProvider>().fetch());
-    unawaited(GetIt.I<BlockchainProvider>().fetch());
-    if (GetIt.I.isRegistered<TransactionProvider>()) {
-      unawaited(GetIt.I<TransactionProvider>().fetch());
-    }
-  });
-  GetIt.I.registerSingleton<NewsProvider>(NewsProvider());
-  NetworkScopedRegistry.register<SidechainProvider>(SidechainProvider());
-  GetIt.I.registerSingleton<M4Provider>(M4Provider());
-  NetworkScopedRegistry.register<AddressBookProvider>(AddressBookProvider());
-  GetIt.I.registerSingleton<CoinSelectionProvider>(CoinSelectionProvider());
+  if (!isSubWindow) {
+    GetIt.I<SyncProvider>().onNewBlock((_) {
+      unawaited(GetIt.I<BalanceProvider>().fetch());
+      unawaited(GetIt.I<BlockchainProvider>().fetch());
+      if (GetIt.I.isRegistered<TransactionProvider>()) {
+        unawaited(GetIt.I<TransactionProvider>().fetch());
+      }
+    });
+  }
+  put<NewsProvider>(() => NewsProvider());
+  putScoped<SidechainProvider>(() => SidechainProvider());
+  put<M4Provider>(() => M4Provider());
+  putScoped<AddressBookProvider>(() => AddressBookProvider());
+  put<CoinSelectionProvider>(() => CoinSelectionProvider());
   // Coin selection runs in drivechaind, so a send hands it the frozen set
   // first. Every frontend send reaches it through this one client.
   GetIt.I.get<OrchestratorRPC>().wallet.frozenCoins = () async {
@@ -319,9 +358,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     await coins.refresh();
     return coins.frozenOutpoints.toList();
   };
-  NetworkScopedRegistry.register<ConsolidationProvider>(ConsolidationProvider());
-  GetIt.I.registerSingleton<StratumProvider>(
-    StratumProvider(
+  putScoped<ConsolidationProvider>(() => ConsolidationProvider());
+  put<StratumProvider>(
+    () => StratumProvider(
       onBlockFound: (block) => GetIt.I.get<NotificationProvider>().add(
         id: 'stratum-block-${block.hash}',
         title: 'Block ${block.height} found',
@@ -330,28 +369,26 @@ Future<(Directory, File, Logger)> init(String arguments) async {
       ),
     )..startPolling(),
   );
-  NetworkScopedRegistry.register<HDWalletProvider>(HDWalletProvider());
-  NetworkScopedRegistry.register<MempoolWatchProvider>(MempoolWatchProvider());
-  NetworkScopedRegistry.register<MiningPoolsProvider>(MiningPoolsProvider());
-  GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
+  putScoped<HDWalletProvider>(() => HDWalletProvider());
+  putScoped<MempoolWatchProvider>(() => MempoolWatchProvider());
+  putScoped<MiningPoolsProvider>(() => MiningPoolsProvider());
+  put<BitDriveProvider>(() => BitDriveProvider());
   // Eager initialization so it can listen for wallet unlock events
-  final checkProvider = CheckProvider();
-  NetworkScopedRegistry.register<CheckProvider>(checkProvider);
-  NetworkScopedRegistry.register<PsbtDraftProvider>(PsbtDraftProvider());
-  final timestampProvider = TimestampProvider();
-  GetIt.I.registerSingleton<TimestampProvider>(timestampProvider);
+  putScoped<CheckProvider>(() => CheckProvider());
+  putScoped<PsbtDraftProvider>(() => PsbtDraftProvider());
+  put<TimestampProvider>(() => TimestampProvider());
   final bitwindowHomepageProvider = BitwindowHomepageProvider();
   GetIt.I.registerLazySingleton<BitwindowHomepageProvider>(() => bitwindowHomepageProvider);
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitwindowHomepageProvider);
   GetIt.I.registerLazySingleton<MempoolProvider>(() => MempoolProvider());
-  GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
-  NetworkScopedRegistry.register<ForkProvider>(ForkProvider()..init());
-  GetIt.I.registerSingleton<BackendSwapProvider>(BackendSwapProvider());
-  GetIt.I.registerSingleton<ECashMigrationProvider>(ECashMigrationProvider()..start());
-  GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
-  NetworkScopedRegistry.register<FastWithdrawalProvider>(FastWithdrawalProvider());
-  GetIt.I.registerSingleton<UpdateProvider>(
-    UpdateProvider(
+  put<NotificationStreamProvider>(() => NotificationStreamProvider());
+  putScoped<ForkProvider>(() => ForkProvider()..init());
+  put<BackendSwapProvider>(() => BackendSwapProvider());
+  put<ECashMigrationProvider>(() => ECashMigrationProvider()..start());
+  put<ChatProvider>(() => ChatProvider());
+  putScoped<FastWithdrawalProvider>(() => FastWithdrawalProvider());
+  put<UpdateProvider>(
+    () => UpdateProvider(
       log: log,
       binaryType: BinaryType.BINARY_TYPE_BITWINDOWD,
       currentVersion: AppVersion.version,
@@ -365,6 +402,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
 
   return (applicationDir, logFile, log);
+}
+
+/// Refetches the block-driven providers that this window built.
+void refetchBuiltOnNewBlock() {
+  if (GetIt.I.checkLazySingletonInstanceExists<BalanceProvider>()) {
+    unawaited(GetIt.I<BalanceProvider>().fetch());
+  }
+  if (GetIt.I.checkLazySingletonInstanceExists<BlockchainProvider>()) {
+    unawaited(GetIt.I<BlockchainProvider>().fetch());
+  }
+  if (GetIt.I.checkLazySingletonInstanceExists<TransactionProvider>()) {
+    unawaited(GetIt.I<TransactionProvider>().fetch());
+  }
 }
 
 Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
