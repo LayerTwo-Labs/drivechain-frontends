@@ -94,26 +94,25 @@ class SyncInfo {
 /// Tells a [SyncProvider] listener when a synced node reaches a new tip, so
 /// it refetches once per block and not on each sync poll.
 class SyncedTipWatch {
-  (double?, double?, double?)? _last;
+  Object? _last;
 
   /// True when [synced] holds and the mainchain, enforcer or bitwindowd tip
-  /// moved since the last call that returned true.
+  /// moved since the last call that returned true. A tip with a new block
+  /// time at the same height counts as a move.
   bool moved(SyncProvider sync, {required bool synced}) {
     if (!synced) {
       _last = null;
       return false;
     }
-    final tip = (
-      sync.mainchainSyncInfo?.progressCurrent,
-      sync.enforcerSyncInfo?.progressCurrent,
-      sync.bitwindowdSyncInfo?.progressCurrent,
-    );
+    final tip = (_tipOf(sync.mainchainSyncInfo), _tipOf(sync.enforcerSyncInfo), _tipOf(sync.bitwindowdSyncInfo));
     if (tip == _last) {
       return false;
     }
     _last = tip;
     return true;
   }
+
+  static (double, Timestamp?)? _tipOf(SyncInfo? info) => info == null ? null : (info.progressCurrent, info.lastBlockAt);
 }
 
 /// Represents a binary that has some sort of sync-status

@@ -73,7 +73,7 @@ class M4Provider extends ChangeNotifier {
       do {
         _fetchAgain = false;
         await _fetch();
-      } while (_fetchAgain && !_disposed);
+      } while (_fetchAgain && !_disposed && !_settingVote);
     } finally {
       _fetching = false;
     }
