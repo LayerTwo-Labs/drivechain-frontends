@@ -18,7 +18,14 @@ class ChainExplorerTab extends StatefulWidget {
 
 class _ChainExplorerTabState extends State<ChainExplorerTab> {
   final TextEditingController _search = TextEditingController();
+  final ExplorerModel _model = ExplorerModel();
   ExplorerTarget? _target;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _model.setShown(TickerMode.valuesOf(context).enabled);
+  }
 
   @override
   void dispose() {
@@ -44,7 +51,7 @@ class _ChainExplorerTabState extends State<ChainExplorerTab> {
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<ExplorerModel>.reactive(
-      viewModelBuilder: () => ExplorerModel(),
+      viewModelBuilder: () => _model,
       builder: (context, model, child) {
         // The page is taller than a short window, so it scrolls. The search
         // stays put above it.

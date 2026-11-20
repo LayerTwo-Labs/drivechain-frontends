@@ -103,6 +103,19 @@ class ExplorerModel extends BaseViewModel {
   }
 
   ExplorerModel() {
+    setShown(true);
+  }
+
+  /// Stops the refresh while the page is hidden. A page that shows again reads at once.
+  void setShown(bool shown) {
+    if (shown == (_timer != null)) {
+      return;
+    }
+    if (!shown) {
+      _timer!.cancel();
+      _timer = null;
+      return;
+    }
     unawaited(refresh());
     _timer = Timer.periodic(explorerRefreshInterval, (_) => refresh());
   }
