@@ -227,6 +227,59 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
       return _cancelConfirmation(preview.cancel);
     }
 
+    final close = SailButton(
+      label: 'Close',
+      onPressed: () async => Navigator.of(context).pop(),
+      variant: ButtonVariant.secondary,
+      disabled: _replacing,
+    );
+    final cancel = choices != null && choices.showCancel
+        ? SailButton(
+            label: 'Cancel transaction',
+            onPressed: () async => setState(() => _confirmCancel = true),
+            variant: ButtonVariant.secondary,
+            disabled: _replacing || _loading || _stale,
+          )
+        : null;
+    final override = choices != null && choices.showOverride
+        ? SailButton(
+            label: 'I want to RBF it',
+            onPressed: () async => setState(() => _pickOutput = true),
+            variant: ButtonVariant.secondary,
+            disabled: _replacing,
+          )
+        : null;
+    final accelerate = choices != null && choices.showAccelerate
+        ? SailButton(
+            label: 'Accelerate (CPFP)',
+            onPressed: _accelerate,
+            variant: choices.showReplace ? ButtonVariant.secondary : ButtonVariant.primary,
+            disabled: _replacing,
+          )
+        : null;
+    final replace = choices != null && choices.showReplace
+        ? SailButton(
+            label: _replacing ? 'Replacing...' : 'Replace transaction',
+            onPressed: _replace,
+            disabled: !canReplace,
+          )
+        : null;
+    final phone = SailStyleValues.phoneLayout(context);
+
+    final content = _loading && preview == null
+        ? const Padding(
+            padding: EdgeInsets.all(48),
+            child: Center(child: LoadingIndicator()),
+          )
+        : SailColumn(
+            spacing: SailStyleValues.padding12,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (preview != null) ..._transactionDetails(preview),
+              if (preview != null) ..._newFee(preview),
+            ],
+          );
+
     return PopScope(
       canPop: !_replacing,
       child: SailDialog(
@@ -234,57 +287,59 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
         maxWidth: 620,
         maxHeight: 620,
         error: _error,
-        actions: [
-          SailButton(
-            label: 'Close',
-            onPressed: () async => Navigator.of(context).pop(),
-            variant: ButtonVariant.secondary,
-            disabled: _replacing,
-          ),
-          if (choices != null && choices.showCancel)
-            SailButton(
-              label: 'Cancel transaction',
-              onPressed: () async => setState(() => _confirmCancel = true),
-              variant: ButtonVariant.secondary,
-              disabled: _replacing || _loading || _stale,
-            ),
-          if (choices != null && choices.showOverride)
-            SailButton(
-              label: 'I want to RBF it',
-              onPressed: () async => setState(() => _pickOutput = true),
-              variant: ButtonVariant.secondary,
-              disabled: _replacing,
-            ),
-          if (choices != null && choices.showAccelerate)
-            SailButton(
-              label: 'Accelerate (CPFP)',
-              onPressed: _accelerate,
-              variant: choices.showReplace ? ButtonVariant.secondary : ButtonVariant.primary,
-              disabled: _replacing,
-            ),
-          if (choices != null && choices.showReplace)
-            SailButton(
-              label: _replacing ? 'Replacing...' : 'Replace transaction',
-              onPressed: _replace,
-              disabled: !canReplace,
-            ),
-        ],
-        child: _loading && preview == null
-            ? const Padding(
-                padding: EdgeInsets.all(48),
-                child: Center(child: LoadingIndicator()),
-              )
-            : SailColumn(
-                spacing: SailStyleValues.padding12,
-                crossAxisAlignment: CrossAxisAlignment.start,
+        actions: phone ? null : [close, ?cancel, ?override, ?accelerate, ?replace],
+        child: phone
+            ? SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (preview != null) ..._transactionDetails(preview),
-                  if (preview != null) ..._newFee(preview),
+                  content,
+                  SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ?replace,
+                      ?accelerate,
+                      if (cancel != null || override != null)
+                        SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            if (cancel != null) Expanded(child: cancel),
+                            if (override != null) Expanded(child: override),
+                          ],
+                        ),
+                      close,
+                    ],
+                  ),
                 ],
-              ),
+              )
+            : content,
       ),
     );
   }
+
+  Widget _heading(String label) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailText.primary13(label, bold: true);
+    }
+    return SailText.primary15(label);
+  }
+
+  Widget _cancelRow(String label, String value) {
+    if (!SailStyleValues.phoneLayout(context)) {
+      return DetailRow(label: label, value: value);
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: _cancelLabelWidth, child: SailText.primary13(label)),
+        const SizedBox(width: SailStyleValues.padding16),
+        Expanded(child: SailText.secondary13(value, textAlign: TextAlign.end)),
+      ],
+    );
+  }
+
+  static const _cancelLabelWidth = 148.0;
 
   Widget _cancelConfirmation(wmpb.CancelPlan cancel) {
     final formatter = GetIt.I<FormatterProvider>();
@@ -313,9 +368,9 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
           spacing: SailStyleValues.padding12,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DetailRow(label: 'Transaction ID', value: widget.txid),
-            DetailRow(label: 'Returns to this wallet', value: formatter.formatSats(cancel.recoveredSats.toInt())),
-            DetailRow(label: 'Fee', value: formatter.formatSats(cancel.feeSats.toInt())),
+            _cancelRow('Transaction ID', widget.txid),
+            _cancelRow('Returns to this wallet', formatter.formatSats(cancel.recoveredSats.toInt())),
+            _cancelRow('Fee', formatter.formatSats(cancel.feeSats.toInt())),
           ],
         ),
       ),
@@ -325,7 +380,7 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
   List<Widget> _transactionDetails(wmpb.PreviewBumpFeeResponse preview) {
     final formatter = GetIt.I<FormatterProvider>();
     return [
-      SailText.primary15('This transaction'),
+      _heading('This transaction'),
       DetailRow(label: 'Transaction ID', value: widget.txid),
       DetailRow(label: 'Inputs', value: '${preview.inputCount} coins · ${preview.vsizeVbytes} vB'),
       DetailRow(
@@ -344,7 +399,7 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
 
     return [
       const SailSpacing(SailStyleValues.padding08),
-      SailText.primary15('New fee'),
+      _heading('New fee'),
       SailRow(
         spacing: SailStyleValues.padding08,
         children: [
@@ -408,7 +463,7 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
     final formatter = GetIt.I<FormatterProvider>();
     return [
       const SailSpacing(SailStyleValues.padding08),
-      SailText.primary15('Take the fee from'),
+      _heading('Take the fee from'),
       ...preview.outputs
           .where((o) => o.address.isNotEmpty)
           .map(
