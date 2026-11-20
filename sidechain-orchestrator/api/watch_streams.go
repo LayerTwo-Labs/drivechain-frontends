@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/chaindata"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/watch"
@@ -59,6 +60,47 @@ func (p pollSyncStatus) SubscribeSyncStatus(ctx context.Context) <-chan struct{}
 
 func (p pollSyncStatus) SyncStatus(ctx context.Context) (*orchestrator.SyncStatus, error) {
 	return p.orch.GetSyncStatus(ctx)
+}
+
+// engineSyncStatus wakes on each Core tip or health change, and again a short
+// time later for the enforcer and sidechains that follow the tip. The slow
+// poll covers the state that no event reaches.
+type engineSyncStatus struct {
+	pollSyncStatus
+	engine *chaindata.Engine
+}
+
+// followUps are the extra wakes after a Core event.
+var followUps = []time.Duration{100 * time.Millisecond, 500 * time.Millisecond, 2 * time.Second}
+
+func (e engineSyncStatus) SubscribeSyncStatus(ctx context.Context) <-chan struct{} {
+	out := make(chan struct{}, 1)
+	wake := func() {
+		select {
+		case out <- struct{}{}:
+		default:
+		}
+	}
+	forward := func(in <-chan struct{}, after []time.Duration) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case _, ok := <-in:
+				if !ok {
+					return
+				}
+				wake()
+				for _, d := range after {
+					time.AfterFunc(d, wake)
+				}
+			}
+		}
+	}
+	go forward(e.pollSyncStatus.SubscribeSyncStatus(ctx), nil)
+	go forward(e.engine.Subscribe(ctx, chaindata.KindBlockchainInfo), followUps)
+	go forward(e.engine.Subscribe(ctx, chaindata.KindHealth), followUps)
+	return out
 }
 
 func (h *Handler) WatchSyncStatus(ctx context.Context, req *pb.WatchSyncStatusRequest, stream rpc.OrchestratorServiceWatchSyncStatusServerStream) error {
@@ -120,6 +162,9 @@ func sameBinaries(a, b []*pb.BinaryStatusMsg) bool {
 
 // syncStatusPollInterval is the tick of the default SyncStatusSource.
 const syncStatusPollInterval = 250 * time.Millisecond
+
+// engineSyncStatusPollInterval is the tick for the state outside the engine.
+const engineSyncStatusPollInterval = time.Second
 
 func (h *Handler) WatchDownloadStatus(ctx context.Context, req *pb.WatchDownloadStatusRequest, stream rpc.OrchestratorServiceWatchDownloadStatusServerStream) error {
 	changed := h.orch.SubscribeDownloads(ctx)

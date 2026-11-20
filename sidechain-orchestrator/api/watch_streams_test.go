@@ -2,9 +2,12 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/chaindata"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 )
@@ -105,4 +109,37 @@ func TestWatchBinariesSendsTheList(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, first.GetBinaries(), 1)
 	require.Equal(t, "streamtest", first.GetBinaries()[0].GetName())
+}
+
+func TestEngineSyncStatusWakesOnANewBlock(t *testing.T) {
+	var height atomic.Int64
+	engine := chaindata.New(chaindata.Config{Log: zerolog.Nop(), Call: func(ctx context.Context, method string, params ...any) (json.RawMessage, error) {
+		for {
+			h := height.Load()
+			switch {
+			case method == "getblockchaininfo":
+				return json.RawMessage(fmt.Sprintf(`{"chain":"regtest","blocks":%d,"headers":%d,"bestblockhash":"h%d"}`, h, h, h)), nil
+			case method != "waitforblockheight":
+				return json.RawMessage(`null`), nil
+			case h >= params[0].(int64):
+				return json.RawMessage(fmt.Sprintf(`{"hash":"h%d","height":%d}`, h, h)), nil
+			}
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(time.Millisecond):
+			}
+		}
+	}})
+	go engine.Run(t.Context())
+	require.Eventually(t, func() bool { return engine.Health() == nil }, time.Second, time.Millisecond)
+
+	src := engineSyncStatus{pollSyncStatus: pollSyncStatus{interval: time.Hour}, engine: engine}
+	changed := src.SubscribeSyncStatus(t.Context())
+	height.Add(1)
+	select {
+	case <-changed:
+	case <-time.After(time.Second):
+		t.Fatal("no wake after a new block")
+	}
 }

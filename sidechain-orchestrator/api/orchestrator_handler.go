@@ -39,7 +39,12 @@ type Handler struct {
 type SidechainBalanceFunc func(ctx context.Context) (total, available int64, err error)
 
 func NewHandler(orch *orchestrator.Orchestrator) *Handler {
-	return &Handler{orch: orch, syncSource: pollSyncStatus{orch: orch, interval: syncStatusPollInterval}}
+	poll := pollSyncStatus{orch: orch, interval: syncStatusPollInterval}
+	if orch == nil || orch.ChainData() == nil {
+		return &Handler{orch: orch, syncSource: poll}
+	}
+	poll.interval = engineSyncStatusPollInterval
+	return &Handler{orch: orch, syncSource: engineSyncStatus{pollSyncStatus: poll, engine: orch.ChainData()}}
 }
 
 // SetSidechainBalance names the reader that answers one chain's balance. It is
