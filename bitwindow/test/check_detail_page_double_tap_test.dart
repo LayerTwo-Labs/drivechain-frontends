@@ -20,6 +20,9 @@ class _FakeCheckProvider extends ChangeNotifier implements CheckProvider {
 
   final bool funded;
   int sweepCalls = 0;
+
+  @override
+  List<bwpb.Cheque> checks = [];
   Completer<String> sweepCompleter = Completer<String>();
 
   @override

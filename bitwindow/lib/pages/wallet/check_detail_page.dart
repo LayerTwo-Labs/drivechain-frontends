@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart' hide AutoRouterX;
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -30,6 +31,7 @@ class CheckDetailViewModel extends BaseViewModel {
   bool get isLoading => _isLoading;
 
   CheckDetailViewModel(this.checkId) {
+    _check = _checkProvider.checks.firstWhereOrNull((c) => c.id.toInt() == checkId);
     _loadCheck();
     _checkProvider.addListener(_onCheckProviderChanged);
   }
@@ -39,8 +41,10 @@ class CheckDetailViewModel extends BaseViewModel {
   }
 
   Future<void> _loadCheck() async {
-    _isLoading = true;
-    notifyListeners();
+    if (_check == null) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     _check = await _checkProvider.getCheck(checkId);
     if (_check == null) {
