@@ -1,0 +1,66 @@
+{
+  "in_active_chain": true,
+  "txid": "bc2cf26234cfe14affb089077edf7a801c6c05681634a6ded49d3a68b35fd920",
+  "hash": "c627e04de8b29bb70b3ee4f19925136c3cd41e816e80eca80b7325fd8d41f1b6",
+  "version": 2,
+  "size": 219,
+  "vsize": 138,
+  "weight": 549,
+  "locktime": 101,
+  "vin": [
+    {
+      "txid": "4471942e37ced684a9c6fbd776799c073ff0c338b04cf574ab42a018af0d1508",
+      "vout": 0,
+      "scriptSig": {
+        "asm": "",
+        "hex": ""
+      },
+      "txinwitness": [
+        "304402201f679aba4fa091da5ae5aa349db3560c3f7edfad9aaf13dbb14272e051fca31102205e4062ddf086558e52bad5bc5bce99511b5382107e8d35f61082f8306831b24a01",
+        "03b0dff41c2d9c1bc7d3dd5b22bf5441dff9cd19c0f6208266d06ba54a45e7a210"
+      ],
+      "prevout": {
+        "generated": true,
+        "height": 1,
+        "value": 50.00000000,
+        "scriptPubKey": {
+          "asm": "0 c5017e840edea50c95abc9dbf4d620cbd688924b",
+          "desc": "addr(bcrt1qc5qhapqwm6jse9dte8dlf43qe0tg3yjtqddeef)#f54h6dr8",
+          "hex": "0014c5017e840edea50c95abc9dbf4d620cbd688924b",
+          "address": "bcrt1qc5qhapqwm6jse9dte8dlf43qe0tg3yjtqddeef",
+          "type": "witness_v0_keyhash"
+        }
+      },
+      "sequence": 4294967293
+    }
+  ],
+  "vout": [
+    {
+      "value": 49.99997240,
+      "n": 0,
+      "scriptPubKey": {
+        "asm": "1 d04ec09416c9fd4d9004af2879b05563fcab4415c8db9c792f1aaa7b530cbac2",
+        "desc": "rawtr(d04ec09416c9fd4d9004af2879b05563fcab4415c8db9c792f1aaa7b530cbac2)#2x7vmsre",
+        "hex": "5120d04ec09416c9fd4d9004af2879b05563fcab4415c8db9c792f1aaa7b530cbac2",
+        "address": "bcrt1p6p8vp9qke875myqy4u58nvz4v072k3q4erdec7f0r248k5cvhtpqul6yxh",
+        "type": "witness_v1_taproot"
+      }
+    },
+    {
+      "value": 0.00000000,
+      "n": 1,
+      "scriptPubKey": {
+        "asm": "OP_RETURN 68656c6c6f",
+        "desc": "raw(6a0568656c6c6f)#yktqjuxu",
+        "hex": "6a0568656c6c6f",
+        "type": "nulldata"
+      }
+    }
+  ],
+  "fee": 0.00002760,
+  "hex": "0200000000010108150daf18a042ab74f54cb038c3f03f079c7976d7fbc6a984d6ce372e9471440000000000fdffffff0238e7052a01000000225120d04ec09416c9fd4d9004af2879b05563fcab4415c8db9c792f1aaa7b530cbac20000000000000000076a0568656c6c6f0247304402201f679aba4fa091da5ae5aa349db3560c3f7edfad9aaf13dbb14272e051fca31102205e4062ddf086558e52bad5bc5bce99511b5382107e8d35f61082f8306831b24a012103b0dff41c2d9c1bc7d3dd5b22bf5441dff9cd19c0f6208266d06ba54a45e7a21065000000",
+  "blockhash": "73c5057d474496f9d7ef0ae89e0997a6a79f98cec155f0b52548015c3c48d9dd",
+  "confirmations": 1,
+  "time": 1795212210,
+  "blocktime": 1795212210
+}
