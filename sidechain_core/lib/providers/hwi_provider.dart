@@ -1,14 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
 
-// Keeps the hardware-wallet list warm: enumerated on launch and every 5s, so a
-// device picker can show them the instant the user starts a transaction.
+// Keeps the hardware-wallet list warm: enumerated on launch and after each
+// device picker closes, so the next picker can show them at once.
 class HwiProvider extends ChangeNotifier {
   final log = GetIt.I.get<Logger>();
 
@@ -20,10 +17,8 @@ class HwiProvider extends ChangeNotifier {
   bool suspended = false;
 
   bool _isFetching = false;
-  Timer? _timer;
 
   HwiProvider() {
-    _startTimer();
     fetch();
   }
 
@@ -44,19 +39,5 @@ class HwiProvider extends ChangeNotifier {
     } finally {
       _isFetching = false;
     }
-  }
-
-  void _startTimer() {
-    if (Environment.isInTest) {
-      return;
-    }
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) => fetch());
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
   }
 }
