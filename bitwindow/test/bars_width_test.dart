@@ -316,4 +316,19 @@ void main() {
     expect(find.text('Last block: 6 seconds ago'), findsOneWidget);
     expect(tester.widget<BottomNav>(find.byType(BottomNav)), same(bar));
   });
+
+  testWidgets('a Core disconnect greys the block age', (tester) async {
+    await pumpBars(tester, 1280);
+    bool skeleton() => tester
+        .widget<SailSkeletonizer>(find.ancestor(of: find.byType(LastBlockAge), matching: find.byType(SailSkeletonizer)))
+        .enabled;
+    expect(skeleton(), isFalse);
+
+    final core = GetIt.I.get<BitcoindConnection>() as _Core;
+    core.connected = false;
+    core.notifyListeners();
+    await tester.pump();
+
+    expect(skeleton(), isTrue);
+  });
 }
