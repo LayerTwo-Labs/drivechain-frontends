@@ -23,7 +23,9 @@ void main() {
 
   testWidgets('on a phone a group is one panel with a row for each article', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
     await tester.pumpSailPage(SingleChildScrollView(child: ArticleGroupCard(group: group)));
+    await tester.binding.setSurfaceSize(const Size(390, 800));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -35,6 +37,9 @@ void main() {
     final second = tester.getRect(find.text('Article 1'));
     expect(second.top, greaterThan(first.bottom));
     expect(first.left, second.left);
+    final titleStyle = tester.widget<Text>(find.text('Article 0')).style!;
+    expect(titleStyle.fontSize, 15);
+    expect(titleStyle.fontWeight, SailStyleValues.regularWeight);
 
     final picture = find.descendant(of: find.byType(SailStatList), matching: find.byType(CoverImage)).first;
     expect(tester.getSize(picture), const Size(48, 48));
