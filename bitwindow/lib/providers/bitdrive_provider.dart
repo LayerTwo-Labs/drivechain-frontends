@@ -15,6 +15,7 @@ class BitDriveProvider extends ChangeNotifier {
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   bool initialized = false;
+  bool _initRequested = false;
   String? error;
   bool _isStoring = false;
   bool _isRestoring = false;
@@ -63,6 +64,9 @@ class BitDriveProvider extends ChangeNotifier {
 
   void _onSyncStatusChanged() async {
     if (!initialized) {
+      if (_initRequested) {
+        await init();
+      }
       return;
     }
 
@@ -89,6 +93,7 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> init() async {
+    _initRequested = true;
     try {
       if (blockchainProvider.syncProvider.mainchainSyncInfo == null) {
         return;
