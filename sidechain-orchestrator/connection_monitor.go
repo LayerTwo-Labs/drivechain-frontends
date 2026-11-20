@@ -87,9 +87,8 @@ type ConnectionMonitor struct {
 	// ExitedFunc: returns (exitCode, exited). Dart: BinaryProvider.exited(binary)
 	exitedFunc func() (int, bool)
 
-	// onChange is called whenever connection state changes. Currently unwired
-	// — the frontend polls listBinaries on a 1s timer instead — but kept as
-	// infrastructure for any future stream/push consumer.
+	// onChange is called whenever connection state changes. It wakes the
+	// WatchBinaries streams.
 	onChange func()
 
 	// startupLogs holds recent startup progress messages (like "Loading block index...")

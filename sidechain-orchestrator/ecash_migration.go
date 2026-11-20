@@ -142,7 +142,14 @@ func (o *Orchestrator) saveMigration(state *ecashMigration) error {
 	}
 	copy := *state
 	o.migrationState = &copy
+	o.migrationChanged.notify()
 	return nil
+}
+
+// SubscribeECashMigration wakes the returned channel on each change of
+// ECashMigrationStatus. The channel lives until ctx is done.
+func (o *Orchestrator) SubscribeECashMigration(ctx context.Context) <-chan struct{} {
+	return o.migrationChanged.subscribe(ctx)
 }
 
 // ECashMigrationStatus reads the saved migration without access to Core.
@@ -189,6 +196,7 @@ func (o *Orchestrator) forgetMigration() error {
 		return fmt.Errorf("remove ECX migration: %w", err)
 	}
 	o.migrationState = nil
+	o.migrationChanged.notify()
 	return nil
 }
 
@@ -204,6 +212,7 @@ func (o *Orchestrator) endFailedStart(status ECashMigrationStatus) error {
 	status.Running = false
 	o.failedStart = &status
 	o.migrationBusy = false
+	o.migrationChanged.notify()
 	return nil
 }
 
@@ -539,6 +548,7 @@ func (o *Orchestrator) StartECashMigration(ctx context.Context, fromID, toID str
 	o.migrationState = &copy
 	o.failedStart = nil
 	o.migrationBusy = true
+	o.migrationChanged.notify()
 	release := func() {}
 	if o.clients != nil {
 		release = o.clients.Hold()
@@ -582,6 +592,7 @@ func (o *Orchestrator) runECashMigration(state ecashMigration) {
 	o.migrationMu.Lock()
 	o.migrationState = &state
 	o.migrationBusy = false
+	o.migrationChanged.notify()
 	o.migrationMu.Unlock()
 }
 

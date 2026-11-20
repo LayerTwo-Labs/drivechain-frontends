@@ -68,6 +68,8 @@ type DownloadManager struct {
 	// every progress event from downloadFile, deleted on Done/Error so a
 	// later GetSyncStatus tick reports nothing rather than stale bytes.
 	state sync.Map
+	// stateChanged fires on each write to state.
+	stateChanged changeBroadcast
 
 	// CoreVariant returns the active Bitcoin Core variant spec to use for
 	// download/extract. It is consulted only for the mainchain Core node. May
@@ -194,10 +196,10 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	// can't run concurrently anyway (gated by inFlight), and the UI shows
 	// progress for "bitcoind".
 	stateKey := config.Name
-	d.state.Store(stateKey, DownloadState{Running: true})
+	d.storeState(stateKey, DownloadState{Running: true})
 
 	go func() {
-		defer d.state.Delete(stateKey)
+		defer d.deleteState(stateKey)
 		defer close(ch)
 
 		// send aborts the goroutine when ctx fires *or* when the consumer
@@ -229,7 +231,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 				if p.Message != "" {
 					next.Message = p.Message
 				}
-				d.state.Store(stateKey, next)
+				d.storeState(stateKey, next)
 			}
 			select {
 			case ch <- p:
@@ -417,16 +419,26 @@ func (d *DownloadManager) States() map[string]DownloadState {
 	return out
 }
 
+func (d *DownloadManager) storeState(name string, s DownloadState) {
+	d.state.Store(name, s)
+	d.stateChanged.notify()
+}
+
+func (d *DownloadManager) deleteState(name string) {
+	d.state.Delete(name)
+	d.stateChanged.notify()
+}
+
 // PublishState posts a progress entry under a binary's logical name for work
 // that isn't a binary fetch, so GetDownloadStatus reports it like any download.
 func (d *DownloadManager) PublishState(name string, s DownloadState) {
 	s.Running = true
-	d.state.Store(name, s)
+	d.storeState(name, s)
 }
 
 // ClearState removes a PublishState entry.
 func (d *DownloadManager) ClearState(name string) {
-	d.state.Delete(name)
+	d.deleteState(name)
 }
 
 // githubAPIHost is the only host that receives GITHUB_TOKEN.
