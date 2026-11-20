@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,13 +32,14 @@ type Handler struct {
 	// sidechainBalances answer one chain's balance whatever wallet mode runs.
 	// Light mode starts no sidechain node, so nothing may dial one here.
 	sidechainBalances map[string]SidechainBalanceFunc
+	syncSource        SyncStatusSource
 }
 
 // SidechainBalanceFunc reads one sidechain balance, in sats.
 type SidechainBalanceFunc func(ctx context.Context) (total, available int64, err error)
 
 func NewHandler(orch *orchestrator.Orchestrator) *Handler {
-	return &Handler{orch: orch}
+	return &Handler{orch: orch, syncSource: pollSyncStatus{orch: orch, interval: syncStatusPollInterval}}
 }
 
 // SetSidechainBalance names the reader that answers one chain's balance. It is
@@ -504,6 +506,12 @@ func (h *Handler) GetSyncStatus(ctx context.Context, req *pb.GetSyncStatusReques
 	if err != nil {
 		return nil, err
 	}
+	return h.syncStatusToProto(s), nil
+}
+
+// syncStatusToProto sorts the sidechains by type, so equal snapshots give
+// equal messages.
+func (h *Handler) syncStatusToProto(s *orchestrator.SyncStatus) *pb.GetSyncStatusResponse {
 	sidechains := make([]*pb.SidechainStatus, 0, len(s.Sidechains))
 	for name, cs := range s.Sidechains {
 		t := sidechainTypeFromName(name)
@@ -518,6 +526,7 @@ func (h *Handler) GetSyncStatus(ctx context.Context, req *pb.GetSyncStatusReques
 			Sync: chainSyncToProto(cs),
 		})
 	}
+	slices.SortFunc(sidechains, func(a, b *pb.SidechainStatus) int { return int(a.Type) - int(b.Type) })
 	// Surface the active electrum wallet's scan progress (empty unless scanning).
 	walletSyncStatus := ""
 	if h.orch.WalletSvc != nil {
@@ -532,7 +541,7 @@ func (h *Handler) GetSyncStatus(ctx context.Context, req *pb.GetSyncStatusReques
 		ChainSource:      chainSyncToProto(s.ChainSource),
 		Sidechains:       sidechains,
 		WalletSyncStatus: walletSyncStatus,
-	}, nil
+	}
 }
 
 // sidechainTypeFromName maps the orch's logical binary name to the proto
@@ -596,7 +605,14 @@ func mainchainSyncPhaseToProto(phase sidechain.MainchainSyncPhase) pb.MainchainS
 // Binaries the proto enum doesn't know about (e.g. grpcurl) are dropped so
 // the wire format stays strongly typed.
 func (h *Handler) GetDownloadStatus(ctx context.Context, req *pb.GetDownloadStatusRequest) (*pb.GetDownloadStatusResponse, error) {
-	states := h.orch.DownloadStates()
+	return &pb.GetDownloadStatusResponse{
+		Downloads: downloadStatesToProto(h.orch.DownloadStates()),
+	}, nil
+}
+
+// downloadStatesToProto sorts by binary type, so equal states give equal
+// messages.
+func downloadStatesToProto(states map[string]orchestrator.DownloadState) []*pb.DownloadStatus {
 	downloads := make([]*pb.DownloadStatus, 0, len(states))
 	for name, s := range states {
 		t := binaryTypeFromName(name)
@@ -610,9 +626,8 @@ func (h *Handler) GetDownloadStatus(ctx context.Context, req *pb.GetDownloadStat
 			Message:      s.Message,
 		})
 	}
-	return &pb.GetDownloadStatusResponse{
-		Downloads: downloads,
-	}, nil
+	slices.SortFunc(downloads, func(a, b *pb.DownloadStatus) int { return int(a.Binary) - int(b.Binary) })
+	return downloads
 }
 
 // binaryTypeFromName maps the orchestrator's logical binary name to the
