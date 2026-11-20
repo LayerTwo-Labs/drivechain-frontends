@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	connectv1 "connectrpc.com/connect"
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -640,13 +639,13 @@ func run(cctx *cli.Context) error {
 				log.Warn().Err(err).Str("reason", reason).Msg("failed to start bitcoin core proxy")
 				return
 			}
-			_, h := corerpc.NewBitcoinServiceHandler(proxy, connectv1.WithInterceptors(authIC, meterIC))
+			_, h := corerpc.NewBitcoinServiceHandler(proxy, coreProxyHandlerOptions(authIC, meterIC))
 			swappable.swap(h)
 			log.Info().Str("reason", reason).Msg("bitcoin core proxy ready")
 		}
 		rebuildCoreProxy("startup")
 		// The path is constant; register once.
-		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connectv1.WithInterceptors(authIC, meterIC))
+		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, coreProxyHandlerOptions(authIC, meterIC))
 		mux.Handle(corePath, swappable)
 		log.Info().Str("service", "bitcoin.bitcoind.v1alpha.BitcoinService").Msg("registered bitcoin core proxy")
 
@@ -719,8 +718,8 @@ func run(cctx *cli.Context) error {
 		}
 	}
 
-	connecthttp.Mount(mux, rpcServer, connecthttp.WithReadMaxBytes(0))
-	connecthttp.Mount(mux, sidechainServer, connecthttp.WithReadMaxBytes(0))
+	connecthttp.Mount(mux, rpcServer, mountOptions()...)
+	connecthttp.Mount(mux, sidechainServer, mountOptions()...)
 
 	// h2c (HTTP/2 cleartext) via http.Server.Protocols — the ConnectRPC-blessed
 	// replacement for h2c.NewHandler. Carries Connect, gRPC and gRPC-Web on one
