@@ -47,7 +47,12 @@ class _HomepageViewState extends State<HomepageView> {
                     spacing: SailStyleValues.padding16,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (final row in homepageRows(provider.widgets, provider.catalog)) _row(row, editing),
+                      for (final row in homepageRows(
+                        provider.widgets,
+                        provider.catalog,
+                        oneColumn: SailStyleValues.phoneLayout(context),
+                      ))
+                        _row(row, editing),
                       if (!editing)
                         Center(
                           child: SailButton(
@@ -110,10 +115,19 @@ class HomepageWidgetEntry {
 }
 
 /// Two half-width widgets share a row. A bar or a full-width widget takes a row alone.
+/// With [oneColumn], every widget takes a row alone, and a full-width widget builds at half width.
 List<List<HomepageWidgetEntry>> homepageRows(
   List<HomepageWidgetConfig> widgets,
-  Map<String, HomepageWidgetInfo> catalog,
-) {
+  Map<String, HomepageWidgetInfo> catalog, {
+  bool oneColumn = false,
+}) {
+  if (oneColumn) {
+    return [
+      for (final config in widgets)
+        if (catalog[config.widgetId] case final info?)
+          [HomepageWidgetEntry(info, info.sizeOf(config) == WidgetSize.full ? WidgetSize.half : info.sizeOf(config))],
+    ];
+  }
   final rows = <List<HomepageWidgetEntry>>[];
   List<HomepageWidgetEntry>? pair;
   for (final config in widgets) {
