@@ -60,6 +60,8 @@ import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 // ancestor-independent error boundary. Everything below uses sail_ui.
 // ignore: drivechain_lints/avoid_material_import
 import 'package:flutter/material.dart' show Colors, MaterialApp, Scaffold, ThemeData, VisualDensity;
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -92,6 +94,9 @@ void main(List<String> args) async {
           final windowController = await WindowController.fromCurrentEngine();
 
           final (applicationDir, logFile, log) = await init(windowController.arguments);
+          if (isSpareWindowArguments(windowController.arguments)) {
+            return await runSpareWindow(windowController, log, applicationDir, logFile);
+          }
 
           // If arguments are not empty, this is a sub-window
           if (windowController.arguments.isNotEmpty) {
@@ -116,6 +121,25 @@ void main(List<String> args) async {
 }
 
 final _daemonWarmUp = DaemonWarmUp();
+
+/// Holds an initialized sub-window engine hidden until the main window gives it a page.
+Future<void> runSpareWindow(
+  WindowController windowController,
+  Logger log,
+  Directory applicationDir,
+  File logFile,
+) async {
+  await windowController.setWindowMethodHandler((call) async {
+    if (call.method != openSpareMethod) {
+      throw MissingPluginException('spare window has no method ${call.method}');
+    }
+    await GetIt.I.get<SettingsProvider>().reload();
+    unawaited(GetIt.I.get<BitcoinConfProvider>().loadConfig());
+    runMultiWindow(call.arguments as String, log, applicationDir, logFile);
+    return null;
+  });
+  await announceSpareWindow(windowController.windowId);
+}
 
 Future<(Directory, File, Logger)> init(String arguments) async {
   addFontLicense();
@@ -444,6 +468,15 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   await initAutoUpdater(log);
 
   final backendReady = ValueNotifier<bool>(false);
+  void startSpareWindowAfterBoot() {
+    if (!backendReady.value) {
+      return;
+    }
+    backendReady.removeListener(startSpareWindowAfterBoot);
+    unawaited(SchedulerBinding.instance.scheduleTask(GetIt.I.get<WindowProvider>().startSpare, Priority.idle));
+  }
+
+  backendReady.addListener(startSpareWindowAfterBoot);
   unawaited(() async {
     try {
       await bootBitwindowBackend(log);
@@ -543,6 +576,11 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
       break;
   }
 
+  unawaited(
+    WidgetsBinding.instance.waitUntilFirstFrameRasterized.then(
+      (_) => GetIt.I.get<WindowProvider>().sendMessageToMain(windowShownMethod, null),
+    ),
+  );
   return runApp(buildSailWindowApp(log, '$windowTitle | Bitwindow', child, const Color.fromARGB(255, 255, 153, 0)));
 }
 
