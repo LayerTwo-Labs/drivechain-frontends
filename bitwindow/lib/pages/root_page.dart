@@ -17,7 +17,6 @@ import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
 import 'package:bitwindow/dialogs/network_statistics_dialog.dart';
 import 'package:bitwindow/dialogs/paper_wallet_dialog.dart';
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/log_window.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
@@ -43,6 +42,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sail_routes;
@@ -1194,7 +1194,6 @@ class _StatusBarState extends State<StatusBar> {
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
   BitcoinConfProvider get confProvider => GetIt.I.get<BitcoinConfProvider>();
-  Timer? _timer;
 
   @override
   void initState() {
@@ -1202,39 +1201,11 @@ class _StatusBarState extends State<StatusBar> {
     blockchainProvider.addListener(_onChange);
     balanceProvider.addListener(_onChange);
     confProvider.addListener(_onChange);
-    if (!Environment.isInTest) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
-    }
   }
 
   void _onChange() {
     if (mounted) {
       setState(() {});
-    }
-  }
-
-  String _getTimeSinceLastBlock() {
-    if (blockchainProvider.syncProvider.mainchainSyncInfo?.lastBlockAt == null) {
-      return 'Unknown';
-    }
-
-    final now = DateTime.now();
-    final lastBlockTime = blockchainProvider.syncProvider.mainchainSyncInfo!.lastBlockAt!.toDateTime().toLocal();
-    final difference = now.difference(lastBlockTime);
-
-    if (difference.inDays > 0) {
-      return '${formatTimeDifference(difference.inDays, 'day')} ago';
-    } else if (difference.inHours > 0) {
-      return '${formatTimeDifference(difference.inHours, 'hour')} ago';
-    } else if (difference.inMinutes > 0) {
-      final minutes = difference.inMinutes;
-      final seconds = difference.inSeconds % 60;
-      if (seconds > 0) {
-        return '${formatTimeDifference(minutes, 'minute')} ${formatTimeDifference(seconds, 'second')} ago';
-      }
-      return '${formatTimeDifference(minutes, 'minute')} ago';
-    } else {
-      return '${formatTimeDifference(difference.inSeconds, 'second')} ago';
     }
   }
 
@@ -1250,7 +1221,6 @@ class _StatusBarState extends State<StatusBar> {
   Widget _bottomNav(BuildContext context, ECashMigrationProvider migration) {
     final swap = migration.status;
     final compact = SailStyleValues.compactBars(context);
-    final lastBlock = 'Last block: ${_getTimeSinceLastBlock()}';
     return BottomNav(
       statusOverride: migration.swapping && swap != null
           ? BottomNavStatusOverride(
@@ -1289,22 +1259,10 @@ class _StatusBarState extends State<StatusBar> {
           SailSkeletonizer(
             description: 'Waiting for bitcoind to connect..',
             enabled: !blockchainProvider.mainchain.connected,
-            child: SailTooltip(
-              message: compact
-                  ? [
-                      lastBlock,
-                      ?blockchainProvider.blocks.firstOrNull?.toPretty(),
-                    ].join('\n')
-                  : blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
-              child: compact
-                  ? SailRow(
-                      spacing: SailStyleValues.padding04,
-                      children: [
-                        SailSVG.icon(SailSVGAsset.clock, width: 12, color: context.sailTheme.colors.textSecondary),
-                        SailText.secondary12(_getTimeSinceLastBlock()),
-                      ],
-                    )
-                  : SailText.secondary12(lastBlock),
+            child: LastBlockAge(
+              lastBlockAt: blockchainProvider.syncProvider.mainchainSyncInfo?.lastBlockAt,
+              blockInfo: blockchainProvider.blocks.firstOrNull?.toPretty(),
+              compact: compact,
             ),
           ),
           const DividerDot(),
@@ -1336,11 +1294,101 @@ class _StatusBarState extends State<StatusBar> {
 
   @override
   void dispose() {
-    _timer?.cancel();
     blockchainProvider.removeListener(_onChange);
     balanceProvider.removeListener(_onChange);
     confProvider.removeListener(_onChange);
     super.dispose();
+  }
+}
+
+/// "Last block: N ago" with the block tooltip. It ticks each second on its own,
+/// so the status bar around it does not rebuild.
+class LastBlockAge extends StatefulWidget {
+  final Timestamp? lastBlockAt;
+  final String? blockInfo;
+  final bool compact;
+
+  const LastBlockAge({super.key, required this.lastBlockAt, required this.blockInfo, required this.compact});
+
+  @override
+  State<LastBlockAge> createState() => _LastBlockAgeState();
+}
+
+class _LastBlockAgeState extends State<LastBlockAge> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTimer();
+  }
+
+  @override
+  void didUpdateWidget(LastBlockAge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncTimer();
+  }
+
+  // An unknown block time shows no clock, so nothing ticks.
+  void _syncTimer() {
+    if (widget.lastBlockAt == null) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
+    _timer ??= Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+  }
+
+  String _timeSinceLastBlock() {
+    final lastBlockAt = widget.lastBlockAt;
+    if (lastBlockAt == null) {
+      return 'Unknown';
+    }
+
+    final difference = DateTime.now().difference(lastBlockAt.toDateTime().toLocal());
+
+    if (difference.inDays > 0) {
+      return '${formatTimeDifference(difference.inDays, 'day')} ago';
+    } else if (difference.inHours > 0) {
+      return '${formatTimeDifference(difference.inHours, 'hour')} ago';
+    } else if (difference.inMinutes > 0) {
+      final minutes = difference.inMinutes;
+      final seconds = difference.inSeconds % 60;
+      if (seconds > 0) {
+        return '${formatTimeDifference(minutes, 'minute')} ${formatTimeDifference(seconds, 'second')} ago';
+      }
+      return '${formatTimeDifference(minutes, 'minute')} ago';
+    } else {
+      return '${formatTimeDifference(difference.inSeconds, 'second')} ago';
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final age = _timeSinceLastBlock();
+    final lastBlock = 'Last block: $age';
+    if (!widget.compact) {
+      return SailTooltip(
+        message: widget.blockInfo ?? '',
+        child: SailText.secondary12(lastBlock),
+      );
+    }
+    return SailTooltip(
+      message: [lastBlock, ?widget.blockInfo].join('\n'),
+      child: SailRow(
+        spacing: SailStyleValues.padding04,
+        children: [
+          SailSVG.icon(SailSVGAsset.clock, width: 12, color: context.sailTheme.colors.textSecondary),
+          SailText.secondary12(age),
+        ],
+      ),
+    );
   }
 }
 
