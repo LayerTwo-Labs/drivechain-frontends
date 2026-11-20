@@ -22,9 +22,7 @@ Future<void> initSidechainDependencies({
   List<Binary> Function() additionalBinaries = _noAdditionalBinaries,
 }) async {
   if (!GetIt.I.isRegistered<NotificationProvider>()) {
-    GetIt.I.registerLazySingleton<NotificationProvider>(
-      () => NotificationProvider(),
-    );
+    GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
   }
 
   final store = await KeyValueStore.create(dir: applicationDir);
@@ -33,20 +31,13 @@ Future<void> initSidechainDependencies({
     GetIt.I.registerLazySingleton<ClientSettings>(() => clientSettings);
   }
 
-  final bitwindowDir = Directory(
-    path.join(applicationDir.parent.path, 'bitwindow'),
-  );
+  final bitwindowDir = Directory(path.join(applicationDir.parent.path, 'bitwindow'));
   await bitwindowDir.create(recursive: true);
   LocalAuth.configure(bitwindowDir);
   final bitwindowStore = await KeyValueStore.create(dir: bitwindowDir);
-  final bitwindowClientSettings = BitwindowClientSettings(
-    store: bitwindowStore,
-    log: log,
-  );
+  final bitwindowClientSettings = BitwindowClientSettings(store: bitwindowStore, log: log);
   if (!GetIt.I.isRegistered<BitwindowClientSettings>()) {
-    GetIt.I.registerLazySingleton<BitwindowClientSettings>(
-      () => bitwindowClientSettings,
-    );
+    GetIt.I.registerLazySingleton<BitwindowClientSettings>(() => bitwindowClientSettings);
   }
 
   final settingsProvider = await SettingsProvider.create();
@@ -54,9 +45,7 @@ Future<void> initSidechainDependencies({
     GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
   }
   if (!GetIt.I.isRegistered<FormatterProvider>()) {
-    GetIt.I.registerLazySingleton<FormatterProvider>(
-      () => FormatterProvider(settingsProvider),
-    );
+    GetIt.I.registerLazySingleton<FormatterProvider>(() => FormatterProvider(settingsProvider));
   }
 
   // Register WalletReaderProvider pointing to bitwindow directory.
@@ -72,9 +61,7 @@ Future<void> initSidechainDependencies({
   final walletWriterAlreadyRegistered = GetIt.I.isRegistered<WalletWriterProvider>();
   final walletWriter = walletWriterAlreadyRegistered
       ? GetIt.I.get<WalletWriterProvider>()
-      : WalletWriterProvider(
-          bitwindowAppDir: bitwindowDir,
-        );
+      : WalletWriterProvider(bitwindowAppDir: bitwindowDir);
   if (!walletWriterAlreadyRegistered) {
     GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
     await walletWriter.init();
@@ -90,23 +77,16 @@ Future<void> initSidechainDependencies({
   // Initialize EnforcerConfProvider (must be after BitcoinConfProvider)
   final enforcerConfProvider = await EnforcerConfProvider.create();
   if (!GetIt.I.isRegistered<EnforcerConfProvider>()) {
-    GetIt.I.registerLazySingleton<EnforcerConfProvider>(
-      () => enforcerConfProvider,
-    );
+    GetIt.I.registerLazySingleton<EnforcerConfProvider>(() => enforcerConfProvider);
   }
 
   // Load paranoid mode from bitwindow settings before creating chains config
   final bitwindowSettingValue = BitwindowSettingValue();
-  final loadedBitwindowSetting = await bitwindowClientSettings.getValue(
-    bitwindowSettingValue,
-  );
+  final loadedBitwindowSetting = await bitwindowClientSettings.getValue(bitwindowSettingValue);
   final paranoidMode = loadedBitwindowSetting.value.paranoidMode;
 
   // Load chains config from shared bitwindow directory (single source of truth)
-  final chainsConfigProvider = await ChainsConfigProvider.create(
-    appDir: bitwindowDir,
-    paranoidMode: paranoidMode,
-  );
+  final chainsConfigProvider = await ChainsConfigProvider.create(appDir: bitwindowDir, paranoidMode: paranoidMode);
   if (!GetIt.I.isRegistered<ChainsConfigProvider>()) {
     GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
   }
@@ -122,18 +102,10 @@ Future<void> initSidechainDependencies({
   Binary.isSidechainApp = true;
 
   // Load and register initial binary states
-  final binaries = _initialBinaries(
-    sidechainType,
-    additionalBinaries(),
-    chainsConfigProvider,
-  );
+  final binaries = _initialBinaries(sidechainType, additionalBinaries(), chainsConfigProvider);
   final binaryProvider = GetIt.I.isRegistered<BinaryProvider>()
       ? GetIt.I.get<BinaryProvider>()
-      : await BinaryProvider.create(
-          appDir: applicationDir,
-          initialBinaries: binaries,
-          isSidechainApp: true,
-        );
+      : await BinaryProvider.create(appDir: applicationDir, initialBinaries: binaries, isSidechainApp: true);
   if (!GetIt.I.isRegistered<BinaryProvider>()) {
     GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   }
@@ -200,10 +172,7 @@ Future<void> initSidechainDependencies({
   final syncProvider = GetIt.I.isRegistered<SyncProvider>()
       ? GetIt.I.get<SyncProvider>()
       : SyncProvider(
-          additionalConnection: SyncConnection(
-            rpc: sidechainConnection,
-            name: sidechainConnection.chain.name,
-          ),
+          additionalConnection: SyncConnection(rpc: sidechainConnection, name: sidechainConnection.chain.name),
         );
   if (!GetIt.I.isRegistered<SyncProvider>()) {
     GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
@@ -213,9 +182,7 @@ Future<void> initSidechainDependencies({
     GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
   }
   if (!GetIt.I.isRegistered<SidechainTransactionsProvider>()) {
-    GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
-      () => SidechainTransactionsProvider(),
-    );
+    GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => SidechainTransactionsProvider());
   }
 
   // Refetch on every new mainchain block — without this the UI relies on
@@ -257,18 +224,11 @@ Future<File> getLogFile(Directory appDir) async {
 
 List<Binary> _noAdditionalBinaries() => [];
 
-List<Binary> _initialBinaries(
-  BinaryType sidechainType,
-  List<Binary> additional,
-  ChainsConfigProvider configProvider,
-) {
+List<Binary> _initialBinaries(BinaryType sidechainType, List<Binary> additional, ChainsConfigProvider configProvider) {
   final configBinaries = configProvider.buildBinaries();
 
   Binary resolve(BinaryType type) {
-    return configBinaries.firstWhere(
-      (b) => b.type == type,
-      orElse: () => defaultBinaryFor(type),
-    );
+    return configBinaries.firstWhere((b) => b.type == type, orElse: () => defaultBinaryFor(type));
   }
 
   final sidechain = resolve(sidechainType);
@@ -296,8 +256,8 @@ const _perArchDaemons = {'bitwindowd', 'drivechaind', 'drivechain-cli', 'hwi-dae
 String embeddedAssetName(String canonical, {required bool isMacOS, required String arch}) =>
     isMacOS && _perArchDaemons.contains(canonical) ? '$canonical-$arch' : canonical;
 
-Future<void> copyBinariesFromAssets(Logger log, Directory appDir) =>
-    stageEmbeddedBinaries(log, embeddedBinDir(), binDir(appDir.path));
+Future<void> copyBinariesFromAssets(Logger log, Directory appDir, {OnStaged? onStaged}) =>
+    stageEmbeddedBinaries(log, embeddedBinDir(), binDir(appDir.path), onStaged: onStaged);
 
 /// The assets/bin directory of the Flutter assets in the app bundle.
 Directory embeddedBinDir() {
@@ -308,20 +268,23 @@ Directory embeddedBinDir() {
   return Directory(path.join(flutterAssets, 'assets', 'bin'));
 }
 
+/// Called with the canonical name and the file of each binary that a stage wrote.
+typedef OnStaged = void Function(String canonical, File file);
+
 /// Copies the embedded binaries from [sourceDir] to [fileDir]. A binary that
 /// is already staged from the same bundle file stays.
-Future<void> stageEmbeddedBinaries(Logger log, Directory sourceDir, Directory fileDir) async {
+Future<void> stageEmbeddedBinaries(Logger log, Directory sourceDir, Directory fileDir, {OnStaged? onStaged}) async {
   await fileDir.create(recursive: true);
   await removeAsideBinaries(fileDir);
 
   for (final binary in allBinaries) {
-    await _copyEmbeddedBinary(log, sourceDir, fileDir, binary.binary, label: binary.name);
+    await _copyEmbeddedBinary(log, sourceDir, fileDir, binary.binary, label: binary.name, onStaged: onStaged);
   }
   // drivechain-cli is a CLI (not a launchable Binary in allBinaries), but the
   // console execs it from bin/, so it has to be staged here too.
-  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'drivechain-cli');
+  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'drivechain-cli', onStaged: onStaged);
   // hwi-daemon is the bundled hardware-wallet process.
-  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'hwi-daemon');
+  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'hwi-daemon', onStaged: onStaged);
 
   log.d('Finished copying all available binaries to assets/bin');
 }
@@ -405,6 +368,7 @@ Future<void> _copyEmbeddedBinary(
   Directory fileDir,
   String canonical, {
   String? label,
+  OnStaged? onStaged,
 }) async {
   final name = label ?? canonical;
   final exe = Platform.isWindows && !canonical.endsWith('.exe') ? '.exe' : '';
@@ -427,6 +391,7 @@ Future<void> _copyEmbeddedBinary(
     }
 
     await stageBinary(file, source);
+    onStaged?.call(canonical, file);
     await stamp.writeAsString(want, flush: true);
 
     log.d('Wrote binary $name from $assetName to ${file.path}');
