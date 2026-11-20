@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/providers/price_provider.dart';
 
 import 'test_utils.dart';
 
@@ -23,6 +24,16 @@ mixin _Counted on ChangeNotifier {
     listeners--;
     super.removeListener(listener);
   }
+}
+
+class _Price extends ChangeNotifier with _Counted implements PriceProvider {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Enforcer extends ChangeNotifier with _Counted implements EnforcerRPC {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Balance extends ChangeNotifier with _Counted implements BalanceProvider {
@@ -46,6 +57,8 @@ class _News extends ChangeNotifier with _Counted implements NewsProvider {
 void main() {
   setUp(() async {
     await GetIt.I.reset();
+    GetIt.I.registerSingleton<PriceProvider>(_Price());
+    GetIt.I.registerSingleton<EnforcerRPC>(_Enforcer());
     GetIt.I.registerSingleton<BalanceProvider>(_Balance());
     GetIt.I.registerSingleton<BlockchainProvider>(_Blockchain());
     GetIt.I.registerSingleton<NewsProvider>(_News());
@@ -55,6 +68,13 @@ void main() {
   tearDown(() => GetIt.I.reset());
 
   int listeners<T extends Object>() => (GetIt.I.get<T>() as _Counted).listeners;
+
+  test('a disposed fireplace model stops listening', () async {
+    FireplaceViewModel().dispose();
+    await pumpEventQueue();
+    expect(listeners<PriceProvider>(), 0);
+    expect(listeners<EnforcerRPC>(), 0);
+  });
 
   test('a disposed transactions model stops listening', () {
     TransactionsViewModel().dispose();
