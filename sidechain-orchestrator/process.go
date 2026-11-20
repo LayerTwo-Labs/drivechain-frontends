@@ -254,6 +254,9 @@ type ProcessManager struct {
 	// pipe exit errors into ConnectionMonitor.connectionError for the UI.
 	OnExit func(ProcessExitInfo)
 
+	// OnStart is called with the process name right after the spawn.
+	OnStart func(name string)
+
 	// OnStartupLog is called when a process line matches one of the binary's
 	// startup_log_patterns. The orchestrator pushes these to the UI so users
 	// see a timeline of startup progress messages.
@@ -431,6 +434,10 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 	pm.processes[processName] = proc
 	delete(pm.lastExited, processName)
 	pm.mu.Unlock()
+
+	if pm.OnStart != nil {
+		pm.OnStart(processName)
+	}
 
 	// Write PID file
 	if err := pm.pidManager.WritePidFile(pidName, cmd.Process.Pid); err != nil {

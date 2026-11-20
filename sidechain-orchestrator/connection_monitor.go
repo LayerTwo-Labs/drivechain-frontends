@@ -13,10 +13,10 @@ import (
 // ConnectionMonitor is a 1:1 Go port of Dart's RPCConnection (rpc_connection.dart).
 //
 // It manages:
-//   - A persistent 1-second health-check timer (Dart: connectionTimer)
+//   - A persistent health-check timer (Dart: connectionTimer)
 //   - A 500ms restart timer that auto-restarts crashed processes (Dart: restartTimer)
-//   - connectModeOnly: after a willful stop, the timer keeps pinging to detect
-//     externally started processes, but suppresses errors silently
+//   - connectModeOnly: after a willful stop, the timer keeps pinging each
+//     second to detect externally started processes, but suppresses errors silently
 //
 // Dart equivalents:
 //   - connectionTimer      → connectionTicker
@@ -72,6 +72,18 @@ type ConnectionMonitor struct {
 	restartCount int
 
 	lastRestartAt time.Time
+
+	// stopped is set by MarkStopped: the process is gone, so the connection
+	// timer probes at the slow pace until the next kick.
+	stopped bool
+
+	// kickedAt is the last start, restart or loss of the binary. The
+	// connection timer probes fast for a short time after it.
+	kickedAt time.Time
+	kick     chan struct{}
+
+	// exited wakes the restart timer when the process crashes.
+	exited chan struct{}
 
 	// Timer control
 	connectionStop chan struct{}
@@ -156,6 +168,80 @@ func NewConnectionMonitor(name string, checker HealthChecker, startupPatterns []
 		Checker:         checker,
 		startupPatterns: startupPatterns,
 		log:             log.With().Str("monitor", name).Logger(),
+		kick:            make(chan struct{}, 1),
+		exited:          make(chan struct{}, 1),
+	}
+}
+
+// Probe delays of the connection timer.
+const (
+	fastProbeInterval = 25 * time.Millisecond
+	fastProbeWindow   = 10 * time.Second
+	slowProbeInterval = 100 * time.Millisecond
+	slowProbeWindow   = time.Minute
+	probeInterval     = time.Second
+)
+
+// Kick makes the connection timer probe fast, for a binary that starts or
+// that was lost.
+func (m *ConnectionMonitor) Kick() {
+	m.mu.Lock()
+	m.kickLocked()
+	m.mu.Unlock()
+}
+
+func (m *ConnectionMonitor) kickLocked() {
+	m.stopped = false
+	m.kickedAt = time.Now()
+	select {
+	case m.kick <- struct{}{}:
+	default:
+	}
+}
+
+// nextProbe returns the delay to the next probe.
+func (m *ConnectionMonitor) nextProbe() time.Duration {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.stopped || m.connected || m.kickedAt.IsZero() {
+		return probeInterval
+	}
+	switch since := time.Since(m.kickedAt); {
+	case since < fastProbeWindow:
+		return fastProbeInterval
+	case since < slowProbeWindow:
+		return slowProbeInterval
+	default:
+		return probeInterval
+	}
+}
+
+// ProcessExited marks the binary down at once. A crash wakes the restart
+// timer and the fast probe.
+func (m *ConnectionMonitor) ProcessExited(exitCode int, errMsg string) {
+	if exitCode != 0 {
+		m.SetConnectionError(errMsg)
+	} else {
+		m.mu.Lock()
+		changed := m.connected
+		m.connected = false
+		m.mu.Unlock()
+		if changed {
+			m.notifyChange()
+		}
+	}
+
+	m.mu.Lock()
+	crashed := exitCode != 0 && !m.stoppingBinary && !m.stopped
+	if crashed {
+		m.kickLocked()
+	}
+	m.mu.Unlock()
+	if crashed {
+		select {
+		case m.exited <- struct{}{}:
+		default:
+		}
 	}
 }
 
@@ -399,6 +485,7 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 		// Dart L165-174: log on state change
 		if wasConnected {
 			m.log.Info().Str("binary", m.Name).Err(err).Msg("connection lost")
+			m.kickLocked()
 		}
 
 		m.connected = false
@@ -440,11 +527,12 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 	}
 }
 
-// StartConnectionTimer starts the 1-second periodic health check.
+// StartConnectionTimer starts the periodic health check: fast after a kick,
+// else each second.
 // Dart: RPCConnection.startConnectionTimer() (rpc_connection.dart L299-319)
 //
 // 1. Pings once immediately
-// 2. Starts a 1-second periodic timer
+// 2. Starts the periodic timer
 //
 // Returns after the first ping completes (so caller knows if already connected).
 func (m *ConnectionMonitor) StartConnectionTimer(ctx context.Context) {
@@ -456,6 +544,7 @@ func (m *ConnectionMonitor) StartConnectionTimer(ctx context.Context) {
 	m.connectionStop = make(chan struct{})
 	m.connectionDone = false
 	stopCh := m.connectionStop
+	m.kickLocked()
 	m.mu.Unlock()
 
 	// Dart L307: immediate first ping
@@ -468,23 +557,25 @@ func (m *ConnectionMonitor) StartConnectionTimer(ctx context.Context) {
 		m.log.Info().Str("binary", m.Name).Str("error", m.ConnectionError()).Msg("could not connect")
 	}
 
-	// Dart L317: start 1-second periodic timer
 	m.log.Debug().Str("binary", m.Name).Msg("starting connection timer")
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
+	go m.runConnectionTimer(ctx, stopCh)
+}
 
-		for {
-			select {
-			case <-stopCh:
-				return
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				m.testConnection(ctx)
-			}
+func (m *ConnectionMonitor) runConnectionTimer(ctx context.Context, stopCh chan struct{}) {
+	timer := time.NewTimer(time.Hour)
+	defer timer.Stop()
+	for {
+		timer.Reset(m.nextProbe())
+		select {
+		case <-stopCh:
+			return
+		case <-ctx.Done():
+			return
+		case <-m.kick:
+		case <-timer.C:
+			m.testConnection(ctx)
 		}
-	}()
+	}
 }
 
 // StartRestartTimer starts the 500ms restart timer that auto-restarts crashed processes.
@@ -518,6 +609,8 @@ func (m *ConnectionMonitor) StartRestartTimer(ctx context.Context, restartFunc f
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
+				m.checkAndRestart(ctx)
+			case <-m.exited:
 				m.checkAndRestart(ctx)
 			}
 		}
@@ -655,15 +748,14 @@ func (m *ConnectionMonitor) StopAllTimers() {
 
 // MarkStopped marks the connection as stopped.
 // Dart: RPCConnection.stop() (rpc_connection.dart L356-383)
-// Timer keeps running in connect-mode-only: it keeps pinging to detect
-// externally started processes but suppresses errors silently.
+// The timer keeps pinging each second to detect an externally started process.
 func (m *ConnectionMonitor) MarkStopped() {
 	m.mu.Lock()
 
 	// Dart L359: invalidate any in-flight ping
 	m.pingEpoch++
-	// Dart L360: timer keeps running, but only looks for new connections
 	m.connectModeOnly = true
+	m.stopped = true
 	m.stoppingBinary = true
 	// Dart L362: cancel restart timer
 	if m.restartStop != nil && !m.restartDone {
