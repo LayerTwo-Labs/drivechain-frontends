@@ -96,7 +96,109 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final phone = SailStyleValues.phoneLayout(context);
+    final status = ViewModelBuilder.reactive(
+      viewModelBuilder: () => BottomNavViewModel(
+        additionalConnection: additionalConnection,
+        mainchainInfo: mainchainInfo,
+        navigateToLogs: navigateToLogs,
+      ),
+      fireOnViewModelReadyOnce: true,
+      builder: ((context, model, child) {
+        final compact = SailStyleValues.compactBars(context);
+        Widget phoneFlex(Widget child) => phone ? Flexible(child: child) : child;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!phone) ?modeChip,
+            phoneFlex(
+              InkWell(
+                onTap: () {
+                  final override = statusOverride;
+                  if (override != null) {
+                    override.onTap();
+                    return;
+                  }
+                  displayConnectionStatusDialog(
+                    context,
+                    additionalConnection,
+                    onlyShowAdditional,
+                  );
+                },
+                child: Tooltip(
+                  message: compact
+                      ? statusOverride?.label ?? model.connectionStatus
+                      : statusOverride == null
+                      ? 'Open daemon status dialog'
+                      : 'Open the swap progress',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: SailStyleValues.padding08),
+                      DecoratedBox(
+                        decoration:
+                            statusOverride == null &&
+                                !model.initializingAny &&
+                                model.connectionColor == SailColorScheme.red
+                            ? BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: SailColorScheme.red.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    blurRadius: 8,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              )
+                            : const BoxDecoration(),
+                        child: SailSVG.fromAsset(
+                          SailSVGAsset.iconConnectionStatus,
+                          // The swap stops the daemons on purpose, so the red alarm would misread.
+                          color: statusOverride == null ? model.connectionColor : SailTheme.of(context).colors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: SailStyleValues.padding08),
+                      phoneFlex(
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: compact ? 140 : 200),
+                          child: statusOverride != null
+                              ? SailText.primary12(
+                                  statusOverride!.label,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                )
+                              : model.connectionStatus == 'All binaries connected'
+                              ? SailText.secondary12(
+                                  model.connectionStatus,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                )
+                              : SailText.primary12(
+                                  model.connectionStatus,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: SailStyleValues.padding08),
+            if (!phone) ...[
+              ChainLoaders(),
+              const UpdateIndicator(),
+              const DividerDot(),
+              ...endWidgets,
+              const SailSpacing(SailStyleValues.padding08),
+            ],
+          ],
+        );
+      }),
+    );
+    final bar = SizedBox(
       height: 36,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -112,121 +214,34 @@ class BottomNav extends StatelessWidget {
           children: [
             const SailSpacing(SailStyleValues.padding04),
             const BottomNavBalance(),
-            if (balanceEndWidgets.isNotEmpty) ...[
+            if (!phone && balanceEndWidgets.isNotEmpty) ...[
               const SailSpacing(SailStyleValues.padding08),
               ...balanceEndWidgets,
             ],
-            Expanded(child: Container()),
-            Builder(
-              builder: (context) => MiningStatus(
-                onTap: () => displayConnectionStatusDialog(
-                  context,
-                  additionalConnection,
-                  onlyShowAdditional,
+            if (!phone) Expanded(child: Container()),
+            if (!phone) ...[
+              Builder(
+                builder: (context) => MiningStatus(
+                  onTap: () => displayConnectionStatusDialog(
+                    context,
+                    additionalConnection,
+                    onlyShowAdditional,
+                  ),
                 ),
               ),
-            ),
-            const ElectrumScanStatus(),
-            ViewModelBuilder.reactive(
-              viewModelBuilder: () => BottomNavViewModel(
-                additionalConnection: additionalConnection,
-                mainchainInfo: mainchainInfo,
-                navigateToLogs: navigateToLogs,
-              ),
-              fireOnViewModelReadyOnce: true,
-              builder: ((context, model, child) {
-                final compact = SailStyleValues.compactBars(context);
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ?modeChip,
-                    InkWell(
-                      onTap: () {
-                        final override = statusOverride;
-                        if (override != null) {
-                          override.onTap();
-                          return;
-                        }
-                        displayConnectionStatusDialog(
-                          context,
-                          additionalConnection,
-                          onlyShowAdditional,
-                        );
-                      },
-                      child: Tooltip(
-                        message: compact
-                            ? statusOverride?.label ?? model.connectionStatus
-                            : statusOverride == null
-                            ? 'Open daemon status dialog'
-                            : 'Open the swap progress',
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(width: SailStyleValues.padding08),
-                            DecoratedBox(
-                              decoration:
-                                  statusOverride == null &&
-                                      !model.initializingAny &&
-                                      model.connectionColor == SailColorScheme.red
-                                  ? BoxDecoration(
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: SailColorScheme.red.withValues(
-                                            alpha: 0.5,
-                                          ),
-                                          blurRadius: 8,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    )
-                                  : const BoxDecoration(),
-                              child: SailSVG.fromAsset(
-                                SailSVGAsset.iconConnectionStatus,
-                                // The swap stops the daemons on purpose, so the red alarm would misread.
-                                color: statusOverride == null
-                                    ? model.connectionColor
-                                    : SailTheme.of(context).colors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: SailStyleValues.padding08),
-                            ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: compact ? 140 : 200),
-                              child: statusOverride != null
-                                  ? SailText.primary12(
-                                      statusOverride!.label,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    )
-                                  : model.connectionStatus == 'All binaries connected'
-                                  ? SailText.secondary12(
-                                      model.connectionStatus,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    )
-                                  : SailText.primary12(
-                                      model.connectionStatus,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: SailStyleValues.padding08),
-                    ChainLoaders(),
-                    const UpdateIndicator(),
-                    const DividerDot(),
-                    ...endWidgets,
-                    const SailSpacing(SailStyleValues.padding08),
-                  ],
-                );
-              }),
-            ),
+              const ElectrumScanStatus(),
+            ],
+            if (phone)
+              Expanded(
+                child: Align(alignment: Alignment.centerRight, child: status),
+              )
+            else
+              status,
           ],
         ),
       ),
     );
+    return phone ? SafeArea(top: false, child: bar) : bar;
   }
 
   void displayConnectionStatusDialog(
