@@ -320,27 +320,61 @@ class _SuccessSection extends StatelessWidget {
         borderRadius: context.sailTheme.chrome.radiusLarge,
         border: Border.all(color: theme.colors.success),
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        children: [
-          SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 48, color: theme.colors.success),
-          SailText.primary24('Withdrawal Completed'),
-          const SizedBox(height: 8),
-          SailText.secondary13(
-            'Coins are on their way to your L1-wallet and should show up in your unconfirmed balance soon.',
-          ),
-          if (provider.l1Txid != null) SailText.secondary13('L1 TXID: ${provider.l1Txid}'),
-          if (provider.l2Txid != null) SailText.secondary13('L2 TXID: ${provider.l2Txid}'),
-          const SizedBox(height: 16),
-          SailButton(
-            label: 'Start New Withdrawal',
-            onPressed: () async {
-              provider.reset();
-            },
-            variant: ButtonVariant.primary,
-          ),
-        ],
-      ),
+      child: SailStyleValues.phoneLayout(context)
+          ? SailColumn(
+              spacing: SailStyleValues.padding12,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 20, color: theme.colors.success),
+                    SailText.primary16('Withdrawal Completed', bold: true),
+                  ],
+                ),
+                SailText.secondary13(
+                  'Coins are on their way to your L1-wallet and should show up in your unconfirmed balance soon.',
+                ),
+                if (provider.l1Txid != null || provider.l2Txid != null)
+                  SailStatList(
+                    framed: false,
+                    children: [
+                      if (provider.l1Txid case final txid?)
+                        SailStatRow(title: 'L1 TXID', subtitle: '', value: truncateMiddle(txid)),
+                      if (provider.l2Txid case final txid?)
+                        SailStatRow(title: 'L2 TXID', subtitle: '', value: truncateMiddle(txid)),
+                    ],
+                  ),
+                SailButton(
+                  label: 'Start New Withdrawal',
+                  onPressed: () async {
+                    provider.reset();
+                  },
+                  variant: ButtonVariant.primary,
+                ),
+              ],
+            )
+          : SailColumn(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 48, color: theme.colors.success),
+                SailText.primary24('Withdrawal Completed'),
+                const SizedBox(height: 8),
+                SailText.secondary13(
+                  'Coins are on their way to your L1-wallet and should show up in your unconfirmed balance soon.',
+                ),
+                if (provider.l1Txid != null) SailText.secondary13('L1 TXID: ${provider.l1Txid}'),
+                if (provider.l2Txid != null) SailText.secondary13('L2 TXID: ${provider.l2Txid}'),
+                const SizedBox(height: 16),
+                SailButton(
+                  label: 'Start New Withdrawal',
+                  onPressed: () async {
+                    provider.reset();
+                  },
+                  variant: ButtonVariant.primary,
+                ),
+              ],
+            ),
     );
   }
 }
