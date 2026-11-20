@@ -58,9 +58,39 @@ import UIKit
             result(FlutterError(code: "no_handler", message: "nothing opens \(raw)", details: nil))
           }
         }
+      case "shareFile":
+        guard let path = call.arguments as? String else {
+          result(FlutterError(code: "bad_path", message: "not a path: \(String(describing: call.arguments))", details: nil))
+          return
+        }
+        guard FileManager.default.fileExists(atPath: path) else {
+          result(FlutterError(code: "missing", message: "no file at \(path)", details: nil))
+          return
+        }
+        guard let presenter = self?.topViewController() else {
+          result(FlutterError(code: "no_view", message: "no view to show the share sheet on", details: nil))
+          return
+        }
+        let sheet = UIActivityViewController(activityItems: [URL(fileURLWithPath: path)], applicationActivities: nil)
+        if let popover = sheet.popoverPresentationController {
+          popover.sourceView = presenter.view
+          popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 0, height: 0)
+          popover.permittedArrowDirections = []
+        }
+        presenter.present(sheet, animated: true)
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
     }
+  }
+
+  private func topViewController() -> UIViewController? {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    var top = scenes.flatMap(\.windows).first(where: \.isKeyWindow)?.rootViewController
+    while let presented = top?.presentedViewController {
+      top = presented
+    }
+    return top
   }
 }
