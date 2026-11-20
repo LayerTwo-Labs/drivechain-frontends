@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/chat_page.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
 import 'package:flutter/widgets.dart';
@@ -26,6 +27,12 @@ class _BitnamesRPC extends MockBitnamesRPC {
 
 class _Conf extends ChangeNotifier implements BitcoinConfProvider {
   @override
+  BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+
+  @override
+  String ecashNetworkId = '';
+
+  @override
   bool get networkSupportsSidechains => true;
 
   @override
@@ -37,15 +44,39 @@ Future<void> _pumpChat(WidgetTester tester, {required bool phone, required bool 
   final log = Logger();
   final store = MockStore();
   GetIt.I.registerSingleton<Logger>(log);
-  GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: store, log: log));
+  final settings = ClientSettings(store: store, log: log);
+  GetIt.I.registerSingleton<ClientSettings>(settings);
   GetIt.I.registerSingleton<BitwindowClientSettings>(BitwindowClientSettings(store: store, log: log));
   GetIt.I.registerSingleton<BitcoinConfProvider>(_Conf());
+  await tester.runAsync(
+    () => settings.setValue(
+      ChatContactsSetting(
+        newValue: [
+          for (final name in ['alice', 'bob'])
+            ChatContact(
+              id: blake3Hex(utf8.encode(name)),
+              name: blake3Hex(utf8.encode(name)),
+              plaintextName: name,
+              encryptionPubkey: 'bn-enc1$name',
+              address: 'addr-$name',
+            ),
+        ],
+      ),
+    ),
+  );
   final rpc = _BitnamesRPC()..setConnected(connected);
   GetIt.I.registerSingleton<BitnamesRPC>(rpc);
   GetIt.I.registerSingleton<BalanceProvider>(BalanceProvider(connections: [rpc]));
   GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
 
+  if (phone) {
+    await loadBundledFonts();
+  }
   await tester.pumpSailPage(const ChatPage());
+  if (phone) {
+    await tester.binding.setSurfaceSize(const Size(390, 800));
+  }
+  await tester.pump();
   await tester.pump();
 }
 
@@ -61,41 +92,75 @@ void main() {
     await GetIt.I.reset();
   });
 
-  testWidgets('on a phone Add Contact is a small outline button in the Chats card header', (tester) async {
+  testWidgets('on a phone the chat list fills the width and Add Contact sits in its header', (tester) async {
     await _pumpChat(tester, phone: true, connected: true);
 
     expect(tester.takeException(), isNull);
-    expect(_addContact(), findsOneWidget);
     expect(find.descendant(of: _chatsCard(), matching: _addContact()), findsOneWidget);
     final button = tester.widget<SailButton>(_addContact());
     expect(button.variant, ButtonVariant.outline);
     expect(button.small, isTrue);
-    expect(tester.getTopLeft(_addContact()).dy, lessThan(tester.getTopLeft(find.text('Chats')).dy + 8));
 
     final identityBar = tester.getRect(find.text('Chatting as:'));
-    final register = tester.getRect(find.text('Deposit to BitNames'));
-    expect(register.center.dy, closeTo(identityBar.center.dy, 4));
+    expect(tester.getRect(find.text('Deposit to BitNames')).center.dy, closeTo(identityBar.center.dy, 4));
+    expect(tester.getRect(_chatsCard().first).top, greaterThan(identityBar.bottom));
+    expect(tester.getRect(_chatsCard().first).width, greaterThan(300));
+    expect(find.text('alice'), findsOneWidget);
+    expect(find.text('Type a message...'), findsNothing);
   });
 
-  testWidgets('on desktop Add Contact stays in the identity bar', (tester) async {
+  testWidgets('on a phone a tap on a chat opens it full width and back returns to the list', (tester) async {
+    await _pumpChat(tester, phone: true, connected: true);
+
+    await tester.tap(find.text('alice'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(_chatsCard(), findsNothing);
+    expect(find.text('Type a message...'), findsOneWidget);
+    expect(tester.getRect(find.byType(SailTextField)).width, greaterThan(150));
+    final back = find.byKey(const ValueKey('chat-back'));
+    expect(back, findsOneWidget);
+
+    await tester.tap(back);
+    await tester.pump();
+
+    expect(_chatsCard(), findsOneWidget);
+    expect(find.text('Type a message...'), findsNothing);
+  });
+
+  testWidgets('on desktop the list and the conversation stay side by side', (tester) async {
     await _pumpChat(tester, phone: false, connected: true);
 
-    expect(_addContact(), findsOneWidget);
     expect(find.descendant(of: _chatsCard(), matching: _addContact()), findsNothing);
     expect(tester.widget<SailButton>(_addContact()).variant, ButtonVariant.secondary);
+    expect(find.text('Select a contact to start chatting'), findsOneWidget);
+
+    await tester.tap(find.text('alice'));
+    await tester.pump();
+
+    expect(_chatsCard(), findsOneWidget);
+    expect(find.text('Type a message...'), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat-back')), findsNothing);
   });
 
   for (final phone in [true, false]) {
     testWidgets('the matched Add Contact row tint, phone: $phone', (tester) async {
       await _pumpChat(tester, phone: phone, connected: true);
-      await tester.pumpAndSettle();
       await tester.tap(_addContact());
       await tester.pump(const Duration(seconds: 1));
       await tester.enterText(find.byType(EditableText).last, 'alice');
       await tester.pump(const Duration(seconds: 1));
 
-      final row = find.ancestor(of: find.text('alice'), matching: find.byType(Container)).first;
+      final row = find
+          .ancestor(
+            of: find.descendant(of: find.byType(ListView).last, matching: find.text('alice')),
+            matching: find.byType(Container),
+          )
+          .first;
       final color = (tester.widget<Container>(row).decoration! as BoxDecoration).color;
+      expect(tester.takeException(), isNull);
       final theme = SailTheme.of(tester.element(row));
       expect(color, phone ? theme.colors.primary.withAlpha(30) : theme.colors.success.withValues(alpha: 0.1));
     });
@@ -104,6 +169,7 @@ void main() {
   testWidgets('on a phone the BitNames required steps sit at the left', (tester) async {
     await _pumpChat(tester, phone: true, connected: false);
 
+    expect(tester.takeException(), isNull);
     final heading = tester.getRect(find.text('BitNames sidechain is not connected'));
     final steps = tester.getRect(find.textContaining('To use the Chat feature'));
     expect(steps.left, closeTo(heading.left, 1));
