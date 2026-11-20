@@ -27,6 +27,9 @@ const (
 	// SidechainConfServiceGetSidechainConfigProcedure is the procedure name of the
 	// SidechainConfService's GetSidechainConfig RPC.
 	SidechainConfServiceGetSidechainConfigProcedure = "/orchestrator.v1.SidechainConfService/GetSidechainConfig"
+	// SidechainConfServiceWatchSidechainConfigProcedure is the procedure name of the
+	// SidechainConfService's WatchSidechainConfig RPC.
+	SidechainConfServiceWatchSidechainConfigProcedure = "/orchestrator.v1.SidechainConfService/WatchSidechainConfig"
 	// SidechainConfServiceWriteSidechainConfigProcedure is the procedure name of the
 	// SidechainConfService's WriteSidechainConfig RPC.
 	SidechainConfServiceWriteSidechainConfigProcedure = "/orchestrator.v1.SidechainConfService/WriteSidechainConfig"
@@ -41,6 +44,13 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_orchestrator_v1_sidechain_conf_proto.Services().ByName("SidechainConfService").Methods().ByName("GetSidechainConfig"),
 			Procedure:  SidechainConfServiceGetSidechainConfigProcedure,
+		}
+	})
+	sidechainConfServiceWatchSidechainConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_sidechain_conf_proto.Services().ByName("SidechainConfService").Methods().ByName("WatchSidechainConfig"),
+			Procedure:  SidechainConfServiceWatchSidechainConfigProcedure,
 		}
 	})
 	sidechainConfServiceWriteSidechainConfigSpec = sync.OnceValue(func() connect.Spec {
@@ -63,6 +73,9 @@ var (
 type SidechainConfServiceClient interface {
 	// Get current sidechain configuration state.
 	GetSidechainConfig(context.Context, *v1.GetSidechainConfigRequest) (*v1.GetSidechainConfigResponse, error)
+	// Stream GetSidechainConfig. The first frame holds the config, later frames
+	// only a changed config or a heartbeat.
+	WatchSidechainConfig(context.Context, *v1.GetSidechainConfigRequest) (SidechainConfServiceWatchSidechainConfigClientStream, error)
 	// Write sidechain configuration content.
 	WriteSidechainConfig(context.Context, *v1.WriteSidechainConfigRequest) (*v1.WriteSidechainConfigResponse, error)
 	// Sync network from Bitcoin Core config.
@@ -75,11 +88,35 @@ func NewSidechainConfServiceClient(client *connect.Client) SidechainConfServiceC
 	return &sidechainConfServiceClient{client: client}
 }
 
+// SidechainConfServiceWatchSidechainConfigClientStream is the client stream for the
+// SidechainConfService's WatchSidechainConfig RPC.
+type SidechainConfServiceWatchSidechainConfigClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s SidechainConfServiceWatchSidechainConfigClientStream) Receive() (*v1.WatchSidechainConfigResponse, error) {
+	var res v1.WatchSidechainConfigResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s SidechainConfServiceWatchSidechainConfigClientStream) Close() error {
+	return s.stream.Close()
+}
+
 // SidechainConfServiceHandler is an implementation of the orchestrator.v1.SidechainConfService
 // service.
 type SidechainConfServiceHandler interface {
 	// Get current sidechain configuration state.
 	GetSidechainConfig(context.Context, *v1.GetSidechainConfigRequest) (*v1.GetSidechainConfigResponse, error)
+	// Stream GetSidechainConfig. The first frame holds the config, later frames
+	// only a changed config or a heartbeat.
+	WatchSidechainConfig(context.Context, *v1.GetSidechainConfigRequest, SidechainConfServiceWatchSidechainConfigServerStream) error
 	// Write sidechain configuration content.
 	WriteSidechainConfig(context.Context, *v1.WriteSidechainConfigRequest) (*v1.WriteSidechainConfigResponse, error)
 	// Sync network from Bitcoin Core config.
@@ -92,9 +129,26 @@ func RegisterSidechainConfServiceHandler(server *connect.Server, svc SidechainCo
 	adapter := sidechainConfServiceHandler{svc: svc}
 	server.Register(
 		connect.Method{Spec: sidechainConfServiceGetSidechainConfigSpec(), Handler: adapter.getSidechainConfig},
+		connect.Method{Spec: sidechainConfServiceWatchSidechainConfigSpec(), Handler: adapter.watchSidechainConfig},
 		connect.Method{Spec: sidechainConfServiceWriteSidechainConfigSpec(), Handler: adapter.writeSidechainConfig},
 		connect.Method{Spec: sidechainConfServiceSyncSidechainNetworkFromBitcoinConfSpec(), Handler: adapter.syncSidechainNetworkFromBitcoinConf},
 	)
+}
+
+// SidechainConfServiceWatchSidechainConfigServerStream is the server stream for the
+// SidechainConfService's WatchSidechainConfig RPC.
+type SidechainConfServiceWatchSidechainConfigServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s SidechainConfServiceWatchSidechainConfigServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s SidechainConfServiceWatchSidechainConfigServerStream) Send(res *v1.WatchSidechainConfigResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedSidechainConfServiceHandler returns CodeUnimplemented from all methods.
@@ -102,6 +156,10 @@ type UnimplementedSidechainConfServiceHandler struct{}
 
 func (UnimplementedSidechainConfServiceHandler) GetSidechainConfig(context.Context, *v1.GetSidechainConfigRequest) (*v1.GetSidechainConfigResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.SidechainConfService.GetSidechainConfig is not implemented")
+}
+
+func (UnimplementedSidechainConfServiceHandler) WatchSidechainConfig(context.Context, *v1.GetSidechainConfigRequest, SidechainConfServiceWatchSidechainConfigServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.SidechainConfService.WatchSidechainConfig is not implemented")
 }
 
 func (UnimplementedSidechainConfServiceHandler) WriteSidechainConfig(context.Context, *v1.WriteSidechainConfigRequest) (*v1.WriteSidechainConfigResponse, error) {
@@ -122,6 +180,14 @@ func (c *sidechainConfServiceClient) GetSidechainConfig(ctx context.Context, req
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *sidechainConfServiceClient) WatchSidechainConfig(ctx context.Context, req *v1.GetSidechainConfigRequest) (SidechainConfServiceWatchSidechainConfigClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, sidechainConfServiceWatchSidechainConfigSpec(), req)
+	if err != nil {
+		return SidechainConfServiceWatchSidechainConfigClientStream{}, err
+	}
+	return SidechainConfServiceWatchSidechainConfigClientStream{stream: stream}, nil
 }
 
 func (c *sidechainConfServiceClient) WriteSidechainConfig(ctx context.Context, req *v1.WriteSidechainConfigRequest) (*v1.WriteSidechainConfigResponse, error) {
@@ -152,6 +218,14 @@ func (h sidechainConfServiceHandler) getSidechainConfig(ctx context.Context, _ c
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h sidechainConfServiceHandler) watchSidechainConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSidechainConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchSidechainConfig(ctx, &req, SidechainConfServiceWatchSidechainConfigServerStream{stream: stream})
 }
 
 func (h sidechainConfServiceHandler) writeSidechainConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {

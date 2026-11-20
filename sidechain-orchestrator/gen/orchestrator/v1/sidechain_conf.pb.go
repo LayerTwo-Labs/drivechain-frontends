@@ -141,6 +141,60 @@ func (x *GetSidechainConfigResponse) GetNetwork() string {
 	return ""
 }
 
+type WatchSidechainConfigResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unset in a heartbeat frame.
+	Config *GetSidechainConfigResponse `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	// True for an idle keepalive frame that carries no config.
+	Heartbeat     bool `protobuf:"varint,2,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchSidechainConfigResponse) Reset() {
+	*x = WatchSidechainConfigResponse{}
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchSidechainConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchSidechainConfigResponse) ProtoMessage() {}
+
+func (x *WatchSidechainConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchSidechainConfigResponse.ProtoReflect.Descriptor instead.
+func (*WatchSidechainConfigResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *WatchSidechainConfigResponse) GetConfig() *GetSidechainConfigResponse {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+func (x *WatchSidechainConfigResponse) GetHeartbeat() bool {
+	if x != nil {
+		return x.Heartbeat
+	}
+	return false
+}
+
 type WriteSidechainConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SidechainName string                 `protobuf:"bytes,1,opt,name=sidechain_name,json=sidechainName,proto3" json:"sidechain_name,omitempty"`
@@ -151,7 +205,7 @@ type WriteSidechainConfigRequest struct {
 
 func (x *WriteSidechainConfigRequest) Reset() {
 	*x = WriteSidechainConfigRequest{}
-	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[2]
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +217,7 @@ func (x *WriteSidechainConfigRequest) String() string {
 func (*WriteSidechainConfigRequest) ProtoMessage() {}
 
 func (x *WriteSidechainConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[2]
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +230,7 @@ func (x *WriteSidechainConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteSidechainConfigRequest.ProtoReflect.Descriptor instead.
 func (*WriteSidechainConfigRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{2}
+	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *WriteSidechainConfigRequest) GetSidechainName() string {
@@ -201,7 +255,7 @@ type WriteSidechainConfigResponse struct {
 
 func (x *WriteSidechainConfigResponse) Reset() {
 	*x = WriteSidechainConfigResponse{}
-	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[3]
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -213,7 +267,7 @@ func (x *WriteSidechainConfigResponse) String() string {
 func (*WriteSidechainConfigResponse) ProtoMessage() {}
 
 func (x *WriteSidechainConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[3]
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -226,7 +280,7 @@ func (x *WriteSidechainConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteSidechainConfigResponse.ProtoReflect.Descriptor instead.
 func (*WriteSidechainConfigResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{3}
+	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{4}
 }
 
 type SyncSidechainNetworkFromBitcoinConfRequest struct {
@@ -238,7 +292,7 @@ type SyncSidechainNetworkFromBitcoinConfRequest struct {
 
 func (x *SyncSidechainNetworkFromBitcoinConfRequest) Reset() {
 	*x = SyncSidechainNetworkFromBitcoinConfRequest{}
-	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[4]
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -250,7 +304,7 @@ func (x *SyncSidechainNetworkFromBitcoinConfRequest) String() string {
 func (*SyncSidechainNetworkFromBitcoinConfRequest) ProtoMessage() {}
 
 func (x *SyncSidechainNetworkFromBitcoinConfRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[4]
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -263,7 +317,7 @@ func (x *SyncSidechainNetworkFromBitcoinConfRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use SyncSidechainNetworkFromBitcoinConfRequest.ProtoReflect.Descriptor instead.
 func (*SyncSidechainNetworkFromBitcoinConfRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{4}
+	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *SyncSidechainNetworkFromBitcoinConfRequest) GetSidechainName() string {
@@ -281,7 +335,7 @@ type SyncSidechainNetworkFromBitcoinConfResponse struct {
 
 func (x *SyncSidechainNetworkFromBitcoinConfResponse) Reset() {
 	*x = SyncSidechainNetworkFromBitcoinConfResponse{}
-	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[5]
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -293,7 +347,7 @@ func (x *SyncSidechainNetworkFromBitcoinConfResponse) String() string {
 func (*SyncSidechainNetworkFromBitcoinConfResponse) ProtoMessage() {}
 
 func (x *SyncSidechainNetworkFromBitcoinConfResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[5]
+	mi := &file_orchestrator_v1_sidechain_conf_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -306,7 +360,7 @@ func (x *SyncSidechainNetworkFromBitcoinConfResponse) ProtoReflect() protoreflec
 
 // Deprecated: Use SyncSidechainNetworkFromBitcoinConfResponse.ProtoReflect.Descriptor instead.
 func (*SyncSidechainNetworkFromBitcoinConfResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{5}
+	return file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP(), []int{6}
 }
 
 var File_orchestrator_v1_sidechain_conf_proto protoreflect.FileDescriptor
@@ -322,16 +376,20 @@ const file_orchestrator_v1_sidechain_conf_proto_rawDesc = "" +
 	"configPath\x12%\n" +
 	"\x0edefault_config\x18\x03 \x01(\tR\rdefaultConfig\x12\x19\n" +
 	"\bcli_args\x18\x04 \x03(\tR\acliArgs\x12\x18\n" +
-	"\anetwork\x18\x05 \x01(\tR\anetwork\"k\n" +
+	"\anetwork\x18\x05 \x01(\tR\anetwork\"\x81\x01\n" +
+	"\x1cWatchSidechainConfigResponse\x12C\n" +
+	"\x06config\x18\x01 \x01(\v2+.orchestrator.v1.GetSidechainConfigResponseR\x06config\x12\x1c\n" +
+	"\theartbeat\x18\x02 \x01(\bR\theartbeat\"k\n" +
 	"\x1bWriteSidechainConfigRequest\x12%\n" +
 	"\x0esidechain_name\x18\x01 \x01(\tR\rsidechainName\x12%\n" +
 	"\x0econfig_content\x18\x02 \x01(\tR\rconfigContent\"\x1e\n" +
 	"\x1cWriteSidechainConfigResponse\"S\n" +
 	"*SyncSidechainNetworkFromBitcoinConfRequest\x12%\n" +
 	"\x0esidechain_name\x18\x01 \x01(\tR\rsidechainName\"-\n" +
-	"+SyncSidechainNetworkFromBitcoinConfResponse2\x9d\x03\n" +
+	"+SyncSidechainNetworkFromBitcoinConfResponse2\x92\x04\n" +
 	"\x14SidechainConfService\x12m\n" +
 	"\x12GetSidechainConfig\x12*.orchestrator.v1.GetSidechainConfigRequest\x1a+.orchestrator.v1.GetSidechainConfigResponse\x12s\n" +
+	"\x14WatchSidechainConfig\x12*.orchestrator.v1.GetSidechainConfigRequest\x1a-.orchestrator.v1.WatchSidechainConfigResponse0\x01\x12s\n" +
 	"\x14WriteSidechainConfig\x12,.orchestrator.v1.WriteSidechainConfigRequest\x1a-.orchestrator.v1.WriteSidechainConfigResponse\x12\xa0\x01\n" +
 	"#SyncSidechainNetworkFromBitcoinConf\x12;.orchestrator.v1.SyncSidechainNetworkFromBitcoinConfRequest\x1a<.orchestrator.v1.SyncSidechainNetworkFromBitcoinConfResponseB\xe3\x01\n" +
 	"\x13com.orchestrator.v1B\x12SidechainConfProtoP\x01Z[github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1;orchestratorv1\xa2\x02\x03OXX\xaa\x02\x0fOrchestrator.V1\xca\x02\x0fOrchestrator\\V1\xe2\x02\x1bOrchestrator\\V1\\GPBMetadata\xea\x02\x10Orchestrator::V1b\x06proto3"
@@ -348,27 +406,31 @@ func file_orchestrator_v1_sidechain_conf_proto_rawDescGZIP() []byte {
 	return file_orchestrator_v1_sidechain_conf_proto_rawDescData
 }
 
-var file_orchestrator_v1_sidechain_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_orchestrator_v1_sidechain_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_orchestrator_v1_sidechain_conf_proto_goTypes = []any{
 	(*GetSidechainConfigRequest)(nil),                   // 0: orchestrator.v1.GetSidechainConfigRequest
 	(*GetSidechainConfigResponse)(nil),                  // 1: orchestrator.v1.GetSidechainConfigResponse
-	(*WriteSidechainConfigRequest)(nil),                 // 2: orchestrator.v1.WriteSidechainConfigRequest
-	(*WriteSidechainConfigResponse)(nil),                // 3: orchestrator.v1.WriteSidechainConfigResponse
-	(*SyncSidechainNetworkFromBitcoinConfRequest)(nil),  // 4: orchestrator.v1.SyncSidechainNetworkFromBitcoinConfRequest
-	(*SyncSidechainNetworkFromBitcoinConfResponse)(nil), // 5: orchestrator.v1.SyncSidechainNetworkFromBitcoinConfResponse
+	(*WatchSidechainConfigResponse)(nil),                // 2: orchestrator.v1.WatchSidechainConfigResponse
+	(*WriteSidechainConfigRequest)(nil),                 // 3: orchestrator.v1.WriteSidechainConfigRequest
+	(*WriteSidechainConfigResponse)(nil),                // 4: orchestrator.v1.WriteSidechainConfigResponse
+	(*SyncSidechainNetworkFromBitcoinConfRequest)(nil),  // 5: orchestrator.v1.SyncSidechainNetworkFromBitcoinConfRequest
+	(*SyncSidechainNetworkFromBitcoinConfResponse)(nil), // 6: orchestrator.v1.SyncSidechainNetworkFromBitcoinConfResponse
 }
 var file_orchestrator_v1_sidechain_conf_proto_depIdxs = []int32{
-	0, // 0: orchestrator.v1.SidechainConfService.GetSidechainConfig:input_type -> orchestrator.v1.GetSidechainConfigRequest
-	2, // 1: orchestrator.v1.SidechainConfService.WriteSidechainConfig:input_type -> orchestrator.v1.WriteSidechainConfigRequest
-	4, // 2: orchestrator.v1.SidechainConfService.SyncSidechainNetworkFromBitcoinConf:input_type -> orchestrator.v1.SyncSidechainNetworkFromBitcoinConfRequest
-	1, // 3: orchestrator.v1.SidechainConfService.GetSidechainConfig:output_type -> orchestrator.v1.GetSidechainConfigResponse
-	3, // 4: orchestrator.v1.SidechainConfService.WriteSidechainConfig:output_type -> orchestrator.v1.WriteSidechainConfigResponse
-	5, // 5: orchestrator.v1.SidechainConfService.SyncSidechainNetworkFromBitcoinConf:output_type -> orchestrator.v1.SyncSidechainNetworkFromBitcoinConfResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	1, // 0: orchestrator.v1.WatchSidechainConfigResponse.config:type_name -> orchestrator.v1.GetSidechainConfigResponse
+	0, // 1: orchestrator.v1.SidechainConfService.GetSidechainConfig:input_type -> orchestrator.v1.GetSidechainConfigRequest
+	0, // 2: orchestrator.v1.SidechainConfService.WatchSidechainConfig:input_type -> orchestrator.v1.GetSidechainConfigRequest
+	3, // 3: orchestrator.v1.SidechainConfService.WriteSidechainConfig:input_type -> orchestrator.v1.WriteSidechainConfigRequest
+	5, // 4: orchestrator.v1.SidechainConfService.SyncSidechainNetworkFromBitcoinConf:input_type -> orchestrator.v1.SyncSidechainNetworkFromBitcoinConfRequest
+	1, // 5: orchestrator.v1.SidechainConfService.GetSidechainConfig:output_type -> orchestrator.v1.GetSidechainConfigResponse
+	2, // 6: orchestrator.v1.SidechainConfService.WatchSidechainConfig:output_type -> orchestrator.v1.WatchSidechainConfigResponse
+	4, // 7: orchestrator.v1.SidechainConfService.WriteSidechainConfig:output_type -> orchestrator.v1.WriteSidechainConfigResponse
+	6, // 8: orchestrator.v1.SidechainConfService.SyncSidechainNetworkFromBitcoinConf:output_type -> orchestrator.v1.SyncSidechainNetworkFromBitcoinConfResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_orchestrator_v1_sidechain_conf_proto_init() }
@@ -382,7 +444,7 @@ func file_orchestrator_v1_sidechain_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_orchestrator_v1_sidechain_conf_proto_rawDesc), len(file_orchestrator_v1_sidechain_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

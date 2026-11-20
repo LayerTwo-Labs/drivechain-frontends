@@ -610,6 +610,11 @@ func (m *EnforcerConfManager) reloadConfigFromFileSystem() {
 // previously that fallback caused tests (which never set ConfigDir) to
 // open and rewrite the user's real enforcer.conf under
 // ~/Library/Application Support/bip300301_enforcer/.
+// ConfigFilePath is the conf file this manager owns.
+func (m *EnforcerConfManager) ConfigFilePath() string {
+	return m.getConfigPath()
+}
+
 func (m *EnforcerConfManager) getConfigPath() string {
 	return filepath.Join(m.ConfigDir, bitwindowEnforcerConfFilename)
 }

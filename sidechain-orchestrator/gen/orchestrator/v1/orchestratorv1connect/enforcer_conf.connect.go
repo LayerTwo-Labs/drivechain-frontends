@@ -27,6 +27,9 @@ const (
 	// EnforcerConfServiceGetEnforcerConfigProcedure is the procedure name of the EnforcerConfService's
 	// GetEnforcerConfig RPC.
 	EnforcerConfServiceGetEnforcerConfigProcedure = "/orchestrator.v1.EnforcerConfService/GetEnforcerConfig"
+	// EnforcerConfServiceWatchEnforcerConfigProcedure is the procedure name of the
+	// EnforcerConfService's WatchEnforcerConfig RPC.
+	EnforcerConfServiceWatchEnforcerConfigProcedure = "/orchestrator.v1.EnforcerConfService/WatchEnforcerConfig"
 	// EnforcerConfServiceWriteEnforcerConfigProcedure is the procedure name of the
 	// EnforcerConfService's WriteEnforcerConfig RPC.
 	EnforcerConfServiceWriteEnforcerConfigProcedure = "/orchestrator.v1.EnforcerConfService/WriteEnforcerConfig"
@@ -41,6 +44,13 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_orchestrator_v1_enforcer_conf_proto.Services().ByName("EnforcerConfService").Methods().ByName("GetEnforcerConfig"),
 			Procedure:  EnforcerConfServiceGetEnforcerConfigProcedure,
+		}
+	})
+	enforcerConfServiceWatchEnforcerConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_enforcer_conf_proto.Services().ByName("EnforcerConfService").Methods().ByName("WatchEnforcerConfig"),
+			Procedure:  EnforcerConfServiceWatchEnforcerConfigProcedure,
 		}
 	})
 	enforcerConfServiceWriteEnforcerConfigSpec = sync.OnceValue(func() connect.Spec {
@@ -63,6 +73,9 @@ var (
 type EnforcerConfServiceClient interface {
 	// Get current Enforcer configuration state.
 	GetEnforcerConfig(context.Context, *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error)
+	// Stream GetEnforcerConfig. The first frame holds the config, later frames
+	// only a changed config or a heartbeat.
+	WatchEnforcerConfig(context.Context, *v1.WatchEnforcerConfigRequest) (EnforcerConfServiceWatchEnforcerConfigClientStream, error)
 	// Write Enforcer configuration content.
 	WriteEnforcerConfig(context.Context, *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error)
 	// Sync node-rpc settings from Bitcoin Core config.
@@ -75,11 +88,35 @@ func NewEnforcerConfServiceClient(client *connect.Client) EnforcerConfServiceCli
 	return &enforcerConfServiceClient{client: client}
 }
 
+// EnforcerConfServiceWatchEnforcerConfigClientStream is the client stream for the
+// EnforcerConfService's WatchEnforcerConfig RPC.
+type EnforcerConfServiceWatchEnforcerConfigClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s EnforcerConfServiceWatchEnforcerConfigClientStream) Receive() (*v1.WatchEnforcerConfigResponse, error) {
+	var res v1.WatchEnforcerConfigResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s EnforcerConfServiceWatchEnforcerConfigClientStream) Close() error {
+	return s.stream.Close()
+}
+
 // EnforcerConfServiceHandler is an implementation of the orchestrator.v1.EnforcerConfService
 // service.
 type EnforcerConfServiceHandler interface {
 	// Get current Enforcer configuration state.
 	GetEnforcerConfig(context.Context, *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error)
+	// Stream GetEnforcerConfig. The first frame holds the config, later frames
+	// only a changed config or a heartbeat.
+	WatchEnforcerConfig(context.Context, *v1.WatchEnforcerConfigRequest, EnforcerConfServiceWatchEnforcerConfigServerStream) error
 	// Write Enforcer configuration content.
 	WriteEnforcerConfig(context.Context, *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error)
 	// Sync node-rpc settings from Bitcoin Core config.
@@ -92,9 +129,26 @@ func RegisterEnforcerConfServiceHandler(server *connect.Server, svc EnforcerConf
 	adapter := enforcerConfServiceHandler{svc: svc}
 	server.Register(
 		connect.Method{Spec: enforcerConfServiceGetEnforcerConfigSpec(), Handler: adapter.getEnforcerConfig},
+		connect.Method{Spec: enforcerConfServiceWatchEnforcerConfigSpec(), Handler: adapter.watchEnforcerConfig},
 		connect.Method{Spec: enforcerConfServiceWriteEnforcerConfigSpec(), Handler: adapter.writeEnforcerConfig},
 		connect.Method{Spec: enforcerConfServiceSyncNodeRpcFromBitcoinConfSpec(), Handler: adapter.syncNodeRpcFromBitcoinConf},
 	)
+}
+
+// EnforcerConfServiceWatchEnforcerConfigServerStream is the server stream for the
+// EnforcerConfService's WatchEnforcerConfig RPC.
+type EnforcerConfServiceWatchEnforcerConfigServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s EnforcerConfServiceWatchEnforcerConfigServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s EnforcerConfServiceWatchEnforcerConfigServerStream) Send(res *v1.WatchEnforcerConfigResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedEnforcerConfServiceHandler returns CodeUnimplemented from all methods.
@@ -102,6 +156,10 @@ type UnimplementedEnforcerConfServiceHandler struct{}
 
 func (UnimplementedEnforcerConfServiceHandler) GetEnforcerConfig(context.Context, *v1.GetEnforcerConfigRequest) (*v1.GetEnforcerConfigResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.EnforcerConfService.GetEnforcerConfig is not implemented")
+}
+
+func (UnimplementedEnforcerConfServiceHandler) WatchEnforcerConfig(context.Context, *v1.WatchEnforcerConfigRequest, EnforcerConfServiceWatchEnforcerConfigServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.EnforcerConfService.WatchEnforcerConfig is not implemented")
 }
 
 func (UnimplementedEnforcerConfServiceHandler) WriteEnforcerConfig(context.Context, *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error) {
@@ -122,6 +180,14 @@ func (c *enforcerConfServiceClient) GetEnforcerConfig(ctx context.Context, req *
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *enforcerConfServiceClient) WatchEnforcerConfig(ctx context.Context, req *v1.WatchEnforcerConfigRequest) (EnforcerConfServiceWatchEnforcerConfigClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, enforcerConfServiceWatchEnforcerConfigSpec(), req)
+	if err != nil {
+		return EnforcerConfServiceWatchEnforcerConfigClientStream{}, err
+	}
+	return EnforcerConfServiceWatchEnforcerConfigClientStream{stream: stream}, nil
 }
 
 func (c *enforcerConfServiceClient) WriteEnforcerConfig(ctx context.Context, req *v1.WriteEnforcerConfigRequest) (*v1.WriteEnforcerConfigResponse, error) {
@@ -152,6 +218,14 @@ func (h enforcerConfServiceHandler) getEnforcerConfig(ctx context.Context, _ con
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h enforcerConfServiceHandler) watchEnforcerConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchEnforcerConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchEnforcerConfig(ctx, &req, EnforcerConfServiceWatchEnforcerConfigServerStream{stream: stream})
 }
 
 func (h enforcerConfServiceHandler) writeEnforcerConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
