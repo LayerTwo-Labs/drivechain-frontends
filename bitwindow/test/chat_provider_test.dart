@@ -299,6 +299,23 @@ void main() {
     return (wallet, store);
   }
 
+  test('a key press in the message field does not rebuild the chat page', () async {
+    await walletChat();
+    GetIt.I.registerSingleton<ChatProvider>(provider);
+    final model = ChatViewModel();
+    try {
+      var notifies = 0;
+      model.addListener(() => notifies++);
+
+      model.messageController.text = 'H';
+      model.messageController.text = 'He';
+
+      expect(notifies, 0);
+    } finally {
+      model.dispose();
+    }
+  });
+
   // A failed send used to put the draft back and say nothing, so the user read
   // it as the button doing nothing at all.
   test('a failed send leaves the reason on the view model', () async {

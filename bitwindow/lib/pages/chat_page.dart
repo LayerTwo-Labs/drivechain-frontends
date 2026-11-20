@@ -384,11 +384,14 @@ class ChatPage extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(width: SailStyleValues.padding08),
-                                      SailButton(
-                                        label: 'Send · ${model.messageCostSats} ${activeTicker.subunit}',
-                                        loading: model.isSending,
-                                        disabled: model.messageController.text.isEmpty,
-                                        onPressed: model.sendMessage,
+                                      ListenableBuilder(
+                                        listenable: model.messageController,
+                                        builder: (context, child) => SailButton(
+                                          label: 'Send · ${model.messageCostSats} ${activeTicker.subunit}',
+                                          loading: model.isSending,
+                                          disabled: model.messageController.text.isEmpty,
+                                          onPressed: model.sendMessage,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -806,7 +809,6 @@ class ChatViewModel extends BaseViewModel {
     _walletChange = _chatProvider.walletChange;
     _chatProvider.addListener(_onProviderChanged);
     _bitnamesRPC.addListener(_onConnectionChanged);
-    messageController.addListener(notifyListeners);
   }
 
   void init() {
