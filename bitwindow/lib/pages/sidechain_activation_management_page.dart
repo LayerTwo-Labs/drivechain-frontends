@@ -285,7 +285,7 @@ class PendingSidechainProposalsTable extends StatefulWidget {
 }
 
 class _PendingSidechainProposalsTableState extends State<PendingSidechainProposalsTable> {
-  static const columns = ['voteCount', 'slot', 'replacement', 'title', 'description', 'age', 'fails', 'hash'];
+  static const columns = ['voteCount', 'slot', 'replacement', 'title', 'description', 'age', 'height', 'hash'];
 
   String sortColumn = 'slot';
   bool sortAscending = true;
@@ -299,7 +299,7 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
       'title' => proposal.title,
       'description' => proposal.description,
       'age' => proposal.proposalAge,
-      'fails' => proposal.proposalHeight,
+      'height' => proposal.proposalHeight,
       'hash' => proposal.dataHash,
       _ => proposal.slot,
     } as Comparable<Object>;
@@ -330,7 +330,7 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
         const SailTableHeaderCell(name: 'Title'),
         const SailTableHeaderCell(name: 'Description'),
         const SailTableHeaderCell(name: 'Age'),
-        const SailTableHeaderCell(name: 'Fails'),
+        const SailTableHeaderCell(name: 'Height'),
         const SailTableHeaderCell(name: 'Hash'),
       ],
       rowBuilder: (context, row, selected) {
