@@ -25,6 +25,9 @@ class M4Provider extends ChangeNotifier {
 
   Timer? _pollTimer;
   bool _disposed = false;
+  bool _fetching = false;
+  bool _fetchAgain = false;
+  final SyncedTipWatch _tip = SyncedTipWatch();
   bool _settingVote = false;
   Future<void> _voteQueue = Future.value();
   int _voteChanges = 0;
@@ -48,7 +51,7 @@ class M4Provider extends ChangeNotifier {
   }
 
   void _onNewBlock() {
-    if (_syncProvider.isSynced) {
+    if (_tip.moved(_syncProvider, synced: _syncProvider.isSynced)) {
       fetchAll();
     }
   }
@@ -61,10 +64,29 @@ class M4Provider extends ChangeNotifier {
     if (!GetIt.I.get<BitcoinConfProvider>().drivechainFeaturesAvailable) {
       return;
     }
+    if (_fetching) {
+      _fetchAgain = true;
+      return;
+    }
+    _fetching = true;
+    try {
+      do {
+        _fetchAgain = false;
+        await _fetch();
+      } while (_fetchAgain && !_disposed);
+    } finally {
+      _fetching = false;
+    }
+  }
 
+  Future<void> _fetch() async {
+    final shown = (withdrawalBundlesBySidechain, history, votePolicy, upvotes, modelError);
+    final loadingShows = modelError != null || (withdrawalBundlesBySidechain.isEmpty && history.isEmpty);
     isLoading = true;
     modelError = null;
-    notifyListeners();
+    if (loadingShows) {
+      notifyListeners();
+    }
     final voteChanges = _voteChanges;
 
     try {
@@ -107,11 +129,30 @@ class M4Provider extends ChangeNotifier {
       }
       modelError = e.toString();
     } finally {
-      if (!_disposed) {
-        isLoading = false;
+      isLoading = false;
+      if (!_disposed && (loadingShows || !_sameShown(shown))) {
         notifyListeners();
       }
     }
+  }
+
+  bool _sameShown(
+    (
+      Map<int, List<drivechainpb.WithdrawalBundle>>,
+      List<m4pb.M4HistoryEntry>,
+      m4pb.VotePolicy,
+      Map<int, String>,
+      String?,
+    )
+    shown,
+  ) {
+    final (bundles, oldHistory, policy, oldUpvotes, error) = shown;
+    return mapEquals(oldUpvotes, upvotes) &&
+        policy == votePolicy &&
+        error == modelError &&
+        listEquals(oldHistory, history) &&
+        bundles.length == withdrawalBundlesBySidechain.length &&
+        bundles.entries.every((e) => listEquals(e.value, withdrawalBundlesBySidechain[e.key]));
   }
 
   // Get withdrawal bundles for a specific sidechain
