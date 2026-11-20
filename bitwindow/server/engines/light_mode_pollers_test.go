@@ -239,3 +239,17 @@ func TestTimestampEngineWatchesOnlyInFullMode(t *testing.T) {
 		})
 	}
 }
+
+// A block event reaches Bitcoin Core at once, not at the next 2 s tick.
+func TestParserReadsTheChainOnWake(t *testing.T) {
+	var dials atomic.Int64
+	db := database.Test(t)
+	parser := engines.NewBitcoind(countingBitcoind(&dials), unreachableEnforcer(), db, config.Config{}, &chaincfg.RegressionNetParams, engines.NewM4Engine(db, config.NetworkRegtest), nodeModeSource(t, orchpb.NodeMode_NODE_MODE_FULL), nil)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	go func() { _ = parser.Run(ctx) }()
+
+	parser.Wake()
+	require.Eventually(t, func() bool { return dials.Load() > 0 }, time.Second, 5*time.Millisecond)
+}

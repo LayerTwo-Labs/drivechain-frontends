@@ -375,6 +375,47 @@ func (rt *Runtime) Start(parent context.Context) {
 
 	rt.wg.Add(1)
 	go rt.runZMQ(rt.ctx, log)
+	rt.runEngine("block-wake", rt.runBlockWake, log)
+}
+
+// runBlockWake wakes the block parser on each sync status that drivechaind
+// sends. drivechaind sends one at once after a new Core tip.
+func (rt *Runtime) runBlockWake(ctx context.Context) error {
+	for {
+		if rt.walletEngine.NodeMode().RunsLocalNode(ctx) {
+			if err := rt.wakeOnSyncStatus(ctx); err != nil && ctx.Err() == nil {
+				zerolog.Ctx(ctx).Debug().Err(err).Msg("block wake: sync status stream stopped")
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(5 * time.Second):
+		}
+	}
+}
+
+func (rt *Runtime) wakeOnSyncStatus(ctx context.Context) error {
+	client := dial.Orchestrator(rt.conf.OrchestratorAddr, rt.conf.BitwindowDir())
+	stream, err := client.WatchSyncStatus(ctx, &orchctlpb.WatchSyncStatusRequest{})
+	if err != nil {
+		return err
+	}
+	defer stream.Close() //nolint:errcheck // the stream is done either way
+	var last int32 = -1
+	for {
+		msg, err := stream.Receive()
+		if err != nil {
+			return err
+		}
+		if msg.GetHeartbeat() {
+			continue
+		}
+		if blocks := msg.GetStatus().GetMainchain().GetBlocks(); blocks != last {
+			last = blocks
+			rt.bitcoinEngine.Wake()
+		}
+	}
 }
 
 func (rt *Runtime) runEngine(name string, run func(context.Context) error, log *zerolog.Logger) {
