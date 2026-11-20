@@ -103,6 +103,7 @@ class BinaryProvider extends ChangeNotifier {
     required List<Binary> initialBinaries,
     bool isSidechainApp = false,
     bool shutdownEnabled = true,
+    Map<BinaryType, Future<bool> Function()> upChecks = const {},
   }) async {
     final binaries = await Future.wait(
       initialBinaries.map((b) => b.updateLocalMetadata(appDir)),
@@ -111,6 +112,7 @@ class BinaryProvider extends ChangeNotifier {
     final processManager = ProcessManager(
       appDir: appDir,
       pidFileManager: PidFileManager(pidDir: pidDir),
+      upChecks: upChecks,
     );
     final provider = BinaryProvider._(
       appDir: appDir,

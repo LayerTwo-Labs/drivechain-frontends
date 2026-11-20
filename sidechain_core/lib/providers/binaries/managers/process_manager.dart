@@ -10,6 +10,23 @@ import 'package:sidechain_core/providers/binaries/managers/pid_file_manager.dart
 import 'package:sidechain_core/providers/log_provider.dart';
 import 'package:sidechain_core/utils/log_file.dart';
 
+/// How long a start watches a new process for an early exit.
+const startCheckWindow = Duration(milliseconds: 500);
+
+/// The time between two up checks of a new process.
+const upCheckPoll = Duration(milliseconds: 10);
+
+/// An up check that returns true once [host]:[port] takes a TCP connection.
+Future<bool> Function() tcpUpCheck(String host, int port) => () async {
+  try {
+    final socket = await Socket.connect(host, port, timeout: startCheckWindow);
+    socket.destroy();
+    return true;
+  } on SocketException {
+    return false;
+  }
+};
+
 class ProcessManager extends ChangeNotifier {
   final Directory appDir;
   final PidFileManager pidFileManager;
@@ -17,10 +34,15 @@ class ProcessManager extends ChangeNotifier {
   /// How often an adopted process gets checked for its death.
   final Duration adoptedPollInterval;
 
+  /// Per binary type, a check that returns true once the process serves. A
+  /// start with a check returns at the first true answer.
+  final Map<BinaryType, Future<bool> Function()> upChecks;
+
   ProcessManager({
     required this.appDir,
     required this.pidFileManager,
     this.adoptedPollInterval = const Duration(seconds: 5),
+    this.upChecks = const {},
   });
 
   Logger get log => GetIt.I.get<Logger>();
@@ -136,6 +158,19 @@ class ProcessManager extends ChangeNotifier {
     }
     _adoptedWatches.clear();
     super.dispose();
+  }
+
+  /// Completes when [check] returns true. Never completes when the start
+  /// window ends first.
+  Future<void> _waitUp(Future<bool> Function() check) async {
+    final elapsed = Stopwatch()..start();
+    while (elapsed.elapsed < startCheckWindow) {
+      if (await check()) {
+        return;
+      }
+      await Future.delayed(upCheckPoll);
+    }
+    await Completer<void>().future;
   }
 
   Future<int> start(
@@ -325,11 +360,13 @@ class ProcessManager extends ChangeNotifier {
     );
 
     // If the process exits within 0.5 second, it's not really properly started!
+    final upCheck = upChecks[binary.type];
     final exited = await Future.any([
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(startCheckWindow, () {
         return false;
       }),
       processExited.future,
+      if (upCheck != null) _waitUp(upCheck).then((_) => false),
     ]);
 
     if (exited) {
