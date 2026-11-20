@@ -45,6 +45,19 @@ func TestCliArgKeysNameOnlyFlagsTheBinaryAccepts(t *testing.T) {
 	}
 }
 
+// A daemon with a private RPC flag keeps its wallet methods on the RPC port.
+func TestPrivateRpcKeyIsAFlagTheBinaryAccepts(t *testing.T) {
+	for name, flags := range provedChainFlags {
+		key := KnownSidechainSpecs[name].PrivateRPCKey
+		if key != "" && !slices.Contains(flags, key) {
+			t.Errorf("%s passes --%s, which its binary does not accept", name, key)
+		}
+		if key == "" && slices.Contains(flags, "private-rpc-addr") {
+			t.Errorf("%s serves its wallet on another port unless it gets --private-rpc-addr", name)
+		}
+	}
+}
+
 // The conf key must be the flag name the binary reads, so a hand edit reaches
 // the daemon.
 func TestEveryEndpointKeyIsAFlagTheBinaryAccepts(t *testing.T) {
