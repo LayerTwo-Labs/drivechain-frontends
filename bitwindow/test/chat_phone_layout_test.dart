@@ -130,6 +130,21 @@ void main() {
     expect(find.text('Type a message...'), findsNothing);
   });
 
+  testWidgets('on a phone system back closes the conversation and shows the list', (tester) async {
+    await _pumpChat(tester, phone: true, connected: true);
+    await tester.tap(find.text('alice'));
+    await tester.pump();
+    expect(find.text('Type a message...'), findsOneWidget);
+
+    final handled = await tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(handled, isTrue);
+    expect(find.byType(ChatPage), findsOneWidget);
+    expect(_chatsCard(), findsOneWidget);
+    expect(find.text('Type a message...'), findsNothing);
+  });
+
   testWidgets('on desktop the list and the conversation stay side by side', (tester) async {
     await _pumpChat(tester, phone: false, connected: true);
 

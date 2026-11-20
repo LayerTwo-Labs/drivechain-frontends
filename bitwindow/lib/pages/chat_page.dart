@@ -397,24 +397,32 @@ class ChatPage extends StatelessWidget {
 
           if (phone) {
             if (conversation != null) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      SailButton(
-                        key: const ValueKey('chat-back'),
-                        variant: ButtonVariant.icon,
-                        icon: SailSVGAsset.chevronLeft,
-                        onPressed: () async => model.closeConversation(),
-                      ),
-                      const SizedBox(width: SailStyleValues.padding08),
-                      Expanded(child: SailText.primary16(model.selectedContact!.displayName, bold: true)),
-                    ],
-                  ),
-                  const SizedBox(height: SailStyleValues.padding08),
-                  Flexible(child: conversation),
-                ],
+              return PopScope(
+                canPop: false,
+                onPopInvokedWithResult: (didPop, _) {
+                  if (!didPop) {
+                    model.closeConversation();
+                  }
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        SailButton(
+                          key: const ValueKey('chat-back'),
+                          variant: ButtonVariant.icon,
+                          icon: SailSVGAsset.chevronLeft,
+                          onPressed: () async => model.closeConversation(),
+                        ),
+                        const SizedBox(width: SailStyleValues.padding08),
+                        Expanded(child: SailText.primary16(model.selectedContact!.displayName, bold: true)),
+                      ],
+                    ),
+                    const SizedBox(height: SailStyleValues.padding08),
+                    Flexible(child: conversation),
+                  ],
+                ),
               );
             }
             return Column(
