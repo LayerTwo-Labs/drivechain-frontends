@@ -1554,8 +1554,9 @@ class SendPageViewModel extends BaseViewModel {
     }
     _estimatedSatPerVByte = null;
     selectedUtxos = [];
+    notifyListeners();
 
-    await selectFeeTarget(1);
+    unawaited(selectFeeTarget(1));
   }
 
   void onAddressSelected(int index, AddressBookEntry? entry) {
