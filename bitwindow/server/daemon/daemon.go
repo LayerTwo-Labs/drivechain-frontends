@@ -47,9 +47,24 @@ func init() {
 	zerolog.TimeFieldFormat = time.RFC3339Nano
 }
 
+// Options changes how Run hosts drivechaind.
+type Options struct {
+	// Orchestrator runs drivechaind inside this process until ctx ends. Nil
+	// starts drivechaind as a detached child process.
+	Orchestrator func(ctx context.Context, p OrchestratorParams) error
+}
+
+// OrchestratorParams are the drivechaind settings that bitwindowd selects.
+type OrchestratorParams struct {
+	BitwindowDir string
+	ListenAddr   string
+	LogPath      string
+	OwnerPID     int
+}
+
 // Run serves bitwindowd with the command line flags in args, until ctx ends
 // or a client asks it to stop.
-func Run(ctx context.Context, args []string) error {
+func Run(ctx context.Context, args []string, opts Options) (err error) {
 	ctx, cancelCtx := context.WithCancel(ctx)
 	defer cancelCtx()
 
@@ -84,11 +99,19 @@ func Run(ctx context.Context, args []string) error {
 	})
 	go clients.Run(ctx)
 
-	stop, err := superviseDrivechaind(bootCtx, conf, bootLogger)
-	if err != nil {
-		return err
+	if opts.Orchestrator != nil {
+		wait, startErr := startInProcessOrchestrator(ctx, cancelCtx, conf, opts.Orchestrator)
+		if startErr != nil {
+			return startErr
+		}
+		defer func() { err = errors.Join(err, wait()) }()
+	} else {
+		stop, startErr := superviseDrivechaind(bootCtx, conf, bootLogger)
+		if startErr != nil {
+			return startErr
+		}
+		defer stop()
 	}
-	defer stop()
 
 	// bitcoin.conf is the source of truth, and reading it is one file read.
 	// Ask drivechaind only on a first run, where it still has to write the
@@ -297,6 +320,47 @@ func superviseDrivechaind(bootCtx context.Context, conf config.Config, bootLogge
 		// call is harmless. drivechaind is detached and survives bitwindowd's
 		// exit either way.
 		relayShutdownToDrivechaind(conf.OrchestratorAddr, conf.BitwindowDir(), bootLogger)
+	}, nil
+}
+
+// startInProcessOrchestrator runs drivechaind in a goroutine. An exit of
+// drivechaind stops bitwindowd too. wait stops drivechaind and returns its error.
+func startInProcessOrchestrator(
+	ctx context.Context,
+	stopBitwindowd context.CancelFunc,
+	conf config.Config,
+	run func(context.Context, OrchestratorParams) error,
+) (wait func() error, err error) {
+	listenAddr, err := orchestratorHostPort(conf.OrchestratorAddr)
+	if err != nil {
+		return nil, err
+	}
+	bitwindowDir := conf.BitwindowDir()
+	params := OrchestratorParams{
+		BitwindowDir: bitwindowDir,
+		ListenAddr:   listenAddr,
+		LogPath:      drivechaindLogPath(conf, bitwindowDir),
+		OwnerPID:     conf.OwnerPID,
+	}
+	if err := os.MkdirAll(bitwindowDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create bitwindow dir %s: %w", bitwindowDir, err)
+	}
+
+	// bitwindowd ends first and drivechaind after it, as with a child process.
+	orchCtx, stopOrchestrator := context.WithCancel(context.WithoutCancel(ctx))
+	done := make(chan error, 1)
+	go func() {
+		err := run(orchCtx, params)
+		if err != nil {
+			err = fmt.Errorf("drivechaind: %w", err)
+		}
+		done <- err
+		stopBitwindowd()
+	}()
+
+	return func() error {
+		stopOrchestrator()
+		return <-done
 	}, nil
 }
 

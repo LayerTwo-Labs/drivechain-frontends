@@ -22,7 +22,7 @@ func main() {
 	// relay Shutdown to drivechaind instead of orphaning it.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
-	if err := daemon.Run(ctx, os.Args[1:]); err != nil {
+	if err := daemon.Run(ctx, os.Args[1:], daemon.Options{}); err != nil {
 
 		// Error has been printed to the console!
 		if _, ok := lo.ErrorsAs[*flags.Error](err); ok {
