@@ -40,11 +40,35 @@ void main() {
 
   testWidgets('on a phone the bandwidth graph title is 15 like the other section titles', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
     await tester.pumpSailPage(const NetworkStatisticsPage());
+    await tester.binding.setSurfaceSize(const Size(390, 800));
+    await tester.pump();
 
     expect(tester.takeException(), isNull);
     expect(fontSize(tester, 'Bandwidth Graph'), 15);
     expect(fontSize(tester, 'Blockchain'), 15);
+  });
+
+  testWidgets('on a phone each section is its own panel with 13 px values', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
+    await tester.pumpSailPage(const NetworkStatisticsPage());
+    await tester.binding.setSurfaceSize(const Size(390, 800));
+    await tester.pump();
+
+    Finder panelOf(String text) => find.ancestor(
+      of: find.text(text),
+      matching: find.byWidgetPredicate((w) => w is DecoratedBox && w.decoration is BoxDecoration),
+    );
+    final blockchain = tester.getRect(panelOf('Blockchain').first);
+    expect(blockchain.contains(tester.getCenter(find.text('Block Height'))), isTrue);
+    expect(blockchain.contains(tester.getCenter(find.text('Total Peers'))), isFalse);
+    expect(tester.getRect(panelOf('Bandwidth Graph').first).contains(tester.getCenter(find.text('Received'))), isTrue);
+    expect(find.ancestor(of: find.text('Bandwidth Graph'), matching: find.byType(StatSection)), findsOneWidget);
+
+    final value = find.descendant(of: find.byType(StatRow).first, matching: find.byType(Text)).last;
+    expect(tester.widget<Text>(value).style!.fontSize, 13);
   });
 
   testWidgets('on desktop the section titles stay 20', (tester) async {
