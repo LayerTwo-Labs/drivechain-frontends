@@ -63,14 +63,46 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(tester.getRect(find.byType(SailCard)).bottom, _screen.height);
       for (final label in ['savings', 'Edit wallet1', 'Create new wallet']) {
-        final row = find.ancestor(of: find.text(label), matching: find.byType(SizedBox)).first;
+        final row = find.ancestor(of: find.text(label), matching: find.byType(Container)).first;
         expect(tester.getSize(row).height, 44, reason: label);
       }
+
+      final group = find
+          .ancestor(
+            of: find.text('savings'),
+            matching: find.byWidgetPredicate(
+              (w) => w is DecoratedBox && (w.decoration as BoxDecoration).border != null,
+            ),
+          )
+          .first;
+      expect(tester.getRect(group).height, 44, reason: 'the other wallets sit in their own bordered group');
+      expect(tester.getRect(group).bottom, lessThanOrEqualTo(tester.getRect(find.text('Edit wallet1')).top));
 
       await tester.tap(find.text('savings'));
       await tester.pumpAndSettle();
       expect(selected, 'b');
       expect(find.text('Create new wallet'), findsNothing);
+    });
+
+    testWidgets('a long wallet list scrolls inside the sheet', (tester) async {
+      final wallets = [for (var i = 0; i < 30; i++) _wallet('w$i', 'wallet$i')];
+      await _pump(
+        tester,
+        WalletDropdown(
+          currentWallet: wallets.first,
+          availableWallets: wallets,
+          onWalletSelected: (_) {},
+          onCreateWallet: () {},
+          onEditWallet: (_) {},
+        ),
+      );
+
+      await tester.tap(find.text('wallet0'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await tester.scrollUntilVisible(find.text('Create new wallet'), 200, scrollable: find.byType(Scrollable).last);
+      expect(find.text('Create new wallet').hitTestable(), findsOneWidget);
     });
 
     testWidgets('the Edit link of another wallet closes the sheet and edits that wallet', (tester) async {

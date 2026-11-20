@@ -192,15 +192,19 @@ class _PhoneWalletButton extends StatelessWidget {
   Future<void> _open(BuildContext context) async {
     final d = dropdown;
     final empty = d.availableWallets.isEmpty ? d.noWalletActions : null;
+    final others = d.availableWallets.where((w) => w.id != d.currentWallet?.id).toList();
+    final theme = SailTheme.of(context);
 
     Widget row(BuildContext sheet, {required Widget child, required VoidCallback onTap}) => SailTappable(
       onTap: () async {
         Navigator.of(sheet).pop();
         onTap();
       },
-      child: SizedBox(
+      child: Container(
         height: 44,
-        child: Align(alignment: Alignment.centerLeft, child: child),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.centerLeft,
+        child: child,
       ),
     );
 
@@ -209,61 +213,76 @@ class _PhoneWalletButton extends StatelessWidget {
       builder: (sheet) => Dialog(
         backgroundColor: SailColorScheme.transparent,
         child: SailCard(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final wallet in d.availableWallets.where((w) => w.id != d.currentWallet?.id))
-                row(
-                  sheet,
-                  onTap: () => d.onWalletSelected(wallet.id),
-                  child: _WalletRow(
-                    wallet: wallet,
-                    attention: d.walletsNeedingAttention.contains(wallet.id),
-                    onEdit: d.onEditWallet == null
-                        ? null
-                        : () async {
-                            Navigator.of(sheet).pop();
-                            d.onEditWallet!(wallet);
-                          },
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (others.isNotEmpty)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.colors.background,
+                      borderRadius: theme.chrome.radius,
+                      border: Border.all(color: theme.colors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final wallet in others)
+                          row(
+                            sheet,
+                            onTap: () => d.onWalletSelected(wallet.id),
+                            child: _WalletRow(
+                              wallet: wallet,
+                              attention: d.walletsNeedingAttention.contains(wallet.id),
+                              onEdit: d.onEditWallet == null
+                                  ? null
+                                  : () async {
+                                      Navigator.of(sheet).pop();
+                                      d.onEditWallet!(wallet);
+                                    },
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              if (d.onEditWallet != null && d.currentWallet != null)
-                row(
-                  sheet,
-                  onTap: () => d.onEditWallet!(d.currentWallet!),
-                  child: Row(
-                    children: [
-                      WalletBlobAvatar(gradient: d.currentWallet!.gradient, size: 24),
-                      const SizedBox(width: 12),
-                      SailText.primary13('Edit ${d.currentWallet!.name}'),
-                    ],
+                if (d.onEditWallet != null && d.currentWallet != null)
+                  row(
+                    sheet,
+                    onTap: () => d.onEditWallet!(d.currentWallet!),
+                    child: Row(
+                      children: [
+                        WalletBlobAvatar(gradient: d.currentWallet!.gradient, size: 24),
+                        const SizedBox(width: 12),
+                        SailText.primary13('Edit ${d.currentWallet!.name}'),
+                      ],
+                    ),
                   ),
-                ),
-              if (empty == null)
-                row(
-                  sheet,
-                  onTap: d.onCreateWallet,
-                  child: const _ActionLabel(icon: Icons.add, label: 'Create new wallet'),
-                )
-              else ...[
-                row(
-                  sheet,
-                  onTap: empty.onGenerate,
-                  child: const _ActionLabel(icon: Icons.add, label: 'Generate wallet'),
-                ),
-                row(
-                  sheet,
-                  onTap: empty.onPasteSeed,
-                  child: const _ActionLabel(icon: Icons.content_paste, label: 'Paste seed phrase'),
-                ),
-                row(
-                  sheet,
-                  onTap: empty.onImportDescriptor,
-                  child: const _ActionLabel(icon: Icons.download, label: 'Import descriptor'),
-                ),
+                if (empty == null)
+                  row(
+                    sheet,
+                    onTap: d.onCreateWallet,
+                    child: const _ActionLabel(icon: Icons.add, label: 'Create new wallet'),
+                  )
+                else ...[
+                  row(
+                    sheet,
+                    onTap: empty.onGenerate,
+                    child: const _ActionLabel(icon: Icons.add, label: 'Generate wallet'),
+                  ),
+                  row(
+                    sheet,
+                    onTap: empty.onPasteSeed,
+                    child: const _ActionLabel(icon: Icons.content_paste, label: 'Paste seed phrase'),
+                  ),
+                  row(
+                    sheet,
+                    onTap: empty.onImportDescriptor,
+                    child: const _ActionLabel(icon: Icons.download, label: 'Import descriptor'),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
