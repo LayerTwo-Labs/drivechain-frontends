@@ -81,11 +81,8 @@ func defaultConfig() (Config, error) {
 	}, nil
 }
 
-func Parse() (Config, error) {
-	return parse(os.Args[1:])
-}
-
-func parse(args []string) (Config, error) {
+// ParseArgs reads the config from the command line flags in args.
+func ParseArgs(args []string) (Config, error) {
 	conf, err := defaultConfig()
 	if err != nil {
 		return Config{}, err
