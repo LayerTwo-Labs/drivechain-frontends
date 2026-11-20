@@ -1408,6 +1408,20 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *pb.ListRe
 	}, nil
 }
 
+// walletTxOutput reads an output of a wallet transaction. The wallet holds the
+// transaction, so Core reads it with no txindex, also when it is confirmed.
+func (h *WalletHandler) walletTxOutput(ctx context.Context, walletID, txid string, vout int) (wallet.DecodedOutput, bool) {
+	tx, err := h.engine.Backend().GetWalletTransaction(ctx, walletID, txid)
+	if err != nil {
+		return wallet.DecodedOutput{}, false
+	}
+	decoded, err := wallet.DecodeTransaction(tx.Hex, h.engine.Network())
+	if err != nil || vout < 0 || vout >= len(decoded.Outputs) {
+		return wallet.DecodedOutput{}, false
+	}
+	return decoded.Outputs[vout], true
+}
+
 func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *pb.GetTransactionDetailsRequest) (*pb.GetTransactionDetailsResponse, error) {
 	if err := h.requireEngine(); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
@@ -1423,7 +1437,13 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *pb.GetTr
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	rawTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, req.Txid)
+	chain := h.engine.ChainForWallet(walletID)
+	var rawTx *wallet.RawTransaction
+	if blocks, ok := chain.(wallet.BlockTxSource); ok && tx.Blockhash != "" {
+		rawTx, err = blocks.GetBlockTransaction(ctx, req.Txid, tx.Blockhash)
+	} else {
+		rawTx, err = chain.GetRawTransaction(ctx, req.Txid)
+	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getrawtransaction: %w", err).Error())
 	}
@@ -1444,9 +1464,16 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *pb.GetTr
 			input.ScriptSigHex = vin.ScriptSig.Hex
 		}
 
-		if !input.IsCoinbase && vin.TxID != "" {
-			prevTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, vin.TxID)
-			if err == nil && vin.Vout >= 0 && vin.Vout < len(prevTx.Vout) {
+		if vin.Prevout != nil {
+			input.ValueSats = int64(math.Round(vin.Prevout.Value * 1e8))
+			input.Address = vin.Prevout.ScriptPubKey.Address
+			totalInputSats += input.ValueSats
+		} else if !input.IsCoinbase && vin.TxID != "" {
+			if prevOut, ok := h.walletTxOutput(ctx, walletID, vin.TxID, vin.Vout); ok {
+				input.ValueSats = prevOut.ValueSats
+				input.Address = prevOut.Address
+				totalInputSats += input.ValueSats
+			} else if prevTx, err := chain.GetRawTransaction(ctx, vin.TxID); err == nil && vin.Vout >= 0 && vin.Vout < len(prevTx.Vout) {
 				prevOut := prevTx.Vout[vin.Vout]
 				input.ValueSats = int64(math.Round(prevOut.Value * 1e8))
 				input.Address = prevOut.ScriptPubKey.Address

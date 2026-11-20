@@ -8,8 +8,10 @@ import (
 	"testing"
 
 	"connectrpc.com/connect/v2"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +25,11 @@ import (
 type detailsProvider struct {
 	wallet.Backend
 	rawTx      *wallet.RawTransaction
+	rawTxErr   error
+	walletTx   *wallet.WalletTx
+	walletTxs  map[string]*wallet.WalletTx
+	unreadable map[string]bool
+	blockTx    *wallet.RawTransaction
 	owned      map[string]bool
 	ownedErr   error
 	utxos      []wallet.UTXO
@@ -30,6 +37,12 @@ type detailsProvider struct {
 }
 
 func (f *detailsProvider) GetWalletTransaction(_ context.Context, _, txid string) (*wallet.WalletTx, error) {
+	if tx, ok := f.walletTxs[txid]; ok {
+		return tx, nil
+	}
+	if f.walletTx != nil {
+		return f.walletTx, nil
+	}
 	return &wallet.WalletTx{TxID: txid, Amount: -0.5, Hex: "00"}, nil
 }
 
@@ -51,8 +64,18 @@ func (f *detailsProvider) Send(context.Context, string, wallet.SendRequest) (str
 
 func (f *detailsProvider) Chain() wallet.ChainSource { return f }
 
-func (f *detailsProvider) GetRawTransaction(_ context.Context, _ string) (*wallet.RawTransaction, error) {
-	return f.rawTx, nil
+func (f *detailsProvider) GetRawTransaction(_ context.Context, txid string) (*wallet.RawTransaction, error) {
+	if f.unreadable[txid] {
+		return nil, wallet.ErrTxUnreadable
+	}
+	return f.rawTx, f.rawTxErr
+}
+
+func (f *detailsProvider) GetBlockTransaction(_ context.Context, _, blockhash string) (*wallet.RawTransaction, error) {
+	if f.blockTx == nil || blockhash != f.blockTx.Blockhash {
+		return nil, errors.New("no such block transaction")
+	}
+	return f.blockTx, nil
 }
 
 func (f *detailsProvider) Broadcast(_ context.Context, _ string) (string, error) {
@@ -95,7 +118,7 @@ func newDetailsHandler(t *testing.T, fake *detailsProvider) (*WalletHandler, str
 
 	router := wallet.NewBackendRouter(svc, fake, fake)
 	h := NewWalletHandler(svc)
-	h.SetEngine(wallet.NewWalletEngine(svc, router, nil, log))
+	h.SetEngine(wallet.NewWalletEngine(svc, router, wallet.StaticParams(&chaincfg.SigNetParams), log))
 	return h, w.ID
 }
 
@@ -137,6 +160,71 @@ func TestGetTransactionDetailsMarksAReceiveOutput(t *testing.T) {
 
 	assert.True(t, resp.Outputs[0].IsMine)
 	assert.False(t, resp.Outputs[0].IsChange, "a receive address is not change")
+}
+
+// Core with no txindex cannot read a confirmed transaction by txid alone, but
+// it reads it from the block that gettransaction names.
+func TestGetTransactionDetailsReadsAConfirmedTxFromItsBlock(t *testing.T) {
+	confirmed := paymentWithChange()
+	confirmed.Blockhash = "block"
+	confirmed.Confirmations = 3
+	confirmed.Vin[0].Prevout = &wallet.RawTxOut{
+		Value:        8.43,
+		ScriptPubKey: wallet.ScriptPubKey{Address: "funding"},
+	}
+	fake := &detailsProvider{
+		rawTxErr: wallet.ErrTxUnreadable,
+		walletTx: &wallet.WalletTx{TxID: "tx", Amount: -0.1, Confirmations: 3, Blockhash: "block", Hex: "00"},
+		blockTx:  confirmed,
+		owned:    map[string]bool{"change": true},
+	}
+	h, walletID := newDetailsHandler(t, fake)
+
+	resp, err := h.GetTransactionDetails(context.Background(), &pb.GetTransactionDetailsRequest{
+		WalletId: walletID,
+		Txid:     "tx",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "block", resp.Blockhash)
+	assert.Equal(t, int32(3), resp.Confirmations)
+	require.Len(t, resp.Inputs, 1)
+	assert.Equal(t, int64(843_000_000), resp.Inputs[0].ValueSats)
+	assert.Equal(t, "funding", resp.Inputs[0].Address)
+	assert.Equal(t, int64(843_000_000), resp.TotalInputSats)
+	assert.Equal(t, int64(1_000_000), resp.FeeSats)
+}
+
+// A mempool transaction has no block to read prevouts from, and Core with no
+// txindex cannot read its confirmed parent. The wallet holds that parent.
+func TestGetTransactionDetailsReadsAConfirmedParentFromTheWallet(t *testing.T) {
+	funding, err := btcutil.NewAddressWitnessPubKeyHash(make([]byte, 20), &chaincfg.SigNetParams)
+	require.NoError(t, err)
+	script, err := txscript.PayToAddrScript(funding)
+	require.NoError(t, err)
+	parent := wire.NewMsgTx(wire.TxVersion)
+	parent.AddTxIn(&wire.TxIn{})
+	parent.AddTxOut(&wire.TxOut{Value: 843_000_000, PkScript: script})
+	var raw bytes.Buffer
+	require.NoError(t, parent.Serialize(&raw))
+
+	fake := &detailsProvider{
+		rawTx:      paymentWithChange(),
+		walletTx:   &wallet.WalletTx{TxID: "tx", Amount: -0.1, Hex: "00"},
+		walletTxs:  map[string]*wallet.WalletTx{"parent": {TxID: "parent", Confirmations: 6, Blockhash: "block", Hex: hex.EncodeToString(raw.Bytes())}},
+		unreadable: map[string]bool{"parent": true},
+		owned:      map[string]bool{"change": true},
+	}
+	h, walletID := newDetailsHandler(t, fake)
+
+	resp, err := h.GetTransactionDetails(context.Background(), &pb.GetTransactionDetailsRequest{
+		WalletId: walletID,
+		Txid:     "tx",
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Inputs, 1)
+	assert.Equal(t, int64(843_000_000), resp.Inputs[0].ValueSats)
+	assert.Equal(t, funding.EncodeAddress(), resp.Inputs[0].Address)
+	assert.Equal(t, int64(1_000_000), resp.FeeSats)
 }
 
 func TestGetTransactionDetailsFailsOnAnOwnershipError(t *testing.T) {

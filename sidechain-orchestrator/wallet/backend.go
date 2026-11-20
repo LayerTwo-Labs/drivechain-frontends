@@ -132,6 +132,12 @@ type ChainSource interface {
 	SpenderOf(ctx context.Context, txid string, vout int) (string, bool, error)
 }
 
+// BlockTxSource is a ChainSource that reads a transaction from a known block.
+// Core answers this with no txindex, and it sends the prevout of each input.
+type BlockTxSource interface {
+	GetBlockTransaction(ctx context.Context, txid, blockhash string) (*RawTransaction, error)
+}
+
 // ErrSpenderUnknown says the chain source cannot name the spender of an
 // outpoint. The Electrum protocol has no such call, so a wallet on that
 // backend falls back to the confirmed treasury output.

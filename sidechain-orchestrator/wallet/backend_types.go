@@ -99,6 +99,8 @@ type WalletTx struct {
 	Time          int64   `json:"time"`
 	TimeReceived  int64   `json:"timereceived"`
 	Hex           string  `json:"hex"`
+	// Blockhash names the block that holds the tx. It is empty in the mempool.
+	Blockhash string `json:"blockhash"`
 }
 
 // RawTransaction is a fully decoded transaction with chain context
@@ -129,6 +131,8 @@ type RawTxIn struct {
 	ScriptSig *ScriptSig `json:"scriptSig,omitempty"`
 	Witness   []string   `json:"txinwitness,omitempty"`
 	Sequence  int64      `json:"sequence"`
+	// Prevout is the output this input spends, when the source sends it.
+	Prevout *RawTxOut `json:"prevout,omitempty"`
 }
 
 // ScriptSig is a decoded input script.

@@ -599,6 +599,20 @@ func (c *CoreRPCClient) GetRawTransaction(ctx context.Context, txid string) (*Ra
 	return &tx, nil
 }
 
+// GetBlockTransaction reads txid from the block blockhash, with the prevout of
+// each input. It needs no txindex.
+func (c *CoreRPCClient) GetBlockTransaction(ctx context.Context, txid, blockhash string) (*RawTransaction, error) {
+	result, err := c.call(ctx, "", "getrawtransaction", txid, 2, blockhash)
+	if err != nil {
+		return nil, err
+	}
+	var tx RawTransaction
+	if err := json.Unmarshal(result, &tx); err != nil {
+		return nil, fmt.Errorf("decode getrawtransaction: %w", err)
+	}
+	return &tx, nil
+}
+
 // TxSpendingPrevout names the transaction that spends an outpoint, the mempool
 // included. An empty txid means nothing spends it.
 func (c *CoreRPCClient) TxSpendingPrevout(ctx context.Context, txid string, vout int) (string, error) {
