@@ -37,4 +37,16 @@ void main() {
     await backend.poll();
     expect(notifies, 2);
   });
+
+  test('a poll of a stopped binary with no uptime does not notify', () async {
+    final orchestrator = _Orchestrator();
+    final backend = BackendStateProvider(orchestrator);
+    var notifies = 0;
+    backend.addListener(() => notifies++);
+
+    orchestrator.statuses = [BinaryStatusMsg(name: 'thunder', downloadable: true)];
+    await backend.poll();
+    await backend.poll();
+    expect(notifies, 1);
+  });
 }

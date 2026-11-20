@@ -145,8 +145,9 @@ class BackendStateProvider extends ChangeNotifier {
   }
 
   // The uptime moves on each poll, and no reader shows it.
+  // A set zero and an unset field differ, so clear the uptime on both sides.
   static bool _sameStatus(BinaryStatusMsg? prev, BinaryStatusMsg next) =>
-      prev != null && (prev.deepCopy()..uptimeSeconds = next.uptimeSeconds) == next;
+      prev != null && (prev.deepCopy()..clearUptimeSeconds()) == (next.deepCopy()..clearUptimeSeconds());
 
   /// Sync all connection state from the Go backend to the Flutter RPCConnection.
   /// The Go ConnectionMonitor is the single source of truth — just assign all fields.
