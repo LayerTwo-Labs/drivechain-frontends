@@ -98,7 +98,6 @@ class DaemonConnectionCard extends StatelessWidget {
             ),
           )
         : '';
-    final name = '${connection.binary.name} daemon';
     final statusIcon = SailSVG.fromAsset(
       SailSVGAsset.iconConnectionStatus,
       color: _getConnectionColor(theme, isDownloading: isDownloading),
@@ -117,14 +116,14 @@ class DaemonConnectionCard extends StatelessWidget {
                     spacing: 2,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SailText.primary13(name, bold: true),
+                      SailText.primary13(connection.binary.name, bold: true),
                       if (status.trim().isNotEmpty) SailText.secondary12(status.trim()),
                     ],
                   ),
                 ),
                 if (remoteBadge) const SailBadge('remote'),
               ] else ...[
-                SailText.primary15(name, bold: true),
+                SailText.primary15('${connection.binary.name} daemon', bold: true),
                 statusIcon,
                 if (remoteBadge) const SailBadge('remote'),
                 Expanded(child: Container()),

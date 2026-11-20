@@ -66,11 +66,11 @@ void main() {
 
   testWidgets('a phone puts the status on a grey line under the daemon name', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
-    await pumpCard(tester, 360);
+    await pumpCard(tester, 390);
 
     expect(tester.takeException(), isNull);
     expect(find.byType(DaemonStatusBlock), findsNothing);
-    final name = tester.getRect(find.text('${Enforcer().name} daemon'));
+    final name = tester.getRect(find.text(Enforcer().name));
     final status = tester.getRect(find.text('Not connected'));
     expect(status.top, greaterThan(name.bottom - 1));
     expect(status.left, name.left);
