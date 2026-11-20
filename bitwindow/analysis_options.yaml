@@ -35,6 +35,7 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    - android/**
 
 formatter:
   trailing_commas: preserve
