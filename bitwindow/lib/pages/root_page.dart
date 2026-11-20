@@ -38,6 +38,7 @@ import 'package:bitwindow/pages/mining/mining_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
+import 'package:bitwindow/utils/second_clock.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -1317,7 +1318,7 @@ class LastBlockAge extends StatefulWidget {
 }
 
 class _LastBlockAgeState extends State<LastBlockAge> {
-  Timer? _timer;
+  bool _ticking = false;
 
   @override
   void initState() {
@@ -1333,13 +1334,19 @@ class _LastBlockAgeState extends State<LastBlockAge> {
 
   // An unknown block time shows no clock, so nothing ticks.
   void _syncTimer() {
-    if (widget.lastBlockAt == null) {
-      _timer?.cancel();
-      _timer = null;
+    final ticking = widget.lastBlockAt != null;
+    if (ticking == _ticking) {
       return;
     }
-    _timer ??= Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    _ticking = ticking;
+    if (ticking) {
+      SecondClock.shared.addListener(_tick);
+    } else {
+      SecondClock.shared.removeListener(_tick);
+    }
   }
+
+  void _tick() => setState(() {});
 
   String _timeSinceLastBlock() {
     final lastBlockAt = widget.lastBlockAt;
@@ -1367,7 +1374,9 @@ class _LastBlockAgeState extends State<LastBlockAge> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    if (_ticking) {
+      SecondClock.shared.removeListener(_tick);
+    }
     super.dispose();
   }
 
