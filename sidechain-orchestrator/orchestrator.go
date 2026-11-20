@@ -212,6 +212,7 @@ type Orchestrator struct {
 	ownerLock  *OwnerLock
 	pidManager *PidFileManager
 	clients    *lease.Lease
+	exit       func(code int)
 	log        zerolog.Logger
 
 	// Dart: RPCConnection instances — one per binary, for persistent health monitoring
@@ -397,6 +398,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		pidManager:   pidMgr,
 		monitors:     make(map[string]*ConnectionMonitor),
 		log:          log.With().Str("component", "orchestrator").Logger(),
+		exit:         os.Exit,
 	}
 
 	// Every managed binary lands in the one log file a user sends, beside the

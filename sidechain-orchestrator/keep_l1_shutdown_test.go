@@ -12,15 +12,13 @@ import (
 
 // watchExit swaps the daemon exit for a channel, so a test reads the exit code
 // instead of losing the test binary.
-func watchExit(t *testing.T) <-chan int {
+func watchExit(t *testing.T, o *Orchestrator) <-chan int {
 	t.Helper()
 	code := make(chan int, 1)
-	restore := exitProcess
-	exitProcess = func(c int) {
+	o.SetExit(func(c int) {
 		code <- c
 		runtime.Goexit()
-	}
-	t.Cleanup(func() { exitProcess = restore })
+	})
 	return code
 }
 
@@ -41,7 +39,7 @@ func startManagedSleeper(t *testing.T, o *Orchestrator) BinaryConfig {
 func TestBeginShutdownKeepsTheChildrenWhenAsked(t *testing.T) {
 	o := newTestOrchestrator(t)
 	startManagedSleeper(t, o)
-	code := watchExit(t)
+	code := watchExit(t, o)
 
 	require.True(t, o.BeginShutdown(true))
 
@@ -58,7 +56,7 @@ func TestBeginShutdownKeepsTheChildrenWhenAsked(t *testing.T) {
 func TestBeginShutdownStopsTheChildrenByDefault(t *testing.T) {
 	o := newTestOrchestrator(t)
 	startManagedSleeper(t, o)
-	code := watchExit(t)
+	code := watchExit(t, o)
 
 	require.True(t, o.BeginShutdown(false))
 
@@ -75,7 +73,7 @@ func TestBeginShutdownStopsTheChildrenByDefault(t *testing.T) {
 // asked for the exit. The keep-L1 path answers to nobody.
 func TestKeepL1ExitIgnoresACancel(t *testing.T) {
 	o := newTestOrchestrator(t)
-	code := watchExit(t)
+	code := watchExit(t, o)
 
 	o.shutdownMu.Lock()
 	o.shutdownState = shutdownStateDrainingExit
