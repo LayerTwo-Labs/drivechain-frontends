@@ -431,10 +431,14 @@ class _SailTableState extends State<SailTable> {
     }
 
     final hugging = List<bool>.filled(_numColumns!, false);
+    final filling = List<bool>.filled(_numColumns!, false);
     for (int row in rowsToSample) {
       final cells = _cells(context, row, false);
       for (int col = 0; col < cells.length && col < _numColumns!; col++) {
         final cell = cells[col];
+        if (cell is SailTableCell && cell.fill) {
+          filling[col] = true;
+        }
         if (cell is SailTableCell && (cell.width != null || cell.hugContent)) {
           fixedColumns[col] = true;
           hugging[col] = hugging[col] || cell.hugContent;
@@ -466,7 +470,19 @@ class _SailTableState extends State<SailTable> {
       columnWidths[i] = max(columnWidths[i], defaultMinColumnWidth);
     }
 
-    _stretchToFill(columnWidths, fixedColumns, availableWidth);
+    final fillColumn = filling.indexOf(true);
+    if (fillColumn >= 0) {
+      final handleWidth = widget.resizableColumns ? (_numColumns! - 1) * 8.0 : 0.0;
+      var others = 0.0;
+      for (int i = 0; i < _numColumns!; i++) {
+        if (i != fillColumn) {
+          others += columnWidths[i];
+        }
+      }
+      columnWidths[fillColumn] = max(defaultMinColumnWidth, availableWidth - handleWidth - others);
+    } else {
+      _stretchToFill(columnWidths, fixedColumns, availableWidth);
+    }
 
     _widths.addAll(columnWidths);
   }
@@ -1059,6 +1075,7 @@ class SailTableCell extends StatelessWidget {
     this.monospace = false,
     this.italic = false,
     this.hugContent = false,
+    this.fill = false,
     super.key,
   });
 
@@ -1071,6 +1088,9 @@ class SailTableCell extends StatelessWidget {
   /// True keeps the column at the width its widest value needs, so the free
   /// width of the table goes to the columns that can use it.
   final bool hugContent;
+
+  /// True gives the column the width the other columns leave, also when its widest value needs more.
+  final bool fill;
   final Alignment alignment;
   final EdgeInsets padding;
   final SailSVGAsset? plainIconTheme;
