@@ -197,7 +197,7 @@ class BlockExplorerDialog extends StatelessWidget {
                   height: 300,
                   child: TXIDTransactionTable(
                     transactions: block.txids,
-                    onTransactionSelected: (txid) => showTransactionDetails(context, txid),
+                    onTransactionSelected: (txid) => showLoadTransactionDialog(context, txid: txid),
                   ),
                 ),
                 const SailSpacing(SailStyleValues.padding16),
