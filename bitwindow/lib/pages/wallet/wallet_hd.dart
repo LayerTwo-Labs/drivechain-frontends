@@ -13,7 +13,7 @@ class HDWalletTab extends StatelessWidget {
       viewModelBuilder: () => HDWalletViewModel(),
       builder: (context, model, child) => SingleChildScrollView(
         child: SailColumn(
-          spacing: 0,
+          spacing: SailStyleValues.phoneLayout(context) ? SailStyleValues.padding16 : 0,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _ControlsCard(model: model),
@@ -32,6 +32,9 @@ class _ControlsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return _PhoneControlsCard(model: model);
+    }
     return SailCard(
       title: 'HD Wallet Explorer',
       error: model.errorMessage,
@@ -61,28 +64,7 @@ class _ControlsCard extends StatelessWidget {
                     small: true,
                   ),
                   const SizedBox(width: SailStyleValues.padding16),
-                  Expanded(
-                    child: model.hideMnemonic && model.mnemonicController.text.isNotEmpty
-                        ? Container(
-                            height: 36, // Small text field height
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: context.sailTheme.colors.divider),
-                              borderRadius: context.sailTheme.chrome.radiusSmall,
-                              color: context.sailTheme.colors.background,
-                            ),
-                            child: SailText.primary13(
-                              '••••••••••••••••••••••••••••••••',
-                              monospace: true,
-                            ),
-                          )
-                        : SailTextField(
-                            controller: model.mnemonicController,
-                            hintText: 'Enter mnemonic seed phrase',
-                            size: TextFieldSize.small,
-                          ),
-                  ),
+                  Expanded(child: _MnemonicField(model: model)),
                   const SizedBox(width: SailStyleValues.padding08),
                   SailButton(
                     label: 'Copy',
@@ -178,6 +160,147 @@ class _ControlsCard extends StatelessWidget {
   }
 }
 
+class _MnemonicField extends StatelessWidget {
+  final HDWalletViewModel model;
+
+  const _MnemonicField({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    if (model.hideMnemonic && model.mnemonicController.text.isNotEmpty) {
+      return Container(
+        height: 36, // Small text field height
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: context.sailTheme.colors.divider),
+          borderRadius: context.sailTheme.chrome.radiusSmall,
+          color: context.sailTheme.colors.background,
+        ),
+        child: SailText.primary13('••••••••••••••••••••••••••••••••', monospace: true),
+      );
+    }
+    return SailTextField(
+      controller: model.mnemonicController,
+      hintText: 'Enter mnemonic seed phrase',
+      size: TextFieldSize.small,
+    );
+  }
+}
+
+class _PhoneControlsCard extends StatelessWidget {
+  final HDWalletViewModel model;
+
+  const _PhoneControlsCard({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final empty = model.mnemonicController.text.isEmpty;
+    return SailCard(
+      title: 'HD Wallet Explorer',
+      error: model.errorMessage,
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SailText.primary13('Mnemonic Seed'),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              SailButton(
+                label: 'Use Wallet',
+                onPressed: model.useWalletMnemonic,
+                variant: ButtonVariant.secondary,
+                small: true,
+              ),
+              SailButton(
+                label: 'Random',
+                onPressed: model.generateRandomMnemonic,
+                variant: ButtonVariant.secondary,
+                small: true,
+              ),
+            ],
+          ),
+          _MnemonicField(model: model),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              SailButton(
+                label: 'Copy',
+                onPressed: empty ? null : () async => await model.copyMnemonic(context),
+                variant: ButtonVariant.secondary,
+                small: true,
+              ),
+              SailButton(
+                label: 'Clear',
+                onPressed: empty ? null : () async => model.clearAll(),
+                variant: ButtonVariant.secondary,
+                small: true,
+              ),
+              SailButton(
+                label: model.hideMnemonic ? 'Show' : 'Hide',
+                onPressed: () async => model.toggleMnemonicVisibility(),
+                variant: ButtonVariant.secondary,
+                small: true,
+              ),
+            ],
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: SailTextField(
+                  label: 'Derivation Path',
+                  controller: model.derivationPathController,
+                  hintText: model.defaultDerivationPath,
+                  size: TextFieldSize.small,
+                ),
+              ),
+              const SizedBox(width: SailStyleValues.padding12),
+              SailButton(
+                label: 'Derive Addresses',
+                onPressed: !model.canDeriveAddresses ? null : model.deriveAddresses,
+                variant: model.canDeriveAddresses ? ButtonVariant.primary : ButtonVariant.secondary,
+              ),
+            ],
+          ),
+          SailColumn(
+            spacing: 0,
+            withDivider: true,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final (label, value, secret) in [
+                ('BIP47 Payment Code', model.bip47PaymentCode, false),
+                ('Master Seed', model.masterSeed, true),
+                ('XPRIV', model.xpriv, true),
+                ('XPUB', model.xpub, false),
+              ])
+                SailStackedValueRow(
+                  label: label,
+                  value: value,
+                  strongLabel: true,
+                  action: SailButton(
+                    label: 'Copy',
+                    variant: ButtonVariant.ghost,
+                    small: true,
+                    onPressed: value.isEmpty
+                        ? null
+                        : () async => await model.copyToClipboard(context, value, label, secret: secret),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AddressesSection extends StatelessWidget {
   final HDWalletViewModel model;
 
@@ -185,6 +308,45 @@ class _AddressesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailCard(
+        title: 'Derived Addresses',
+        subtitle: '${model.derivedEntries.length} address(es)',
+        bottomPadding: false,
+        child: SailColumn(
+          spacing: SailStyleValues.padding08,
+          children: [
+            Row(
+              children: [
+                SailButton(
+                  label: model.hidePrivateKeys ? 'Show Private Keys' : 'Hide Private Keys',
+                  onPressed: () async => model.togglePrivateKeyVisibility(),
+                  variant: ButtonVariant.secondary,
+                  small: true,
+                ),
+                const Spacer(),
+                SailButton(
+                  label: 'Prev',
+                  onPressed: model.canGoPrevious ? () async => await model.changePage(false) : null,
+                  variant: ButtonVariant.secondary,
+                  small: true,
+                ),
+                const SizedBox(width: SailStyleValues.padding08),
+                SailText.primary13('Page ${model.currentPage + 1}'),
+                const SizedBox(width: SailStyleValues.padding08),
+                SailButton(
+                  label: 'Next',
+                  onPressed: model.canGoNext ? () async => await model.changePage(true) : null,
+                  variant: ButtonVariant.secondary,
+                  small: true,
+                ),
+              ],
+            ),
+            AddressTable(entries: model.derivedEntries, hidePrivateKeys: model.hidePrivateKeys),
+          ],
+        ),
+      );
+    }
     return SailCard(
       title: 'Derived Addresses',
       subtitle: '${model.derivedEntries.length} address(es)',
@@ -448,6 +610,7 @@ class AddressTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailTable(
+      phoneColumns: hidePrivateKeys ? const [0, 1] : const [0, 1, 3],
       getRowId: (index) => entries.isEmpty ? 'empty$index' : entries[index].path,
       drawGrid: true,
       shrinkWrap: true,
