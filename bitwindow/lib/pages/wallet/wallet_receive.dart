@@ -383,8 +383,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                                 fields: [EditField(name: 'Label', currentValue: entry.label)],
                                 onSave: (updatedFields) async {
                                   final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
-                                  await widget.model.saveLabel(context, entry.address, newLabel);
-                                  return null;
+                                  return widget.model.saveLabel(context, entry.address, newLabel);
                                 },
                               ),
                             ),
@@ -505,9 +504,9 @@ class ReceivePageViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> saveLabel(BuildContext context, String address, String label) async {
+  /// Returns the error to show in the label dialog, or null on success.
+  Future<String?> saveLabel(BuildContext context, String address, String label) async {
     try {
-      modelError = null;
       setBusy(true);
       await _addressBookProvider.createEntry(label, address, Direction.DIRECTION_RECEIVE);
 
@@ -517,11 +516,9 @@ class ReceivePageViewModel extends BaseViewModel {
       if (context.mounted) {
         Navigator.of(context).pop();
       }
+      return null;
     } catch (error) {
-      if (error.toString() != modelError) {
-        modelError = error.toString();
-        notifyListeners();
-      }
+      return error.toString();
     } finally {
       setBusy(false);
     }
