@@ -119,13 +119,20 @@ class _UTXOsTabState extends State<UTXOsTab> {
                             );
                           },
                         ),
-                        child: UTXODistributionChart(
-                          walletId: walletId,
-                          onBucketContextMenu: (bucket, position) {
-                            _showBucketContextMenu(context, bucket, position);
-                          },
-                          onConsolidate: (_) => WalletPage.openSubtab(WalletPage.consolidateSubtabLabel),
-                        ),
+                        child: SailStyleValues.phoneLayout(context)
+                            ? UTXOPhoneBars(
+                                utxos: model.entries,
+                                onBucketContextMenu: (bucket, position) {
+                                  _showBucketContextMenu(context, bucket, position);
+                                },
+                              )
+                            : UTXODistributionChart(
+                                walletId: walletId,
+                                onBucketContextMenu: (bucket, position) {
+                                  _showBucketContextMenu(context, bucket, position);
+                                },
+                                onConsolidate: (_) => WalletPage.openSubtab(WalletPage.consolidateSubtabLabel),
+                              ),
                       ),
                     ),
                   ),

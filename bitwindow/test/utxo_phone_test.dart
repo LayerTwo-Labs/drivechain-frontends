@@ -34,33 +34,53 @@ void main() {
     await GetIt.I.reset();
   });
 
-  group('phoneBucketLabel', () {
-    final buckets = [
-      for (final label in ['0.0001 - 0.0010', '0.001 - 0.010', '0.01 - 0.10', '0.1 - 1.0', '1.0 - 9.9', '10.0 - 42.0'])
-        UTXOBucket(label: label),
-    ];
+  group('phoneUtxoBuckets', () {
+    UnspentOutput coin(String output, int sats) => UnspentOutput(output: output, valueSats: Int64(sats));
 
-    test('drops the leading zero and the trailing zeros', () {
-      expect(
-        [for (var i = 0; i < buckets.length; i++) phoneBucketLabel(buckets, i)],
-        [
-          '<.001',
-          '.001–.01',
-          '.01–.1',
-          '.1–1',
-          '1–9.9',
-          '>10',
-        ],
-      );
-    });
+    test('sorts each coin into its decade and keeps the empty buckets', () {
+      final buckets = phoneUtxoBuckets([
+        coin('a:0', 99999),
+        coin('b:0', 100000),
+        coin('c:0', 50000000),
+        coin('d:0', 60000000),
+        coin('e:0', 1000000000),
+      ]);
 
-    test('a single bucket shows its full range', () {
-      expect(phoneBucketLabel([UTXOBucket(label: '0.01 - 0.10')], 0), '.01–.1');
+      expect([for (final b in buckets) b.label], phoneBucketLabels);
+      expect([for (final b in buckets) b.count], [1, 1, 0, 2, 0, 1]);
+      expect(buckets[3].outpoints, ['c:0', 'd:0']);
+      expect(buckets[3].valueSats.toInt(), 110000000);
     });
+  });
 
-    test('a label that is not a range stays', () {
-      expect(phoneBucketLabel([UTXOBucket(label: 'Other')], 0), 'Other');
-    });
+  testWidgets('the phone bars draw the count above each bar and the bucket label below', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    UTXOBucket? pressed;
+    await tester.pumpSailPage(
+      SizedBox(
+        width: 342,
+        child: UTXOPhoneBars(
+          utxos: [
+            UnspentOutput(output: 'a:0', valueSats: Int64(50000)),
+            UnspentOutput(output: 'b:0', valueSats: Int64(20000000)),
+            UnspentOutput(output: 'c:0', valueSats: Int64(30000000)),
+          ],
+          onBucketContextMenu: (bucket, _) => pressed = bucket,
+        ),
+      ),
+    );
+    await tester.usePhoneSize();
+
+    for (final label in phoneBucketLabels) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    expect(tester.getRect(find.text('2')).bottom, lessThan(tester.getRect(find.text('.1–1')).top));
+    expect(tester.takeException(), isNull);
+
+    await tester.longPress(find.byKey(const ValueKey('utxo_bar_3')));
+    expect(pressed?.outpoints, ['b:0', 'c:0']);
   });
 
   for (final phone in [true, false]) {
@@ -71,6 +91,9 @@ void main() {
       final coin = UnspentOutput(output: 'aa11:0', address: 'bc1qxy2kgdygjrsqtzq', valueSats: Int64(100000));
 
       await tester.pumpSailPage(UTXOTable(entries: [coin], model: LatestUTXOsViewModel()));
+      if (phone) {
+        await tester.usePhoneSize();
+      }
       await tester.pumpAndSettle();
 
       for (final shown in ['Amount', 'Label', 'Output']) {
@@ -85,6 +108,9 @@ void main() {
       SailStyleValues.phoneLayoutOverride = phone;
 
       await tester.pumpSailPage(UTXOTable(entries: const [], model: LatestUTXOsViewModel()));
+      if (phone) {
+        await tester.usePhoneSize();
+      }
       await tester.pumpAndSettle();
 
       expect(find.text('No UTXOs in wallet'), findsOneWidget);
