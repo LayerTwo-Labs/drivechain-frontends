@@ -45,6 +45,11 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 )
 
+func init() {
+	// Without this, zerolog drops the milliseconds from every timestamp.
+	zerolog.TimeFieldFormat = time.RFC3339Nano
+}
+
 func main() {
 	start := time.Now()
 
@@ -308,10 +313,6 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 }
 
 func initLogger(logFile *os.File, logLevel zerolog.Level) {
-	// Quirk: unless this is set, milliseconds are not included
-	// in any timestamp written by zerolog.
-	zerolog.TimeFieldFormat = time.RFC3339Nano
-
 	const timeFormat = time.DateTime + ".000"
 	// We want pretty printing to the file as well. This is not meant for
 	// centralized log ingestion, where JSON is crucial.

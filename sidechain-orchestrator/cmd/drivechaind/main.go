@@ -69,6 +69,11 @@ import (
 // -ldflags "-X main.version=...".
 var version = "dev"
 
+func init() {
+	// Without this, zerolog drops the milliseconds from every timestamp.
+	zerolog.TimeFieldFormat = time.RFC3339Nano
+}
+
 func main() {
 	if _, err := instance.PortOffset(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
