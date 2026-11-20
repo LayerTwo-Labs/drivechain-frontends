@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/utils/append_file.dart';
 
 /// Width of the source tag, so the merged log file lines up in a column.
 const _sourceTagWidth = 15;
@@ -24,10 +25,10 @@ LogPrinter _consolePrinter() {
 /// out as one write, so the lines of the other writers stay whole.
 class SharedFileOutput extends LogOutput {
   SharedFileOutput({required File file, required String source})
-    : _file = file.openSync(mode: FileMode.writeOnlyAppend),
+    : _file = AppendFile.open(file.path),
       _tag = logSourceTag(source);
 
-  final RandomAccessFile _file;
+  final AppendFile _file;
   final String _tag;
 
   @override
@@ -37,7 +38,7 @@ class SharedFileOutput extends LogOutput {
       buffer.writeln('$_tag $line');
     }
     try {
-      _file.writeFromSync(utf8.encode(buffer.toString()));
+      _file.write(utf8.encode(buffer.toString()));
     } catch (error) {
       stderr.writeln('could not write to the log file: $error');
     }
@@ -45,7 +46,7 @@ class SharedFileOutput extends LogOutput {
 
   @override
   Future<void> destroy() async {
-    await _file.close();
+    _file.close();
   }
 }
 

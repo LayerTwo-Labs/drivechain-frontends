@@ -48,6 +48,24 @@ void main() {
     ]);
   });
 
+  test('SharedFileOutput keeps the lines another writer appends after the open', () async {
+    final tmp = await Directory.systemTemp.createTemp('log_file_test');
+    addTearDown(() => tmp.delete(recursive: true));
+
+    final file = File('${tmp.path}/bitwindow.log');
+    final output = SharedFileOutput(file: file, source: 'frontend');
+    output.output(_event(['first']));
+    await file.writeAsString('[orchestrator]  daemon line\n', mode: FileMode.append, flush: true);
+    output.output(_event(['second']));
+    await output.destroy();
+
+    expect(await file.readAsLines(), [
+      '[frontend]      first',
+      '[orchestrator]  daemon line',
+      '[frontend]      second',
+    ]);
+  });
+
   test('only bitwindowd writes to the shared log file itself', () {
     expect(writesToSharedLog(BinaryType.BINARY_TYPE_BITWINDOWD), isTrue);
     expect(writesToSharedLog(BinaryType.BINARY_TYPE_BITCOIND), isFalse);
