@@ -341,7 +341,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   Future<void> _updateReceiveAddress(String walletId) async {
     final requestedType = addressType;
     try {
-      await update<({String address, String path})>(
+      final changed = await update<({String address, String path})>(
         (address: address, path: addressDerivationPath),
         () async {
           final next = await orchestratorWallet.getNewAddress(walletId, addressType: requestedType);
@@ -356,11 +356,11 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
           address = v.address;
           addressDerivationPath = v.path;
         },
-        // Always update - backend handles finding unused address
-        equals: (a, b) => false,
       );
       _loggedAddressError = null;
-      notifyListeners();
+      if (changed) {
+        notifyListeners();
+      }
     } catch (e) {
       final text = e.toString();
       if (!isExpectedBootError(e) && _loggedAddressError != text) {
