@@ -76,3 +76,40 @@ func TestIndexTracksFundsAndSpends(t *testing.T) {
 		t.Errorf("outspend = %v", spentBy)
 	}
 }
+
+func TestMempoolPrevoutsComeFromTheIndex(t *testing.T) {
+	coinbase := coreTxJSON(t, `{"txid":"aa","vin":[{"coinbase":"51"}],
+		"vout":[{"value":50,"n":0,"scriptPubKey":{"hex":"0014a1","type":"witness_v0_keyhash","address":"`+alice+`"}}]}`)
+	st := emptyState()
+	if err := st.addBlock(coreBlock{Hash: "h0", Height: 0, Tx: []coreTx{coinbase}}); err != nil {
+		t.Fatal(err)
+	}
+	parent, err := convertTx(coreTxJSON(t, `{"txid":"bb","vin":[{"txid":"aa","vout":0}],
+		"vout":[{"value":49.9999,"n":0,"scriptPubKey":{"hex":"0014b0","type":"witness_v0_keyhash","address":"`+bob+`"}}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	child, err := convertTx(coreTxJSON(t, `{"txid":"cc","vin":[{"txid":"bb","vout":0}],
+		"vout":[{"value":49.9998,"n":0,"scriptPubKey":{"hex":"0014a1","type":"witness_v0_keyhash","address":"`+alice+`"}}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := fillPrevouts(st, []*tx{child, parent}); err != nil {
+		t.Fatal(err)
+	}
+
+	if parent.Fee != 10_000 || parent.Vin[0].Prevout.ScriptPubKeyAddress != alice {
+		t.Errorf("parent = fee %d, prevout %+v", parent.Fee, parent.Vin[0].Prevout)
+	}
+	if child.Fee != 10_000 || child.Vin[0].Prevout.ScriptPubKeyAddress != bob {
+		t.Errorf("child = fee %d, prevout %+v", child.Fee, child.Vin[0].Prevout)
+	}
+	orphan, err := convertTx(coreTxJSON(t, `{"txid":"dd","vin":[{"txid":"ff","vout":0}],"vout":[]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fillPrevouts(st, []*tx{orphan}); err == nil {
+		t.Error("a spend of an unknown output must fail")
+	}
+}

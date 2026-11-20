@@ -270,6 +270,9 @@ func (x *index) withMempool(ctx context.Context) (*chainState, error) {
 		pending = append(pending, t)
 	}
 	sort.Slice(pending, func(i, j int) bool { return pending[i].TxID < pending[j].TxID })
+	if err := fillPrevouts(st, pending); err != nil {
+		return nil, err
+	}
 	for _, t := range pending {
 		st.add(t)
 		st.mempool = append(st.mempool, t.TxID)
@@ -414,4 +417,51 @@ func (st *chainState) addressUTXOs(addr string) []utxo {
 		}
 	}
 	return out
+}
+
+// fillPrevouts sets the prevouts and the fee of mempool transactions. Core
+// reads prevouts from undo data, which a mempool transaction has none of.
+func fillPrevouts(st *chainState, pending []*tx) error {
+	byID := make(map[string]*tx, len(pending))
+	for _, t := range pending {
+		byID[t.TxID] = t
+	}
+	for _, t := range pending {
+		if t.Fee != 0 && allPrevouts(t) {
+			continue
+		}
+		var in, out int64
+		for i := range t.Vin {
+			v := &t.Vin[i]
+			if v.IsCoinbase {
+				continue
+			}
+			if v.Prevout == nil {
+				source, ok := st.txs[v.TxID]
+				if !ok {
+					source, ok = byID[v.TxID]
+				}
+				if !ok || v.Vout >= len(source.Vout) {
+					return fmt.Errorf("mempool tx %s spends unknown output %s:%d", t.TxID, v.TxID, v.Vout)
+				}
+				prev := source.Vout[v.Vout]
+				v.Prevout = &prev
+			}
+			in += v.Prevout.Value
+		}
+		for _, o := range t.Vout {
+			out += o.Value
+		}
+		t.Fee = in - out
+	}
+	return nil
+}
+
+func allPrevouts(t *tx) bool {
+	for _, v := range t.Vin {
+		if !v.IsCoinbase && v.Prevout == nil {
+			return false
+		}
+	}
+	return true
 }
