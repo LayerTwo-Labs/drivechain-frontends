@@ -19,6 +19,9 @@ class HomepageWidgetInfo {
   /// The library section that lists the widget. Null puts it in the first section with no header.
   final String? group;
 
+  /// One line that says what the widget shows. The phone library lists it under the name.
+  final String? subtitle;
+
   final Widget Function(WidgetSize size) builder;
 
   const HomepageWidgetInfo({
@@ -27,6 +30,7 @@ class HomepageWidgetInfo {
     required this.sizes,
     required this.builder,
     this.group,
+    this.subtitle,
   }) : assert(sizes.length > 0);
 
   WidgetSize sizeOf(HomepageWidgetConfig config) {
