@@ -116,6 +116,7 @@ export 'widgets/containers/edit_wallet_dialog.dart';
 export 'widgets/containers/rename_wallet_dialog.dart';
 export 'widgets/containers/place_picture_dialog.dart';
 export 'widgets/containers/sail_dialogs.dart';
+export 'widgets/containers/sail_panel_page.dart';
 export 'widgets/dialogs/network_swap_progress_dialog.dart';
 export 'widgets/dialogs/sail_command_palette.dart';
 export 'widgets/containers/sail_page.dart';

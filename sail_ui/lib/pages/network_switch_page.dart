@@ -71,6 +71,55 @@ class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final currentNetwork = _confProvider.network.toDisplayName();
+    final dropdown = SailDropdownButton<String>(
+      value: _effectiveNetworkId,
+      items: [
+        for (final option in _confProvider.drivechainNetworkOptions)
+          SailDropdownItem<String>(
+            value: option.id,
+            label: option.id == 'signet' ? '${option.displayName} (Recommended)' : option.displayName,
+          ),
+      ],
+      onChanged: (String? id) async {
+        if (id != null) {
+          setState(() {
+            _selectedNetworkId = id;
+          });
+        }
+      },
+    );
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return Scaffold(
+        backgroundColor: theme.colors.background,
+        body: SafeArea(
+          child: SailPanelPage(
+            title: 'Drivechains Not Enabled',
+            subtitle:
+                'Drivechains are not enabled on $currentNetwork yet.\n'
+                'You must switch to eCash, Signet, or Regtest to use sidechains.',
+            actions: Align(
+              alignment: Alignment.centerLeft,
+              child: SailButton(
+                label: 'Switch Network',
+                variant: ButtonVariant.primary,
+                loading: _isSwitching,
+                onPressed: _handleSwitch,
+              ),
+            ),
+            children: [
+              SailText.secondary13('Select a network with drivechain support:'),
+              const SizedBox(height: 8),
+              dropdown,
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 8),
+                SailText.secondary12(_errorMessage!, color: theme.colors.error),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: theme.colors.background,
@@ -118,25 +167,7 @@ class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
                           'Select a network with drivechain support:',
                         ),
                         const SizedBox(height: 16),
-                        SailDropdownButton<String>(
-                          value: _effectiveNetworkId,
-                          items: [
-                            for (final option in _confProvider.drivechainNetworkOptions)
-                              SailDropdownItem<String>(
-                                value: option.id,
-                                label: option.id == 'signet'
-                                    ? '${option.displayName} (Recommended)'
-                                    : option.displayName,
-                              ),
-                          ],
-                          onChanged: (String? id) async {
-                            if (id != null) {
-                              setState(() {
-                                _selectedNetworkId = id;
-                              });
-                            }
-                          },
-                        ),
+                        dropdown,
                         if (_errorMessage != null) ...[
                           const SizedBox(height: 16),
                           SailText.secondary12(
