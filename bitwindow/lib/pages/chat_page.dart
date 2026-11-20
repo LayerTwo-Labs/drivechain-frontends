@@ -17,6 +17,7 @@ class ChatPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final phone = SailStyleValues.phoneLayout(context);
 
     return QtPage(
       child: ViewModelBuilder<ChatViewModel>.reactive(
@@ -37,6 +38,7 @@ class ChatPage extends StatelessWidget {
                     width: double.infinity,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: phone ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                       children: [
                         SailSVG.fromAsset(
                           SailSVGAsset.iconWarning,
@@ -54,7 +56,7 @@ class ChatPage extends StatelessWidget {
                           '1. Go to the Sidechains tab\n'
                           '2. Download and start BitNames\n'
                           '3. Register at least one BitName identity',
-                          textAlign: TextAlign.center,
+                          textAlign: phone ? TextAlign.start : TextAlign.center,
                         ),
                       ],
                     ),
@@ -87,7 +89,16 @@ class ChatPage extends StatelessWidget {
                         children: [
                           SailText.secondary13('Chatting as:'),
                           const SizedBox(width: SailStyleValues.padding12),
-                          if (model.myIdentities.isNotEmpty)
+                          if (model.myIdentities.isNotEmpty && phone)
+                            Expanded(
+                              child: _SearchableIdentityDropdown(
+                                identities: model.myIdentities,
+                                allBitNames: model.allBitNames,
+                                selectedIdentity: model.selectedIdentity,
+                                onIdentitySelected: model.selectIdentity,
+                              ),
+                            )
+                          else if (model.myIdentities.isNotEmpty)
                             _SearchableIdentityDropdown(
                               identities: model.myIdentities,
                               allBitNames: model.allBitNames,
@@ -117,12 +128,14 @@ class ChatPage extends StatelessWidget {
                                 onPressed: () async => showDepositModal(context, BitNames().slot, 'BitNames'),
                               ),
                             ),
-                          const Spacer(),
-                          SailButton(
-                            label: 'Add Contact',
-                            variant: ButtonVariant.secondary,
-                            onPressed: () async => _showAddContactDialog(context, model),
-                          ),
+                          if (!phone) ...[
+                            const Spacer(),
+                            SailButton(
+                              label: 'Add Contact',
+                              variant: ButtonVariant.secondary,
+                              onPressed: () async => _showAddContactDialog(context, model),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -140,6 +153,14 @@ class ChatPage extends StatelessWidget {
                       child: SailCard(
                         title: 'Chats',
                         subtitle: 'You pay a name to reach it. They keep the postage.',
+                        widgetHeaderEnd: phone
+                            ? SailButton(
+                                label: 'Add Contact',
+                                variant: ButtonVariant.outline,
+                                small: true,
+                                onPressed: () async => _showAddContactDialog(context, model),
+                              )
+                            : null,
                         bottomPadding: false,
                         child: contacts.isEmpty
                             ? Center(
@@ -584,6 +605,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final filtered = filteredBitNames;
+    final phone = SailStyleValues.phoneLayout(context);
 
     return SailDialog(
       title: 'Add Contact',
@@ -655,7 +677,11 @@ class _AddContactDialogState extends State<_AddContactDialog> {
                       child: Container(
                         padding: const EdgeInsets.all(SailStyleValues.padding12),
                         decoration: BoxDecoration(
-                          color: isMatch ? theme.colors.success.withValues(alpha: 0.1) : null,
+                          color: isMatch
+                              ? (phone
+                                    ? theme.colors.primary.withAlpha(30)
+                                    : theme.colors.success.withValues(alpha: 0.1))
+                              : null,
                           border: Border(
                             bottom: BorderSide(color: theme.colors.divider, width: 1),
                           ),
@@ -677,7 +703,12 @@ class _AddContactDialogState extends State<_AddContactDialog> {
                                 ],
                               ),
                             ),
-                            if (isMatch) SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.success, height: 12),
+                            if (isMatch)
+                              SailSVG.fromAsset(
+                                SailSVGAsset.check,
+                                color: phone ? theme.colors.primary : theme.colors.success,
+                                height: 12,
+                              ),
                           ],
                         ),
                       ),
