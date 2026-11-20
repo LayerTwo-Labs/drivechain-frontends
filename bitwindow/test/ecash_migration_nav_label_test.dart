@@ -31,4 +31,19 @@ void main() {
       expect(migrationNavLabel(_status(toId: '')), '');
     });
   });
+
+  test('a watch frame sets the label and a heartbeat keeps it', () {
+    final provider = ECashMigrationProvider();
+    var notifies = 0;
+    provider.addListener(() => notifies++);
+
+    provider.applyWatchFrame(WatchECashMigrationStatusResponse(status: _status()));
+    provider.applyWatchFrame(WatchECashMigrationStatusResponse(heartbeat: true));
+    expect(provider.navLabel, 'Swapping to Betanet');
+    expect(notifies, 1);
+
+    provider.applyWatchFrame(WatchECashMigrationStatusResponse(status: _status(complete: true)));
+    expect(provider.swapping, isFalse);
+    expect(notifies, 2);
+  });
 }
