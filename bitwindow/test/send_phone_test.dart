@@ -76,6 +76,17 @@ void main() {
     expect(remove.left, greaterThan(amount.right - 1));
   });
 
+  testWidgets('on a phone the address wraps and its tools sit under it', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await _pumpRow(tester);
+
+    final address = tester.getRect(find.byKey(const Key('recipient_address_0')));
+    final paste = tester.getRect(find.byType(PasteButton));
+    expect(paste.top, greaterThanOrEqualTo(address.bottom));
+    expect(paste.left, closeTo(address.left, 8));
+    expect(tester.widget<EditableText>(find.byType(EditableText).first).maxLines, isNull);
+  });
+
   testWidgets('on a phone the amount field shows the unit before MAX', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
     await _pumpRow(tester);
