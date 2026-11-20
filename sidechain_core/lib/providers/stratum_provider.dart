@@ -7,7 +7,8 @@ import 'package:sidechain_core/gen/stratum/v1/stratum.pb.dart';
 import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_stratum_rpc.dart';
 
-/// Status of the orchestrator's Stratum server, read every two seconds.
+/// Status of the orchestrator's Stratum server, read every two seconds while
+/// a widget listens or the server runs.
 class StratumProvider extends ChangeNotifier {
   /// Called one time for each block the miners find.
   final void Function(FoundBlock block)? onBlockFound;
@@ -33,47 +34,85 @@ class StratumProvider extends ChangeNotifier {
   Timer? _timer;
   Future<void> _reads = Future.value();
   int _pendingReads = 0;
+  int _idleTicks = 0;
+
+  /// Ticks between two status reads while no widget listens and the server is off.
+  static const _idleReadTicks = 5;
 
   bool get running => status.running;
   bool get poolTarget =>
       status.target.kind == TargetKind.TARGET_KIND_POOL || status.target.kind == TargetKind.TARGET_KIND_CUSTOM;
 
   /// Reads run one after another, so an older read never overwrites a newer one.
-  Future<void> refresh() {
+  Future<void> refresh() => _queue(full: true);
+
+  Future<void> _queue({required bool full}) {
     _pendingReads++;
-    _reads = _reads.then((_) => _read()).whenComplete(() => _pendingReads--);
+    _reads = _reads.then((_) => _read(full: full)).whenComplete(() => _pendingReads--);
     return _reads;
   }
 
-  Future<void> _read() async {
+  /// Reads the status, and with [full] also the pools, chart and pool blocks.
+  Future<void> _read({required bool full}) async {
+    final shown = (status, pools, history, poolBlocks, error);
     try {
       final next = await _rpc.status();
-      final nextPools = await _rpc.listPools();
-      history = await _rpc.hashrateHistory(range);
-      poolBlocks = next.target.kind == TargetKind.TARGET_KIND_SOLO
-          ? ListPoolBlocksResponse()
-          : await _rpc.listPoolBlocks();
+      if (full) {
+        final nextPools = await _rpc.listPools();
+        history = await _rpc.hashrateHistory(range);
+        poolBlocks = next.target.kind == TargetKind.TARGET_KIND_SOLO
+            ? ListPoolBlocksResponse()
+            : await _rpc.listPoolBlocks();
+        pools = nextPools;
+      }
       for (final block in next.blocksFound.reversed) {
         if (_announced.add(block.hash)) {
           onBlockFound?.call(block);
         }
       }
       status = next;
-      pools = nextPools;
       error = null;
     } catch (e) {
       error = e.toString();
     }
-    notifyListeners();
+    final (oldStatus, oldPools, oldHistory, oldPoolBlocks, oldError) = shown;
+    if (oldStatus != status ||
+        !listEquals(oldPools, pools) ||
+        oldHistory != history ||
+        oldPoolBlocks != poolBlocks ||
+        oldError != error) {
+      notifyListeners();
+    }
   }
 
   void startPolling() {
-    _timer ??= Timer.periodic(const Duration(seconds: 2), (_) {
-      if (_pendingReads == 0) {
-        unawaited(refresh());
-      }
-    });
+    _timer ??= Timer.periodic(const Duration(seconds: 2), (_) => tick());
     unawaited(refresh());
+  }
+
+  @visibleForTesting
+  void tick() {
+    if (_pendingReads > 0) {
+      return;
+    }
+    if (hasListeners) {
+      unawaited(refresh());
+      return;
+    }
+    if (!running && ++_idleTicks < _idleReadTicks) {
+      return;
+    }
+    _idleTicks = 0;
+    unawaited(_queue(full: false));
+  }
+
+  @override
+  void addListener(VoidCallback listener) {
+    final first = !hasListeners;
+    super.addListener(listener);
+    if (first && _timer != null && _pendingReads == 0) {
+      unawaited(refresh());
+    }
   }
 
   void stopPolling() {
