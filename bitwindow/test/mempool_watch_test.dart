@@ -144,6 +144,25 @@ void main() {
       expect(provider.eligible(bitwindowd.txs[1]), 0);
     });
 
+    test('a second listener does not fetch again', () async {
+      await listen();
+      await listen();
+      expect(bitwindowd.statusCalls, 1);
+    });
+
+    test('a fetch with the same mempool does not notify', () async {
+      await listen();
+      var notified = 0;
+      provider.addListener(() => notified++);
+
+      await provider.fetch();
+      expect(notified, 0);
+
+      bitwindowd.txs = [...bitwindowd.txs, _tx('b', 3, _tip - 2)];
+      await provider.fetch();
+      expect(notified, 1);
+    });
+
     test('counts again when a fee floor changes at the same tip', () async {
       await listen();
       expect(provider.eligible(bitwindowd.txs.single), 2);

@@ -62,8 +62,11 @@ class MempoolWatchProvider extends ChangeNotifier implements NetworkScoped {
 
   @override
   void addListener(VoidCallback listener) {
+    final first = !hasListeners;
     super.addListener(listener);
-    unawaited(fetch());
+    if (first) {
+      unawaited(fetch());
+    }
   }
 
   @override
@@ -86,6 +89,7 @@ class MempoolWatchProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
     isFetching = true;
+    final shown = _shown;
     try {
       status = await api.bitwindowd.getMempoolWatchStatus();
       _tipHeight = status.tipHeight;
@@ -110,9 +114,15 @@ class MempoolWatchProvider extends ChangeNotifier implements NetworkScoped {
       log.e('mempool watch fetch: $e');
     } finally {
       isFetching = false;
-      notifyListeners();
+      final (oldRows, oldEligible, rest) = shown;
+      if (!listEquals(oldRows, rows) || !mapEquals(oldEligible, _eligible) || rest != _shown.$3) {
+        notifyListeners();
+      }
     }
   }
+
+  (List<MempoolTransaction>, Map<String, int>, Object) get _shown =>
+      (rows, _eligible, (initialized, status, referenceFeeRate, total, error));
 
   Future<void> setEnabled(bool enabled) async {
     try {

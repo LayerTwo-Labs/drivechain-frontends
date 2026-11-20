@@ -34,8 +34,11 @@ class MiningPoolsProvider extends ChangeNotifier implements NetworkScoped {
 
   @override
   void addListener(VoidCallback listener) {
+    final first = !hasListeners;
     super.addListener(listener);
-    unawaited(fetch());
+    if (first) {
+      unawaited(fetch());
+    }
   }
 
   @override
@@ -56,6 +59,7 @@ class MiningPoolsProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
     isFetching = true;
+    final shown = _shown;
     try {
       final response = await api.bitwindowd.listMiningPools(window);
       pools = response.pools;
@@ -71,9 +75,16 @@ class MiningPoolsProvider extends ChangeNotifier implements NetworkScoped {
       log.e('mining pools fetch: $e');
     } finally {
       isFetching = false;
-      notifyListeners();
+      if (!_sameShown(shown)) {
+        notifyListeners();
+      }
     }
   }
+
+  (List<MiningPoolShare>, Object) get _shown =>
+      (pools, (blockCount, fromHeight, toHeight, networkHashrate, registryAvailable, registrySource, error));
+
+  bool _sameShown((List<MiningPoolShare>, Object) shown) => listEquals(shown.$1, pools) && shown.$2 == _shown.$2;
 
   /// The registered pool that serves [stratumUrl], or null.
   MiningPoolShare? shareFor(String stratumUrl) {
