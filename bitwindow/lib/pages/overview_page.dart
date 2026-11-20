@@ -896,7 +896,9 @@ class _SubscribeTab extends StatelessWidget {
             Expanded(
               child: SailTextField(
                 controller: viewModel.urlController,
-                hintText: 'Enter URL e.g. 7{a1a1a1a1}US Weekly',
+                hintText: SailStyleValues.phoneLayout(context)
+                    ? 'e.g. 7{a1a1a1a1}US Weekly'
+                    : 'Enter URL e.g. 7{a1a1a1a1}US Weekly',
               ),
             ),
             SailButton(
@@ -930,6 +932,7 @@ class _CreateTopicTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pendingTopics = viewModel.topics.where((t) => !t.confirmed).toList();
+    final phone = SailStyleValues.phoneLayout(context);
 
     return SingleChildScrollView(
       child: SailColumn(
@@ -962,7 +965,8 @@ class _CreateTopicTab extends StatelessWidget {
             SailText.secondary13('Pending Topics (awaiting confirmation)'),
             ...pendingTopics.map(
               (topic) => SailTappable(
-                onDoubleTap: () async => showTransactionDetails(context, topic.txid),
+                onTap: phone ? () async => showTransactionDetails(context, topic.txid) : null,
+                onDoubleTap: phone ? null : () async => showTransactionDetails(context, topic.txid),
                 borderRadius: context.sailTheme.chrome.radius,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -976,10 +980,13 @@ class _CreateTopicTab extends StatelessWidget {
                       SailText.primary13(topic.name),
                       SailText.secondary12('(${topic.topic})'),
                       const Spacer(),
-                      SailText.secondary12(
-                        'double-click to view tx',
-                        italic: true,
-                      ),
+                      if (phone)
+                        SailText.secondary12('Tap to view tx', maxLines: 1)
+                      else
+                        SailText.secondary12(
+                          'double-click to view tx',
+                          italic: true,
+                        ),
                     ],
                   ),
                 ),
