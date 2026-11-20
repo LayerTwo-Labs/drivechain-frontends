@@ -41,6 +41,12 @@ class _CountingBitwindowdAPI extends MockBitwindowdAPI {
   Object? blockError;
   int tip = 7;
 
+  /// When set, answers in pages of [pageSize] from this tip down.
+  int? pagedTip;
+
+  /// Names the chain the paged blocks belong to.
+  String chain = 'a';
+
   @override
   Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) async {
     blockCalls++;
@@ -49,6 +55,14 @@ class _CountingBitwindowdAPI extends MockBitwindowdAPI {
     }
     if (blockError case final err?) {
       throw err;
+    }
+    if (pagedTip case final top?) {
+      final start = startHeight > 0 ? startHeight : top;
+      final heights = [for (var h = start; h > start - pageSize && h >= 0; h--) h];
+      return (
+        [for (final h in heights) Block(height: h, hash: '$chain$h', previousBlockHash: '$chain${h - 1}')],
+        heights.last > 0,
+      );
     }
     return (<Block>[Block(height: tip)], false);
   }
@@ -180,6 +194,60 @@ void main() {
     await pumpEventQueue();
 
     expect(provider.blocks.map((b) => b.height), [8]);
+  });
+
+  test('a poll keeps the older blocks the scroll loaded', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
+    await pumpEventQueue();
+    rpc.api.pagedTip = 101;
+    provider.clear();
+    await provider.fetch();
+    expect(provider.blocks.length, 50);
+
+    await provider.loadMoreBlocks();
+    expect(provider.blocks.last.height, 2);
+
+    rpc.api.pagedTip = 102;
+    await provider.fetch();
+
+    expect(provider.blocks.first.height, 102);
+    expect(provider.blocks.last.height, 2);
+    expect(provider.blocks.last.confirmations, 101);
+    expect(provider.blocks.firstWhere((b) => b.height == 52).nextBlockHash, 'a53');
+    expect(provider.blocks.map((b) => b.height).toSet().length, provider.blocks.length);
+    expect(provider.hasMoreBlocks, isTrue);
+  });
+
+  test('a poll drops older blocks a long tip jump cuts off', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
+    await pumpEventQueue();
+    rpc.api.pagedTip = 101;
+    provider.clear();
+    await provider.fetch();
+    await provider.loadMoreBlocks();
+
+    rpc.api.pagedTip = 202;
+    await provider.fetch();
+
+    expect(provider.blocks.map((b) => b.height), [for (var h = 202; h > 152; h--) h]);
+    expect(provider.hasMoreBlocks, isTrue);
+  });
+
+  test('a poll drops older blocks a reorg replaced', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
+    await pumpEventQueue();
+    rpc.api.pagedTip = 101;
+    provider.clear();
+    await provider.fetch();
+    await provider.loadMoreBlocks();
+
+    rpc.api
+      ..chain = 'b'
+      ..pagedTip = 102;
+    await provider.fetch();
+
+    expect(provider.blocks.map((b) => b.height), [for (var h = 102; h > 52; h--) h]);
+    expect(provider.blocks.every((b) => b.hash.startsWith('b')), isTrue);
   });
 
   test('blocks poll in full mode', () async {
