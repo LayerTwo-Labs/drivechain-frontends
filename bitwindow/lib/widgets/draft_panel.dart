@@ -313,14 +313,6 @@ class _DraftPanelState extends State<DraftPanel> {
     );
   }
 
-  /// A status label: a chip on a desktop, plain colored text on a phone.
-  Widget _statusLabel(BuildContext context, String label, Color color) {
-    if (SailStyleValues.phoneLayout(context)) {
-      return SailText.secondary12(label, color: color);
-    }
-    return FlowChip(label: label, color: color);
-  }
-
   Widget _oneKeyLayout(BuildContext context, PsbtDraft draft) {
     final broadcast = draft.txid.isNotEmpty;
     final error = _error ?? _drafts.modelError;
@@ -413,7 +405,7 @@ class _DraftPanelState extends State<DraftPanel> {
     final theme = context.sailTheme;
     final network = GetIt.I.get<BitcoinConfProvider>().network;
     if (SailStyleValues.phoneLayout(context)) {
-      return _phoneBroadcastRow(context, draft);
+      return _PhoneBroadcastRow(txid: draft.txid);
     }
     return SailRow(
       spacing: SailStyleValues.padding08,
@@ -427,32 +419,6 @@ class _DraftPanelState extends State<DraftPanel> {
           onPressed: () async => openUrl(Uri.parse(mempoolTxUrl(draft.txid, network))),
         ),
       ],
-    );
-  }
-
-  Widget _phoneBroadcastRow(BuildContext context, PsbtDraft draft) {
-    final theme = context.sailTheme;
-    final network = GetIt.I.get<BitcoinConfProvider>().network;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
-      child: SailColumn(
-        spacing: SailStyleValues.padding04,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(child: SailText.secondary12('Broadcast', color: theme.colors.success)),
-              SailButton(
-                label: 'View transaction',
-                variant: ButtonVariant.ghost,
-                small: true,
-                onPressed: () async => openUrl(Uri.parse(mempoolTxUrl(draft.txid, network))),
-              ),
-            ],
-          ),
-          SailText.secondary12(draft.txid, monospace: true),
-        ],
-      ),
     );
   }
 
@@ -619,9 +585,9 @@ class _DraftPanelState extends State<DraftPanel> {
                 GroupedAddress(address),
               ],
               if (isChange)
-                _statusLabel(context, 'change · back to $_walletName', theme.colors.success)
+                _StatusLabel('change · back to $_walletName', theme.colors.success)
               else
-                _statusLabel(context, 'payment', theme.colors.orange),
+                _StatusLabel('payment', theme.colors.orange),
             ],
           ),
         ),
@@ -661,8 +627,7 @@ class _DraftPanelState extends State<DraftPanel> {
       title: 'Keys',
       subtitle: '$_walletName needs ${multisig.m} of its ${multisig.n} keys.',
       error: _error ?? _drafts.modelError,
-      widgetHeaderEnd: _statusLabel(
-        context,
+      widgetHeaderEnd: _StatusLabel(
         '$signatures of $threshold collected',
         (status?.finalizable ?? false) ? theme.colors.success : theme.colors.orange,
       ),
@@ -670,8 +635,8 @@ class _DraftPanelState extends State<DraftPanel> {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _phoneKeysHeader(context),
-                for (var i = 0; i < multisig.cosigners.length; i++) _phoneKeyRow(context, i, multisig.cosigners[i]),
+                const _PhoneKeysHeader(),
+                for (var i = 0; i < multisig.cosigners.length; i++) _phoneKeyRow(i, multisig.cosigners[i]),
               ],
             )
           : SailColumn(
@@ -764,66 +729,17 @@ class _DraftPanelState extends State<DraftPanel> {
     );
   }
 
-  static const _phoneKeyRowHeight = 40.0;
-  static const _phoneKeyFlex = 9;
-  static const _phoneStatusFlex = 5;
-
-  Widget _phoneKeysHeader(BuildContext context) {
-    final theme = context.sailTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
-      child: Row(
-        children: [
-          Expanded(
-            flex: _phoneKeyFlex,
-            child: SailText.secondary12('KEY', color: theme.colors.textTertiary),
-          ),
-          Expanded(
-            flex: _phoneStatusFlex,
-            child: SailText.secondary12('STATUS', color: theme.colors.textTertiary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _phoneKeyRow(BuildContext context, int i, wmpb.MultisigCosignerInfo c) {
-    final theme = context.sailTheme;
+  _PhoneKeyRow _phoneKeyRow(int i, wmpb.MultisigCosignerInfo c) {
     final status = _status;
     final signed = status != null && i < status.cosignerSigned.length && status.cosignerSigned[i];
     final canSign = !signed && (c.held || c.hardwareDeviceType.isNotEmpty) && _draft?.txid.isEmpty == true;
     final busyKey = c.held ? 'cosigner-$i' : 'device-$i';
-
-    return Container(
-      height: _phoneKeyRowHeight,
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: theme.colors.divider)),
-      ),
-      child: Row(
-        children: [
-          Expanded(flex: _phoneKeyFlex, child: SailText.primary13('Key ${i + 1}', bold: true)),
-          Expanded(
-            flex: _phoneStatusFlex,
-            child: Row(
-              children: [
-                Expanded(
-                  child: signed
-                      ? SailText.secondary12('Signed', color: theme.colors.success)
-                      : SailText.secondary12('Awaiting signature', color: theme.colors.orange),
-                ),
-                if (canSign)
-                  SailButton(
-                    label: 'Sign',
-                    small: true,
-                    loading: _isBusy(busyKey),
-                    disabled: _blocked(busyKey),
-                    onPressed: () async => c.held ? _signCosigner(i) : _signWithDevice(i),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return _PhoneKeyRow(
+      index: i,
+      signed: signed,
+      onSign: canSign ? () async => c.held ? _signCosigner(i) : _signWithDevice(i) : null,
+      busy: _isBusy(busyKey),
+      blocked: _blocked(busyKey),
     );
   }
 
@@ -863,7 +779,7 @@ class _DraftPanelState extends State<DraftPanel> {
     final phone = SailStyleValues.phoneLayout(context);
 
     if (broadcast && phone) {
-      return _phoneBroadcastRow(context, draft);
+      return _PhoneBroadcastRow(txid: draft.txid);
     }
 
     if (broadcast) {
@@ -953,6 +869,129 @@ class _DraftPanelState extends State<DraftPanel> {
       return '${elapsed.inMinutes} min ago';
     }
     return formatDate(at, long: false);
+  }
+}
+
+/// A status label: a chip on a desktop, plain colored text on a phone.
+class _StatusLabel extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _StatusLabel(this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailText.secondary12(label, color: color);
+    }
+    return FlowChip(label: label, color: color);
+  }
+}
+
+class _PhoneBroadcastRow extends StatelessWidget {
+  final String txid;
+
+  const _PhoneBroadcastRow({required this.txid});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+      child: SailColumn(
+        spacing: SailStyleValues.padding04,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: SailText.secondary12('Broadcast', color: theme.colors.success)),
+              SailButton(
+                label: 'View transaction',
+                variant: ButtonVariant.ghost,
+                small: true,
+                onPressed: () async => openUrl(Uri.parse(mempoolTxUrl(txid, network))),
+              ),
+            ],
+          ),
+          SailText.secondary12(txid, monospace: true),
+        ],
+      ),
+    );
+  }
+}
+
+const _phoneKeyFlex = 9;
+const _phoneStatusFlex = 5;
+
+class _PhoneKeysHeader extends StatelessWidget {
+  const _PhoneKeysHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+      child: Row(
+        children: [
+          Expanded(
+            flex: _phoneKeyFlex,
+            child: SailText.secondary12('KEY', color: theme.colors.textTertiary),
+          ),
+          Expanded(
+            flex: _phoneStatusFlex,
+            child: SailText.secondary12('STATUS', color: theme.colors.textTertiary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One 40 px key row on a phone. [onSign] is null when this phone cannot sign with the key.
+class _PhoneKeyRow extends StatelessWidget {
+  final int index;
+  final bool signed;
+  final Future<void> Function()? onSign;
+  final bool busy;
+  final bool blocked;
+
+  const _PhoneKeyRow({
+    required this.index,
+    required this.signed,
+    required this.onSign,
+    required this.busy,
+    required this.blocked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: theme.colors.divider)),
+      ),
+      child: Row(
+        children: [
+          Expanded(flex: _phoneKeyFlex, child: SailText.primary13('Key ${index + 1}', bold: true)),
+          Expanded(
+            flex: _phoneStatusFlex,
+            child: Row(
+              children: [
+                Expanded(
+                  child: signed
+                      ? SailText.secondary12('Signed', color: theme.colors.success)
+                      : SailText.secondary12('Awaiting signature', color: theme.colors.orange),
+                ),
+                if (onSign != null)
+                  SailButton(label: 'Sign', small: true, loading: busy, disabled: blocked, onPressed: onSign!),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
