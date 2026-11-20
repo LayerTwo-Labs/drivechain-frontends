@@ -124,6 +124,8 @@ class _FakeConf implements BitcoinConfProvider {
 }
 
 void main() {
+  setUpAll(loadBundledFonts);
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _FakeWalletApi walletApi;
@@ -144,9 +146,15 @@ void main() {
   });
 
   Future<void> pumpCard(WidgetTester tester) async {
+    final phone = SailStyleValues.phoneLayoutOverride == true;
     await tester.pumpSailPage(
-      Center(child: SizedBox(width: 480, child: const ClaimEcxCard())),
+      Center(
+        child: SizedBox(width: phone ? double.infinity : 480, child: const ClaimEcxCard()),
+      ),
     );
+    if (phone) {
+      await tester.usePhoneSize();
+    }
     await tester.pump();
   }
 

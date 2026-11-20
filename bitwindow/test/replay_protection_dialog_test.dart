@@ -38,6 +38,9 @@ void main() {
         ),
       ),
     );
+    if (SailStyleValues.phoneLayoutOverride == true) {
+      await tester.usePhoneSize();
+    }
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     return choice;

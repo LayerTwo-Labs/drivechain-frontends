@@ -42,12 +42,14 @@ Future<void> _pumpTable(WidgetTester tester, _Overview model, {bool settle = tru
     Align(
       alignment: Alignment.topLeft,
       child: SizedBox(
-        width: 393,
         height: 600,
         child: TransactionTable(searchWidget: const SizedBox.shrink(), model: model),
       ),
     ),
   );
+  if (SailStyleValues.phoneLayoutOverride == true) {
+    await tester.usePhoneSize();
+  }
   if (settle) {
     await tester.pumpAndSettle();
   } else {

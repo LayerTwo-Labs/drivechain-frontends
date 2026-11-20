@@ -13,9 +13,12 @@ Future<void> _pump(WidgetTester tester) async {
   await tester.pumpSailPage(
     const Align(
       alignment: Alignment.topLeft,
-      child: SizedBox(width: 337, child: PaymentCodeField(code: _code)),
+      child: PaymentCodeField(code: _code),
     ),
   );
+  if (SailStyleValues.phoneLayoutOverride == true) {
+    await tester.usePhoneSize();
+  }
   await tester.pumpAndSettle();
 }
 
@@ -39,7 +42,7 @@ void main() {
     final copy = tester.getRect(find.byType(CopyButton));
     expect(text.height, greaterThan(30));
     expect(copy.left, greaterThanOrEqualTo(text.right - 1));
-    expect(copy.right, lessThanOrEqualTo(337));
+    expect(copy.right, lessThanOrEqualTo(390));
   });
 
   testWidgets('on a desktop the payment code stays on one line', (tester) async {

@@ -77,13 +77,17 @@ void main() {
   });
 
   Future<void> pumpList(WidgetTester tester) async {
+    final phone = SailStyleValues.phoneLayoutOverride == true;
     await tester.pumpSailPage(
-      const SizedBox(
-        width: 1200,
-        height: 900,
-        child: EcxBurnList(networkName: 'Betanet', networkId: 'betanet'),
+      SizedBox(
+        width: phone ? double.infinity : 1200,
+        height: phone ? 760 : 900,
+        child: const EcxBurnList(networkName: 'Betanet', networkId: 'betanet'),
       ),
     );
+    if (phone) {
+      await tester.usePhoneSize();
+    }
   }
 
   testWidgets('shows every burn with its payout and the totals', (tester) async {

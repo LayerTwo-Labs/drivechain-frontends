@@ -11,7 +11,7 @@ Finder _button(String label) => find.byWidgetPredicate((w) => w is SailButton &&
 Future<void> _pumpRow(WidgetTester tester) async {
   await tester.pumpSailPage(
     SizedBox(
-      width: 369,
+      width: double.infinity,
       child: RecipientRow(
         index: 0,
         recipient: RecipientModel(),
@@ -24,13 +24,16 @@ Future<void> _pumpRow(WidgetTester tester) async {
       ),
     ),
   );
+  if (SailStyleValues.phoneLayoutOverride == true) {
+    await tester.usePhoneSize();
+  }
   await tester.pumpAndSettle();
 }
 
 Future<void> _pumpActions(WidgetTester tester) async {
   await tester.pumpSailPage(
     SizedBox(
-      width: 336,
+      width: double.infinity,
       child: SendActions(
         creating: false,
         sendsNow: false,
@@ -43,6 +46,9 @@ Future<void> _pumpActions(WidgetTester tester) async {
       ),
     ),
   );
+  if (SailStyleValues.phoneLayoutOverride == true) {
+    await tester.usePhoneSize();
+  }
   await tester.pump();
 }
 
