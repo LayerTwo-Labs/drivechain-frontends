@@ -28,6 +28,7 @@ class HomepageWidgetCatalog {
       name: 'Coin News',
       sizes: [WidgetSize.half, WidgetSize.full],
       group: 'News',
+      fullOnPhones: true,
       builder: (size) => size == WidgetSize.full
           ? ViewModelBuilder<FeeCoinNewsLargeViewModel>.reactive(
               viewModelBuilder: () => FeeCoinNewsLargeViewModel(),
@@ -43,6 +44,7 @@ class HomepageWidgetCatalog {
       name: 'Hacker Coin News',
       sizes: [WidgetSize.half, WidgetSize.full],
       group: 'News',
+      fullOnPhones: true,
       builder: (size) => size == WidgetSize.full
           ? ViewModelBuilder<CoinNewsLargeViewModel>.reactive(
               viewModelBuilder: () => CoinNewsLargeViewModel(),

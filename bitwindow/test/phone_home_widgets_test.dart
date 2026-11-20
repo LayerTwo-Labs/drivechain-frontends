@@ -1,6 +1,7 @@
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:bitwindow/widgets/fee_coinnews.dart';
+import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:bitwindow/widgets/mempool_widget.dart';
 import 'package:bitwindow/widgets/peers_table_widget.dart';
 import 'package:bitwindow/providers/mempool_provider.dart';
@@ -277,5 +278,39 @@ void main() {
       expect(find.text('Sent'), findsOneWidget);
       expect(find.text('Connected'), findsOneWidget);
     });
+  });
+
+  group('full-size coin news', () {
+    for (final id in ['coin_news', 'hacker_coin_news']) {
+      testWidgets('on a phone $id stacks its two cards', (tester) async {
+        SailStyleValues.phoneLayoutOverride = true;
+        await loadBundledFonts();
+        final info = HomepageWidgetCatalog.getCatalogMap()[id]!;
+        expect(info.fullOnPhones, isTrue);
+        await tester.pumpSailPage(
+          SizedBox(width: 390, child: SingleChildScrollView(child: info.builder(WidgetSize.full))),
+        );
+        await tester.pump();
+
+        final cards = find.byType(SailCard);
+        expect(cards, findsNWidgets(2));
+        final first = tester.getRect(cards.first);
+        final second = tester.getRect(cards.last);
+        expect(second.top, greaterThan(first.bottom));
+        expect(second.left, first.left);
+        expect(first.width, closeTo(390, 1));
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('on the desktop $id keeps its two cards side by side', (tester) async {
+        SailStyleValues.phoneLayoutOverride = false;
+        final info = HomepageWidgetCatalog.getCatalogMap()[id]!;
+        await tester.pumpSailPage(SizedBox(width: 1100, child: info.builder(WidgetSize.full)));
+        await tester.pump();
+
+        final cards = find.byType(SailCard);
+        expect(tester.getRect(cards.last).left, greaterThan(tester.getRect(cards.first).right));
+      });
+    }
   });
 }

@@ -108,11 +108,34 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
 /// Height that fits four whole story rows per column.
 const double _largeWidgetHeight = 387;
 
+/// Height that fits four whole story rows in a stacked phone card.
+const double _stackedStoriesHeight = 232;
+
 class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
   const CoinNewsLargeView({super.key});
 
   @override
   Widget build(BuildContext context, CoinNewsLargeViewModel viewModel) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailColumn(
+        spacing: SailStyleValues.padding16,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (topic, onChanged) in [
+            (viewModel.leftTopic, viewModel.setLeftTopic),
+            (viewModel.rightTopic, viewModel.setRightTopic),
+          ])
+            _LargeColumn(
+              topic: topic,
+              onTopicChanged: onChanged,
+              entries: viewModel.entriesFor(topic),
+              outdatedCount: viewModel.outdatedCountFor(topic),
+              viewModel: viewModel,
+              stacked: true,
+            ),
+        ],
+      );
+    }
     return SizedBox(
       height: _largeWidgetHeight,
       child: SailRow(
@@ -150,12 +173,16 @@ class _LargeColumn extends StatelessWidget {
   final int outdatedCount;
   final CoinNewsLargeViewModel viewModel;
 
+  /// True sizes the card to its stories, up to four rows, for the phone stack.
+  final bool stacked;
+
   const _LargeColumn({
     required this.topic,
     required this.onTopicChanged,
     required this.entries,
     required this.outdatedCount,
     required this.viewModel,
+    this.stacked = false,
   });
 
   @override
@@ -164,6 +191,7 @@ class _LargeColumn extends StatelessWidget {
       child: SailColumn(
         spacing: SailStyleValues.padding12,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: stacked ? MainAxisSize.min : MainAxisSize.max,
         children: [
           SailRow(
             children: [
@@ -181,7 +209,13 @@ class _LargeColumn extends StatelessWidget {
               ),
             ],
           ),
-          Expanded(child: _body(context)),
+          if (stacked)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: _stackedStoriesHeight),
+              child: _body(context),
+            )
+          else
+            Expanded(child: _body(context)),
           if (outdatedCount > 0 || viewModel.showOutdated) _outdatedLink(context),
         ],
       ),
@@ -217,6 +251,7 @@ class _LargeColumn extends StatelessWidget {
       );
     }
     return ListView.builder(
+      shrinkWrap: stacked,
       padding: EdgeInsets.zero,
       itemCount: entries.length,
       itemBuilder: (context, i) => _LargeStoryRow(entry: entries[i], outdated: viewModel.isOutdated(entries[i])),
