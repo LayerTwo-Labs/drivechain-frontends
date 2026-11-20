@@ -405,9 +405,12 @@ func (p *CoreBackend) lastUsedTimes(
 		}
 	}
 	// listtransactions leaves out a tx that pays only change, such as a
-	// consolidation, but the coins it made still name it.
+	// consolidation, but the coins it made still name it. A listed tx with no
+	// send row spends no wallet coin, so its listed time is all it gives.
 	for _, utxo := range utxos {
-		queue(utxo.TxID)
+		if _, listed := txTimes[utxo.TxID]; !listed {
+			queue(utxo.TxID)
+		}
 	}
 
 	last := make(map[string]int64, len(rows))
