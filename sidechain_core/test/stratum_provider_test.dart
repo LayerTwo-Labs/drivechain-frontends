@@ -11,12 +11,20 @@ class _FakeStratum implements OrchestratorStratumRPC {
   Future<GetStratumStatusResponse>? pending;
   Target? target;
   double? minDifficulty;
+  int statusCalls = 0;
+  int poolCalls = 0;
 
   @override
-  Future<GetStratumStatusResponse> status() => pending ?? Future.value(next);
+  Future<GetStratumStatusResponse> status() {
+    statusCalls++;
+    return pending ?? Future.value(next);
+  }
 
   @override
-  Future<List<CatalogPool>> listPools() async => [CatalogPool(id: 'bip300', name: 'bip300 pool')];
+  Future<List<CatalogPool>> listPools() async {
+    poolCalls++;
+    return [CatalogPool(id: 'bip300', name: 'bip300 pool')];
+  }
 
   @override
   Future<void> setTarget(Target target) async {
@@ -87,6 +95,48 @@ void main() {
       expect(announced, [500, 501, 502]);
       expect(provider.running, isTrue);
       expect(provider.pools.single.name, 'bip300 pool');
+    });
+
+    test('a read with the same status does not notify', () async {
+      final provider = StratumProvider();
+      await provider.refresh();
+      var notified = 0;
+      provider.addListener(() => notified++);
+      await pumpEventQueue();
+      notified = 0;
+
+      await provider.refresh();
+      expect(notified, 0);
+
+      stratum.next = GetStratumStatusResponse(running: true);
+      await provider.refresh();
+      expect(notified, 1);
+    });
+
+    test('with no listener a stopped server reads the status every fifth tick', () async {
+      final provider = StratumProvider();
+      for (var i = 0; i < 10; i++) {
+        provider.tick();
+        await pumpEventQueue();
+      }
+      expect(stratum.statusCalls, 2);
+      expect(stratum.poolCalls, 0);
+
+      stratum.next = GetStratumStatusResponse(running: true);
+      await provider.refresh();
+      stratum.statusCalls = 0;
+      stratum.poolCalls = 0;
+      for (var i = 0; i < 3; i++) {
+        provider.tick();
+        await pumpEventQueue();
+      }
+      expect(stratum.statusCalls, 3);
+      expect(stratum.poolCalls, 0);
+
+      provider.addListener(() {});
+      provider.tick();
+      await pumpEventQueue();
+      expect(stratum.poolCalls, 1);
     });
 
     test('a pool target', () async {
