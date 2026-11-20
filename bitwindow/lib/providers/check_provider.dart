@@ -63,6 +63,7 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
   Timer? _pollTimer;
   int? _pollingCheckId;
   Timer? _unfundedPollTimer;
+  final SyncedTipWatch _tip = SyncedTipWatch();
 
   CheckProvider() {
     _syncProvider.addListener(_onNewBlock);
@@ -79,7 +80,9 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
     _unfundedPollTimer?.cancel();
     _unfundedPollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
       if (_checks.isEmpty) {
-        await fetch();
+        if (modelError != null) {
+          await fetch();
+        }
         return;
       }
       final hasUnfunded = _checks.any((c) => !c.funded);
@@ -92,13 +95,11 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
 
   Future<void> _checkUnfundedChecks() async {
     final unfunded = _checks.where((c) => !c.funded).toList();
-    for (final check in unfunded) {
-      await checkCheckFunding(check.id.toInt());
-    }
+    await Future.wait(unfunded.map((check) => checkCheckFunding(check.id.toInt())));
   }
 
   void _onNewBlock() {
-    if (_syncProvider.isSynced) {
+    if (_tip.moved(_syncProvider, synced: _syncProvider.isSynced)) {
       fetch();
     }
   }
@@ -119,9 +120,8 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
 
+    final (shownChecks, shownError) = (_checks, modelError);
     _isLoading = true;
-    modelError = null;
-    notifyListeners();
 
     try {
       _checks = await _bitwindowRPC.wallet.listCheques(walletId);
@@ -135,7 +135,9 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
       modelError = e.toString();
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (shownError != modelError || !listEquals(shownChecks, _checks)) {
+        notifyListeners();
+      }
     }
   }
 
