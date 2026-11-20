@@ -132,14 +132,14 @@ packages:
       path: "../bitassets"
       relative: true
     source: path
-    version: "1.0.385"
+    version: "1.0.386"
   bitnames:
     dependency: "direct main"
     description:
       path: "../bitnames"
       relative: true
     source: path
-    version: "1.0.386"
+    version: "1.0.387"
   boolean_selector:
     dependency: transitive
     description:
@@ -258,7 +258,7 @@ packages:
       path: "../coinshift"
       relative: true
     source: path
-    version: "1.0.38"
+    version: "1.0.39"
   collection:
     dependency: "direct main"
     description:
@@ -327,8 +327,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/desktop_multi_window"
-      ref: "063848fcde49ab8419ecb5323d99dd7591a22d50"
-      resolved-ref: "063848fcde49ab8419ecb5323d99dd7591a22d50"
+      ref: "40ab5ebcdf015d25790f8fe7b1928da241d8feb0"
+      resolved-ref: "40ab5ebcdf015d25790f8fe7b1928da241d8feb0"
       url: "https://github.com/octobocto/flutter-plugins.git"
     source: git
     version: "0.3.0"
@@ -779,7 +779,7 @@ packages:
       path: "../photon"
       relative: true
     source: path
-    version: "1.0.256"
+    version: "1.0.257"
   platform:
     dependency: transitive
     description:
@@ -1001,14 +1001,14 @@ packages:
       path: "../thunder"
       relative: true
     source: path
-    version: "1.0.385"
+    version: "1.0.386"
   truthcoin:
     dependency: "direct main"
     description:
       path: "../truthcoin"
       relative: true
     source: path
-    version: "1.0.256"
+    version: "1.0.257"
   typed_data:
     dependency: transitive
     description:
@@ -1151,7 +1151,7 @@ packages:
       path: "../zside"
       relative: true
     source: path
-    version: "1.0.382"
+    version: "1.0.383"
 sdks:
   dart: "3.13.7"
   flutter: "3.47.9"

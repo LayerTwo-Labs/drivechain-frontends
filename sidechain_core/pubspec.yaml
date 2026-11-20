@@ -16,7 +16,7 @@ dependencies:
   desktop_multi_window:
     git:
       url: https://github.com/octobocto/flutter-plugins.git
-      ref: 063848fcde49ab8419ecb5323d99dd7591a22d50
+      ref: 40ab5ebcdf015d25790f8fe7b1928da241d8feb0
       path: packages/desktop_multi_window
   fixnum: ^1.1.1
   flutter:
