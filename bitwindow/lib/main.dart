@@ -92,6 +92,9 @@ void main(List<String> args) async {
       await withWindowsFileRetry(() async {
         try {
           WidgetsFlutterBinding.ensureInitialized();
+          if (Platform.isIOS) {
+            await loadIosBitwindowHome();
+          }
 
           final windowController = hasDesktopWindow ? await WindowController.fromCurrentEngine() : null;
           final windowArguments = windowController?.arguments ?? '';

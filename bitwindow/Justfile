@@ -44,6 +44,22 @@ build:
         MINGW*|MSYS*|CYGWIN*)  flutter build windows;; # Windows
         *)        echo "Unknown operating system" && exit 1 ;;
     esac
+# Builds bitwindowd and drivechaind into one static library per iOS SDK.
+ios-backend:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for pair in iphonesimulator:arm64-apple-ios15.0-simulator iphoneos:arm64-apple-ios15.0; do
+        sdk="${pair%%:*}"
+        out="$PWD/ios/Backend/$sdk"
+        mkdir -p "$out"
+        export CGO_ENABLED=1 GOOS=ios GOARCH=arm64
+        export CC="$(xcrun --sdk "$sdk" -f clang) -isysroot $(xcrun --sdk "$sdk" --show-sdk-path) -target ${pair#*:}"
+        (cd server && go build -trimpath -buildmode=c-archive -ldflags="-s -w" -o "$out/libbitwindow_backend.a" ./mobile)
+    done
+
+ios: ios-backend
+    flutter build ios --simulator
+
 # Builds bitwindowd and drivechaind into the APK's arm64 jniLibs folder.
 android-daemons:
     #!/usr/bin/env bash
