@@ -83,6 +83,17 @@ void main() {
     expect(ran, ['beta:beta-only', 'beta:help']);
   });
 
+  testWidgets('the input keeps focus after a command runs', (tester) async {
+    await tester.pumpWidget(console());
+
+    await tester.enterText(find.byType(TextField), 'alpha-only');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    final input = tester.widget<TextField>(find.byType(TextField));
+    expect(input.focusNode!.hasFocus, isTrue);
+  });
+
   testWidgets('each option shows its chain when several chains show', (tester) async {
     await tester.pumpWidget(console());
     await tester.enterText(find.byType(TextField), 'only');

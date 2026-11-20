@@ -113,6 +113,8 @@ class _ConsoleViewState extends State<ConsoleView> {
   }
 
   void _handleSubmitted(String text) async {
+    // Enter unfocuses a single-line field, so take focus back for the next command.
+    _inputFocus.requestFocus();
     if (text.isEmpty) {
       return;
     }
