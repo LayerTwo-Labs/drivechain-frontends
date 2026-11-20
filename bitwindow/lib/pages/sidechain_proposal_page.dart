@@ -75,7 +75,7 @@ class SidechainProposalView extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
-        return Center(
+        return SailDialogFrame(
           child: SailCard(
             child: Padding(
               padding: const EdgeInsets.all(SailStyleValues.padding16),
@@ -274,10 +274,12 @@ Future<void> showSidechainProposalModal(BuildContext context) {
     context: context,
     builder: (BuildContext context) {
       return Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.of(context).size.width * 0.2,
-          vertical: MediaQuery.of(context).size.height * 0.01,
-        ),
+        padding: SailSheetScope.of(context)
+            ? EdgeInsets.only(top: MediaQuery.paddingOf(context).top)
+            : EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width * 0.2,
+                vertical: MediaQuery.of(context).size.height * 0.01,
+              ),
         child: ClipRRect(
           borderRadius: context.sailTheme.chrome.radius,
           child: const SidechainProposalPage(),

@@ -2395,14 +2395,19 @@ class _DepositModalState extends State<DepositModal> {
 
   Widget _buildCard(BuildContext context) {
     final available = availableSats;
-    return Center(
+    final sheet = SailSheetScope.of(context);
+    return SailDialogFrame(
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.of(context).size.width * 0.25,
-          vertical: SailStyleValues.padding25,
-        ),
+        padding: sheet
+            ? EdgeInsets.zero
+            : EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width * 0.25,
+                vertical: SailStyleValues.padding25,
+              ),
         child: ClipRRect(
-          borderRadius: context.sailTheme.chrome.radius,
+          borderRadius: sheet
+              ? BorderRadius.vertical(top: context.sailTheme.chrome.radius.topLeft)
+              : context.sailTheme.chrome.radius,
           child: SailCard(
             title: 'Deposit to ${widget.sidechainName}',
             subtitle: 'Slot ${widget.slot}',
