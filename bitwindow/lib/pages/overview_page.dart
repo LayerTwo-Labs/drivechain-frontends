@@ -285,6 +285,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
   @override
   Widget build(BuildContext context) {
     final entries = [...widget.entries]..sort(compare);
+    final phone = SailStyleValues.phoneLayout(context);
     return SailTable(
       getRowId: (index) => entries[index].txid,
       phoneColumns: const [0, 1, 4],
@@ -314,11 +315,12 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         final entry = entries[row];
         return [
           SailTableCell(value: entry.time.toDateTime().toLocal().toString()),
-          SailTableCell(value: entry.feeSats.toString()),
+          SailTableCell(value: entry.feeSats.toString(), width: phone ? 56 : null),
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
           SailTableCell(
             value: entry.confirmedInBlock == 0 ? '-' : entry.confirmedInBlock.toString(),
+            width: phone ? 76 : null,
           ),
         ];
       },
@@ -1600,37 +1602,62 @@ class GraffitiTable extends StatelessWidget {
     required this.onSort,
   });
 
+  static const _phoneTimeWidth = 136.0;
+  static const _phoneHeightWidth = 76.0;
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final formatter = GetIt.I<FormatterProvider>();
+    final phone = SailStyleValues.phoneLayout(context);
 
-    return ListenableBuilder(
-      listenable: formatter,
-      builder: (context, child) => SailTable(
-        backgroundColor: theme.colors.backgroundSecondary,
-        getRowId: (index) => entries[index].id.toString(),
-        headerBuilder: (context) => [
-          SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
-          SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
-          SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
-          SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
-        ],
-        rowBuilder: (context, row, selected) {
-          final entry = entries[row];
-          return [
-            SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),
-            SailTableCell(value: entry.height == 0 ? '-' : entry.height.toString()),
-            SailTableCell(value: entry.txid),
-            SailTableCell(value: entry.message),
-          ];
-        },
-        rowCount: entries.length,
-        emptyPlaceholder: 'No graffiti found',
-        onSort: (columnIndex, ascending) {
-          onSort(['message', 'time', 'height'][columnIndex]);
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final phoneMessageWidth = max(
+          defaultMinColumnWidth,
+          constraints.maxWidth - _phoneTimeWidth - _phoneHeightWidth,
+        );
+        return ListenableBuilder(
+          listenable: formatter,
+          builder: (context, child) => SailTable(
+            backgroundColor: theme.colors.backgroundSecondary,
+            getRowId: (index) => entries[index].id.toString(),
+            phoneColumns: const [0, 1, 3],
+            headerBuilder: (context) => [
+              SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
+              SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
+              SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
+              SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
+            ],
+            rowBuilder: (context, row, selected) {
+              final entry = entries[row];
+              return [
+                SailTableCell(
+                  value: phone
+                      ? formatDate(entry.createTime.toDateTime(), long: false)
+                      : entry.createTime.toDateTime().toLocal().format(),
+                  width: phone ? _phoneTimeWidth : null,
+                ),
+                SailTableCell(
+                  value: entry.height == 0 ? '-' : entry.height.toString(),
+                  width: phone ? _phoneHeightWidth : null,
+                ),
+                SailTableCell(value: entry.txid),
+                SailTableCell(
+                  value: entry.message,
+                  width: phone ? phoneMessageWidth : null,
+                  child: phone ? SailText.primary13(entry.message) : null,
+                ),
+              ];
+            },
+            rowCount: entries.length,
+            emptyPlaceholder: 'No graffiti found',
+            onSort: (columnIndex, ascending) {
+              onSort(['message', 'time', 'height'][columnIndex]);
+            },
+          ),
+        );
+      },
     );
   }
 }
