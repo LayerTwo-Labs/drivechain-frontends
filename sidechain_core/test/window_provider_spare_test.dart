@@ -80,4 +80,30 @@ void main() {
     expect(created, hasLength(3));
     expect(isSpareWindowArguments(created.last), isTrue);
   });
+  test('an open shows the engine of a closed window, same type first, and starts no new engine', () async {
+    final dir = Directory.systemTemp;
+    final windows = await WindowProvider.newInstance(File('${dir.path}/log'), dir, isMainWindow: true);
+    final hash = SailWindow(name: 'Hash Calculator', identifier: 'hash_calculator');
+    final logs = SailWindow(name: 'Logs', identifier: 'logs');
+
+    final a = await windows.open(hash);
+    final b = await windows.open(logs);
+    expect(created, hasLength(2));
+    await fromSubWindow(windowHiddenMethod, {'id': a!.id, 'type': 'hash_calculator'});
+    await fromSubWindow(windowHiddenMethod, {'id': b!.id, 'type': 'logs'});
+    expect(windows.windows, isEmpty);
+
+    await windows.startSpare();
+    expect(created, hasLength(2));
+
+    final again = await windows.open(logs);
+    expect(again!.id, b.id);
+    final other = await windows.open(logs);
+    expect(other!.id, a.id);
+    expect(created, hasLength(2));
+    expect(invoked, [
+      ('mixin.one/window_controller/${b.id}', openSpareMethod),
+      ('mixin.one/window_controller/${a.id}', openSpareMethod),
+    ]);
+  });
 }
