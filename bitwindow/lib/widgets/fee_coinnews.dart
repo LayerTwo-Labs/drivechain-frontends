@@ -420,7 +420,6 @@ class _FeeStoryList extends StatelessWidget {
       itemCount: entries.length,
       itemBuilder: (context, i) => _FeeStoryRow(
         entry: entries[i],
-        last: i == entries.length - 1,
         onTap: onArticleSelected == null ? null : () => onArticleSelected!(entries[i]),
       ),
     );
@@ -429,10 +428,9 @@ class _FeeStoryList extends StatelessWidget {
 
 class _FeeStoryRow extends StatelessWidget {
   final CoinNews entry;
-  final bool last;
   final VoidCallback? onTap;
 
-  const _FeeStoryRow({required this.entry, required this.last, required this.onTap});
+  const _FeeStoryRow({required this.entry, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -442,10 +440,13 @@ class _FeeStoryRow extends StatelessWidget {
       onTap: onTap,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: last ? null : Border(bottom: BorderSide(color: theme.colors.divider)),
+          border: Border(bottom: BorderSide(color: theme.colors.divider)),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: SailStyleValues.padding08,
+            vertical: SailStyleValues.padding10,
+          ),
           child: SailRow(
             spacing: SailStyleValues.padding12,
             children: [

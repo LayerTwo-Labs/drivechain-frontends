@@ -40,7 +40,7 @@ void main() {
       await loadBundledFonts();
       await tester.pumpSailPage(
         SizedBox(
-          width: 335,
+          width: 390,
           child: FeeCoinNewsTable(entries: news, loading: false, onArticleSelected: onSelected),
         ),
       );
@@ -59,7 +59,7 @@ void main() {
       expect(timeText.top, greaterThanOrEqualTo(headline.bottom));
       expect(timeText.left, headline.left);
       expect(fee.left, greaterThan(headline.right));
-      expect(fee.right, closeTo(335, 1));
+      expect(fee.right, closeTo(390 - 8, 1));
       expect(tester.getSize(find.text(news.first.headline)).height, lessThan(20));
 
       await tester.tap(find.text('Bitcoin price hits new all-time high'));
@@ -101,7 +101,7 @@ void main() {
 
     testWidgets('on a phone the stats are rows in one panel', (tester) async {
       SailStyleValues.phoneLayoutOverride = true;
-      await pump(tester, 361);
+      await pump(tester, 390);
 
       expect(find.byType(SailStatList), findsOneWidget);
       expect(find.byType(SailStatRow), findsNWidgets(4));
@@ -139,7 +139,7 @@ void main() {
       await loadBundledFonts();
       await tester.pumpSailPage(
         SizedBox(
-          width: 335,
+          width: 390,
           child: NetworkStatsContent(stats: stats, currentRxRate: 512, currentTxRate: 256),
         ),
       );
@@ -187,13 +187,13 @@ void main() {
 
     testWidgets('on a phone the title column takes the width the date and read time leave', (tester) async {
       SailStyleValues.phoneLayoutOverride = true;
-      await pump(tester, 335);
+      await pump(tester, 390);
 
       expect(find.text('Topic'), findsNothing);
-      final shortDate = formatDate(time, long: false);
-      expect(cellWidth(tester, shortDate), closeTo(136, 1));
+      const shortDate = 'Oct 31';
+      expect(cellWidth(tester, shortDate), closeTo(72, 1));
       expect(cellWidth(tester, '1 min'), closeTo(88, 1));
-      expect(cellWidth(tester, news.first.headline), closeTo(335 - 136 - 88, 2));
+      expect(cellWidth(tester, news.first.headline), closeTo(390 - 72 - 88, 2));
       expect(tester.getSize(find.text(shortDate).first).height, tester.getSize(find.text('1 min').first).height);
       expect(tester.takeException(), isNull);
     });
@@ -219,7 +219,7 @@ void main() {
 
     testWidgets('on a phone each stat is a label at the left and its value at the right', (tester) async {
       SailStyleValues.phoneLayoutOverride = true;
-      await tester.pumpSailPage(SizedBox(width: 335, child: MempoolStatsRow(stats: stats)));
+      await tester.pumpSailPage(SizedBox(width: 390, child: MempoolStatsRow(stats: stats)));
 
       final label = tester.getRect(find.text('Transactions'));
       final value = tester.getRect(find.text('4210'));
@@ -239,8 +239,8 @@ void main() {
 
   group('Connected Peers', () {
     final peers = [
-      Peer(addr: '[2001:db8:85a3::8a2e:370:7334]:8333', inbound: false),
-      Peer(addr: '203.0.113.7:8333', inbound: true),
+      Peer(addr: '[2001:db8:85a3::8a2e:370:7334]:8333', inbound: false, bytesReceived: Int64(2048)),
+      Peer(addr: '203.0.113.7:8333', inbound: true, bytesReceived: Int64(4096)),
     ];
 
     double cellWidth(WidgetTester tester, String value) =>
@@ -258,13 +258,15 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('on a phone the address takes the width that direction and ping leave', (tester) async {
+    testWidgets('on a phone the address takes the width that received and connected leave', (tester) async {
       SailStyleValues.phoneLayoutOverride = true;
-      await pump(tester, 335);
+      await pump(tester, 390);
 
-      expect(find.text('Sent'), findsNothing);
-      expect(cellWidth(tester, 'Outbound'), closeTo(88, 1));
-      expect(cellWidth(tester, '203.0.113.7:8333'), closeTo(335 - 88 - 64, 2));
+      expect(find.text('Direction'), findsNothing);
+      expect(find.text('Received'), findsOneWidget);
+      expect(find.text('Connected'), findsOneWidget);
+      expect(cellWidth(tester, '2.0 KB'), closeTo(88, 1));
+      expect(cellWidth(tester, '203.0.113.7:8333'), closeTo(390 - 88 - 96, 2));
       expect(tester.takeException(), isNull);
     });
 

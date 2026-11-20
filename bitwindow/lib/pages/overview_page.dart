@@ -13,6 +13,7 @@ import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart' show Intl;
 import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -1638,7 +1639,10 @@ class GraffitiTable extends StatelessWidget {
               return [
                 SailTableCell(
                   value: phone
-                      ? formatDate(entry.createTime.toDateTime(), long: false)
+                      ? cachedDateFormat(
+                          'yyyy-MM-dd HH:mm',
+                          Intl.getCurrentLocale(),
+                        ).format(entry.createTime.toDateTime().toLocal())
                       : entry.createTime.toDateTime().toLocal().format(),
                   width: phone ? _phoneTimeWidth : null,
                 ),

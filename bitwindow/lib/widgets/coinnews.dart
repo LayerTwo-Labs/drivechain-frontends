@@ -12,6 +12,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart' show Intl;
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -849,7 +850,7 @@ class CoinNewsTable extends StatelessWidget {
     this.selectedRowId,
   });
 
-  static const _phoneDateWidth = 136.0;
+  static const _phoneDateWidth = 72.0;
   static const _phoneReadTimeWidth = 88.0;
 
   @override
@@ -897,7 +898,12 @@ class CoinNewsTable extends StatelessWidget {
                     SailTableCell(value: entry.headline),
                   ] else ...[
                     SailTableCell(
-                      value: formatDate(entry.createTime.toDateTime(), long: !phone),
+                      value: phone
+                          ? cachedDateFormat(
+                              'MMM d',
+                              Intl.getCurrentLocale(),
+                            ).format(entry.createTime.toDateTime().toLocal())
+                          : formatDate(entry.createTime.toDateTime()),
                       width: phone ? _phoneDateWidth : null,
                     ),
                     SailTableCell(value: topicName ?? ''),

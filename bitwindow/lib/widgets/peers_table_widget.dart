@@ -144,8 +144,8 @@ class PeersTable extends StatelessWidget {
     required this.onSort,
   });
 
-  static const _phoneDirectionWidth = 88.0;
-  static const _phonePingWidth = 64.0;
+  static const _phoneReceivedWidth = 88.0;
+  static const _phoneConnectedWidth = 96.0;
 
   @override
   Widget build(BuildContext context) {
@@ -156,11 +156,11 @@ class PeersTable extends StatelessWidget {
       builder: (context, constraints) {
         final phoneAddressWidth = max(
           defaultMinColumnWidth,
-          constraints.maxWidth - _phoneDirectionWidth - _phonePingWidth,
+          constraints.maxWidth - _phoneReceivedWidth - _phoneConnectedWidth,
         );
         return SailTable(
           getRowId: (index) => peers[index].addr,
-          phoneColumns: const [0, 1, 2],
+          phoneColumns: const [0, 4, 5],
           headerBuilder: (context) => [
             SailTableHeaderCell(name: 'Address', onSort: () => onSort('addr')),
             SailTableHeaderCell(name: 'Direction', onSort: () => onSort('direction')),
@@ -177,11 +177,11 @@ class PeersTable extends StatelessWidget {
                 width: phone ? phoneAddressWidth : null,
                 child: phone ? SailText.primary13(peer.addr) : null,
               ),
-              SailTableCell(value: peer.inbound ? 'Inbound' : 'Outbound', width: phone ? _phoneDirectionWidth : null),
-              SailTableCell(value: _formatPing(peer.pingTime), width: phone ? _phonePingWidth : null),
+              SailTableCell(value: peer.inbound ? 'Inbound' : 'Outbound'),
+              SailTableCell(value: _formatPing(peer.pingTime)),
               SailTableCell(value: _formatBytes(peer.bytesSent.toInt())),
-              SailTableCell(value: _formatBytes(peer.bytesReceived.toInt())),
-              SailTableCell(value: _formatDuration(peer.connectedAt)),
+              SailTableCell(value: _formatBytes(peer.bytesReceived.toInt()), width: phone ? _phoneReceivedWidth : null),
+              SailTableCell(value: _formatDuration(peer.connectedAt), width: phone ? _phoneConnectedWidth : null),
             ];
           },
           rowCount: peers.length,

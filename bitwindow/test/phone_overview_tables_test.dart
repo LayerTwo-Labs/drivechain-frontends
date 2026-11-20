@@ -40,7 +40,7 @@ void main() {
 
   testWidgets('on a phone the latest transactions fit the full time next to a narrow fee and height', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
-    await pumpTable(tester, 361);
+    await pumpTable(tester, 390);
 
     expect(cellWidth(tester, '141'), closeTo(56, 1));
     expect(cellWidth(tester, '1022811'), closeTo(76, 1));
@@ -82,14 +82,14 @@ void main() {
 
   testWidgets('on a phone the graffiti table shows time, height and a message that fills the rest', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
-    await pumpGraffiti(tester, 361);
+    await pumpGraffiti(tester, 390);
 
-    final shortTime = formatDate(graffitiTime, long: false);
+    const shortTime = '2026-05-22 08:08';
     expect(cellWidth(tester, shortTime), closeTo(136, 1));
     expect(cellWidth(tester, '1022745'), closeTo(76, 1));
     expect(find.text('TXID'), findsNothing);
     final message = cellWidth(tester, 'Chancellor on brink of second bailout for banks');
-    expect(message, closeTo(361 - 136 - 76, 2));
+    expect(message, closeTo(390 - 136 - 76, 2));
     expect(tester.getSize(find.text(shortTime)).height, tester.getSize(find.text('1022745')).height);
     expect(tester.takeException(), isNull);
   });
