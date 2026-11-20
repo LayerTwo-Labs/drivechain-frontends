@@ -170,6 +170,26 @@ void main() {
     expect(start.hitTestable(), findsOneWidget);
   });
 
+  testWidgets('a phone puts the first-start hint under the start button', (tester) async {
+    nodeMode.mode = wmpb.NodeMode.NODE_MODE_FULL;
+    SailStyleValues.phoneLayoutOverride = true;
+    addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+    await loadBundledFonts();
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await pumpOverview(tester);
+
+    expect(tester.takeException(), isNull);
+    final start = find.byWidgetPredicate((w) => w is SailButton && w.label == 'Start Bitcoin Core + Enforcer');
+    final hint = find.text('The first start must download and check the chain.');
+    await tester.scrollUntilVisible(hint, 100, scrollable: find.byType(Scrollable).last);
+    expect(tester.getRect(hint).top, greaterThan(tester.getRect(start).bottom));
+    expect(find.text('Bitcoin Core'), findsOneWidget);
+    expect(find.text('Not connected'), findsWidgets);
+  });
+
   testWidgets('a change to light mode removes the controls without an endpoint', (tester) async {
     nodeMode.mode = wmpb.NodeMode.NODE_MODE_FULL;
     await pumpOverview(tester);

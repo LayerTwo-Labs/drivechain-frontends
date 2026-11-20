@@ -205,7 +205,14 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
               stopDaemon: NodeModeProvider.runsLocalBackends ? () => viewModel.stopDaemon(Enforcer()) : null,
               navigateToLogs: viewModel.navigateToLogs,
             ),
-            if (gate == L1Gate.stopped && NodeModeProvider.runsLocalBackends) ...[
+            if (gate == L1Gate.stopped &&
+                NodeModeProvider.runsLocalBackends &&
+                SailStyleValues.phoneLayout(context)) ...[
+              const SailSpacing(SailStyleValues.padding16),
+              SailButton(label: 'Start Bitcoin Core + Enforcer', onPressed: viewModel.startL1),
+              const SailSpacing(SailStyleValues.padding12),
+              SailText.secondary12('The first start must download and check the chain.'),
+            ] else if (gate == L1Gate.stopped && NodeModeProvider.runsLocalBackends) ...[
               const SailSpacing(SailStyleValues.padding16),
               Row(
                 children: [
