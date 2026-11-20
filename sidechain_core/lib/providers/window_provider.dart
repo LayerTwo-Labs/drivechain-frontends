@@ -10,62 +10,6 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/sidechain_core.dart';
-import 'package:window_manager/legacy.dart';
-
-// Extension to add window control methods to WindowController
-extension WindowControllerExtension on WindowController {
-  Future<void> doCustomInitialize() async {
-    return await setWindowMethodHandler((call) async {
-      switch (call.method) {
-        case 'window_set_frame':
-          final args = call.arguments as Map<String, dynamic>;
-          final x = args['x'] as double;
-          final y = args['y'] as double;
-          final width = args['width'] as double;
-          final height = args['height'] as double;
-          await windowManager.setPosition(Offset(x, y));
-          await windowManager.setSize(Size(width, height));
-          return;
-        case 'window_set_title':
-          final title = call.arguments as String;
-          return await windowManager.setTitle(title);
-        case 'window_show':
-          return await windowManager.show();
-        case 'window_close':
-          return await windowManager.close();
-        default:
-          throw MissingPluginException('Not implemented: ${call.method}');
-      }
-    });
-  }
-
-  Future<void> setFrame(Rect frame) {
-    return invokeMethod(
-      'sail_ui_window_channel',
-      MethodCall('window_set_frame', {
-        'x': frame.left,
-        'y': frame.top,
-        'width': frame.width,
-        'height': frame.height,
-      }),
-    );
-  }
-
-  Future<void> setTitle(String title) {
-    return invokeMethod(
-      'sail_ui_window_channel',
-      MethodCall('window_set_title', title),
-    );
-  }
-
-  Future<void> show() {
-    return invokeMethod('sail_ui_window_channel', MethodCall('window_show'));
-  }
-
-  Future<void> close() {
-    return invokeMethod('sail_ui_window_channel', MethodCall('window_close'));
-  }
-}
 
 // WindowProvider lets you
 // 1. Open new windows with predefined pages

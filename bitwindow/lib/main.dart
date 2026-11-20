@@ -441,18 +441,11 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
     throw ArgumentError('Missing required arguments for multi-window mode: window_title');
   }
 
-  // Initialize window manager for sub-window
-  await windowManager.ensureInitialized();
-
-  // Initialize the current window's controller for receiving method calls
+  // window_manager acts on the main window of the process, not on this one.
   final windowController = await WindowController.fromCurrentEngine();
-  await windowController.doCustomInitialize();
-
-  // Set window position, size, and title
-  await windowManager.setPosition(Offset(windowX, windowY));
-  await windowManager.setSize(Size(windowWidth, windowHeight));
-  await windowManager.setTitle(windowTitle);
-  await windowManager.show();
+  await windowController.setFrame(Rect.fromLTWH(windowX, windowY, windowWidth, windowHeight));
+  await windowController.setTitle(windowTitle);
+  await windowController.show();
 
   Widget child = SailCard(
     title: 'Unknown window type: $windowType',
