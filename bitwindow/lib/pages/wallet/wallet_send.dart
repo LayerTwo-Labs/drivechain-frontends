@@ -1140,6 +1140,7 @@ class SendPageViewModel extends BaseViewModel {
       recipient.removeListener(_onFormChanged);
     }
     addressBookProvider.removeListener(notifyListeners);
+    transactionsProvider.removeListener(_clearStaleSelectedUTXOs);
     coinSelectionProvider.removeListener(notifyListeners);
     settingsProvider.removeListener(_onUnitChanged);
     draftProvider.removeListener(notifyListeners);
