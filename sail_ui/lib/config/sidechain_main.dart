@@ -308,7 +308,8 @@ Directory embeddedBinDir() {
   return Directory(path.join(flutterAssets, 'assets', 'bin'));
 }
 
-/// Copies the embedded binaries from [sourceDir] to [fileDir].
+/// Copies the embedded binaries from [sourceDir] to [fileDir]. A binary that
+/// is already staged from the same bundle file stays.
 Future<void> stageEmbeddedBinaries(Logger log, Directory sourceDir, Directory fileDir) async {
   await fileDir.create(recursive: true);
   await removeAsideBinaries(fileDir);
@@ -388,6 +389,16 @@ Future<void> stageBinary(File dest, File source, {bool? moveAside}) async {
   }
 }
 
+const _stampSuffix = '.stamp';
+
+/// True when [file] holds the bundle file that [stamp] names as [want].
+Future<bool> _isStaged(File file, File stamp, int size, String want) async {
+  if (!await stamp.exists() || !await file.exists()) {
+    return false;
+  }
+  return await file.length() == size && await stamp.readAsString() == want;
+}
+
 Future<void> _copyEmbeddedBinary(
   Logger log,
   Directory sourceDir,
@@ -408,7 +419,15 @@ Future<void> _copyEmbeddedBinary(
 
   try {
     final file = File(path.join(fileDir.path, destName));
+    final stamp = File('${file.path}$_stampSuffix');
+    final sourceStat = await source.stat();
+    final want = '${sourceStat.size}:${sourceStat.modified.microsecondsSinceEpoch}';
+    if (await _isStaged(file, stamp, sourceStat.size, want)) {
+      return;
+    }
+
     await stageBinary(file, source);
+    await stamp.writeAsString(want, flush: true);
 
     log.d('Wrote binary $name from $assetName to ${file.path}');
   } catch (e) {
