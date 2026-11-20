@@ -16,18 +16,15 @@ import 'package:sidechain_core/rpcs/bitcoind_connection.dart';
 import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
 import 'package:sidechain_core/rpcs/photon_rpc.dart';
+import 'package:sidechain_core/rpcs/stream_or_poll.dart';
 import 'package:sidechain_core/rpcs/thunder_rpc.dart';
 import 'package:sidechain_core/rpcs/truthcoin_rpc.dart';
 import 'package:sidechain_core/rpcs/zside_rpc.dart';
 
-/// Syncs binary state from the Go backend to the Flutter frontend by polling
-/// the orchestrator's `ListBinaries` RPC every 1s. Updates RPCConnection
-/// flags (connected/startup/error) and BinaryProvider's binary paths.
-///
-/// No streaming — sync state and download progress now both come from
-/// `SyncProvider` (polled `GetSyncStatus`). This provider only mirrors the
-/// orchestrator's per-binary connection metadata onto the matching
-/// RPCConnection objects.
+/// Syncs binary state from the Go backend to the Flutter frontend through the
+/// orchestrator's `WatchBinaries` stream, and polls `ListBinaries` each 1s
+/// while the stream is down. Updates RPCConnection flags
+/// (connected/startup/error) and BinaryProvider's binary paths.
 class BackendStateProvider extends ChangeNotifier {
   final OrchestratorRPC _orchestrator;
   final Logger _log = GetIt.I.get<Logger>();
@@ -44,7 +41,7 @@ class BackendStateProvider extends ChangeNotifier {
   /// watch starts leaves this false, so nothing reads as healthy on no answer.
   bool orchestratorAnswered = false;
 
-  Timer? _pollTimer;
+  StreamOrPoll<WatchBinariesResponse, ListBinariesResponse>? _watch;
   bool _polling = false;
   int _consecutiveFailures = 0;
 
@@ -53,51 +50,70 @@ class BackendStateProvider extends ChangeNotifier {
 
   BackendStateProvider(this._orchestrator);
 
-  /// Start polling `listBinaries()` once per second. Call this after the
-  /// daemon process is running and serving gRPC. Idempotent.
+  /// Start the `WatchBinaries` stream. Call this after the daemon process is
+  /// running and serving gRPC. Idempotent.
   void startWatching() {
     if (Environment.isInTest) {
       return;
     }
-    _pollTimer?.cancel();
-    // Kick a poll immediately so the UI gets a snapshot without waiting a
-    // full tick on first connect.
-    unawaited(_poll());
-    _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
+    unawaited(_watch?.dispose());
+    _watch = StreamOrPoll<WatchBinariesResponse, ListBinariesResponse>(
+      subscribe: () => _orchestrator.watchBinaries(forceBackend: Binary.isSidechainApp),
+      onFrame: applyWatchFrame,
+      isHeartbeat: (frame) => frame.heartbeat,
+      fetch: () => _orchestrator.listBinaries(forceBackend: Binary.isSidechainApp),
+      onPoll: (resp) => _onStatuses(resp.binaries),
+      onPollError: _onPollError,
+      pollInterval: _pollInterval,
+      onTransportDeath: _orchestrator.recreateConnection,
+      logger: _log,
+      tag: 'BackendStateProvider',
+    )..start();
+  }
+
+  /// Applies one WatchBinaries frame.
+  @visibleForTesting
+  void applyWatchFrame(WatchBinariesResponse frame) {
+    if (frame.heartbeat) {
+      return;
+    }
+    _onStatuses(frame.binaries);
   }
 
   @visibleForTesting
-  Future<void> poll() => _poll();
-
-  Future<void> _poll() async {
+  Future<void> poll() async {
     if (_polling) {
       return;
     }
     _polling = true;
     try {
-      final resp = await _orchestrator.listBinaries(
-        forceBackend: Binary.isSidechainApp,
-      );
-      _consecutiveFailures = 0;
-      final recovered = !orchestratorReachable || !orchestratorAnswered;
-      orchestratorReachable = true;
-      orchestratorAnswered = true;
-      _apply(resp.binaries, recovered: recovered);
+      final resp = await _orchestrator.listBinaries(forceBackend: Binary.isSidechainApp);
+      _onStatuses(resp.binaries);
     } catch (e) {
-      // A blip keeps the last frame on screen, but an orchestrator that stays
-      // unreachable must stop reading as a healthy stack.
-      _consecutiveFailures++;
-      if (_consecutiveFailures == _failuresBeforeDisconnected) {
-        _log.w(
-          'BackendStateProvider: orchestrator unreachable, marking binaries disconnected: $e',
-        );
-        orchestratorReachable = false;
-        _markAllDisconnected();
-      }
-      _log.d('BackendStateProvider: listBinaries failed: $e');
+      _onPollError(e);
     } finally {
       _polling = false;
     }
+  }
+
+  void _onStatuses(List<BinaryStatusMsg> statuses) {
+    _consecutiveFailures = 0;
+    final recovered = !orchestratorReachable || !orchestratorAnswered;
+    orchestratorReachable = true;
+    orchestratorAnswered = true;
+    _apply(statuses, recovered: recovered);
+  }
+
+  void _onPollError(Object e) {
+    // A blip keeps the last frame on screen, but an orchestrator that stays
+    // unreachable must stop reading as a healthy stack.
+    _consecutiveFailures++;
+    if (_consecutiveFailures == _failuresBeforeDisconnected) {
+      _log.w('BackendStateProvider: orchestrator unreachable, marking binaries disconnected: $e');
+      orchestratorReachable = false;
+      _markAllDisconnected();
+    }
+    _log.d('BackendStateProvider: listBinaries failed: $e');
   }
 
   void _markAllDisconnected() {
@@ -274,8 +290,8 @@ class BackendStateProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
-    _pollTimer = null;
+    unawaited(_watch?.dispose());
+    _watch = null;
     super.dispose();
   }
 }

@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
+import 'package:sidechain_core/rpcs/stream_or_poll.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// Snapshot of one binary's download progress, in the units the orchestrator
@@ -48,10 +49,9 @@ class DownloadProgress {
   int get hashCode => Object.hash(binary, mbDownloaded, mbTotal, message);
 }
 
-/// Polls the orchestrator's [getDownloadStatus] RPC and surfaces a per-binary
-/// snapshot. Cadence is fast (100 ms) while at least one entry is in flight,
-/// then drops to 2 s once the response is empty — the call is cheap because
-/// the orchestrator just reads its in-memory DownloadManager map. Daemon
+/// Reads the orchestrator's `WatchDownloadStatus` stream for a per-binary
+/// snapshot. While the stream is down it polls [getDownloadStatus] fast
+/// (100 ms) while at least one entry is in flight, else each 2 s. Daemon
 /// cards consult this provider before falling back to [SyncProvider]'s sync
 /// state, so a live download always shows instantly.
 class DownloadProvider extends ChangeNotifier {
@@ -63,9 +63,7 @@ class DownloadProvider extends ChangeNotifier {
 
   Map<BinaryType, DownloadProgress> _downloads = const {};
   String? _lastError;
-  Timer? _timer;
-  bool _isFetching = false;
-  Duration _currentInterval = AGGRESSIVE_INTERVAL;
+  StreamOrPoll<orch_pb.WatchDownloadStatusResponse, orch_pb.GetDownloadStatusResponse>? _watch;
 
   Map<BinaryType, DownloadProgress> get downloads => _downloads;
   String? get lastError => _lastError;
@@ -81,77 +79,80 @@ class DownloadProvider extends ChangeNotifier {
 
   DownloadProvider({bool startTimer = true}) {
     if (startTimer && !Environment.isInTest) {
-      _scheduleNextTick();
-      fetch();
+      _watch = StreamOrPoll<orch_pb.WatchDownloadStatusResponse, orch_pb.GetDownloadStatusResponse>(
+        subscribe: _orchestrator.watchDownloadStatus,
+        onFrame: applyWatchFrame,
+        isHeartbeat: (frame) => frame.heartbeat,
+        fetch: _orchestrator.getDownloadStatus,
+        onPoll: (resp) => _apply(resp.downloads),
+        onPollError: _applyError,
+        pollInterval: PASSIVE_INTERVAL,
+        nextPollInterval: () => hasActiveDownloads ? AGGRESSIVE_INTERVAL : PASSIVE_INTERVAL,
+        onTransportDeath: _orchestrator.recreateConnection,
+        logger: _log,
+        tag: 'DownloadProvider',
+      )..start();
     }
   }
 
-  void _scheduleNextTick() {
-    _timer?.cancel();
-    _timer = Timer.periodic(_currentInterval, (_) => _tick());
-  }
-
-  Future<void> _tick() async {
-    if (_isFetching) {
+  /// Applies one WatchDownloadStatus frame.
+  @visibleForTesting
+  void applyWatchFrame(orch_pb.WatchDownloadStatusResponse frame) {
+    if (frame.heartbeat) {
       return;
     }
-    _isFetching = true;
-    try {
-      await fetch();
-      final nextInterval = hasActiveDownloads ? AGGRESSIVE_INTERVAL : PASSIVE_INTERVAL;
-      if (nextInterval != _currentInterval) {
-        _currentInterval = nextInterval;
-        _scheduleNextTick();
-      }
-    } catch (_) {
-      // fetch() already records the error
-    } finally {
-      _isFetching = false;
-    }
+    _apply(frame.downloads);
   }
 
   /// One-shot fetch. Public so callers (e.g. test harnesses, manual refresh
   /// buttons) can trigger an update without waiting for the timer.
   Future<void> fetch() async {
+    // The stream holds the newest list, and an older reply would win.
+    if (_watch?.streaming ?? false) {
+      return;
+    }
     try {
       final resp = await _orchestrator.getDownloadStatus();
-      final next = <BinaryType, DownloadProgress>{};
-      for (final s in resp.downloads) {
-        if (s.binary == BinaryType.BINARY_TYPE_UNSPECIFIED) {
-          continue;
-        }
-        next[s.binary] = DownloadProgress(
-          binary: s.binary,
-          mbDownloaded: s.mbDownloaded.toInt(),
-          mbTotal: s.mbTotal.toInt(),
-          message: s.message,
-        );
-      }
-      if (mapEquals(next, _downloads) && _lastError == null) {
-        return;
-      }
-      _downloads = next;
-      _lastError = null;
-      notifyListeners();
+      _apply(resp.downloads);
     } catch (e) {
-      final error = e.toString();
-      if (error == _lastError) {
-        return;
-      }
-      _log.e('DownloadProvider: getDownloadStatus failed: $e');
-      _lastError = error;
-      notifyListeners();
+      _applyError(e);
     }
+  }
+
+  void _apply(List<orch_pb.DownloadStatus> downloads) {
+    final next = <BinaryType, DownloadProgress>{};
+    for (final s in downloads) {
+      if (s.binary == BinaryType.BINARY_TYPE_UNSPECIFIED) {
+        continue;
+      }
+      next[s.binary] = DownloadProgress(
+        binary: s.binary,
+        mbDownloaded: s.mbDownloaded.toInt(),
+        mbTotal: s.mbTotal.toInt(),
+        message: s.message,
+      );
+    }
+    if (mapEquals(next, _downloads) && _lastError == null) {
+      return;
+    }
+    _downloads = next;
+    _lastError = null;
+    notifyListeners();
+  }
+
+  void _applyError(Object e) {
+    final error = e.toString();
+    if (error == _lastError) {
+      return;
+    }
+    _log.e('DownloadProvider: getDownloadStatus failed: $e');
+    _lastError = error;
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    unawaited(_watch?.dispose());
     super.dispose();
   }
 }
-
-// Keep the orch_pb alias used so the analyzer doesn't strip the import; the
-// proto type surfaces only via the typed RPC return value.
-// ignore: unused_element
-typedef _OrchAlias = orch_pb.GetDownloadStatusResponse;

@@ -151,4 +151,27 @@ void main() {
       1,
     );
   });
+
+  test('a watch frame applies the list and a heartbeat keeps it', () async {
+    GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestratorRPC());
+    final provider = DownloadProvider(startTimer: false);
+    var notifyCount = 0;
+    provider.addListener(() => notifyCount++);
+
+    provider.applyWatchFrame(
+      orch_pb.WatchDownloadStatusResponse(
+        downloads: [
+          orch_pb.DownloadStatus(binary: BinaryType.BINARY_TYPE_BITCOIND, mbDownloaded: Int64(1), mbTotal: Int64(9)),
+        ],
+      ),
+    );
+    provider.applyWatchFrame(orch_pb.WatchDownloadStatusResponse(heartbeat: true));
+
+    expect(notifyCount, 1);
+    expect(provider.statusFor(BinaryType.BINARY_TYPE_BITCOIND)?.mbTotal, 9);
+
+    provider.applyWatchFrame(orch_pb.WatchDownloadStatusResponse());
+    expect(provider.hasActiveDownloads, isFalse);
+    expect(notifyCount, 2);
+  });
 }
