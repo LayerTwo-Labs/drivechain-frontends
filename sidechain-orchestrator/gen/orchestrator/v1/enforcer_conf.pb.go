@@ -141,6 +141,96 @@ func (x *GetEnforcerConfigResponse) GetExpectedNodeRpcSettings() map[string]stri
 	return nil
 }
 
+type WatchEnforcerConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchEnforcerConfigRequest) Reset() {
+	*x = WatchEnforcerConfigRequest{}
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchEnforcerConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchEnforcerConfigRequest) ProtoMessage() {}
+
+func (x *WatchEnforcerConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchEnforcerConfigRequest.ProtoReflect.Descriptor instead.
+func (*WatchEnforcerConfigRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{2}
+}
+
+type WatchEnforcerConfigResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unset in a heartbeat frame.
+	Config *GetEnforcerConfigResponse `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	// True for an idle keepalive frame that carries no config.
+	Heartbeat     bool `protobuf:"varint,2,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchEnforcerConfigResponse) Reset() {
+	*x = WatchEnforcerConfigResponse{}
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchEnforcerConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchEnforcerConfigResponse) ProtoMessage() {}
+
+func (x *WatchEnforcerConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchEnforcerConfigResponse.ProtoReflect.Descriptor instead.
+func (*WatchEnforcerConfigResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *WatchEnforcerConfigResponse) GetConfig() *GetEnforcerConfigResponse {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+func (x *WatchEnforcerConfigResponse) GetHeartbeat() bool {
+	if x != nil {
+		return x.Heartbeat
+	}
+	return false
+}
+
 type WriteEnforcerConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ConfigContent string                 `protobuf:"bytes,1,opt,name=config_content,json=configContent,proto3" json:"config_content,omitempty"`
@@ -150,7 +240,7 @@ type WriteEnforcerConfigRequest struct {
 
 func (x *WriteEnforcerConfigRequest) Reset() {
 	*x = WriteEnforcerConfigRequest{}
-	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[2]
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -162,7 +252,7 @@ func (x *WriteEnforcerConfigRequest) String() string {
 func (*WriteEnforcerConfigRequest) ProtoMessage() {}
 
 func (x *WriteEnforcerConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[2]
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -175,7 +265,7 @@ func (x *WriteEnforcerConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteEnforcerConfigRequest.ProtoReflect.Descriptor instead.
 func (*WriteEnforcerConfigRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{2}
+	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *WriteEnforcerConfigRequest) GetConfigContent() string {
@@ -193,7 +283,7 @@ type WriteEnforcerConfigResponse struct {
 
 func (x *WriteEnforcerConfigResponse) Reset() {
 	*x = WriteEnforcerConfigResponse{}
-	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[3]
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -205,7 +295,7 @@ func (x *WriteEnforcerConfigResponse) String() string {
 func (*WriteEnforcerConfigResponse) ProtoMessage() {}
 
 func (x *WriteEnforcerConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[3]
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -218,7 +308,7 @@ func (x *WriteEnforcerConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteEnforcerConfigResponse.ProtoReflect.Descriptor instead.
 func (*WriteEnforcerConfigResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{3}
+	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{5}
 }
 
 type SyncNodeRpcFromBitcoinConfRequest struct {
@@ -229,7 +319,7 @@ type SyncNodeRpcFromBitcoinConfRequest struct {
 
 func (x *SyncNodeRpcFromBitcoinConfRequest) Reset() {
 	*x = SyncNodeRpcFromBitcoinConfRequest{}
-	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[4]
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -241,7 +331,7 @@ func (x *SyncNodeRpcFromBitcoinConfRequest) String() string {
 func (*SyncNodeRpcFromBitcoinConfRequest) ProtoMessage() {}
 
 func (x *SyncNodeRpcFromBitcoinConfRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[4]
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -254,7 +344,7 @@ func (x *SyncNodeRpcFromBitcoinConfRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use SyncNodeRpcFromBitcoinConfRequest.ProtoReflect.Descriptor instead.
 func (*SyncNodeRpcFromBitcoinConfRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{4}
+	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{6}
 }
 
 type SyncNodeRpcFromBitcoinConfResponse struct {
@@ -265,7 +355,7 @@ type SyncNodeRpcFromBitcoinConfResponse struct {
 
 func (x *SyncNodeRpcFromBitcoinConfResponse) Reset() {
 	*x = SyncNodeRpcFromBitcoinConfResponse{}
-	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[5]
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -277,7 +367,7 @@ func (x *SyncNodeRpcFromBitcoinConfResponse) String() string {
 func (*SyncNodeRpcFromBitcoinConfResponse) ProtoMessage() {}
 
 func (x *SyncNodeRpcFromBitcoinConfResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[5]
+	mi := &file_orchestrator_v1_enforcer_conf_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -290,7 +380,7 @@ func (x *SyncNodeRpcFromBitcoinConfResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use SyncNodeRpcFromBitcoinConfResponse.ProtoReflect.Descriptor instead.
 func (*SyncNodeRpcFromBitcoinConfResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{5}
+	return file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP(), []int{7}
 }
 
 var File_orchestrator_v1_enforcer_conf_proto protoreflect.FileDescriptor
@@ -309,14 +399,19 @@ const file_orchestrator_v1_enforcer_conf_proto_rawDesc = "" +
 	"\x1aexpected_node_rpc_settings\x18\x06 \x03(\v2G.orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntryR\x17expectedNodeRpcSettings\x1aJ\n" +
 	"\x1cExpectedNodeRpcSettingsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"C\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1c\n" +
+	"\x1aWatchEnforcerConfigRequest\"\x7f\n" +
+	"\x1bWatchEnforcerConfigResponse\x12B\n" +
+	"\x06config\x18\x01 \x01(\v2*.orchestrator.v1.GetEnforcerConfigResponseR\x06config\x12\x1c\n" +
+	"\theartbeat\x18\x02 \x01(\bR\theartbeat\"C\n" +
 	"\x1aWriteEnforcerConfigRequest\x12%\n" +
 	"\x0econfig_content\x18\x01 \x01(\tR\rconfigContent\"\x1d\n" +
 	"\x1bWriteEnforcerConfigResponse\"#\n" +
 	"!SyncNodeRpcFromBitcoinConfRequest\"$\n" +
-	"\"SyncNodeRpcFromBitcoinConfResponse2\xfb\x02\n" +
+	"\"SyncNodeRpcFromBitcoinConfResponse2\xef\x03\n" +
 	"\x13EnforcerConfService\x12j\n" +
-	"\x11GetEnforcerConfig\x12).orchestrator.v1.GetEnforcerConfigRequest\x1a*.orchestrator.v1.GetEnforcerConfigResponse\x12p\n" +
+	"\x11GetEnforcerConfig\x12).orchestrator.v1.GetEnforcerConfigRequest\x1a*.orchestrator.v1.GetEnforcerConfigResponse\x12r\n" +
+	"\x13WatchEnforcerConfig\x12+.orchestrator.v1.WatchEnforcerConfigRequest\x1a,.orchestrator.v1.WatchEnforcerConfigResponse0\x01\x12p\n" +
 	"\x13WriteEnforcerConfig\x12+.orchestrator.v1.WriteEnforcerConfigRequest\x1a,.orchestrator.v1.WriteEnforcerConfigResponse\x12\x85\x01\n" +
 	"\x1aSyncNodeRpcFromBitcoinConf\x122.orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest\x1a3.orchestrator.v1.SyncNodeRpcFromBitcoinConfResponseB\xe2\x01\n" +
 	"\x13com.orchestrator.v1B\x11EnforcerConfProtoP\x01Z[github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1;orchestratorv1\xa2\x02\x03OXX\xaa\x02\x0fOrchestrator.V1\xca\x02\x0fOrchestrator\\V1\xe2\x02\x1bOrchestrator\\V1\\GPBMetadata\xea\x02\x10Orchestrator::V1b\x06proto3"
@@ -333,29 +428,34 @@ func file_orchestrator_v1_enforcer_conf_proto_rawDescGZIP() []byte {
 	return file_orchestrator_v1_enforcer_conf_proto_rawDescData
 }
 
-var file_orchestrator_v1_enforcer_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_orchestrator_v1_enforcer_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_orchestrator_v1_enforcer_conf_proto_goTypes = []any{
 	(*GetEnforcerConfigRequest)(nil),           // 0: orchestrator.v1.GetEnforcerConfigRequest
 	(*GetEnforcerConfigResponse)(nil),          // 1: orchestrator.v1.GetEnforcerConfigResponse
-	(*WriteEnforcerConfigRequest)(nil),         // 2: orchestrator.v1.WriteEnforcerConfigRequest
-	(*WriteEnforcerConfigResponse)(nil),        // 3: orchestrator.v1.WriteEnforcerConfigResponse
-	(*SyncNodeRpcFromBitcoinConfRequest)(nil),  // 4: orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest
-	(*SyncNodeRpcFromBitcoinConfResponse)(nil), // 5: orchestrator.v1.SyncNodeRpcFromBitcoinConfResponse
-	nil, // 6: orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry
+	(*WatchEnforcerConfigRequest)(nil),         // 2: orchestrator.v1.WatchEnforcerConfigRequest
+	(*WatchEnforcerConfigResponse)(nil),        // 3: orchestrator.v1.WatchEnforcerConfigResponse
+	(*WriteEnforcerConfigRequest)(nil),         // 4: orchestrator.v1.WriteEnforcerConfigRequest
+	(*WriteEnforcerConfigResponse)(nil),        // 5: orchestrator.v1.WriteEnforcerConfigResponse
+	(*SyncNodeRpcFromBitcoinConfRequest)(nil),  // 6: orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest
+	(*SyncNodeRpcFromBitcoinConfResponse)(nil), // 7: orchestrator.v1.SyncNodeRpcFromBitcoinConfResponse
+	nil, // 8: orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry
 }
 var file_orchestrator_v1_enforcer_conf_proto_depIdxs = []int32{
-	6, // 0: orchestrator.v1.GetEnforcerConfigResponse.expected_node_rpc_settings:type_name -> orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry
-	0, // 1: orchestrator.v1.EnforcerConfService.GetEnforcerConfig:input_type -> orchestrator.v1.GetEnforcerConfigRequest
-	2, // 2: orchestrator.v1.EnforcerConfService.WriteEnforcerConfig:input_type -> orchestrator.v1.WriteEnforcerConfigRequest
-	4, // 3: orchestrator.v1.EnforcerConfService.SyncNodeRpcFromBitcoinConf:input_type -> orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest
-	1, // 4: orchestrator.v1.EnforcerConfService.GetEnforcerConfig:output_type -> orchestrator.v1.GetEnforcerConfigResponse
-	3, // 5: orchestrator.v1.EnforcerConfService.WriteEnforcerConfig:output_type -> orchestrator.v1.WriteEnforcerConfigResponse
-	5, // 6: orchestrator.v1.EnforcerConfService.SyncNodeRpcFromBitcoinConf:output_type -> orchestrator.v1.SyncNodeRpcFromBitcoinConfResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	8, // 0: orchestrator.v1.GetEnforcerConfigResponse.expected_node_rpc_settings:type_name -> orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry
+	1, // 1: orchestrator.v1.WatchEnforcerConfigResponse.config:type_name -> orchestrator.v1.GetEnforcerConfigResponse
+	0, // 2: orchestrator.v1.EnforcerConfService.GetEnforcerConfig:input_type -> orchestrator.v1.GetEnforcerConfigRequest
+	2, // 3: orchestrator.v1.EnforcerConfService.WatchEnforcerConfig:input_type -> orchestrator.v1.WatchEnforcerConfigRequest
+	4, // 4: orchestrator.v1.EnforcerConfService.WriteEnforcerConfig:input_type -> orchestrator.v1.WriteEnforcerConfigRequest
+	6, // 5: orchestrator.v1.EnforcerConfService.SyncNodeRpcFromBitcoinConf:input_type -> orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest
+	1, // 6: orchestrator.v1.EnforcerConfService.GetEnforcerConfig:output_type -> orchestrator.v1.GetEnforcerConfigResponse
+	3, // 7: orchestrator.v1.EnforcerConfService.WatchEnforcerConfig:output_type -> orchestrator.v1.WatchEnforcerConfigResponse
+	5, // 8: orchestrator.v1.EnforcerConfService.WriteEnforcerConfig:output_type -> orchestrator.v1.WriteEnforcerConfigResponse
+	7, // 9: orchestrator.v1.EnforcerConfService.SyncNodeRpcFromBitcoinConf:output_type -> orchestrator.v1.SyncNodeRpcFromBitcoinConfResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_orchestrator_v1_enforcer_conf_proto_init() }
@@ -369,7 +469,7 @@ func file_orchestrator_v1_enforcer_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_orchestrator_v1_enforcer_conf_proto_rawDesc), len(file_orchestrator_v1_enforcer_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

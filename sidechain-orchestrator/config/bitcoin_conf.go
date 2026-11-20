@@ -568,6 +568,11 @@ func (m *BitcoinConfManager) namesRetiredNetwork(path string) bool {
 	return true
 }
 
+// BitWindowConfigPath is the bitwindow-bitcoin.conf this manager owns.
+func (m *BitcoinConfManager) BitWindowConfigPath() string {
+	return m.getBitWindowConfigPath()
+}
+
 func (m *BitcoinConfManager) getBitWindowConfigPath() string {
 	return filepath.Join(m.BitwindowDir, bitwindowBitcoinConfFilename)
 }

@@ -507,6 +507,11 @@ func (m *SidechainConfManager) saveConfig() error {
 	return nil
 }
 
+// ConfigFilePath is the conf file this manager owns.
+func (m *SidechainConfManager) ConfigFilePath() string {
+	return m.getConfigPath()
+}
+
 func (m *SidechainConfManager) getConfigPath() string {
 	dirs := MustDirConfig(m.Spec.DirKey)
 	return filepath.Join(dirs.RootDir(), m.Spec.ConfigFilename)

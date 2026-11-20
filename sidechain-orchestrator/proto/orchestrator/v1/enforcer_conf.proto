@@ -6,6 +6,10 @@ service EnforcerConfService {
   // Get current Enforcer configuration state.
   rpc GetEnforcerConfig(GetEnforcerConfigRequest) returns (GetEnforcerConfigResponse);
 
+  // Stream GetEnforcerConfig. The first frame holds the config, later frames
+  // only a changed config or a heartbeat.
+  rpc WatchEnforcerConfig(WatchEnforcerConfigRequest) returns (stream WatchEnforcerConfigResponse);
+
   // Write Enforcer configuration content.
   rpc WriteEnforcerConfig(WriteEnforcerConfigRequest) returns (WriteEnforcerConfigResponse);
 
@@ -24,6 +28,15 @@ message GetEnforcerConfigResponse {
   string default_config = 4;
   repeated string cli_args = 5;
   map<string, string> expected_node_rpc_settings = 6;
+}
+
+message WatchEnforcerConfigRequest {}
+
+message WatchEnforcerConfigResponse {
+  // Unset in a heartbeat frame.
+  GetEnforcerConfigResponse config = 1;
+  // True for an idle keepalive frame that carries no config.
+  bool heartbeat = 2;
 }
 
 // WriteEnforcerConfig

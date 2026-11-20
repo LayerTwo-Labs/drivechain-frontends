@@ -6,6 +6,10 @@ service BitcoinConfService {
   // Get current Bitcoin Core configuration state.
   rpc GetBitcoinConfig(GetBitcoinConfigRequest) returns (GetBitcoinConfigResponse);
 
+  // Stream GetBitcoinConfig and ListNetworks. The first frame holds both,
+  // later frames only a changed state or a heartbeat.
+  rpc WatchBitcoinConfig(WatchBitcoinConfigRequest) returns (stream WatchBitcoinConfigResponse);
+
   // Report what the user must resolve before a network and/or wallet-backend
   // change can be applied. Side-effect free.
   rpc PrepareNetworkChange(PrepareNetworkChangeRequest) returns (NetworkChangePlan);
@@ -90,6 +94,17 @@ message NetworkOption {
 
 message ListNetworksResponse {
   repeated NetworkOption networks = 1;
+}
+
+message WatchBitcoinConfigRequest {}
+
+message WatchBitcoinConfigResponse {
+  // Unset in a heartbeat frame.
+  GetBitcoinConfigResponse config = 1;
+  // The ListNetworks rows. Empty in a heartbeat frame.
+  repeated NetworkOption networks = 2;
+  // True for an idle keepalive frame that carries no state.
+  bool heartbeat = 3;
 }
 
 // PlanECashSwitch

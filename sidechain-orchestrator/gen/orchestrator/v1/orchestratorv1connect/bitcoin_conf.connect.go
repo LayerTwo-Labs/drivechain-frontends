@@ -27,6 +27,9 @@ const (
 	// BitcoinConfServiceGetBitcoinConfigProcedure is the procedure name of the BitcoinConfService's
 	// GetBitcoinConfig RPC.
 	BitcoinConfServiceGetBitcoinConfigProcedure = "/orchestrator.v1.BitcoinConfService/GetBitcoinConfig"
+	// BitcoinConfServiceWatchBitcoinConfigProcedure is the procedure name of the BitcoinConfService's
+	// WatchBitcoinConfig RPC.
+	BitcoinConfServiceWatchBitcoinConfigProcedure = "/orchestrator.v1.BitcoinConfService/WatchBitcoinConfig"
 	// BitcoinConfServicePrepareNetworkChangeProcedure is the procedure name of the BitcoinConfService's
 	// PrepareNetworkChange RPC.
 	BitcoinConfServicePrepareNetworkChangeProcedure = "/orchestrator.v1.BitcoinConfService/PrepareNetworkChange"
@@ -56,6 +59,13 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("GetBitcoinConfig"),
 			Procedure:  BitcoinConfServiceGetBitcoinConfigProcedure,
+		}
+	})
+	bitcoinConfServiceWatchBitcoinConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_bitcoin_conf_proto.Services().ByName("BitcoinConfService").Methods().ByName("WatchBitcoinConfig"),
+			Procedure:  BitcoinConfServiceWatchBitcoinConfigProcedure,
 		}
 	})
 	bitcoinConfServicePrepareNetworkChangeSpec = sync.OnceValue(func() connect.Spec {
@@ -113,6 +123,9 @@ var (
 type BitcoinConfServiceClient interface {
 	// Get current Bitcoin Core configuration state.
 	GetBitcoinConfig(context.Context, *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error)
+	// Stream GetBitcoinConfig and ListNetworks. The first frame holds both,
+	// later frames only a changed state or a heartbeat.
+	WatchBitcoinConfig(context.Context, *v1.WatchBitcoinConfigRequest) (BitcoinConfServiceWatchBitcoinConfigClientStream, error)
 	// Report what the user must resolve before a network and/or wallet-backend
 	// change can be applied. Side-effect free.
 	PrepareNetworkChange(context.Context, *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error)
@@ -141,10 +154,34 @@ func NewBitcoinConfServiceClient(client *connect.Client) BitcoinConfServiceClien
 	return &bitcoinConfServiceClient{client: client}
 }
 
+// BitcoinConfServiceWatchBitcoinConfigClientStream is the client stream for the
+// BitcoinConfService's WatchBitcoinConfig RPC.
+type BitcoinConfServiceWatchBitcoinConfigClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s BitcoinConfServiceWatchBitcoinConfigClientStream) Receive() (*v1.WatchBitcoinConfigResponse, error) {
+	var res v1.WatchBitcoinConfigResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s BitcoinConfServiceWatchBitcoinConfigClientStream) Close() error {
+	return s.stream.Close()
+}
+
 // BitcoinConfServiceHandler is an implementation of the orchestrator.v1.BitcoinConfService service.
 type BitcoinConfServiceHandler interface {
 	// Get current Bitcoin Core configuration state.
 	GetBitcoinConfig(context.Context, *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error)
+	// Stream GetBitcoinConfig and ListNetworks. The first frame holds both,
+	// later frames only a changed state or a heartbeat.
+	WatchBitcoinConfig(context.Context, *v1.WatchBitcoinConfigRequest, BitcoinConfServiceWatchBitcoinConfigServerStream) error
 	// Report what the user must resolve before a network and/or wallet-backend
 	// change can be applied. Side-effect free.
 	PrepareNetworkChange(context.Context, *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error)
@@ -173,6 +210,7 @@ func RegisterBitcoinConfServiceHandler(server *connect.Server, svc BitcoinConfSe
 	adapter := bitcoinConfServiceHandler{svc: svc}
 	server.Register(
 		connect.Method{Spec: bitcoinConfServiceGetBitcoinConfigSpec(), Handler: adapter.getBitcoinConfig},
+		connect.Method{Spec: bitcoinConfServiceWatchBitcoinConfigSpec(), Handler: adapter.watchBitcoinConfig},
 		connect.Method{Spec: bitcoinConfServicePrepareNetworkChangeSpec(), Handler: adapter.prepareNetworkChange},
 		connect.Method{Spec: bitcoinConfServiceListNetworksSpec(), Handler: adapter.listNetworks},
 		connect.Method{Spec: bitcoinConfServiceTakeNewNetworksSpec(), Handler: adapter.takeNewNetworks},
@@ -183,11 +221,31 @@ func RegisterBitcoinConfServiceHandler(server *connect.Server, svc BitcoinConfSe
 	)
 }
 
+// BitcoinConfServiceWatchBitcoinConfigServerStream is the server stream for the
+// BitcoinConfService's WatchBitcoinConfig RPC.
+type BitcoinConfServiceWatchBitcoinConfigServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s BitcoinConfServiceWatchBitcoinConfigServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s BitcoinConfServiceWatchBitcoinConfigServerStream) Send(res *v1.WatchBitcoinConfigResponse) error {
+	return s.stream.Send(res)
+}
+
 // UnimplementedBitcoinConfServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBitcoinConfServiceHandler struct{}
 
 func (UnimplementedBitcoinConfServiceHandler) GetBitcoinConfig(context.Context, *v1.GetBitcoinConfigRequest) (*v1.GetBitcoinConfigResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.GetBitcoinConfig is not implemented")
+}
+
+func (UnimplementedBitcoinConfServiceHandler) WatchBitcoinConfig(context.Context, *v1.WatchBitcoinConfigRequest, BitcoinConfServiceWatchBitcoinConfigServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.BitcoinConfService.WatchBitcoinConfig is not implemented")
 }
 
 func (UnimplementedBitcoinConfServiceHandler) PrepareNetworkChange(context.Context, *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error) {
@@ -228,6 +286,14 @@ func (c *bitcoinConfServiceClient) GetBitcoinConfig(ctx context.Context, req *v1
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *bitcoinConfServiceClient) WatchBitcoinConfig(ctx context.Context, req *v1.WatchBitcoinConfigRequest) (BitcoinConfServiceWatchBitcoinConfigClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, bitcoinConfServiceWatchBitcoinConfigSpec(), req)
+	if err != nil {
+		return BitcoinConfServiceWatchBitcoinConfigClientStream{}, err
+	}
+	return BitcoinConfServiceWatchBitcoinConfigClientStream{stream: stream}, nil
 }
 
 func (c *bitcoinConfServiceClient) PrepareNetworkChange(ctx context.Context, req *v1.PrepareNetworkChangeRequest) (*v1.NetworkChangePlan, error) {
@@ -298,6 +364,14 @@ func (h bitcoinConfServiceHandler) getBitcoinConfig(ctx context.Context, _ conne
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h bitcoinConfServiceHandler) watchBitcoinConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchBitcoinConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchBitcoinConfig(ctx, &req, BitcoinConfServiceWatchBitcoinConfigServerStream{stream: stream})
 }
 
 func (h bitcoinConfServiceHandler) prepareNetworkChange(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {

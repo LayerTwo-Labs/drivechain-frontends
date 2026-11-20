@@ -6,6 +6,10 @@ service SidechainConfService {
   // Get current sidechain configuration state.
   rpc GetSidechainConfig(GetSidechainConfigRequest) returns (GetSidechainConfigResponse);
 
+  // Stream GetSidechainConfig. The first frame holds the config, later frames
+  // only a changed config or a heartbeat.
+  rpc WatchSidechainConfig(GetSidechainConfigRequest) returns (stream WatchSidechainConfigResponse);
+
   // Write sidechain configuration content.
   rpc WriteSidechainConfig(WriteSidechainConfigRequest) returns (WriteSidechainConfigResponse);
 
@@ -25,6 +29,13 @@ message GetSidechainConfigResponse {
   string default_config = 3;
   repeated string cli_args = 4;
   string network = 5;
+}
+
+message WatchSidechainConfigResponse {
+  // Unset in a heartbeat frame.
+  GetSidechainConfigResponse config = 1;
+  // True for an idle keepalive frame that carries no config.
+  bool heartbeat = 2;
 }
 
 // WriteSidechainConfig
