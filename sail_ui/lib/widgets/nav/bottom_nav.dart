@@ -747,6 +747,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     enforcer.removeListener(_onChange);
     additionalConnection.rpc.removeListener(_onChange);
     syncProvider.removeListener(_onChange);
+    downloadProvider?.removeListener(_onChange);
     drivechaind?.dispose();
     _remoteChain?.dispose();
     nodeMode?.removeListener(_onChange);

@@ -42,27 +42,23 @@ class FireplaceViewModel extends BaseViewModel {
   String get price => priceProvider.formattedPrice;
   String get priceTitle => activeTicker == Ticker.bitcoin ? 'Bitcoin Price' : '${activeTicker.symbol} Price';
 
-  Timer? _timer;
-
   FireplaceViewModel() {
     fetchFireplaceStats();
-    priceProvider.addListener(fetchFireplaceStats);
-
-    if (!Environment.isInTest) {
-      _timer = Timer.periodic(
-        Duration(seconds: 1),
-        // notify listeners every second to update the last updated time
-        (timer) => notifyListeners(),
-      );
-    }
+    priceProvider.addListener(_onPriceChanged);
+    _enforcerRPC.addListener(notifyListeners);
   }
 
   GetFireplaceStatsResponse? stats;
 
+  void _onPriceChanged() {
+    notifyListeners();
+    fetchFireplaceStats();
+  }
+
   Future<void> fetchFireplaceStats() async {
     try {
       final response = await api.bitwindowd.getFireplaceStats();
-      if (response.toDebugString() != stats?.toDebugString()) {
+      if (response != stats) {
         stats = response;
         notifyListeners();
       }
@@ -73,7 +69,8 @@ class FireplaceViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    priceProvider.removeListener(_onPriceChanged);
+    _enforcerRPC.removeListener(notifyListeners);
     super.dispose();
   }
 }
@@ -86,7 +83,7 @@ class FireplaceStats extends StatelessWidget {
     return ViewModelBuilder<FireplaceViewModel>.reactive(
       viewModelBuilder: () => FireplaceViewModel(),
       builder: (context, model, child) => FireplaceStatsView(
-        priceLastUpdated: model.priceLastUpdated,
+        priceLastUpdated: () => model.priceLastUpdated,
         price: model.price,
         priceTitle: model.priceTitle,
         stats: model.stats ?? GetFireplaceStatsResponse(),
@@ -194,6 +191,13 @@ class TransactionsViewModel extends BaseViewModel {
   TransactionsViewModel() {
     balanceProvider.addListener(notifyListeners);
     blockchainProvider.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    balanceProvider.removeListener(notifyListeners);
+    blockchainProvider.removeListener(notifyListeners);
+    super.dispose();
   }
 
   void errorListener() {
@@ -1630,7 +1634,8 @@ class GraffitiTable extends StatelessWidget {
 }
 
 class FireplaceStatsView extends StatelessWidget {
-  final String priceLastUpdated;
+  /// Read each second, so only the price card rebuilds for the age.
+  final String Function() priceLastUpdated;
   final String price;
   final String priceTitle;
   final GetFireplaceStatsResponse stats;
@@ -1658,13 +1663,15 @@ class FireplaceStatsView extends StatelessWidget {
         double childAspectRatio = cardWidth / desiredCardHeight;
 
         List<Widget> cardList = [
-          FireplaceStat(
-            title: priceTitle,
-            subtitle: 'Last updated $priceLastUpdated',
-            value: price,
-            bitcoinAmount: true,
-            icon: SailSVGAsset.dollarSign,
-            loading: loading,
+          _EachSecond(
+            builder: (context) => FireplaceStat(
+              title: priceTitle,
+              subtitle: 'Last updated ${priceLastUpdated()}',
+              value: price,
+              bitcoinAmount: true,
+              icon: SailSVGAsset.dollarSign,
+              loading: loading,
+            ),
           ),
           FireplaceStat(
             title: 'New transactions',
@@ -1701,4 +1708,34 @@ class FireplaceStatsView extends StatelessWidget {
       },
     );
   }
+}
+
+class _EachSecond extends StatefulWidget {
+  final WidgetBuilder builder;
+
+  const _EachSecond({required this.builder});
+
+  @override
+  State<_EachSecond> createState() => _EachSecondState();
+}
+
+class _EachSecondState extends State<_EachSecond> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Environment.isInTest) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context);
 }

@@ -585,6 +585,7 @@ class CoinNewsViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    _newsProvider.removeListener(notifyListeners);
     searchController.removeListener(notifyListeners);
     searchController.dispose();
     super.dispose();
