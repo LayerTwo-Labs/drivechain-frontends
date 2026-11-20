@@ -50,8 +50,9 @@ const (
 )
 
 const (
-	// longPoll is how long one waitforblockheight call waits in Core.
-	longPoll = 30 * time.Second
+	// longPoll is how long one waitforblockheight call waits in Core. A probe
+	// follows each poll, so a header with no block shows within this time.
+	longPoll = 15 * time.Second
 	// probeTimeout is the time Core gets to answer one getblockchaininfo. Core
 	// holds cs_main for seconds during IBD on slow storage.
 	probeTimeout = 60 * time.Second
