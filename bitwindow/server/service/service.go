@@ -6,7 +6,6 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
@@ -74,24 +73,25 @@ func (s *Service[T]) IsConnected() bool {
 	return s.connected.Load()
 }
 
-// StartReconnectLoop starts a goroutine that attempts to connect periodically,
-// to check whether the service is still available.
-func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
+// Follow sets the connection state from an outside liveness source until ctx
+// ends. A change to up dials the service. A change to down drops it.
+func (s *Service[T]) Follow(ctx context.Context, up <-chan bool) {
 	go func() {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-ticker.C:
-				// Only log if we were connected before
-				connected := s.connected.Load()
-				if _, err := s.Connect(ctx); err != nil && connected {
-					zerolog.Ctx(ctx).Debug().
-						Err(err).
-						Msgf("reconnect loop: connect to %q", s.name)
+			case v := <-up:
+				if !v {
+					s.setConnected(ctx, false)
+					continue
+				}
+				if s.connected.Load() {
+					continue
+				}
+				// A failed dial leaves the service down, and the next Get dials again.
+				if _, err := s.Connect(ctx); err != nil {
+					zerolog.Ctx(ctx).Debug().Err(err).Msgf("dial %q after it came up", s.name)
 				}
 			}
 		}
