@@ -96,4 +96,26 @@ void main() {
     );
     expect(dividers, findsNWidgets(2));
   });
+
+  testWidgets('a value row shows a grey label and a regular value', (tester) async {
+    await tester.pumpWidget(_panel(const [SailValueRow(label: 'Status', value: 'CONFIRMED')]));
+
+    final theme = SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter);
+    expect(tester.widget<Text>(find.text('Status')).style!.color, theme.colors.textSecondary);
+    expect(tester.widget<Text>(find.text('CONFIRMED')).style!.fontWeight, isNot(SailStyleValues.boldWeight));
+  });
+
+  testWidgets('a stacked row with a strong label shows it in medium weight', (tester) async {
+    await tester.pumpWidget(
+      _panel(const [
+        SailStackedValueRow(label: 'XPUB', value: 'xpub661', strongLabel: true),
+        SailStackedValueRow(label: 'File Hash', value: 'f3a1'),
+      ]),
+    );
+
+    final theme = SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter);
+    expect(tester.widget<Text>(find.text('XPUB')).style!.fontWeight, SailStyleValues.boldWeight);
+    expect(tester.widget<Text>(find.text('File Hash')).style!.color, theme.colors.textSecondary);
+    expect(tester.widget<Text>(find.text('f3a1')).style!.color, theme.colors.textSecondary);
+  });
 }

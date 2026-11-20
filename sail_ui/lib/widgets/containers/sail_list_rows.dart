@@ -67,7 +67,6 @@ class SailValueRow extends StatelessWidget {
           Expanded(
             child: SailText.primary13(
               value,
-              bold: true,
               color: valueColor,
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
@@ -89,6 +88,9 @@ class SailStackedValueRow extends StatelessWidget {
   final String value;
   final bool monospace;
 
+  /// Shows the label in the primary text color, medium weight.
+  final bool strongLabel;
+
   /// A control at the right of the label, such as a copy button.
   final Widget? action;
 
@@ -97,6 +99,7 @@ class SailStackedValueRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.monospace = false,
+    this.strongLabel = false,
     this.action,
   });
 
@@ -110,7 +113,9 @@ class SailStackedValueRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: SailText.primary13(label, bold: true)),
+              Expanded(
+                child: strongLabel ? SailText.primary13(label, bold: true) : SailText.secondary13(label),
+              ),
               ?action,
             ],
           ),
