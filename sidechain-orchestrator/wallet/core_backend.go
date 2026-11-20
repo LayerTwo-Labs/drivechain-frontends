@@ -1775,6 +1775,10 @@ func (c coreChain) GetRawTransaction(ctx context.Context, txid string) (*RawTran
 	return tx, nil
 }
 
+func (c coreChain) GetBlockTransaction(ctx context.Context, txid, blockhash string) (*RawTransaction, error) {
+	return c.rpc.GetBlockTransaction(ctx, txid, blockhash)
+}
+
 func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error) {
 	return c.rpc.SendRawTransaction(ctx, rawHex)
 }
