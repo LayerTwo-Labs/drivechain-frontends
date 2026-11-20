@@ -46,6 +46,25 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// Stream the connection state of each binary. The first frame holds the full
+  /// list, later frames a changed list or a heartbeat. No frame probes a binary.
+  Stream<orchestratorv1orchestrator.WatchConnectionsResponse> watchConnections(
+    orchestratorv1orchestrator.WatchConnectionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.OrchestratorService.watchConnections,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Get the status of a single binary.
   Future<orchestratorv1orchestrator.GetBinaryStatusResponse> getBinaryStatus(
     orchestratorv1orchestrator.GetBinaryStatusRequest input, {
