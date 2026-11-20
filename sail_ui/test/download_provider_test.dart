@@ -109,6 +109,32 @@ void main() {
     expect(notifyCount, 1);
   });
 
+  test('a poll with the same downloads does not notify', () async {
+    final fake = _FakeOrchestratorRPC()
+      ..nextDownloads = [
+        orch_pb.DownloadStatus(binary: BinaryType.BINARY_TYPE_THUNDER, mbDownloaded: Int64(3), mbTotal: Int64(4)),
+      ];
+    GetIt.I.registerSingleton<OrchestratorRPC>(fake);
+
+    final provider = DownloadProvider(startTimer: false);
+    var notifyCount = 0;
+    provider.addListener(() => notifyCount++);
+
+    await provider.fetch();
+    await provider.fetch();
+    expect(notifyCount, 1);
+
+    fake.nextDownloads = [];
+    await provider.fetch();
+    await provider.fetch();
+    expect(notifyCount, 2);
+
+    fake.nextError = StateError('boom');
+    await provider.fetch();
+    await provider.fetch();
+    expect(notifyCount, 3);
+  });
+
   test('progressFraction clamps and survives unknown total', () {
     expect(
       const DownloadProgress(binary: BinaryType.BINARY_TYPE_BITCOIND, mbDownloaded: 50, mbTotal: 100).progressFraction,
