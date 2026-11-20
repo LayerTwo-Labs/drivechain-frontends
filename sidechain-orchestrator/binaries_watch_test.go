@@ -62,3 +62,33 @@ func TestMigrationChangeWakesSubscriber(t *testing.T) {
 		t.Fatalf("status error = %q", status.Error)
 	}
 }
+
+type staticCheck struct{ err error }
+
+func (c staticCheck) Check(context.Context) error { return c.err }
+
+func TestConnectionsFollowTheMonitor(t *testing.T) {
+	o := New(t.TempDir(), "regtest", t.TempDir(), nil, zerolog.New(io.Discard))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	changed := o.SubscribeBinaries(ctx)
+	wait := func(want bool) {
+		t.Helper()
+		select {
+		case <-changed:
+		case <-time.After(time.Second):
+			t.Fatal("a connection change did not wake the subscriber")
+		}
+		got := o.Connections()
+		if len(got) != 1 || got[0] != (BinaryConnection{Name: "thunder", Connected: want}) {
+			t.Fatalf("connections = %+v, want thunder connected=%t", got, want)
+		}
+	}
+
+	mon := o.getOrCreateMonitor("thunder", staticCheck{}, nil)
+	mon.testConnection(ctx)
+	wait(true)
+
+	mon.MarkDisconnected()
+	wait(false)
+}

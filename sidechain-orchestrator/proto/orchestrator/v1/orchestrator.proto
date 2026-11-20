@@ -10,6 +10,10 @@ service OrchestratorService {
   // full list, later frames only a changed list or a heartbeat.
   rpc WatchBinaries(WatchBinariesRequest) returns (stream WatchBinariesResponse);
 
+  // Stream the connection state of each binary. The first frame holds the full
+  // list, later frames a changed list or a heartbeat. No frame probes a binary.
+  rpc WatchConnections(WatchConnectionsRequest) returns (stream WatchConnectionsResponse);
+
   // Get the status of a single binary.
   rpc GetBinaryStatus(GetBinaryStatusRequest) returns (GetBinaryStatusResponse);
 
@@ -302,6 +306,20 @@ message WatchBinariesResponse {
   // Empty in a heartbeat frame.
   repeated BinaryStatusMsg binaries = 1;
   // True for an idle keepalive frame that carries no status.
+  bool heartbeat = 2;
+}
+
+message WatchConnectionsRequest {}
+
+message BinaryConnection {
+  string name = 1;
+  bool connected = 2;
+}
+
+message WatchConnectionsResponse {
+  // Empty in a heartbeat frame.
+  repeated BinaryConnection connections = 1;
+  // True for an idle keepalive frame that carries no state.
   bool heartbeat = 2;
 }
 

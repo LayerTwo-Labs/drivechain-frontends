@@ -981,6 +981,172 @@ class WatchBinariesResponse extends $pb.GeneratedMessage {
   void clearHeartbeat() => $_clearField(2);
 }
 
+class WatchConnectionsRequest extends $pb.GeneratedMessage {
+  factory WatchConnectionsRequest() => WatchConnectionsRequest._();
+
+  WatchConnectionsRequest._();
+
+  factory WatchConnectionsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchConnectionsRequest()..mergeFromBuffer(data, registry);
+  factory WatchConnectionsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchConnectionsRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchConnectionsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchConnectionsRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchConnectionsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchConnectionsRequest copyWith(void Function(WatchConnectionsRequest) updates) =>
+      super.copyWith((message) => updates(message as WatchConnectionsRequest)) as WatchConnectionsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchConnectionsRequest() / WatchConnectionsRequest.new instead')
+  static WatchConnectionsRequest create() => WatchConnectionsRequest._();
+  static $pb.GeneratedMessage $_createMessage() => WatchConnectionsRequest._();
+  @$core.override
+  WatchConnectionsRequest createEmptyInstance() => WatchConnectionsRequest._();
+  @$core.pragma('dart2js:noInline')
+  static WatchConnectionsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchConnectionsRequest>(WatchConnectionsRequest.$_createMessage);
+  static WatchConnectionsRequest? _defaultInstance;
+}
+
+class BinaryConnection extends $pb.GeneratedMessage {
+  factory BinaryConnection({
+    $core.String? name,
+    $core.bool? connected,
+  }) {
+    final result = BinaryConnection._();
+    if (name != null) result.name = name;
+    if (connected != null) result.connected = connected;
+    return result;
+  }
+
+  BinaryConnection._();
+
+  factory BinaryConnection.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      BinaryConnection()..mergeFromBuffer(data, registry);
+  factory BinaryConnection.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      BinaryConnection()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BinaryConnection',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: BinaryConnection.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOB(2, _omitFieldNames ? '' : 'connected')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BinaryConnection clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BinaryConnection copyWith(void Function(BinaryConnection) updates) =>
+      super.copyWith((message) => updates(message as BinaryConnection)) as BinaryConnection;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use BinaryConnection() / BinaryConnection.new instead')
+  static BinaryConnection create() => BinaryConnection._();
+  static $pb.GeneratedMessage $_createMessage() => BinaryConnection._();
+  @$core.override
+  BinaryConnection createEmptyInstance() => BinaryConnection._();
+  @$core.pragma('dart2js:noInline')
+  static BinaryConnection getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BinaryConnection>(BinaryConnection.$_createMessage);
+  static BinaryConnection? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get connected => $_getBF(1);
+  @$pb.TagNumber(2)
+  set connected($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasConnected() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearConnected() => $_clearField(2);
+}
+
+class WatchConnectionsResponse extends $pb.GeneratedMessage {
+  factory WatchConnectionsResponse({
+    $core.Iterable<BinaryConnection>? connections,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchConnectionsResponse._();
+    if (connections != null) result.connections.addAll(connections);
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchConnectionsResponse._();
+
+  factory WatchConnectionsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchConnectionsResponse()..mergeFromBuffer(data, registry);
+  factory WatchConnectionsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchConnectionsResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchConnectionsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchConnectionsResponse.$_createMessage)
+    ..pPM<BinaryConnection>(1, _omitFieldNames ? '' : 'connections', subBuilder: BinaryConnection.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchConnectionsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchConnectionsResponse copyWith(void Function(WatchConnectionsResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchConnectionsResponse)) as WatchConnectionsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchConnectionsResponse() / WatchConnectionsResponse.new instead')
+  static WatchConnectionsResponse create() => WatchConnectionsResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchConnectionsResponse._();
+  @$core.override
+  WatchConnectionsResponse createEmptyInstance() => WatchConnectionsResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchConnectionsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchConnectionsResponse>(WatchConnectionsResponse.$_createMessage);
+  static WatchConnectionsResponse? _defaultInstance;
+
+  /// Empty in a heartbeat frame.
+  @$pb.TagNumber(1)
+  $pb.PbList<BinaryConnection> get connections => $_getList(0);
+
+  /// True for an idle keepalive frame that carries no state.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 class GetBinaryStatusRequest extends $pb.GeneratedMessage {
   factory GetBinaryStatusRequest({
     $core.String? name,
@@ -7344,6 +7510,12 @@ class OrchestratorServiceApi {
   /// full list, later frames only a changed list or a heartbeat.
   $async.Future<WatchBinariesResponse> watchBinaries($pb.ClientContext? ctx, WatchBinariesRequest request) => _client
       .invoke<WatchBinariesResponse>(ctx, 'OrchestratorService', 'WatchBinaries', request, WatchBinariesResponse());
+
+  /// Stream the connection state of each binary. The first frame holds the full
+  /// list, later frames a changed list or a heartbeat. No frame probes a binary.
+  $async.Future<WatchConnectionsResponse> watchConnections($pb.ClientContext? ctx, WatchConnectionsRequest request) =>
+      _client.invoke<WatchConnectionsResponse>(
+          ctx, 'OrchestratorService', 'WatchConnections', request, WatchConnectionsResponse());
 
   /// Get the status of a single binary.
   $async.Future<GetBinaryStatusResponse> getBinaryStatus($pb.ClientContext? ctx, GetBinaryStatusRequest request) =>

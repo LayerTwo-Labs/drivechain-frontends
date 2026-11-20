@@ -2,6 +2,8 @@ package orchestrator
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"sync"
 )
 
@@ -45,4 +47,23 @@ func (b *changeBroadcast) notify() {
 // a binary changes. The channel lives until ctx is done.
 func (o *Orchestrator) SubscribeBinaries(ctx context.Context) <-chan struct{} {
 	return o.binariesChanged.subscribe(ctx)
+}
+
+// BinaryConnection is the connection state that the monitor of a binary holds.
+type BinaryConnection struct {
+	Name      string
+	Connected bool
+}
+
+// Connections reads the state of each connection monitor, sorted by name. It
+// probes no binary.
+func (o *Orchestrator) Connections() []BinaryConnection {
+	o.monitorsMu.Lock()
+	out := make([]BinaryConnection, 0, len(o.monitors))
+	for name, mon := range o.monitors {
+		out = append(out, BinaryConnection{Name: name, Connected: mon.Connected()})
+	}
+	o.monitorsMu.Unlock()
+	slices.SortFunc(out, func(a, b BinaryConnection) int { return strings.Compare(a.Name, b.Name) })
+	return out
 }

@@ -23,6 +23,8 @@ export 'orchestrator.pb.dart';
 abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$0.ListBinariesResponse> listBinaries($pb.ServerContext ctx, $0.ListBinariesRequest request);
   $async.Future<$0.WatchBinariesResponse> watchBinaries($pb.ServerContext ctx, $0.WatchBinariesRequest request);
+  $async.Future<$0.WatchConnectionsResponse> watchConnections(
+      $pb.ServerContext ctx, $0.WatchConnectionsRequest request);
   $async.Future<$0.GetBinaryStatusResponse> getBinaryStatus($pb.ServerContext ctx, $0.GetBinaryStatusRequest request);
   $async.Future<$0.GetBinaryVersionResponse> getBinaryVersion(
       $pb.ServerContext ctx, $0.GetBinaryVersionRequest request);
@@ -87,6 +89,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return $0.ListBinariesRequest();
       case 'WatchBinaries':
         return $0.WatchBinariesRequest();
+      case 'WatchConnections':
+        return $0.WatchConnectionsRequest();
       case 'GetBinaryStatus':
         return $0.GetBinaryStatusRequest();
       case 'GetBinaryVersion':
@@ -177,6 +181,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return listBinaries(ctx, request as $0.ListBinariesRequest);
       case 'WatchBinaries':
         return watchBinaries(ctx, request as $0.WatchBinariesRequest);
+      case 'WatchConnections':
+        return watchConnections(ctx, request as $0.WatchConnectionsRequest);
       case 'GetBinaryStatus':
         return getBinaryStatus(ctx, request as $0.GetBinaryStatusRequest);
       case 'GetBinaryVersion':

@@ -28,6 +28,15 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.WatchBinariesResponse.new,
   );
 
+  /// Stream the connection state of each binary. The first frame holds the full
+  /// list, later frames a changed list or a heartbeat. No frame probes a binary.
+  static const watchConnections = connect.Spec(
+    '/$name/WatchConnections',
+    connect.StreamType.server,
+    orchestratorv1orchestrator.WatchConnectionsRequest.new,
+    orchestratorv1orchestrator.WatchConnectionsResponse.new,
+  );
+
   /// Get the status of a single binary.
   static const getBinaryStatus = connect.Spec(
     '/$name/GetBinaryStatus',

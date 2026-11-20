@@ -30,6 +30,9 @@ const (
 	// OrchestratorServiceWatchBinariesProcedure is the procedure name of the OrchestratorService's
 	// WatchBinaries RPC.
 	OrchestratorServiceWatchBinariesProcedure = "/orchestrator.v1.OrchestratorService/WatchBinaries"
+	// OrchestratorServiceWatchConnectionsProcedure is the procedure name of the OrchestratorService's
+	// WatchConnections RPC.
+	OrchestratorServiceWatchConnectionsProcedure = "/orchestrator.v1.OrchestratorService/WatchConnections"
 	// OrchestratorServiceGetBinaryStatusProcedure is the procedure name of the OrchestratorService's
 	// GetBinaryStatus RPC.
 	OrchestratorServiceGetBinaryStatusProcedure = "/orchestrator.v1.OrchestratorService/GetBinaryStatus"
@@ -162,6 +165,13 @@ var (
 			StreamType: connect.StreamTypeServer,
 			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("WatchBinaries"),
 			Procedure:  OrchestratorServiceWatchBinariesProcedure,
+		}
+	})
+	orchestratorServiceWatchConnectionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("WatchConnections"),
+			Procedure:  OrchestratorServiceWatchConnectionsProcedure,
 		}
 	})
 	orchestratorServiceGetBinaryStatusSpec = sync.OnceValue(func() connect.Spec {
@@ -446,6 +456,9 @@ type OrchestratorServiceClient interface {
 	// Stream the status of all configured binaries. The first frame holds the
 	// full list, later frames only a changed list or a heartbeat.
 	WatchBinaries(context.Context, *v1.WatchBinariesRequest) (OrchestratorServiceWatchBinariesClientStream, error)
+	// Stream the connection state of each binary. The first frame holds the full
+	// list, later frames a changed list or a heartbeat. No frame probes a binary.
+	WatchConnections(context.Context, *v1.WatchConnectionsRequest) (OrchestratorServiceWatchConnectionsClientStream, error)
 	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error)
 	// Resolve a binary's on-disk path the same way the launcher does (variant-
@@ -609,6 +622,27 @@ func (s OrchestratorServiceWatchBinariesClientStream) Receive() (*v1.WatchBinari
 // Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
 // stream abandoned before io.EOF.
 func (s OrchestratorServiceWatchBinariesClientStream) Close() error {
+	return s.stream.Close()
+}
+
+// OrchestratorServiceWatchConnectionsClientStream is the client stream for the
+// OrchestratorService's WatchConnections RPC.
+type OrchestratorServiceWatchConnectionsClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceWatchConnectionsClientStream) Receive() (*v1.WatchConnectionsResponse, error) {
+	var res v1.WatchConnectionsResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceWatchConnectionsClientStream) Close() error {
 	return s.stream.Close()
 }
 
@@ -788,6 +822,9 @@ type OrchestratorServiceHandler interface {
 	// Stream the status of all configured binaries. The first frame holds the
 	// full list, later frames only a changed list or a heartbeat.
 	WatchBinaries(context.Context, *v1.WatchBinariesRequest, OrchestratorServiceWatchBinariesServerStream) error
+	// Stream the connection state of each binary. The first frame holds the full
+	// list, later frames a changed list or a heartbeat. No frame probes a binary.
+	WatchConnections(context.Context, *v1.WatchConnectionsRequest, OrchestratorServiceWatchConnectionsServerStream) error
 	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error)
 	// Resolve a binary's on-disk path the same way the launcher does (variant-
@@ -934,6 +971,7 @@ func RegisterOrchestratorServiceHandler(server *connect.Server, svc Orchestrator
 	server.Register(
 		connect.Method{Spec: orchestratorServiceListBinariesSpec(), Handler: adapter.listBinaries},
 		connect.Method{Spec: orchestratorServiceWatchBinariesSpec(), Handler: adapter.watchBinaries},
+		connect.Method{Spec: orchestratorServiceWatchConnectionsSpec(), Handler: adapter.watchConnections},
 		connect.Method{Spec: orchestratorServiceGetBinaryStatusSpec(), Handler: adapter.getBinaryStatus},
 		connect.Method{Spec: orchestratorServiceGetBinaryVersionSpec(), Handler: adapter.getBinaryVersion},
 		connect.Method{Spec: orchestratorServiceDownloadBinarySpec(), Handler: adapter.downloadBinary},
@@ -989,6 +1027,22 @@ func (s OrchestratorServiceWatchBinariesServerStream) SendHeaders() error {
 
 // Send sends a response message to the client.
 func (s OrchestratorServiceWatchBinariesServerStream) Send(res *v1.WatchBinariesResponse) error {
+	return s.stream.Send(res)
+}
+
+// OrchestratorServiceWatchConnectionsServerStream is the server stream for the
+// OrchestratorService's WatchConnections RPC.
+type OrchestratorServiceWatchConnectionsServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceWatchConnectionsServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceWatchConnectionsServerStream) Send(res *v1.WatchConnectionsResponse) error {
 	return s.stream.Send(res)
 }
 
@@ -1129,6 +1183,10 @@ func (UnimplementedOrchestratorServiceHandler) ListBinaries(context.Context, *v1
 
 func (UnimplementedOrchestratorServiceHandler) WatchBinaries(context.Context, *v1.WatchBinariesRequest, OrchestratorServiceWatchBinariesServerStream) error {
 	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.WatchBinaries is not implemented")
+}
+
+func (UnimplementedOrchestratorServiceHandler) WatchConnections(context.Context, *v1.WatchConnectionsRequest, OrchestratorServiceWatchConnectionsServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.WatchConnections is not implemented")
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error) {
@@ -1305,6 +1363,14 @@ func (c *orchestratorServiceClient) WatchBinaries(ctx context.Context, req *v1.W
 		return OrchestratorServiceWatchBinariesClientStream{}, err
 	}
 	return OrchestratorServiceWatchBinariesClientStream{stream: stream}, nil
+}
+
+func (c *orchestratorServiceClient) WatchConnections(ctx context.Context, req *v1.WatchConnectionsRequest) (OrchestratorServiceWatchConnectionsClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceWatchConnectionsSpec(), req)
+	if err != nil {
+		return OrchestratorServiceWatchConnectionsClientStream{}, err
+	}
+	return OrchestratorServiceWatchConnectionsClientStream{stream: stream}, nil
 }
 
 func (c *orchestratorServiceClient) GetBinaryStatus(ctx context.Context, req *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error) {
@@ -1639,6 +1705,14 @@ func (h orchestratorServiceHandler) watchBinaries(ctx context.Context, _ connect
 		return err
 	}
 	return h.svc.WatchBinaries(ctx, &req, OrchestratorServiceWatchBinariesServerStream{stream: stream})
+}
+
+func (h orchestratorServiceHandler) watchConnections(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchConnectionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchConnections(ctx, &req, OrchestratorServiceWatchConnectionsServerStream{stream: stream})
 }
 
 func (h orchestratorServiceHandler) getBinaryStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {

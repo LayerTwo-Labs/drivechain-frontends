@@ -169,6 +169,28 @@ func (h *Handler) WatchBinaries(ctx context.Context, req *pb.WatchBinariesReques
 	)
 }
 
+// WatchConnections wakes on each monitor change. The recheck only satisfies
+// watch.Changes: each change of a connected bit notifies.
+func (h *Handler) WatchConnections(ctx context.Context, _ *pb.WatchConnectionsRequest, stream rpc.OrchestratorServiceWatchConnectionsServerStream) error {
+	read := func() ([]*pb.BinaryConnection, error) {
+		conns := h.orch.Connections()
+		out := make([]*pb.BinaryConnection, len(conns))
+		for i, c := range conns {
+			out[i] = &pb.BinaryConnection{Name: c.Name, Connected: c.Connected}
+		}
+		return out, nil
+	}
+	same := func(a, b []*pb.BinaryConnection) bool {
+		return slices.EqualFunc(a, b, func(x, y *pb.BinaryConnection) bool { return proto.Equal(x, y) })
+	}
+	return watch.Changes(ctx, h.orch.SubscribeBinaries(ctx), WatchHeartbeatInterval, WatchHeartbeatInterval, read, same,
+		func(conns []*pb.BinaryConnection) error {
+			return stream.Send(&pb.WatchConnectionsResponse{Connections: conns})
+		},
+		func() error { return stream.Send(&pb.WatchConnectionsResponse{Heartbeat: true}) },
+	)
+}
+
 // sameBinaries ignores the uptime, which moves on each read.
 func sameBinaries(a, b []*pb.BinaryStatusMsg) bool {
 	if len(a) != len(b) {
