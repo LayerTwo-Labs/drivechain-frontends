@@ -181,6 +181,24 @@ void main() {
     });
   }
 
+  for (final phone in [true, false]) {
+    testWidgets('the Add Contact rows show the full hash, phone: $phone', (tester) async {
+      await _pumpChat(tester, phone: phone, connected: true);
+      await tester.tap(_addContact());
+      await tester.pump(const Duration(seconds: 1));
+
+      final hash = blake3Hex(utf8.encode('alice'));
+      if (phone) {
+        expect(tester.takeException(), isNull);
+        final text = find.text(hash);
+        expect(text, findsOneWidget);
+        expect(tester.getSize(text).height, greaterThan(20));
+      } else {
+        expect(find.text('${hash.substring(0, 32)}...'), findsOneWidget);
+      }
+    });
+  }
+
   testWidgets('on a phone the BitNames required steps sit at the left', (tester) async {
     await _pumpChat(tester, phone: true, connected: false);
 

@@ -743,7 +743,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
                                   else
                                     SailText.secondary13('(encrypted)'),
                                   SailText.secondary12(
-                                    '${entry.hash.substring(0, 32)}...',
+                                    phone ? entry.hash : '${entry.hash.substring(0, 32)}...',
                                     color: theme.colors.textTertiary,
                                   ),
                                 ],
