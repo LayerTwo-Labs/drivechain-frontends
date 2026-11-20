@@ -85,6 +85,7 @@ type Server struct {
 	pools            *miningpools.Registry
 	bandwidthTracker *bandwidth.Tracker
 	recycle          func(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error
+	tipChanged       func(ctx context.Context) <-chan struct{}
 
 	config config.Config
 

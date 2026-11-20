@@ -26,6 +26,9 @@ service BitwindowdService {
   rpc DeleteAddressBookEntry(DeleteAddressBookEntryRequest) returns (google.protobuf.Empty);
 
   rpc GetSyncInfo(google.protobuf.Empty) returns (GetSyncInfoResponse);
+  // Stream GetSyncInfo. The first frame holds the info, later frames only a
+  // changed info or a heartbeat.
+  rpc WatchSyncInfo(google.protobuf.Empty) returns (stream WatchSyncInfoResponse);
 
   rpc SetTransactionNote(SetTransactionNoteRequest) returns (google.protobuf.Empty);
   rpc ListTransactionNotes(ListTransactionNotesRequest) returns (ListTransactionNotesResponse);
@@ -202,6 +205,13 @@ message GetSyncInfoResponse {
   // block download. The height fields stand still, so the UI reports the wait
   // instead of a progress bar at 0%.
   bool waits_for_core = 8;
+}
+
+message WatchSyncInfoResponse {
+  // Unset in a heartbeat frame.
+  GetSyncInfoResponse info = 1;
+  // True for an idle keepalive frame that carries no info.
+  bool heartbeat = 2;
 }
 
 // Request to set a transaction note

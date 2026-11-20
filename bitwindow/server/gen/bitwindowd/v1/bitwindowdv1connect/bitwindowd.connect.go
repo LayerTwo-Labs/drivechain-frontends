@@ -54,6 +54,9 @@ const (
 	// BitwindowdServiceGetSyncInfoProcedure is the procedure name of the BitwindowdService's
 	// GetSyncInfo RPC.
 	BitwindowdServiceGetSyncInfoProcedure = "/bitwindowd.v1.BitwindowdService/GetSyncInfo"
+	// BitwindowdServiceWatchSyncInfoProcedure is the procedure name of the BitwindowdService's
+	// WatchSyncInfo RPC.
+	BitwindowdServiceWatchSyncInfoProcedure = "/bitwindowd.v1.BitwindowdService/WatchSyncInfo"
 	// BitwindowdServiceSetTransactionNoteProcedure is the procedure name of the BitwindowdService's
 	// SetTransactionNote RPC.
 	BitwindowdServiceSetTransactionNoteProcedure = "/bitwindowd.v1.BitwindowdService/SetTransactionNote"
@@ -170,6 +173,13 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("GetSyncInfo"),
 			Procedure:  BitwindowdServiceGetSyncInfoProcedure,
+		}
+	})
+	bitwindowdServiceWatchSyncInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("WatchSyncInfo"),
+			Procedure:  BitwindowdServiceWatchSyncInfoProcedure,
 		}
 	})
 	bitwindowdServiceSetTransactionNoteSpec = sync.OnceValue(func() connect.Spec {
@@ -298,6 +308,9 @@ type BitwindowdServiceClient interface {
 	UpdateAddressBookEntry(context.Context, *v1.UpdateAddressBookEntryRequest) (*emptypb.Empty, error)
 	DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error)
 	GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error)
+	// Stream GetSyncInfo. The first frame holds the info, later frames only a
+	// changed info or a heartbeat.
+	WatchSyncInfo(context.Context, *emptypb.Empty) (BitwindowdServiceWatchSyncInfoClientStream, error)
 	SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error)
 	ListTransactionNotes(context.Context, *v1.ListTransactionNotesRequest) (*v1.ListTransactionNotesResponse, error)
 	// BIP329 label import/export. ExportLabels emits one JSONL object per
@@ -338,6 +351,27 @@ func NewBitwindowdServiceClient(client *connect.Client) BitwindowdServiceClient 
 	return &bitwindowdServiceClient{client: client}
 }
 
+// BitwindowdServiceWatchSyncInfoClientStream is the client stream for the BitwindowdService's
+// WatchSyncInfo RPC.
+type BitwindowdServiceWatchSyncInfoClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s BitwindowdServiceWatchSyncInfoClientStream) Receive() (*v1.WatchSyncInfoResponse, error) {
+	var res v1.WatchSyncInfoResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s BitwindowdServiceWatchSyncInfoClientStream) Close() error {
+	return s.stream.Close()
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
@@ -357,6 +391,9 @@ type BitwindowdServiceHandler interface {
 	UpdateAddressBookEntry(context.Context, *v1.UpdateAddressBookEntryRequest) (*emptypb.Empty, error)
 	DeleteAddressBookEntry(context.Context, *v1.DeleteAddressBookEntryRequest) (*emptypb.Empty, error)
 	GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error)
+	// Stream GetSyncInfo. The first frame holds the info, later frames only a
+	// changed info or a heartbeat.
+	WatchSyncInfo(context.Context, *emptypb.Empty, BitwindowdServiceWatchSyncInfoServerStream) error
 	SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error)
 	ListTransactionNotes(context.Context, *v1.ListTransactionNotesRequest) (*v1.ListTransactionNotesResponse, error)
 	// BIP329 label import/export. ExportLabels emits one JSONL object per
@@ -406,6 +443,7 @@ func RegisterBitwindowdServiceHandler(server *connect.Server, svc BitwindowdServ
 		connect.Method{Spec: bitwindowdServiceUpdateAddressBookEntrySpec(), Handler: adapter.updateAddressBookEntry},
 		connect.Method{Spec: bitwindowdServiceDeleteAddressBookEntrySpec(), Handler: adapter.deleteAddressBookEntry},
 		connect.Method{Spec: bitwindowdServiceGetSyncInfoSpec(), Handler: adapter.getSyncInfo},
+		connect.Method{Spec: bitwindowdServiceWatchSyncInfoSpec(), Handler: adapter.watchSyncInfo},
 		connect.Method{Spec: bitwindowdServiceSetTransactionNoteSpec(), Handler: adapter.setTransactionNote},
 		connect.Method{Spec: bitwindowdServiceListTransactionNotesSpec(), Handler: adapter.listTransactionNotes},
 		connect.Method{Spec: bitwindowdServiceExportLabelsSpec(), Handler: adapter.exportLabels},
@@ -422,6 +460,22 @@ func RegisterBitwindowdServiceHandler(server *connect.Server, svc BitwindowdServ
 		connect.Method{Spec: bitwindowdServiceListMiningPoolsSpec(), Handler: adapter.listMiningPools},
 		connect.Method{Spec: bitwindowdServiceUpdateNetworkSpec(), Handler: adapter.updateNetwork},
 	)
+}
+
+// BitwindowdServiceWatchSyncInfoServerStream is the server stream for the BitwindowdService's
+// WatchSyncInfo RPC.
+type BitwindowdServiceWatchSyncInfoServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s BitwindowdServiceWatchSyncInfoServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s BitwindowdServiceWatchSyncInfoServerStream) Send(res *v1.WatchSyncInfoResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedBitwindowdServiceHandler returns CodeUnimplemented from all methods.
@@ -465,6 +519,10 @@ func (UnimplementedBitwindowdServiceHandler) DeleteAddressBookEntry(context.Cont
 
 func (UnimplementedBitwindowdServiceHandler) GetSyncInfo(context.Context, *emptypb.Empty) (*v1.GetSyncInfoResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.GetSyncInfo is not implemented")
+}
+
+func (UnimplementedBitwindowdServiceHandler) WatchSyncInfo(context.Context, *emptypb.Empty, BitwindowdServiceWatchSyncInfoServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.WatchSyncInfo is not implemented")
 }
 
 func (UnimplementedBitwindowdServiceHandler) SetTransactionNote(context.Context, *v1.SetTransactionNoteRequest) (*emptypb.Empty, error) {
@@ -609,6 +667,14 @@ func (c *bitwindowdServiceClient) GetSyncInfo(ctx context.Context, req *emptypb.
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) WatchSyncInfo(ctx context.Context, req *emptypb.Empty) (BitwindowdServiceWatchSyncInfoClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, bitwindowdServiceWatchSyncInfoSpec(), req)
+	if err != nil {
+		return BitwindowdServiceWatchSyncInfoClientStream{}, err
+	}
+	return BitwindowdServiceWatchSyncInfoClientStream{stream: stream}, nil
 }
 
 func (c *bitwindowdServiceClient) SetTransactionNote(ctx context.Context, req *v1.SetTransactionNoteRequest) (*emptypb.Empty, error) {
@@ -851,6 +917,14 @@ func (h bitwindowdServiceHandler) getSyncInfo(ctx context.Context, _ connect.Spe
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) watchSyncInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req emptypb.Empty
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchSyncInfo(ctx, &req, BitwindowdServiceWatchSyncInfoServerStream{stream: stream})
 }
 
 func (h bitwindowdServiceHandler) setTransactionNote(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {

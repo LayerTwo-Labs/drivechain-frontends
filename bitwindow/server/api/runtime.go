@@ -255,6 +255,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	{
 		pools := miningpools.New(ctx, conf.BitcoinCoreNetwork, networkID, conf.Datadir, s.svcs.MiningPoolFetch)
 		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, rt.mempoolWatcher, pools, conf, s.Recycle)
+		bwSvc.SetTipSource(rt.bitcoinEngine.SubscribeTip)
 		bitwindowdv1connect.RegisterBitwindowdServiceHandler(rpcServer, bwSvc)
 	}
 	{
