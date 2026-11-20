@@ -12,6 +12,7 @@ import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/sidechains/hosted_modules.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
+import 'package:bitwindow/widgets/network_unavailable_body.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -277,43 +278,31 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
       return SailCard(
         title: 'Sidechains',
         subtitle: 'Not available on this network',
-        child: Padding(
-          padding: const EdgeInsets.all(SailStyleValues.padding20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary20('Unlock Sidechains with BIP300'),
-              const SailSpacing(SailStyleValues.padding20),
-              SailText.secondary13(
-                'Sidechains are only available on Drivechain-enabled networks (eCash and Signet). '
-                'These networks implement BIP300, which enables trustless two-way pegged sidechains.',
-              ),
-              const SailSpacing(SailStyleValues.padding20),
-              SailText.primary15('What are Sidechains?'),
-              const SailSpacing(SailStyleValues.padding08),
-              SailText.secondary13(
-                'Sidechains allow you to move your Bitcoin to separate blockchains with different features, '
-                'while maintaining the security and scarcity of Bitcoin. Think of them as Bitcoin-backed '
-                'altcoins that you can freely move between.',
-              ),
-              const SailSpacing(SailStyleValues.padding20),
-              SailText.primary15('How to Enable Sidechains'),
-              const SailSpacing(SailStyleValues.padding08),
-              SailText.secondary13(
-                '1. Go to Settings\n'
-                '2. Switch to "eCash" or "Signet" network\n'
-                '3. Restart BitWindow\n'
-                '4. Return to this tab to activate sidechains',
-              ),
-              const SailSpacing(SailStyleValues.padding20),
-              SailText.primary15('Learn More'),
-              const SailSpacing(SailStyleValues.padding08),
-              SailText.secondary13(
-                'BIP300 (Hashrate Escrows) and BIP301 (Blind Merged Mining) enable true sidechain functionality. '
-                'Visit drivechain.info to learn more about how Drivechain works and why it matters for Bitcoin.',
-              ),
-            ],
-          ),
+        child: const NetworkUnavailableBody(
+          heading: 'Unlock Sidechains with BIP300',
+          intro:
+              'Sidechains are only available on Drivechain-enabled networks (eCash and Signet). '
+              'These networks implement BIP300, which enables trustless two-way pegged sidechains.',
+          sections: [
+            (
+              'What are Sidechains?',
+              'Sidechains allow you to move your Bitcoin to separate blockchains with different features, '
+                  'while maintaining the security and scarcity of Bitcoin. Think of them as Bitcoin-backed '
+                  'altcoins that you can freely move between.',
+            ),
+            (
+              'How to Enable Sidechains',
+              '1. Go to Settings\n'
+                  '2. Switch to "eCash" or "Signet" network\n'
+                  '3. Restart BitWindow\n'
+                  '4. Return to this tab to activate sidechains',
+            ),
+            (
+              'Learn More',
+              'BIP300 (Hashrate Escrows) and BIP301 (Blind Merged Mining) enable true sidechain functionality. '
+                  'Visit drivechain.info to learn more about how Drivechain works and why it matters for Bitcoin.',
+            ),
+          ],
         ),
       );
     }
