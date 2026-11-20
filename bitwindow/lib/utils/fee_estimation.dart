@@ -150,6 +150,18 @@ int maxSendAmountSats({
 /// The smallest payment the backend sends to an address.
 const dustSats = 546;
 
-/// Time the send page waits after the last form change before it asks for a
-/// fee preview.
-const feePreviewDebounce = Duration(milliseconds: 400);
+/// Time a form must stay the same before the send page shows a failed fee preview.
+const feePreviewErrorDelay = Duration(milliseconds: 400);
+
+/// The rest of [feePreviewErrorDelay] after a form change at [changedAt].
+Duration feePreviewErrorWait(DateTime changedAt) => feePreviewErrorDelay - DateTime.now().difference(changedAt);
+
+/// Runs [run] at once for the key [newest] returns, one run at a time. A key
+/// that changes during a run runs next. The keys in between never run.
+Future<void> runNewest<K extends Object>(K? Function() newest, Future<void> Function(K key) run) async {
+  K? last;
+  for (var key = newest(); key != null && key != last; key = newest()) {
+    last = key;
+    await run(key);
+  }
+}

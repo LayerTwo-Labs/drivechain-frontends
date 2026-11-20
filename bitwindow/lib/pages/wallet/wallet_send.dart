@@ -944,8 +944,10 @@ class SendPageViewModel extends BaseViewModel {
   int? selectedConfTarget = 1;
   bool get customFee => selectedConfTarget == null;
   double? _estimatedSatPerVByte;
-  Timer? _feePreviewTimer;
+  bool _feePreviewRunning = false;
   String? _feePreviewKey;
+  DateTime _feePreviewKeyAt = DateTime.now();
+  Timer? _feePreviewErrorTimer;
   String? _pricedKey;
   List<UnspentOutput> _pricedInputs = const [];
   UnspentOutput? _pricedNotificationInput;
@@ -1145,7 +1147,7 @@ class SendPageViewModel extends BaseViewModel {
     settingsProvider.removeListener(_onUnitChanged);
     draftProvider.removeListener(notifyListeners);
     _walletReader.removeListener(notifyListeners);
-    _feePreviewTimer?.cancel();
+    _feePreviewErrorTimer?.cancel();
     super.dispose();
   }
 
@@ -1751,15 +1753,24 @@ class SendPageViewModel extends BaseViewModel {
       return;
     }
     _feePreviewKey = key;
-    _feePreviewTimer?.cancel();
+    _feePreviewKeyAt = DateTime.now();
+    _feePreviewErrorTimer?.cancel();
     if (key == null) {
       return;
     }
-    _feePreviewTimer = Timer(feePreviewDebounce, () => unawaited(_previewFee(key)));
+    if (_feePreviewRunning) {
+      return;
+    }
+    _feePreviewRunning = true;
+    unawaited(
+      runNewest(() => disposed ? null : _feePreviewKey, _previewFee).whenComplete(() => _feePreviewRunning = false),
+    );
   }
 
   /// Prices the form, which [key] identifies, and puts the fee in the fee field.
-  Future<void> _previewFee(String key) async {
+  /// A failure shows when the form stayed the same for [feePreviewErrorDelay],
+  /// or at once when [errorNow] is set.
+  Future<void> _previewFee(String key, {bool errorNow = false}) async {
     try {
       final preview = await _orchestratorWallet.previewSend(
         walletId: _walletReader.activeWalletId!,
@@ -1771,6 +1782,7 @@ class SendPageViewModel extends BaseViewModel {
       if (disposed || key != _feePreviewKey) {
         return;
       }
+      _feePreviewErrorTimer?.cancel();
       UnspentOutput coin(wmpb.UnspentOutput i) => UnspentOutput(output: '${i.txid}:${i.vout}', valueSats: i.amountSats);
       _pricedKey = key;
       _pricedInputs = preview.inputs.map(coin).toList();
@@ -1784,7 +1796,18 @@ class SendPageViewModel extends BaseViewModel {
       if (disposed || key != _feePreviewKey) {
         return;
       }
-      setSendError('Could not calculate the fee: $error');
+      final message = 'Could not calculate the fee: $error';
+      final wait = feePreviewErrorWait(_feePreviewKeyAt);
+      if (errorNow || wait <= Duration.zero) {
+        setSendError(message);
+        return;
+      }
+      _feePreviewErrorTimer?.cancel();
+      _feePreviewErrorTimer = Timer(wait, () {
+        if (!disposed && key == _feePreviewKey) {
+          setSendError(message);
+        }
+      });
     }
   }
 
@@ -1795,9 +1818,9 @@ class SendPageViewModel extends BaseViewModel {
     if (key == null || (key == _pricedKey && (_pricedIsEstimate || shownFeeSats == _pricedFeeSats))) {
       return true;
     }
-    _feePreviewTimer?.cancel();
     _feePreviewKey = key;
-    await _previewFee(key);
+    _feePreviewKeyAt = DateTime.now();
+    await _previewFee(key, errorNow: true);
     if (_pricedKey != key) {
       return false;
     }
@@ -1862,7 +1885,6 @@ class SendPageViewModel extends BaseViewModel {
 
   void clearFeeEstimate() {
     _estimatedSatPerVByte = null;
-    _feePreviewTimer?.cancel();
     _feePreviewKey = null;
   }
 }

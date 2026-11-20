@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bitwindow/utils/fee_estimation.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -221,6 +223,41 @@ void main() {
         ),
         999_300,
       );
+    });
+  });
+
+  group('runNewest', () {
+    test('runs the first key at once', () {
+      final ran = <String>[];
+      unawaited(runNewest(() => 'a', (key) async => ran.add(key)));
+
+      expect(ran, ['a']);
+    });
+
+    test('runs only the newest key that arrived during a run', () async {
+      final ran = <String>[];
+      final gate = Completer<void>();
+      var newest = 'a';
+      final done = runNewest<String>(() => newest, (key) async {
+        ran.add(key);
+        if (key == 'a') {
+          await gate.future;
+        }
+      });
+
+      newest = 'b';
+      newest = 'c';
+      gate.complete();
+      await done;
+
+      expect(ran, ['a', 'c']);
+    });
+
+    test('stops on a null key', () async {
+      final ran = <String>[];
+      await runNewest<String>(() => null, (key) async => ran.add(key));
+
+      expect(ran, isEmpty);
     });
   });
 }
