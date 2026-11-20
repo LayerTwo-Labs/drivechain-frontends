@@ -34,40 +34,10 @@ class ForkCountdownHeader extends StatelessWidget {
 /// held stable by [ForkProvider] (re-anchored only every 10 blocks); this
 /// widget just ticks the local clock down to it once a second, so the
 /// d HH:MM:SS counts smoothly rather than jumping a block-interval at a time.
-class ForkCountdownTimer extends StatefulWidget {
+class ForkCountdownTimer extends StatelessWidget {
   const ForkCountdownTimer({super.key});
 
-  @override
-  State<ForkCountdownTimer> createState() => _ForkCountdownTimerState();
-}
-
-class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
   ForkProvider get _fork => GetIt.I<ForkProvider>();
-  Timer? _ticker;
-
-  @override
-  void initState() {
-    super.initState();
-    _fork.addListener(_syncTicker);
-    _syncTicker();
-  }
-
-  // A hidden strip has no clock to move, so it does not tick.
-  void _syncTicker() {
-    if (!_fork.showCountdown || _fork.forkTargetDate == null) {
-      _ticker?.cancel();
-      _ticker = null;
-      return;
-    }
-    _ticker ??= Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _fork.removeListener(_syncTicker);
-    _ticker?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,15 +50,6 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
         }
 
         final theme = SailTheme.of(context);
-        var remaining = target.difference(DateTime.now());
-        if (remaining.isNegative) {
-          remaining = Duration.zero;
-        }
-
-        final hms =
-            '${_two(remaining.inHours % 24)}:${_two(remaining.inMinutes % 60)}:${_two(remaining.inSeconds % 60)}';
-        final countdown = remaining.inDays > 0 ? '${remaining.inDays}d $hms' : hms;
-
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -111,16 +72,7 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
                 color: theme.colors.textSecondary,
               ),
               const SizedBox(width: 10),
-              Text(
-                countdown,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.0,
-                  fontWeight: FontWeight.w700,
-                  color: theme.colors.text,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
+              _Countdown(target: target),
               const SizedBox(width: 10),
               _divider(theme),
               const SizedBox(width: 10),
@@ -136,8 +88,6 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
     return Container(width: 1, height: 12, color: theme.colors.divider);
   }
 
-  String _two(int n) => n.toString().padLeft(2, '0');
-
   String _grouped(int n) {
     final s = n.toString();
     final buf = StringBuffer();
@@ -148,5 +98,55 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
       buf.write(s[i]);
     }
     return buf.toString();
+  }
+}
+
+/// The d HH:MM:SS to [target]. Only this text rebuilds each second.
+class _Countdown extends StatefulWidget {
+  final DateTime target;
+
+  const _Countdown({required this.target});
+
+  @override
+  State<_Countdown> createState() => _CountdownState();
+}
+
+class _CountdownState extends State<_Countdown> {
+  late final Timer _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _ticker.cancel();
+    super.dispose();
+  }
+
+  String _two(int n) => n.toString().padLeft(2, '0');
+
+  @override
+  Widget build(BuildContext context) {
+    var remaining = widget.target.difference(DateTime.now());
+    if (remaining.isNegative) {
+      remaining = Duration.zero;
+    }
+
+    final hms = '${_two(remaining.inHours % 24)}:${_two(remaining.inMinutes % 60)}:${_two(remaining.inSeconds % 60)}';
+    final countdown = remaining.inDays > 0 ? '${remaining.inDays}d $hms' : hms;
+
+    return Text(
+      countdown,
+      style: TextStyle(
+        fontSize: 13,
+        height: 1.0,
+        fontWeight: FontWeight.w700,
+        color: SailTheme.of(context).colors.text,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
   }
 }

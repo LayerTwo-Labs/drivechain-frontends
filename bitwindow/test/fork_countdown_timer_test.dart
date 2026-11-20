@@ -3,6 +3,7 @@ import 'package:bitwindow/widgets/fork_countdown_timer.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class _Fork extends ForkProvider {
   int reads = 0;
@@ -36,5 +37,29 @@ void main() {
 
     expect(fork.reads, reads);
     expect(find.byType(SizedBox), findsOneWidget);
+  });
+
+  testWidgets('a shown strip ticks only its clock', (tester) async {
+    final fork = _Fork()
+      ..showCountdown = true
+      ..forkHeight = 100
+      ..forkTargetDate = DateTime.now().add(const Duration(seconds: 30, milliseconds: 500));
+    GetIt.I.registerSingleton<ForkProvider>(fork);
+    addTearDown(GetIt.I.reset);
+
+    await tester.pumpWidget(
+      SailTheme(
+        data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+        child: const Directionality(textDirection: TextDirection.ltr, child: ForkCountdownTimer()),
+      ),
+    );
+    expect(find.text('00:00:30'), findsOneWidget);
+    final reads = fork.reads;
+
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1100)));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('00:00:29'), findsOneWidget);
+    expect(fork.reads, reads);
   });
 }
