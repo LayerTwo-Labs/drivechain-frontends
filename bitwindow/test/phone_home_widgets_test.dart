@@ -1,6 +1,10 @@
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:bitwindow/widgets/fee_coinnews.dart';
+import 'package:bitwindow/widgets/mempool_widget.dart';
+import 'package:bitwindow/widgets/peers_table_widget.dart';
+import 'package:bitwindow/providers/mempool_provider.dart';
+import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show Peer;
 import 'package:bitwindow/widgets/network_stats_widget.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -200,6 +204,76 @@ void main() {
 
       expect(find.text('Topic'), findsOneWidget);
       expect(find.text(formatDate(time)), findsNWidgets(2));
+    });
+  });
+
+  group('Mempool', () {
+    final stats = MempoolStats(
+      txCount: 4210,
+      totalVsize: 1820000,
+      totalFees: 4210000,
+      medianFeeRate: 3.2,
+      feeBuckets: const [],
+      feeEstimates: const [],
+    );
+
+    testWidgets('on a phone each stat is a label at the left and its value at the right', (tester) async {
+      SailStyleValues.phoneLayoutOverride = true;
+      await tester.pumpSailPage(SizedBox(width: 335, child: MempoolStatsRow(stats: stats)));
+
+      final label = tester.getRect(find.text('Transactions'));
+      final value = tester.getRect(find.text('4210'));
+      expect(value.top, closeTo(label.top, 2));
+      expect(value.right, closeTo(tester.getRect(find.byType(MempoolStatsRow)).right, 1));
+      expect(tester.getRect(find.text('Size')).top, greaterThan(label.bottom));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('on the desktop each stat value stays under its label', (tester) async {
+      SailStyleValues.phoneLayoutOverride = false;
+      await tester.pumpSailPage(SizedBox(width: 800, child: MempoolStatsRow(stats: stats)));
+
+      expect(tester.getRect(find.text('4210')).top, greaterThan(tester.getRect(find.text('Transactions')).bottom - 1));
+    });
+  });
+
+  group('Connected Peers', () {
+    final peers = [
+      Peer(addr: '[2001:db8:85a3::8a2e:370:7334]:8333', inbound: false),
+      Peer(addr: '203.0.113.7:8333', inbound: true),
+    ];
+
+    double cellWidth(WidgetTester tester, String value) =>
+        tester.getSize(find.ancestor(of: find.text(value).first, matching: find.byType(SailTableCell))).width;
+
+    Future<void> pump(WidgetTester tester, double width) async {
+      await loadBundledFonts();
+      await tester.pumpSailPage(
+        SizedBox(
+          width: width,
+          height: 300,
+          child: PeersTable(peers: peers, sortColumn: 'addr', sortAscending: true, onSort: (_) {}),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('on a phone the address takes the width that direction and ping leave', (tester) async {
+      SailStyleValues.phoneLayoutOverride = true;
+      await pump(tester, 335);
+
+      expect(find.text('Sent'), findsNothing);
+      expect(cellWidth(tester, 'Outbound'), closeTo(88, 1));
+      expect(cellWidth(tester, '203.0.113.7:8333'), closeTo(335 - 88 - 64, 2));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('on the desktop the peers table keeps every column', (tester) async {
+      SailStyleValues.phoneLayoutOverride = false;
+      await pump(tester, 1200);
+
+      expect(find.text('Sent'), findsOneWidget);
+      expect(find.text('Connected'), findsOneWidget);
     });
   });
 }

@@ -76,6 +76,22 @@ class MempoolStatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailColumn(
+        spacing: SailStyleValues.padding08,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StatLine(label: 'Transactions', value: stats.txCount.toString()),
+          _StatLine(label: 'Size', value: '${stats.totalVsizeMB.toStringAsFixed(2)} MB'),
+          _StatLine(label: 'Median Fee', value: '${stats.medianFeeRate.toStringAsFixed(1)} ${activeTicker.feeRate}'),
+          _StatLine(
+            label: 'Total Fees',
+            value: '${(stats.totalFees / 100000000).toStringAsFixed(4)} ${activeTicker.symbol}',
+          ),
+        ],
+      );
+    }
+
     return Wrap(
       spacing: SailStyleValues.padding16,
       runSpacing: SailStyleValues.padding08,
@@ -104,6 +120,24 @@ class MempoolStatsRow extends StatelessWidget {
           icon: SailSVGAsset.iconWallet,
           theme: theme,
         ),
+      ],
+    );
+  }
+}
+
+/// One mempool stat on a phone, in the label-left, value-right form of a fee estimate row.
+class _StatLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatLine({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: SailText.secondary12(label, overflow: TextOverflow.ellipsis)),
+        SailText.primary12(value),
       ],
     );
   }

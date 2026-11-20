@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -142,37 +144,54 @@ class PeersTable extends StatelessWidget {
     required this.onSort,
   });
 
+  static const _phoneDirectionWidth = 88.0;
+  static const _phonePingWidth = 64.0;
+
   @override
   Widget build(BuildContext context) {
     final columns = ['addr', 'direction', 'ping', 'sent', 'recv', 'conntime'];
+    final phone = SailStyleValues.phoneLayout(context);
 
-    return SailTable(
-      getRowId: (index) => peers[index].addr,
-      headerBuilder: (context) => [
-        SailTableHeaderCell(name: 'Address', onSort: () => onSort('addr')),
-        SailTableHeaderCell(name: 'Direction', onSort: () => onSort('direction')),
-        SailTableHeaderCell(name: 'Ping', onSort: () => onSort('ping')),
-        SailTableHeaderCell(name: 'Sent', onSort: () => onSort('sent')),
-        SailTableHeaderCell(name: 'Received', onSort: () => onSort('recv')),
-        SailTableHeaderCell(name: 'Connected', onSort: () => onSort('conntime')),
-      ],
-      rowBuilder: (context, row, selected) {
-        final peer = peers[row];
-        return [
-          SailTableCell(value: peer.addr),
-          SailTableCell(value: peer.inbound ? 'Inbound' : 'Outbound'),
-          SailTableCell(value: _formatPing(peer.pingTime)),
-          SailTableCell(value: _formatBytes(peer.bytesSent.toInt())),
-          SailTableCell(value: _formatBytes(peer.bytesReceived.toInt())),
-          SailTableCell(value: _formatDuration(peer.connectedAt)),
-        ];
-      },
-      rowCount: peers.length,
-      drawGrid: true,
-      sortColumnIndex: columns.indexOf(sortColumn),
-      sortAscending: sortAscending,
-      onSort: (columnIndex, ascending) {
-        onSort(columns[columnIndex]);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final phoneAddressWidth = max(
+          defaultMinColumnWidth,
+          constraints.maxWidth - _phoneDirectionWidth - _phonePingWidth,
+        );
+        return SailTable(
+          getRowId: (index) => peers[index].addr,
+          phoneColumns: const [0, 1, 2],
+          headerBuilder: (context) => [
+            SailTableHeaderCell(name: 'Address', onSort: () => onSort('addr')),
+            SailTableHeaderCell(name: 'Direction', onSort: () => onSort('direction')),
+            SailTableHeaderCell(name: 'Ping', onSort: () => onSort('ping')),
+            SailTableHeaderCell(name: 'Sent', onSort: () => onSort('sent')),
+            SailTableHeaderCell(name: 'Received', onSort: () => onSort('recv')),
+            SailTableHeaderCell(name: 'Connected', onSort: () => onSort('conntime')),
+          ],
+          rowBuilder: (context, row, selected) {
+            final peer = peers[row];
+            return [
+              SailTableCell(
+                value: peer.addr,
+                width: phone ? phoneAddressWidth : null,
+                child: phone ? SailText.primary13(peer.addr) : null,
+              ),
+              SailTableCell(value: peer.inbound ? 'Inbound' : 'Outbound', width: phone ? _phoneDirectionWidth : null),
+              SailTableCell(value: _formatPing(peer.pingTime), width: phone ? _phonePingWidth : null),
+              SailTableCell(value: _formatBytes(peer.bytesSent.toInt())),
+              SailTableCell(value: _formatBytes(peer.bytesReceived.toInt())),
+              SailTableCell(value: _formatDuration(peer.connectedAt)),
+            ];
+          },
+          rowCount: peers.length,
+          drawGrid: true,
+          sortColumnIndex: columns.indexOf(sortColumn),
+          sortAscending: sortAscending,
+          onSort: (columnIndex, ascending) {
+            onSort(columns[columnIndex]);
+          },
+        );
       },
     );
   }
