@@ -218,5 +218,7 @@ export 'utils/lock.dart';
 export 'utils/hex.dart';
 export 'utils/ur_psbt.dart';
 export 'utils/uuid.dart';
+export 'utils/desktop_window.dart';
+export 'utils/android_native.dart';
 export 'models/core_transaction.dart';
 export 'style/color_scheme.dart';

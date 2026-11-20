@@ -142,4 +142,11 @@ void main() {
       expect(windowsProductNames, hasLength(_apps.length));
     });
   });
+
+  test('Android keeps BitWindow data in the Linux folder under the app home', () {
+    expect(
+      flutterFrontendDirFor(BinaryType.BINARY_TYPE_BITWINDOWD, OS.android, '/data/user/0/app/files'),
+      flutterFrontendDirFor(BinaryType.BINARY_TYPE_BITWINDOWD, OS.linux, '/data/user/0/app/files'),
+    );
+  });
 }

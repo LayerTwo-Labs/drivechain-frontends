@@ -28,6 +28,10 @@ void main() {
     );
   });
 
+  test('openUrlCommand has no command on Android, which opens a link through an intent', () {
+    expect(() => openUrlCommand(OS.android, uri), throwsUnsupportedError);
+  });
+
   test('openUrlCommand keeps a file URI', () {
     _expectCommand(openUrlCommand(OS.macos, Uri.file('/tmp/paper wallet.pdf')), 'open', [
       'file:///tmp/paper%20wallet.pdf',

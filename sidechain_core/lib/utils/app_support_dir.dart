@@ -44,6 +44,8 @@ Future<Directory> appSupportDirectory() async {
       final infoPlist = File(path.join(path.dirname(path.dirname(Platform.resolvedExecutable)), 'Info.plist'));
       final dir = Directory(macosSupportPath(env, macosBundleIdentifier(await infoPlist.readAsString())));
       return dir.create(recursive: true);
+    case OS.android:
+      return linuxSupportDirectory(env, linuxApplicationIds['bitwindow']!, 'bitwindow');
     case OS.linux:
       final executable = path.basenameWithoutExtension(await File('/proc/self/exe').resolveSymbolicLinks());
       final applicationId = linuxApplicationIds[executable];

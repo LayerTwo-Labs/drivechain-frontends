@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:sidechain_core/utils/android_native.dart';
 import 'package:sidechain_core/utils/file_utils.dart';
 
 typedef ProcessRunner = Future<ProcessResult> Function(String executable, List<String> arguments);
@@ -22,6 +24,7 @@ class OpenUrlException implements Exception {
   OS.macos => ('open', [uri.toString()]),
   OS.linux => ('xdg-open', [uri.toString()]),
   OS.windows => ('rundll32', ['url.dll,FileProtocolHandler', uri.toString()]),
+  OS.android => throw UnsupportedError('Android opens a link through an intent, not a command'),
 };
 
 /// Opens [uri] in the default browser or file handler.
@@ -29,6 +32,14 @@ class OpenUrlException implements Exception {
 Future<void> openUrl(Uri uri) async {
   if (!uri.hasScheme) {
     throw OpenUrlException('cannot open "$uri": the link has no scheme');
+  }
+  if (getOS() == OS.android) {
+    try {
+      await androidNative.invokeMethod<void>('openUrl', uri.toString());
+    } on PlatformException catch (e) {
+      throw OpenUrlException('Android could not open "$uri": ${e.message}');
+    }
+    return;
   }
   final (executable, arguments) = openUrlCommand(getOS(), uri);
   final result = await openUrlProcessRunner(executable, arguments);
