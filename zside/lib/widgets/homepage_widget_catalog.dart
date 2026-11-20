@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart' show SidechainBalanceRows;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:zside/providers/transactions_provider.dart';
 
@@ -30,41 +31,47 @@ class ZSideWidgetCatalog {
             builder: (context, child) => SizedBox(
               child: SailCard(
                 title: 'Balance',
-                child: SailColumn(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.primary24(
-                      formatter.formatBTC(model.totalBalance),
-                      bold: true,
-                    ),
-                    const SizedBox(height: 8),
-                    // Pool breakdown section
-                    if (model.balanceBreakdown != null) ...[
-                      PoolBalanceRow(
-                        label: 'Private (Shielded)',
-                        available: model.balanceBreakdown!.availableShielded,
-                        pending: model.balanceBreakdown!.pendingShielded,
-                        color: theme.colors.success,
+                child: SailStyleValues.phoneLayout(context)
+                    ? SidechainBalanceRows(
+                        total: formatter.formatBTC(model.totalBalance),
+                        available: formatter.formatBTC(model.balance),
+                        pending: formatter.formatBTC(model.pendingBalance),
+                      )
+                    : SailColumn(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailText.primary24(
+                            formatter.formatBTC(model.totalBalance),
+                            bold: true,
+                          ),
+                          const SizedBox(height: 8),
+                          // Pool breakdown section
+                          if (model.balanceBreakdown != null) ...[
+                            PoolBalanceRow(
+                              label: 'Private (Shielded)',
+                              available: model.balanceBreakdown!.availableShielded,
+                              pending: model.balanceBreakdown!.pendingShielded,
+                              color: theme.colors.success,
+                            ),
+                            PoolBalanceRow(
+                              label: 'Transparent',
+                              available: model.balanceBreakdown!.availableTransparent,
+                              pending: model.balanceBreakdown!.pendingTransparent,
+                              color: theme.colors.info,
+                            ),
+                          ] else ...[
+                            BalanceRow(
+                              label: 'Available',
+                              amount: model.balance,
+                            ),
+                            BalanceRow(
+                              label: 'Pending',
+                              amount: model.pendingBalance,
+                            ),
+                          ],
+                        ],
                       ),
-                      PoolBalanceRow(
-                        label: 'Transparent',
-                        available: model.balanceBreakdown!.availableTransparent,
-                        pending: model.balanceBreakdown!.pendingTransparent,
-                        color: theme.colors.info,
-                      ),
-                    ] else ...[
-                      BalanceRow(
-                        label: 'Available',
-                        amount: model.balance,
-                      ),
-                      BalanceRow(
-                        label: 'Pending',
-                        amount: model.pendingBalance,
-                      ),
-                    ],
-                  ],
-                ),
               ),
             ),
           );

@@ -27,31 +27,41 @@ class PhotonWidgetCatalog {
             builder: (context, child) => SizedBox(
               child: SailCard(
                 title: 'Balance',
-                child: SailColumn(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailSkeletonizer(
-                      enabled: !model.balanceInitialized,
-                      description: 'Waiting for photon to boot...',
-                      child: SailText.primary24(
-                        formatter.formatBTC(model.totalBalance),
-                        bold: true,
+                child: SailStyleValues.phoneLayout(context)
+                    ? SidechainBalanceRows(
+                        total: formatter.formatBTC(model.totalBalance),
+                        available: formatter.formatBTC(model.balance),
+                        pending: formatter.formatBTC(model.pendingBalance),
+                        loading: LoadingDetails(
+                          enabled: !model.balanceInitialized,
+                          description: 'Waiting for photon to boot...',
+                        ),
+                      )
+                    : SailColumn(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailSkeletonizer(
+                            enabled: !model.balanceInitialized,
+                            description: 'Waiting for photon to boot...',
+                            child: SailText.primary24(
+                              formatter.formatBTC(model.totalBalance),
+                              bold: true,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          BalanceRow(
+                            label: 'Available',
+                            amount: model.balance,
+                            loading: !model.balanceInitialized,
+                          ),
+                          BalanceRow(
+                            label: 'Pending',
+                            amount: model.pendingBalance,
+                            loading: !model.balanceInitialized,
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    BalanceRow(
-                      label: 'Available',
-                      amount: model.balance,
-                      loading: !model.balanceInitialized,
-                    ),
-                    BalanceRow(
-                      label: 'Pending',
-                      amount: model.pendingBalance,
-                      loading: !model.balanceInitialized,
-                    ),
-                  ],
-                ),
               ),
             ),
           );
