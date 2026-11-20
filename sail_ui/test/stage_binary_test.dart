@@ -120,7 +120,71 @@ void main() {
       await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
 
       expect(File('${out.path}/hwi-daemon$exe').readAsBytesSync(), [4, 5, 6]);
-      expect(out.listSync().map((e) => e.path), ['${out.path}/hwi-daemon$exe']);
+      expect(out.listSync().map((e) => e.path).toSet(), {
+        '${out.path}/hwi-daemon$exe',
+        '${out.path}/hwi-daemon$exe.stamp',
+      });
+    });
+
+    group('a second start', () {
+      late Directory bundle;
+      late File asset;
+      late File staged;
+      late Directory out;
+      final exe = Platform.isWindows ? '.exe' : '';
+
+      setUp(() async {
+        bundle = Directory('${srcDir.path}/bin')..createSync();
+        asset = File(
+          '${bundle.path}/${embeddedAssetName('hwi-daemon', isMacOS: Platform.isMacOS, arch: currentArch())}$exe',
+        );
+        asset.writeAsBytesSync([4, 5, 6]);
+        out = Directory('${dir.path}/out');
+        staged = File('${out.path}/hwi-daemon$exe');
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+        // Same size as the bundle file, so only a copy can bring back [4, 5, 6].
+        staged.writeAsBytesSync([7, 7, 7]);
+      });
+
+      test('writes nothing when the bundle file did not change', () async {
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+
+        expect(staged.readAsBytesSync(), [7, 7, 7]);
+      });
+
+      test('copies a bundle file with a new modification time', () async {
+        asset.setLastModifiedSync(asset.lastModifiedSync().add(const Duration(seconds: 5)));
+
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+
+        expect(staged.readAsBytesSync(), [4, 5, 6]);
+      });
+
+      test('copies a bundle file with a new size', () async {
+        final modified = asset.lastModifiedSync();
+        asset.writeAsBytesSync([4, 5, 6, 7]);
+        asset.setLastModifiedSync(modified);
+
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+
+        expect(staged.readAsBytesSync(), [4, 5, 6, 7]);
+      });
+
+      test('copies when the stamp is missing', () async {
+        File('${staged.path}.stamp').deleteSync();
+
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+
+        expect(staged.readAsBytesSync(), [4, 5, 6]);
+      });
+
+      test('copies when the staged binary is missing', () async {
+        staged.deleteSync();
+
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+
+        expect(staged.readAsBytesSync(), [4, 5, 6]);
+      });
     });
   });
 }
