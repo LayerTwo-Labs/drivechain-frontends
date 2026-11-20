@@ -26,6 +26,7 @@ class _HashCalculatorState extends State<HashCalculator> {
     final theme = SailTheme.of(context);
 
     return SailCard(
+      title: SailStyleValues.phoneLayout(context) ? 'Hash Calculator' : null,
       padding: true,
       widgetHeaderEnd: SailButton(
         label: '?',
@@ -387,19 +388,11 @@ class _HashCalculatorState extends State<HashCalculator> {
 
     // SHA256D
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('SHA256D: ', color: theme.colors.text),
-          if (_output.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>SHA256D:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'SHA256D',
+        value: _output.isNotEmpty
+            ? RegExp(r'<b>SHA256D:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? ''
+            : null,
       ),
     );
     if (_output.isNotEmpty) {
@@ -419,19 +412,11 @@ class _HashCalculatorState extends State<HashCalculator> {
 
     // Hash160
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('Hash160 - RIPEMD160(SHA256): ', color: theme.colors.text),
-          if (_output.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>Hash160.*?:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'Hash160 - RIPEMD160(SHA256)',
+        value: _output.isNotEmpty
+            ? RegExp(r'<b>Hash160.*?:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? ''
+            : null,
       ),
     );
     if (_output.isNotEmpty) {
@@ -451,19 +436,11 @@ class _HashCalculatorState extends State<HashCalculator> {
 
     // RIPEMD160
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('RIPEMD160: ', color: theme.colors.text),
-          if (_output.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>RIPEMD160:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'RIPEMD160',
+        value: _output.isNotEmpty
+            ? RegExp(r'<b>RIPEMD160:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? ''
+            : null,
       ),
     );
     if (_output.isNotEmpty) {
@@ -483,19 +460,9 @@ class _HashCalculatorState extends State<HashCalculator> {
 
     // SHA256
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('SHA256: ', color: theme.colors.text),
-          if (_output.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>SHA256:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'SHA256',
+        value: _output.isNotEmpty ? RegExp(r'<b>SHA256:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '' : null,
       ),
     );
     if (_output.isNotEmpty) {
@@ -515,19 +482,9 @@ class _HashCalculatorState extends State<HashCalculator> {
 
     // SHA512
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('SHA512: ', color: theme.colors.text),
-          if (_output.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>SHA512:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'SHA512',
+        value: _output.isNotEmpty ? RegExp(r'<b>SHA512:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '' : null,
       ),
     );
     if (_output.isNotEmpty) {
@@ -547,55 +504,25 @@ class _HashCalculatorState extends State<HashCalculator> {
 
     // Decode
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('Decode: ', color: theme.colors.text),
-          if (_output.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>Decode:</b> (.+)').firstMatch(_output)?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'Decode',
+        value: _output.isNotEmpty ? RegExp(r'<b>Decode:</b> (.+)').firstMatch(_output)?.group(1) ?? '' : null,
       ),
     );
 
     // Hex
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('Hex: ', color: theme.colors.text),
-          if (_output.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>Hex:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'Hex',
+        value: _output.isNotEmpty ? RegExp(r'<b>Hex:</b> ([a-fA-F0-9]+)').firstMatch(_output)?.group(1) ?? '' : null,
       ),
     );
 
     // Binary
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('Bin: ', color: theme.colors.text),
-          if (_output.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>Bin:</b> ([01]+)').firstMatch(_output)?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'Bin',
+        value: _output.isNotEmpty ? RegExp(r'<b>Bin:</b> ([01]+)').firstMatch(_output)?.group(1) ?? '' : null,
       ),
     );
 
@@ -607,19 +534,11 @@ class _HashCalculatorState extends State<HashCalculator> {
 
     // HMAC-SHA256
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('HMAC-SHA256: ', color: theme.colors.text),
-          if (_hmacKeyController.text.isNotEmpty && _inputController.text.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>HMAC-SHA256:</b> ([a-fA-F0-9]+)').firstMatch(_generateHMACOutput())?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'HMAC-SHA256',
+        value: _hmacKeyController.text.isNotEmpty && _inputController.text.isNotEmpty
+            ? RegExp(r'<b>HMAC-SHA256:</b> ([a-fA-F0-9]+)').firstMatch(_generateHMACOutput())?.group(1) ?? ''
+            : null,
       ),
     );
     if (_hmacKeyController.text.isNotEmpty && _inputController.text.isNotEmpty) {
@@ -640,19 +559,11 @@ class _HashCalculatorState extends State<HashCalculator> {
 
     // HMAC-SHA512
     results.add(
-      SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SailText.primary13('HMAC-SHA512: ', color: theme.colors.text),
-          if (_hmacKeyController.text.isNotEmpty && _inputController.text.isNotEmpty)
-            Expanded(
-              child: SailText.primary13(
-                RegExp(r'<b>HMAC-SHA512:</b> ([a-fA-F0-9]+)').firstMatch(_generateHMACOutput())?.group(1) ?? '',
-                color: theme.colors.textSecondary,
-              ),
-            ),
-        ],
+      _ResultRow(
+        label: 'HMAC-SHA512',
+        value: _hmacKeyController.text.isNotEmpty && _inputController.text.isNotEmpty
+            ? RegExp(r'<b>HMAC-SHA512:</b> ([a-fA-F0-9]+)').firstMatch(_generateHMACOutput())?.group(1) ?? ''
+            : null,
       ),
     );
     if (_hmacKeyController.text.isNotEmpty && _inputController.text.isNotEmpty) {
@@ -739,5 +650,49 @@ class _HashCalculatorState extends State<HashCalculator> {
     _inputController.dispose();
     _hmacKeyController.dispose();
     super.dispose();
+  }
+}
+
+class _ResultRow extends StatelessWidget {
+  final String label;
+  final String? value;
+
+  const _ResultRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final value = this.value;
+    if (SailStyleValues.phoneLayout(context)) {
+      return Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.primary13(label, bold: true),
+                if (value != null) SailText.primary13(value, color: theme.colors.textSecondary),
+              ],
+            ),
+          ),
+          if (value != null && value.isNotEmpty) CopyButton(text: value),
+        ],
+      );
+    }
+    return SailRow(
+      spacing: SailStyleValues.padding08,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SailText.primary13('$label: ', color: theme.colors.text),
+        if (value != null)
+          Expanded(
+            child: SailText.primary13(
+              value,
+              color: theme.colors.textSecondary,
+            ),
+          ),
+      ],
+    );
   }
 }
