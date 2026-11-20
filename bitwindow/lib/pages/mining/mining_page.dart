@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/mining/mining_tab.dart';
 import 'package:bitwindow/pages/mining/pools_tab.dart';
+import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -57,13 +58,18 @@ class MiningPage extends StatelessWidget {
       _pendingSubtab = null;
       WidgetsBinding.instance.addPostFrameCallback((_) => openSubtab(label));
     }
-    return QtPage(
-      child: InlineTabBar(
-        key: tabKey,
-        tabs: [
-          if (minesHere()) const SingleTabItem(label: miningSubtabLabel, child: MiningTab()),
-          const SingleTabItem(label: poolsSubtabLabel, child: PoolsTab()),
-        ],
+    // A kept-alive tab that is not shown stops the tickers and listeners below it.
+    final tabs = TabsRouterScope.of(context, watch: true)?.controller;
+    return TickerMode(
+      enabled: tabs == null || tabs.current.name == MiningRoute.name,
+      child: QtPage(
+        child: InlineTabBar(
+          key: tabKey,
+          tabs: [
+            if (minesHere()) const SingleTabItem(label: miningSubtabLabel, child: MiningTab()),
+            const SingleTabItem(label: poolsSubtabLabel, child: PoolsTab()),
+          ],
+        ),
       ),
     );
   }

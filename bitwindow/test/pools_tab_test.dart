@@ -28,8 +28,13 @@ class _FakeStratum implements OrchestratorStratumRPC {
   @override
   Future<GetStratumStatusResponse> status() async => next;
 
+  int poolReads = 0;
+
   @override
-  Future<List<CatalogPool>> listPools() async => pools;
+  Future<List<CatalogPool>> listPools() async {
+    poolReads++;
+    return pools;
+  }
 
   @override
   Future<GetHashrateHistoryResponse> hashrateHistory(HashrateRange range) async => GetHashrateHistoryResponse();
@@ -89,6 +94,40 @@ void main() {
   tearDown(() async {
     MiningPage.requestedPoolUrl.value = null;
     await GetIt.I.reset();
+  });
+
+  testWidgets('a hidden PoolsTab drops its provider listeners', (tester) async {
+    final rpc = await _register();
+    final shown = ValueNotifier(true);
+    await tester.pumpSailPage(
+      ValueListenableBuilder<bool>(
+        valueListenable: shown,
+        builder: (context, on, _) => TickerMode(enabled: on, child: const PoolsTab()),
+      ),
+    );
+    await tester.pump();
+    final stratum = GetIt.I.get<StratumProvider>();
+    final shares = GetIt.I.get<MiningPoolsProvider>() as FakeMiningPools;
+
+    Future<int> fullReads() async {
+      rpc.poolReads = 0;
+      stratum.tick();
+      await tester.pump();
+      return rpc.poolReads;
+    }
+
+    expect(await fullReads(), 1);
+    expect(shares.listened, isTrue);
+
+    shown.value = false;
+    await tester.pump();
+    expect(await fullReads(), 0);
+    expect(shares.listened, isFalse);
+
+    shown.value = true;
+    await tester.pump();
+    expect(await fullReads(), 1);
+    expect(shares.listened, isTrue);
   });
 
   testWidgets('the pools table marks the pool the server mines to', (tester) async {

@@ -81,21 +81,41 @@ class _MiningTabState extends State<MiningTab> {
   String? _serverError;
   String? _chartError;
   String? _minerError;
+  bool _listening = false;
 
   @override
   void initState() {
     super.initState();
-    _stratum.addListener(_onChange);
-    _shares.addListener(_onChange);
     MiningPage.requestedPoolUrl.addListener(_takeRequestedPool);
     _showSavedCustom();
     _takeRequestedPool();
   }
 
   @override
-  void dispose() {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _listen(TickerMode.valuesOf(context).enabled);
+  }
+
+  /// A hidden tab drops its listeners, so the providers stop their full polls.
+  void _listen(bool shown) {
+    if (shown == _listening) {
+      return;
+    }
+    _listening = shown;
+    if (shown) {
+      _stratum.addListener(_onChange);
+      _shares.addListener(_onChange);
+      _showSavedCustom();
+      return;
+    }
     _stratum.removeListener(_onChange);
     _shares.removeListener(_onChange);
+  }
+
+  @override
+  void dispose() {
+    _listen(false);
     MiningPage.requestedPoolUrl.removeListener(_takeRequestedPool);
     _poolUrl.dispose();
     _worker.dispose();

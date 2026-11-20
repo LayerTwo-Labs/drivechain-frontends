@@ -15,6 +15,8 @@ class FakeMiningPools extends MiningPoolsProvider {
 
   @override
   Future<void> fetch() async {}
+
+  bool get listened => hasListeners;
 }
 
 /// One pool's share of a 144-block window.
