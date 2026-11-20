@@ -1,6 +1,7 @@
 import 'package:bitwindow/dialogs/network_statistics_dialog.dart';
 import 'package:bitwindow/models/bandwidth_data.dart';
 import 'package:bitwindow/providers/network_provider.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -76,5 +77,41 @@ void main() {
 
     expect(fontSize(tester, 'Bandwidth Graph'), 20);
     expect(fontSize(tester, 'Blockchain'), 20);
+  });
+
+  testWidgets('on a phone the bandwidth chart has two plain lines, no axis labels and round legend dots', (
+    tester,
+  ) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
+    await tester.pumpSailPage(const NetworkStatisticsPage());
+    await tester.binding.setSurfaceSize(const Size(390, 800));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    final data = tester.widget<LineChart>(find.byType(LineChart)).data;
+    expect(data.titlesData.show, isFalse);
+    expect(data.gridData.show, isFalse);
+    expect(data.lineBarsData, hasLength(2));
+    for (final line in data.lineBarsData) {
+      expect(line.belowBarData.show, isFalse);
+      expect(line.isCurved, isFalse);
+    }
+    final colors = SailTheme.of(tester.element(find.byType(LineChart))).colors;
+    expect(data.lineBarsData.map((l) => l.color), [colors.orange, colors.info]);
+
+    final dots = find.byKey(const ValueKey('bandwidth-legend-dot'));
+    expect(dots, findsNWidgets(2));
+    final dot = tester.widget<Container>(dots.first).decoration! as BoxDecoration;
+    expect(dot.shape, BoxShape.circle);
+  });
+
+  testWidgets('on desktop the bandwidth chart keeps its axis labels and fill', (tester) async {
+    await tester.pumpSailPage(const NetworkStatisticsPage());
+
+    final data = tester.widget<LineChart>(find.byType(LineChart)).data;
+    expect(data.titlesData.show, isTrue);
+    expect(data.lineBarsData.first.belowBarData.show, isTrue);
+    expect(find.byKey(const ValueKey('bandwidth-legend-dot')), findsNothing);
   });
 }

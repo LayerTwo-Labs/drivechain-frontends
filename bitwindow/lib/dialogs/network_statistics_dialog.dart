@@ -261,6 +261,54 @@ class _BandwidthGraph extends StatelessWidget {
 
     final maxY = bandwidthGraphMaxY([...rxSpots, ...txSpots]);
 
+    if (SailStyleValues.phoneLayout(context)) {
+      final axis = BorderSide(color: theme.colors.divider);
+      LineChartBarData line(List<FlSpot> spots, Color color) => LineChartBarData(
+        spots: spots,
+        color: color,
+        barWidth: 2,
+        dotData: const FlDotData(show: false),
+      );
+      return StatSection(
+        title: 'Bandwidth Graph',
+        children: [
+          SailText.secondary13('Last ${bandwidthHistory.length * 5} seconds'),
+          const SizedBox(height: SailStyleValues.padding12),
+          SizedBox(
+            height: 180,
+            child: LineChart(
+              LineChartData(
+                gridData: const FlGridData(show: false),
+                titlesData: const FlTitlesData(show: false),
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border(left: axis, bottom: axis),
+                ),
+                minX: 1,
+                maxX: bandwidthHistory.length.toDouble(),
+                minY: 0,
+                maxY: maxY,
+                lineBarsData: [line(rxSpots, theme.colors.orange), line(txSpots, theme.colors.info)],
+                lineTouchData: const LineTouchData(enabled: false),
+              ),
+            ),
+          ),
+          const SizedBox(height: SailStyleValues.padding12),
+          Row(
+            children: [
+              _LegendDot(color: theme.colors.orange),
+              const SizedBox(width: 6),
+              SailText.secondary13('Received'),
+              const SizedBox(width: SailStyleValues.padding16),
+              _LegendDot(color: theme.colors.info),
+              const SizedBox(width: 6),
+              SailText.secondary13('Sent'),
+            ],
+          ),
+        ],
+      );
+    }
+
     final body = [
       SailText.secondary13('Last ${bandwidthHistory.length * 5} seconds'),
       const SizedBox(height: 16),
@@ -391,9 +439,6 @@ class _BandwidthGraph extends StatelessWidget {
       ),
     ];
 
-    if (SailStyleValues.phoneLayout(context)) {
-      return StatSection(title: 'Bandwidth Graph', children: body);
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -401,6 +446,22 @@ class _BandwidthGraph extends StatelessWidget {
         const SizedBox(height: 8),
         ...body,
       ],
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  final Color color;
+
+  const _LegendDot({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('bandwidth-legend-dot'),
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }
