@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 // hwiDaemon is the persistent hardware-wallet process.
@@ -55,6 +57,13 @@ func hwiCall(ctx context.Context, req map[string]any) (json.RawMessage, error) {
 		return nil, fmt.Errorf("hwi error %d: %s", e.Code, e.Error)
 	}
 	return raw, nil
+}
+
+// WarmHWIDaemon starts the daemon and does one device lookup, so that the first
+// lookup of the user does not wait for the daemon to load.
+func WarmHWIDaemon(ctx context.Context, net *chaincfg.Params) error {
+	_, err := NewHWIRunner(net).Enumerate(ctx, "")
+	return err
 }
 
 func (d *hwiDaemon) roundtrip(ctx context.Context, req map[string]any) (json.RawMessage, error) {
