@@ -16,6 +16,8 @@ final _denied = 'a' * 64;
 final _plain = 'b' * 64;
 
 class _OrchestratorWallet implements OrchestratorWalletRPC {
+  String newAddress = 'wallet-address';
+
   @override
   Future<wmpb.ListUnspentResponse> listUnspent(String walletId) async => wmpb.ListUnspentResponse(
     utxos: [
@@ -37,7 +39,7 @@ class _OrchestratorWallet implements OrchestratorWalletRPC {
 
   @override
   Future<wmpb.GetNewAddressResponse> getNewAddress(String walletId, {wmpb.AddressType? addressType}) async =>
-      wmpb.GetNewAddressResponse(address: 'wallet-address');
+      wmpb.GetNewAddressResponse(address: newAddress);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -137,5 +139,24 @@ void main() {
     expect(byOutput['$_denied:1']!.hasDenialInfo(), isTrue);
     expect(byOutput['$_denied:1']!.denialInfo.id, Int64(7));
     expect(byOutput['$_plain:0']!.hasDenialInfo(), isFalse);
+  });
+
+  test('a poll with the same data does not notify', () async {
+    final provider = TransactionProvider();
+    addTearDown(provider.dispose);
+    await pumpEventQueue();
+    expect(provider.address, 'wallet-address');
+    var notifies = 0;
+    provider.addListener(() => notifies++);
+
+    await provider.fetch();
+    await pumpEventQueue();
+    expect(notifies, 0);
+
+    (GetIt.I.get<OrchestratorRPC>().wallet as _OrchestratorWallet).newAddress = 'next-address';
+    await provider.fetch();
+    await pumpEventQueue();
+    expect(notifies, 1);
+    expect(provider.address, 'next-address');
   });
 }
