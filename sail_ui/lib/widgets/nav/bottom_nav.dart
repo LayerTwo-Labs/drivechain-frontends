@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/providers/price_provider.dart';
@@ -58,6 +60,9 @@ class BottomNavStatusOverride {
 
   const BottomNavStatusOverride({required this.label, required this.onTap});
 }
+
+/// The width the phone bar keeps for the connection icon when the balance is wide.
+const _phoneStatusMinWidth = 56.0;
 
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
@@ -213,7 +218,7 @@ class BottomNav extends StatelessWidget {
           trailingSpacing: true,
           children: [
             const SailSpacing(SailStyleValues.padding04),
-            const BottomNavBalance(),
+            if (!phone) const BottomNavBalance(),
             if (!phone && balanceEndWidgets.isNotEmpty) ...[
               const SailSpacing(SailStyleValues.padding08),
               ...balanceEndWidgets,
@@ -233,7 +238,26 @@ class BottomNav extends StatelessWidget {
             ],
             if (phone)
               Expanded(
-                child: Align(alignment: Alignment.centerRight, child: status),
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Row(
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: math.max(0, constraints.maxWidth - _phoneStatusMinWidth),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: BottomNavBalance(),
+                        ),
+                      ),
+                      const SizedBox(width: SailStyleValues.padding04),
+                      Expanded(
+                        child: Align(alignment: Alignment.centerRight, child: status),
+                      ),
+                    ],
+                  ),
+                ),
               )
             else
               status,

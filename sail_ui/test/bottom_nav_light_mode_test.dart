@@ -677,4 +677,40 @@ void main() {
     expect(find.byType(DaemonConnectionCard), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('on a 390 px phone a pending balance leaves room for the status icon', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+    final balance = _Balance()..pendingBalance = 2;
+    GetIt.I.registerSingleton<BalanceProvider>(balance);
+    GetIt.I.registerSingleton<PriceProvider>(_Price());
+    GetIt.I.registerSingleton<UpdateProvider>(_Update());
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SailTheme(
+          data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+          child: Scaffold(
+            bottomNavigationBar: BottomNav(
+              endWidgets: const [],
+              additionalConnection: model.additionalConnection,
+              mainchainInfo: true,
+              navigateToLogs: (_, _, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(formatBitcoin(2)), findsOneWidget);
+    final status = tester.getRect(find.byTooltip(model.connectionStatus));
+    expect(status.right, lessThanOrEqualTo(390));
+    expect(status.width, greaterThanOrEqualTo(24));
+    expect(status.left, greaterThan(tester.getRect(find.text(formatBitcoin(2))).right));
+  });
 }
