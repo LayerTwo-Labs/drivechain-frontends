@@ -131,6 +131,15 @@ void main() {
     expect(hosted.session(thunder), isNotNull);
   });
 
+  test('a view shows the balance that BitWindow polls for its chain', () async {
+    await hosted.openView(thunder);
+    bitwindowBalance.setBalance(thunderRPC, 2, 0.5);
+
+    final balance = GetIt.I.get<SidechainBalanceProvider>();
+    expect(balance.initialized, isTrue);
+    expect((balance.balance, balance.pendingBalance), (2.0, 0.5));
+  });
+
   test('the session of a running chain stays when its view closes', () async {
     binaries.setUp(thunder.chain, true);
     await hosted.openView(thunder);
