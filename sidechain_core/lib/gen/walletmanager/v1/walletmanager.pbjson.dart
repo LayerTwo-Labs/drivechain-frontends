@@ -2405,6 +2405,7 @@ const DecodeTransactionRequest$json = {
     {'1': 'input', '3': 1, '4': 1, '5': 9, '10': 'input'},
     {'1': 'wallet_id', '3': 2, '4': 1, '5': 9, '10': 'walletId'},
     {'1': 'check_ownership', '3': 3, '4': 1, '5': 8, '10': 'checkOwnership'},
+    {'1': 'block_hash', '3': 4, '4': 1, '5': 9, '10': 'blockHash'},
   ],
 };
 
@@ -2412,7 +2413,7 @@ const DecodeTransactionRequest$json = {
 final $typed_data.Uint8List decodeTransactionRequestDescriptor =
     $convert.base64Decode('ChhEZWNvZGVUcmFuc2FjdGlvblJlcXVlc3QSFAoFaW5wdXQYASABKAlSBWlucHV0EhsKCXdhbG'
         'xldF9pZBgCIAEoCVIId2FsbGV0SWQSJwoPY2hlY2tfb3duZXJzaGlwGAMgASgIUg5jaGVja093'
-        'bmVyc2hpcA==');
+        'bmVyc2hpcBIdCgpibG9ja19oYXNoGAQgASgJUglibG9ja0hhc2g=');
 
 @$core.Deprecated('Use decodeTransactionResponseDescriptor instead')
 const DecodeTransactionResponse$json = {

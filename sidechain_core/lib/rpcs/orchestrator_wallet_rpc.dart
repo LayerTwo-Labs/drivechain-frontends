@@ -718,12 +718,14 @@ class OrchestratorWalletRPC {
     );
   }
 
+  /// [blockHash] names the block of a txid [input], when the caller knows it.
   Future<DecodedTransaction> decodeTransaction({
     required String input,
     String walletId = '',
+    String blockHash = '',
   }) async {
     final response = await _unaryClient.decodeTransaction(
-      wmpb.DecodeTransactionRequest(input: input, walletId: walletId),
+      wmpb.DecodeTransactionRequest(input: input, walletId: walletId, blockHash: blockHash),
     );
 
     return DecodedTransaction(

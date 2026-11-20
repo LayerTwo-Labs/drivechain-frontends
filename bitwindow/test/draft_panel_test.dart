@@ -41,6 +41,7 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
   Future<DecodedTransaction> decodeTransaction({
     required String input,
     String walletId = '',
+    String blockHash = '',
   }) async {
     return DecodedTransaction(
       form: wmpb.DecodedForm.DECODED_FORM_PSBT,
