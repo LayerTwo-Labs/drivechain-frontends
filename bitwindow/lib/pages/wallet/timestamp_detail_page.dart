@@ -73,7 +73,7 @@ class TimestampDetailPage extends StatelessWidget {
     if (SailStyleValues.phoneLayout(context)) {
       return SailScaffold(
         backgroundColor: SailTheme.of(context).colors.background,
-        appBar: SailAppBar.build(context, title: SailText.primary20('Timestamp Details')),
+        appBar: SailAppBar.build(context),
         body: ViewModelBuilder<TimestampDetailViewModel>.reactive(
           viewModelBuilder: () => TimestampDetailViewModel(timestampId),
           builder: (context, model, child) => _PhoneTimestampDetails(model: model),
@@ -168,39 +168,43 @@ class _PhoneTimestampDetails extends StatelessWidget {
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(SailStyleValues.padding16),
-        child: SailColumn(
-          spacing: SailStyleValues.padding16,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailStatList(
-              children: [
-                SailValueRow(label: 'Filename', value: ts.filename),
-                SailStackedValueRow(
-                  label: 'File Hash',
-                  value: ts.fileHash,
-                  monospace: true,
-                  action: _CopyIcon(onCopy: () => model.copyHash(context)),
-                ),
-                SailValueRow(label: 'Timestamped', value: formatConfirmedAt(ts, 'MMM d, yyyy HH:mm:ss')),
-                SailValueRow(label: 'Status', value: ts.status.toUpperCase()),
-                if (ts.status == 'confirming' || ts.status == 'confirmed')
-                  SailValueRow(label: 'Confirmations', value: ts.confirmations.toString()),
-                if (ts.hasTxid())
+        child: SailCard(
+          title: 'Timestamp Details',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SailColumn(
+                spacing: 0,
+                withDivider: true,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SailValueRow(label: 'Filename', value: ts.filename),
                   SailStackedValueRow(
-                    label: 'Transaction ID',
-                    value: ts.txid,
-                    monospace: true,
-                    action: _CopyIcon(onCopy: () => model.copyTxid(context)),
+                    label: 'File Hash',
+                    value: ts.fileHash,
+                    action: _CopyIcon(onCopy: () => model.copyHash(context)),
                   ),
-                if (ts.hasBlockHeight()) SailValueRow(label: 'Block Height', value: ts.blockHeight.toString()),
-              ],
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: SailButton(label: 'Close', onPressed: () async => GetIt.I.get<AppRouter>().pop()),
-            ),
-          ],
+                  SailValueRow(label: 'Timestamped', value: formatConfirmedAt(ts, 'MMM d, yyyy HH:mm:ss')),
+                  SailValueRow(label: 'Status', value: ts.status.toUpperCase()),
+                  if (ts.status == 'confirming' || ts.status == 'confirmed')
+                    SailValueRow(label: 'Confirmations', value: ts.confirmations.toString()),
+                  if (ts.hasTxid())
+                    SailStackedValueRow(
+                      label: 'Transaction ID',
+                      value: ts.txid,
+                      action: _CopyIcon(onCopy: () => model.copyTxid(context)),
+                    ),
+                  if (ts.hasBlockHeight()) SailValueRow(label: 'Block Height', value: ts.blockHeight.toString()),
+                ],
+              ),
+              const SizedBox(height: SailStyleValues.padding08),
+              Align(
+                alignment: Alignment.centerRight,
+                child: SailButton(label: 'Close', onPressed: () async => GetIt.I.get<AppRouter>().pop()),
+              ),
+            ],
+          ),
         ),
       ),
     );

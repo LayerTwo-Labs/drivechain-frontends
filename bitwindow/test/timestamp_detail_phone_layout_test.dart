@@ -57,7 +57,7 @@ void main() {
     await _pump(tester, phone: true);
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(SailStatList), findsOneWidget);
+    expect(find.descendant(of: find.byType(SailCard), matching: find.text('Timestamp Details')), findsOneWidget);
 
     final label = tester.getRect(find.text('Filename'));
     final value = tester.getRect(find.text('contract.pdf'));
@@ -80,19 +80,20 @@ void main() {
     }
   });
 
-  testWidgets('on a phone Close sits at the right under the panel', (tester) async {
+  testWidgets('on a phone Close sits at the right inside the panel, under the rows', (tester) async {
     await _pump(tester, phone: true);
 
-    final panel = tester.getRect(find.byType(SailStatList));
+    final panel = tester.getRect(find.byType(SailCard));
     final close = tester.getRect(find.widgetWithText(SailButton, 'Close'));
-    expect(close.top, greaterThan(panel.bottom));
-    expect(close.right, closeTo(panel.right, 1));
+    expect(close.top, greaterThan(tester.getRect(find.text('Block Height')).bottom));
+    expect(close.bottom, lessThan(panel.bottom));
+    expect(close.right, closeTo(panel.right - 16 - 1, 1));
   });
 
   testWidgets('the desktop keeps the page title and the 150 px label column', (tester) async {
     await _pump(tester, phone: false);
 
-    expect(find.byType(SailStatList), findsNothing);
+    expect(find.byType(SailValueRow), findsNothing);
     expect(find.byType(InfoRow), findsWidgets);
     expect(find.byType(CopyRow), findsNWidgets(2));
   });
