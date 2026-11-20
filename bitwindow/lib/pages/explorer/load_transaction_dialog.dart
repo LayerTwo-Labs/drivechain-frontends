@@ -6,21 +6,23 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 
-/// With [txid], opens on that transaction, wallet-owned or not.
-Future<void> showLoadTransactionDialog(BuildContext context, {String? txid}) async {
+/// With [txid], opens on that transaction, wallet-owned or not. [blockHash]
+/// names its block, when the caller knows it.
+Future<void> showLoadTransactionDialog(BuildContext context, {String? txid, String blockHash = ''}) async {
   await showThemedDialog<void>(
     context: context,
     builder: (_) => SailModal(
       constraints: const BoxConstraints(maxWidth: 900, maxHeight: 760),
-      child: LoadTransactionDialog(txid: txid),
+      child: LoadTransactionDialog(txid: txid, blockHash: blockHash),
     ),
   );
 }
 
 class LoadTransactionDialog extends StatefulWidget {
   final String? txid;
+  final String blockHash;
 
-  const LoadTransactionDialog({super.key, this.txid});
+  const LoadTransactionDialog({super.key, this.txid, this.blockHash = ''});
 
   @override
   State<LoadTransactionDialog> createState() => _LoadTransactionDialogState();
@@ -65,6 +67,7 @@ class _LoadTransactionDialogState extends State<LoadTransactionDialog> {
       final decoded = await _wallet.decodeTransaction(
         input: input,
         walletId: _walletReader.activeWalletId ?? '',
+        blockHash: widget.blockHash,
       );
       if (!mounted) {
         return;

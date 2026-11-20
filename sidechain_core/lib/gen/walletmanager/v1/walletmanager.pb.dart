@@ -10580,11 +10580,13 @@ class DecodeTransactionRequest extends $pb.GeneratedMessage {
     $core.String? input,
     $core.String? walletId,
     $core.bool? checkOwnership,
+    $core.String? blockHash,
   }) {
     final result = DecodeTransactionRequest._();
     if (input != null) result.input = input;
     if (walletId != null) result.walletId = walletId;
     if (checkOwnership != null) result.checkOwnership = checkOwnership;
+    if (blockHash != null) result.blockHash = blockHash;
     return result;
   }
 
@@ -10603,6 +10605,7 @@ class DecodeTransactionRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'input')
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
     ..aOB(3, _omitFieldNames ? '' : 'checkOwnership')
+    ..aOS(4, _omitFieldNames ? '' : 'blockHash')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -10655,6 +10658,17 @@ class DecodeTransactionRequest extends $pb.GeneratedMessage {
   $core.bool hasCheckOwnership() => $_has(2);
   @$pb.TagNumber(3)
   void clearCheckOwnership() => $_clearField(3);
+
+  /// Block that holds a txid input, when the caller knows it. Core with no
+  /// txindex reads a confirmed tx outside the wallet only from its block.
+  @$pb.TagNumber(4)
+  $core.String get blockHash => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set blockHash($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasBlockHash() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBlockHash() => $_clearField(4);
 }
 
 class DecodeTransactionResponse extends $pb.GeneratedMessage {

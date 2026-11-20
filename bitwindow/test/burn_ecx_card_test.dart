@@ -160,7 +160,11 @@ class _FakeRpc implements OrchestratorWalletRPC {
   }
 
   @override
-  Future<DecodedTransaction> decodeTransaction({required String input, String walletId = ''}) async {
+  Future<DecodedTransaction> decodeTransaction({
+    required String input,
+    String walletId = '',
+    String blockHash = '',
+  }) async {
     walletIds.add(walletId);
     previews.add(input);
     await stage('decode');

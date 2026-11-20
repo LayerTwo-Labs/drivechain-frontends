@@ -22,6 +22,7 @@ final _messages = {'backend text': _warning, 'no warning': '', 'long warning': L
 class _WalletRPC implements OrchestratorWalletRPC {
   String warningMessage = '';
   List<wmpb.TransactionEntry> transactions = [];
+  final decodedBlockHashes = <String>[];
 
   walletpb.GetTransactionDetailsResponse get details => walletpb.GetTransactionDetailsResponse(
     txid: 'ab' * 32,
@@ -35,16 +36,22 @@ class _WalletRPC implements OrchestratorWalletRPC {
   }) async => details;
 
   @override
-  Future<DecodedTransaction> decodeTransaction({required String input, String walletId = ''}) async =>
-      DecodedTransaction(
-        form: wmpb.DecodedForm.DECODED_FORM_PSBT,
-        isPsbt: true,
-        signedInputs: 0,
-        hasFee: false,
-        hasTotalInput: false,
-        changeOutputIndexes: {},
-        details: details,
-      );
+  Future<DecodedTransaction> decodeTransaction({
+    required String input,
+    String walletId = '',
+    String blockHash = '',
+  }) async {
+    decodedBlockHashes.add(blockHash);
+    return DecodedTransaction(
+      form: wmpb.DecodedForm.DECODED_FORM_PSBT,
+      isPsbt: true,
+      signedInputs: 0,
+      hasFee: false,
+      hasTotalInput: false,
+      changeOutputIndexes: {},
+      details: details,
+    );
+  }
 
   @override
   Future<wmpb.ListTransactionsResponse> listTransactions({required String walletId, int count = 100}) async =>
@@ -212,6 +219,21 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('a txid from a block decodes with its block hash', (tester) async {
+    await tester.pumpSailPage(
+      Center(
+        child: SizedBox(
+          width: 900,
+          height: 650,
+          child: LoadTransactionDialog(txid: 'ab' * 32, blockHash: 'cd' * 32),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(orchestrator.wallet.decodedBlockHashes, ['cd' * 32]);
+  });
 
   testWidgets('a maturing coinbase shows its confirmations and an hourglass, never Confirmed', (tester) async {
     final entry = walletpb.WalletTransaction(
