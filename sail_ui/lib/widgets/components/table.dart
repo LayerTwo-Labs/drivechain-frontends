@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:sail_ui/sail_ui.dart';
@@ -275,8 +276,9 @@ class _SailTableState extends State<SailTable> {
           }
         }
 
-        // Build rows content
+        final window = context.getInheritedWidgetOfExactType<_SailTableWindow>();
         Widget rowsContent;
+        var rowsSized = false;
         if (widget.rowCount == 0 && widget.emptyPlaceholder != null) {
           rowsContent = Center(
             child: SailText.primary15(
@@ -284,31 +286,28 @@ class _SailTableState extends State<SailTable> {
               color: theme.colors.textTertiary,
             ),
           );
+        } else if (window != null) {
+          rowsSized = widget.shrinkWrap || !constraints.hasBoundedHeight;
+          rowsContent = _LazyRows(
+            rowCount: widget.rowCount,
+            rowHeight: widget.cellHeight,
+            // The table context, so a lookup in a row rebuilds the table and
+            // drops the rows that _LazyRows keeps.
+            builder: (_, index) => _buildRow(context, index),
+          );
+          if (rowsSized) {
+            rowsContent = SizedBox(height: widget.rowCount * widget.cellHeight, child: rowsContent);
+          }
         } else if (widget.shrinkWrap) {
+          // Rows past a bounded height are clipped, so they are not built.
+          final builtRows = constraints.hasBoundedHeight
+              ? min(widget.rowCount, (constraints.maxHeight / widget.cellHeight).ceil())
+              : widget.rowCount;
           rowsContent = Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
-            children: List.generate(widget.rowCount, (index) {
-              final rowId = widget.getRowId(index);
-              final isSelected = rowId == _selectedId;
-              final isLastRow = index == widget.rowCount - 1;
-              final bgColor =
-                  widget.rowBackgroundColor?.call(index) ?? (index % 2 == 1 ? widget.altBackgroundColor : null);
-              return _TableRow(
-                cells: widget.rowBuilder(context, index, isSelected),
-                widths: _widths,
-                height: widget.cellHeight,
-                selected: isSelected,
-                backgroundColor: bgColor,
-                grid: widget.drawGrid,
-                drawBorder: widget.drawLastRowsBorder || !isLastRow,
-                onPressed: () => _handleRowSelection(rowId),
-                onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
-                contextMenuItems: widget.contextMenuItems,
-                rowId: rowId,
-              );
-            }),
+            children: List.generate(builtRows, (index) => _buildRow(context, index)),
           );
         } else {
           rowsContent = ListView.builder(
@@ -316,28 +315,10 @@ class _SailTableState extends State<SailTable> {
             controller: _verticalController,
             itemCount: widget.rowCount,
             itemExtent: widget.cellHeight,
-            itemBuilder: (context, index) {
-              final rowId = widget.getRowId(index);
-              final isSelected = rowId == _selectedId;
-              final isLastRow = index == widget.rowCount - 1;
-              final bgColor =
-                  widget.rowBackgroundColor?.call(index) ?? (index % 2 == 1 ? widget.altBackgroundColor : null);
-              return _TableRow(
-                cells: widget.rowBuilder(context, index, isSelected),
-                widths: _widths,
-                height: widget.cellHeight,
-                selected: isSelected,
-                backgroundColor: bgColor,
-                grid: widget.drawGrid,
-                drawBorder: widget.drawLastRowsBorder || !isLastRow,
-                onPressed: () => _handleRowSelection(rowId),
-                onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
-                contextMenuItems: widget.contextMenuItems,
-                rowId: rowId,
-              );
-            },
+            itemBuilder: _buildRow,
           );
         }
+        final rowsExpand = !widget.shrinkWrap && !rowsSized;
 
         return SelectionContainer.disabled(
           child: Scrollbar(
@@ -364,8 +345,8 @@ class _SailTableState extends State<SailTable> {
                       padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding10),
                       child: Row(children: headerCells),
                     ),
-                    if (!widget.shrinkWrap) Expanded(child: rowsContent),
-                    if (widget.shrinkWrap) rowsContent,
+                    if (rowsExpand) Expanded(child: rowsContent),
+                    if (!rowsExpand) rowsContent,
                   ],
                 ),
               ),
@@ -373,6 +354,26 @@ class _SailTableState extends State<SailTable> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildRow(BuildContext context, int index) {
+    final rowId = widget.getRowId(index);
+    final isSelected = rowId == _selectedId;
+    final isLastRow = index == widget.rowCount - 1;
+    final bgColor = widget.rowBackgroundColor?.call(index) ?? (index % 2 == 1 ? widget.altBackgroundColor : null);
+    return _TableRow(
+      cells: widget.rowBuilder(context, index, isSelected),
+      widths: _widths,
+      height: widget.cellHeight,
+      selected: isSelected,
+      backgroundColor: bgColor,
+      grid: widget.drawGrid,
+      drawBorder: widget.drawLastRowsBorder || !isLastRow,
+      onPressed: () => _handleRowSelection(rowId),
+      onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
+      contextMenuItems: widget.contextMenuItems,
+      rowId: rowId,
     );
   }
 
@@ -563,6 +564,239 @@ class _SailTableState extends State<SailTable> {
       _selectedId = _selectedId == rowId ? null : rowId;
     });
     widget.onSelectedRow?.call(_selectedId);
+  }
+}
+
+/// A sliver that holds a box with a [SailTable] in a scroll view. The box is
+/// [minHeight] tall, or taller so that each row shows. The table builds only
+/// the rows in or near the viewport, and does not scroll on its own.
+class SliverSailTable extends StatelessWidget {
+  const SliverSailTable({super.key, required this.minHeight, required this.child});
+
+  final double minHeight;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final fit = _SailTableFit(minHeight: minHeight, child: child);
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        final start = constraints.scrollOffset + constraints.cacheOrigin;
+        return SliverToBoxAdapter(
+          child: _SailTableWindow(start: start, end: start + constraints.remainingCacheExtent, child: fit),
+        );
+      },
+    );
+  }
+}
+
+/// The part of a [SliverSailTable] box in or near the viewport, in box coordinates.
+class _SailTableWindow extends InheritedWidget {
+  const _SailTableWindow({required this.start, required this.end, required super.child});
+
+  final double start;
+  final double end;
+
+  @override
+  bool updateShouldNotify(_SailTableWindow oldWidget) => start != oldWidget.start || end != oldWidget.end;
+}
+
+class _SailTableFit extends SingleChildRenderObjectWidget {
+  const _SailTableFit({required this.minHeight, required super.child});
+
+  final double minHeight;
+
+  @override
+  _RenderSailTableFit createRenderObject(BuildContext context) => _RenderSailTableFit(minHeight);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderSailTableFit renderObject) {
+    renderObject.minHeight = minHeight;
+  }
+}
+
+class _RenderSailTableFit extends RenderProxyBox {
+  _RenderSailTableFit(this._minHeight);
+
+  double _minHeight;
+  set minHeight(double value) {
+    if (value == _minHeight) {
+      return;
+    }
+    _minHeight = value;
+    markNeedsLayout();
+  }
+
+  final Set<_RenderLazyRows> _rows = {};
+
+  double get _missing => _rows.fold(0, (m, rows) => max(m, rows.missing));
+
+  // Loose, so the child is no relayout boundary: a row count change inside it
+  // lays out this box again.
+  BoxConstraints _upTo(double height) => BoxConstraints(
+    minWidth: constraints.minWidth,
+    maxWidth: constraints.maxWidth,
+    maxHeight: constraints.constrainHeight(height),
+  );
+
+  @override
+  void performLayout() {
+    final child = this.child!;
+    child.layout(_upTo(_minHeight), parentUsesSize: true);
+    final missing = _missing;
+    if (missing > 0) {
+      child.layout(_upTo(child.size.height + missing), parentUsesSize: true);
+    }
+    size = constraints.constrain(Size(child.size.width, max(child.size.height, _minHeight)));
+  }
+}
+
+class _LazyRows extends StatefulWidget {
+  const _LazyRows({required this.rowCount, required this.rowHeight, required this.builder});
+
+  final int rowCount;
+  final double rowHeight;
+  final IndexedWidgetBuilder builder;
+
+  @override
+  State<_LazyRows> createState() => _LazyRowsState();
+}
+
+class _LazyRowsState extends State<_LazyRows> {
+  final Map<int, Widget> _built = {};
+  Widget? _last;
+  int _first = 0;
+  int _end = 0;
+  double _top = 0;
+  bool _checkScheduled = false;
+
+  @override
+  void didUpdateWidget(_LazyRows oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _built.clear();
+    _last = null;
+  }
+
+  double? _measureTop() {
+    final box = context.findRenderObject();
+    final fit = context.findAncestorRenderObjectOfType<_RenderSailTableFit>();
+    if (box is! RenderBox || fit == null || !box.attached || !box.hasSize) {
+      return null;
+    }
+    return box.localToGlobal(Offset.zero, ancestor: fit).dy;
+  }
+
+  void _checkTop(Duration _) {
+    _checkScheduled = false;
+    if (!mounted) {
+      return;
+    }
+    final top = _measureTop();
+    if (top != null && top != _top) {
+      setState(() => _last = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final window = context.dependOnInheritedWidgetOfExactType<_SailTableWindow>()!;
+    _top = _measureTop() ?? _top;
+    final h = widget.rowHeight;
+    final first = ((window.start - _top) / h).floor().clamp(0, widget.rowCount);
+    final end = ((window.end - _top) / h).ceil().clamp(first, widget.rowCount);
+    if (_last != null && first == _first && end == _end) {
+      return _last!;
+    }
+    _first = first;
+    _end = end;
+    _built.removeWhere((i, _) => i < first || i >= end);
+    // The clip and the repaint boundaries match the layers of a ListView, so a
+    // fractional scroll offset puts each row on the same pixels.
+    _last = _RowsExtent(
+      extent: widget.rowCount * h,
+      child: RepaintBoundary(
+        child: ClipRect(
+          child: Stack(
+            children: [
+              for (var i = first; i < end; i++)
+                _built.putIfAbsent(
+                  i,
+                  () => Positioned(
+                    key: ValueKey(i),
+                    top: i * h,
+                    left: 0,
+                    right: 0,
+                    height: h,
+                    child: RepaintBoundary(child: widget.builder(context, i)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!_checkScheduled) {
+      _checkScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback(_checkTop);
+    }
+    return _last!;
+  }
+}
+
+class _RowsExtent extends SingleChildRenderObjectWidget {
+  const _RowsExtent({required this.extent, required super.child});
+
+  final double extent;
+
+  @override
+  _RenderLazyRows createRenderObject(BuildContext context) => _RenderLazyRows(extent);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderLazyRows renderObject) {
+    renderObject.extent = extent;
+  }
+}
+
+/// Tells the enclosing [_RenderSailTableFit] how much taller it must be to
+/// show each row. It lays out inside the fit box, which has no relayout
+/// boundary below it.
+class _RenderLazyRows extends RenderProxyBox {
+  _RenderLazyRows(this._extent);
+
+  double _extent;
+  set extent(double value) {
+    if (value == _extent) {
+      return;
+    }
+    _extent = value;
+    markNeedsLayout();
+  }
+
+  double missing = 0;
+  _RenderSailTableFit? _fit;
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    var node = parent;
+    while (node != null && node is! _RenderSailTableFit) {
+      node = node.parent;
+    }
+    _fit = node as _RenderSailTableFit?;
+    _fit?._rows.add(this);
+  }
+
+  @override
+  void detach() {
+    _fit?._rows.remove(this);
+    _fit = null;
+    super.detach();
+  }
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    missing = _extent - size.height;
   }
 }
 
