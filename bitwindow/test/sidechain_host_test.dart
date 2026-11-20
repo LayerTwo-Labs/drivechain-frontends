@@ -47,6 +47,55 @@ class _Window extends ChangeNotifier implements WindowProvider {
 }
 
 /// The host route of BitWindow, with a text in place of each tab page.
+List<AutoRoute> _sidechainsChildren() => [
+  AutoRoute(
+    path: '',
+    page: PageInfo(SidechainSlotsRoute.name, builder: (_) => const Text('slot table')),
+    initial: true,
+  ),
+  AutoRoute(
+    path: ':chain',
+    page: SidechainHostRoute.page,
+    children: [
+      for (final name in {
+        for (final module in hostedModules)
+          for (final route in shellTabRoutes(module)) route.routeName,
+      })
+        AutoRoute(
+          page: PageInfo(name, builder: (_) => Text('page $name')),
+          initial: name == SidechainHomepageRoute.name,
+        ),
+    ],
+  ),
+];
+
+/// BitWindow tabs: the sidechains tab, and one other tab.
+class _TabsRouter extends AppRouter {
+  @override
+  List<AutoRoute> get routes => [
+    AutoRoute(
+      path: '/',
+      initial: true,
+      page: PageInfo(
+        'TabsRoot',
+        builder: (_) => AutoTabsRouter(
+          routes: [
+            SidechainsRoute(children: [SidechainHostRoute(chain: 'thunder')]),
+            const PageRouteInfo('OtherTab'),
+          ],
+        ),
+      ),
+      children: [
+        AutoRoute(path: 'sidechains', page: SidechainsRoute.page, children: _sidechainsChildren()),
+        AutoRoute(
+          path: 'other',
+          page: PageInfo('OtherTab', builder: (_) => const Text('other tab')),
+        ),
+      ],
+    ),
+  ];
+}
+
 class _HostRouter extends AppRouter {
   @override
   List<AutoRoute> get routes => [
@@ -54,27 +103,7 @@ class _HostRouter extends AppRouter {
       path: '/',
       page: SidechainsRoute.page,
       initial: true,
-      children: [
-        AutoRoute(
-          path: '',
-          page: PageInfo(SidechainSlotsRoute.name, builder: (_) => const Text('slot table')),
-          initial: true,
-        ),
-        AutoRoute(
-          path: ':chain',
-          page: SidechainHostRoute.page,
-          children: [
-            for (final name in {
-              for (final module in hostedModules)
-                for (final route in shellTabRoutes(module)) route.routeName,
-            })
-              AutoRoute(
-                page: PageInfo(name, builder: (_) => Text('page $name')),
-                initial: name == SidechainHomepageRoute.name,
-              ),
-          ],
-        ),
-      ],
+      children: _sidechainsChildren(),
     ),
   ];
 }
@@ -250,10 +279,10 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    Future<_HostRouter> pumpHost(WidgetTester tester) async {
+    Future<AppRouter> pumpHost(WidgetTester tester, {AppRouter? appRouter, bool waitForChain = false}) async {
       addTearDown(() => tester.pumpWidget(const SizedBox()));
       await tester.binding.setSurfaceSize(const Size(1440, 1024));
-      final router = _HostRouter();
+      final router = appRouter ?? _HostRouter();
       GetIt.I.registerSingleton<AppRouter>(router);
       await tester.pumpWidget(
         SailApp(
@@ -264,6 +293,14 @@ void main() {
           log: GetIt.I.get<Logger>(),
         ),
       );
+      if (waitForChain) {
+        // The scope reads the conf through real I/O, which a fake clock never runs.
+        for (var i = 0; i < 200 && find.byType(HostedChainView, skipOffstage: false).evaluate().isEmpty; i++) {
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+          await tester.pump();
+        }
+        return router;
+      }
       await tester.pumpAndSettle();
       return router;
     }
@@ -297,6 +334,18 @@ void main() {
       expect(opened, isTrue);
       expect(GetIt.I.get<SidechainModule>(), isA<ThunderModule>());
       expect(find.text('page ${ConsoleTabRoute.name}'), findsOneWidget);
+    });
+
+    testWidgets('a chain view stops its tickers while another BitWindow tab shows', (tester) async {
+      await pumpHost(tester, appRouter: _TabsRouter(), waitForChain: true);
+      bool shown() => TickerMode.valuesOf(tester.element(find.byType(HostedChainView, skipOffstage: false))).enabled;
+      expect(shown(), isTrue);
+
+      AutoTabsRouter.of(tester.element(find.byType(SidechainHostPage, skipOffstage: false))).setActiveIndex(1);
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('other tab'), findsOneWidget);
+      expect(shown(), isFalse);
     });
 
     testWidgets('a chain opens with its tabs, and a switch swaps the chain scope', (tester) async {
