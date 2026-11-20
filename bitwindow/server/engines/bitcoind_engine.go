@@ -74,6 +74,15 @@ type Parser struct {
 
 	// Dedicated sink for coinnews sync events. Nil => logging disabled.
 	coinnewsLog *zerolog.Logger
+
+	// tipChanged fires after each tick that processed blocks.
+	tipChanged changeBroadcast
+}
+
+// SubscribeTip wakes the returned channel after each tick that processed
+// blocks. The channel lives until ctx is done.
+func (p *Parser) SubscribeTip(ctx context.Context) <-chan struct{} {
+	return p.tipChanged.subscribe(ctx)
 }
 
 // Run runs the engine. It checks if a new block has been mined,
@@ -303,6 +312,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	case current:
 		return nil
 	}
+	defer p.tipChanged.notify()
 
 	switch err := p.ensureSyncIsHealthy(ctx); {
 	case err != nil &&
