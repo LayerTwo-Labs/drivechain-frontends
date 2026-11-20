@@ -183,9 +183,9 @@ func TestSidechainArgsWithNoOffset(t *testing.T) {
 func TestSidechainArgsWithOffset(t *testing.T) {
 	t.Setenv(instance.PortOffsetEnv, "1000")
 	for name, want := range map[string][]string{
-		"thunder":   {"--rpc-addr=127.0.0.1:7009", "--net-addr=0.0.0.0:15009", "--mainchain-grpc-url=http://localhost:51051"},
+		"thunder":   {"--rpc-addr=127.0.0.1:7009", "--private-rpc-addr=127.0.0.1:7009", "--net-addr=0.0.0.0:15009", "--mainchain-grpc-url=http://localhost:51051"},
 		"bitassets": {"--rpc-port=7004", "--net-addr=0.0.0.0:15004", "--zmq-addr=127.0.0.1:39004", "--mainchain-grpc-port=51051"},
-		"bitnames":  {"--rpc-addr=127.0.0.1:7002", "--net-addr=0.0.0.0:15002", "--zmq-addr=127.0.0.1:39002", "--mainchain-grpc-port=51051"},
+		"bitnames":  {"--rpc-addr=127.0.0.1:7002", "--private-rpc-addr=127.0.0.1:7002", "--net-addr=0.0.0.0:15002", "--zmq-addr=127.0.0.1:39002", "--mainchain-grpc-port=51051"},
 	} {
 		m := sidechainConfFor(t, name, NetworkRegtest, nil)
 		m.Config = ParseGenericAppConfig(m.GetDefaultConfig())

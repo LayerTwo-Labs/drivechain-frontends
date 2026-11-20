@@ -103,6 +103,9 @@ type SidechainConfSpec struct {
 	// bitassets takes a bare port on --rpc-port, and the rest take a socket
 	// address on --rpc-addr. An empty value reads as "rpc-addr".
 	RPCKey string
+	// PrivateRPCKey is the flag of the wallet RPC endpoint, for a daemon that
+	// can serve it apart from RPCKey. Empty means one endpoint.
+	PrivateRPCKey string
 	// DirKey is the chains_config.json key for the data directory lookup.
 	DirKey string
 	// LegacyRootDirName is the folder an older release kept this chain's conf
@@ -122,7 +125,11 @@ func (s SidechainConfSpec) InstanceRPCArgs() []string {
 	if key := s.rpcEndpointKey(); key == "rpc-port" {
 		return []string{fmt.Sprintf("--%s=%d", key, port)}
 	}
-	return []string{fmt.Sprintf("--%s=127.0.0.1:%d", s.rpcEndpointKey(), port)}
+	args := []string{fmt.Sprintf("--%s=127.0.0.1:%d", s.rpcEndpointKey(), port)}
+	if s.PrivateRPCKey != "" {
+		args = append(args, fmt.Sprintf("--%s=127.0.0.1:%d", s.PrivateRPCKey, port))
+	}
+	return args
 }
 
 // rpcEndpointKey names the conf key that holds the RPC endpoint.
@@ -654,6 +661,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		EnforcerArg:    "mainchain-grpc-url",
 		PortStyle:      "grpc",
 		RPCKey:         "rpc-addr",
+		PrivateRPCKey:  "private-rpc-addr",
 		DirKey:         "thunder",
 	},
 	"bitassets": {
@@ -674,6 +682,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		CliArgKeys:     []string{"net-addr", "zmq-addr"},
 		PortStyle:      "zmq",
 		RPCKey:         "rpc-addr",
+		PrivateRPCKey:  "private-rpc-addr",
 		DirKey:         "bitnames",
 	},
 	"zside": {
@@ -684,6 +693,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		CliArgKeys:     []string{"net-addr", "mainchain-grpc-url"},
 		PortStyle:      "grpc",
 		RPCKey:         "rpc-addr",
+		PrivateRPCKey:  "private-rpc-addr",
 		DirKey:         "zside",
 	},
 	"photon": {
@@ -704,6 +714,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		CliArgKeys:        []string{"net-addr", "mainchain-grpc-url"},
 		PortStyle:         "grpc",
 		RPCKey:            "rpc-addr",
+		PrivateRPCKey:     "private-rpc-addr",
 		DirKey:            "truthcoin",
 		LegacyRootDirName: "truthcoin",
 	},
