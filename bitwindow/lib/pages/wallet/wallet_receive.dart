@@ -162,18 +162,7 @@ class ReceiveTab extends StatelessWidget {
                       SailRow(
                         spacing: SailStyleValues.padding08,
                         children: [
-                          Expanded(
-                            child: SailTextField(
-                              loading: LoadingDetails(
-                                enabled: model.bip47PaymentCode.isEmpty,
-                                description: 'Waiting for wallet to sync..',
-                              ),
-                              controller: TextEditingController(text: model.bip47PaymentCode),
-                              hintText: 'A Drivechain address',
-                              readOnly: true,
-                              suffixWidget: CopyButton(text: model.bip47PaymentCode),
-                            ),
-                          ),
+                          Expanded(child: PaymentCodeField(code: model.bip47PaymentCode)),
                         ],
                       ),
                     ],
@@ -185,6 +174,27 @@ class ReceiveTab extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// The BIP47 payment code with a copy button. A phone wraps the code over more lines.
+class PaymentCodeField extends StatelessWidget {
+  final String code;
+
+  const PaymentCodeField({super.key, required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    final phone = SailStyleValues.phoneLayout(context);
+    return SailTextField(
+      loading: LoadingDetails(enabled: code.isEmpty, description: 'Waiting for wallet to sync..'),
+      controller: TextEditingController(text: code),
+      hintText: 'A Drivechain address',
+      readOnly: true,
+      minLines: phone ? 1 : null,
+      maxLines: phone ? null : 1,
+      suffixWidget: CopyButton(text: code),
     );
   }
 }
