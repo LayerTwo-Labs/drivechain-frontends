@@ -1616,6 +1616,18 @@ class SendPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  /// Selects the spendable coins of [outpoints] and returns how many it took.
+  int selectOutpoints(Iterable<String> outpoints) {
+    selectedUtxos = coinsAt(availableUtxos, outpoints);
+    notifyListeners();
+    return selectedUtxos.length;
+  }
+
+  static List<UnspentOutput> coinsAt(List<UnspentOutput> utxos, Iterable<String> outpoints) {
+    final wanted = outpoints.toSet();
+    return utxos.where((u) => wanted.contains(u.output)).toList();
+  }
+
   void onSelectionChanged(List<UnspentOutput> selected) {
     final justFromWallet = allUtxos.where((u) => selected.contains(u)).toList();
     selectedUtxos = List.from(justFromWallet);
