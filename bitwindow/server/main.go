@@ -422,11 +422,7 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 	if err != nil {
 		return nil, fmt.Errorf("find self path: %w", err)
 	}
-	orchName := "drivechaind"
-	if runtime.GOOS == "windows" {
-		orchName += ".exe"
-	}
-	orchPath := filepath.Join(filepath.Dir(selfPath), orchName)
+	orchPath := filepath.Join(filepath.Dir(selfPath), drivechaindFileName(runtime.GOOS))
 	if _, err := os.Stat(orchPath); err != nil {
 		return nil, fmt.Errorf("drivechaind not found at %s: %w", orchPath, err)
 	}
@@ -861,4 +857,18 @@ func splitAddr(addr string) (string, int, error) {
 		return "", 0, fmt.Errorf("invalid port %q: %w", portStr, err)
 	}
 	return host, port, nil
+}
+
+// drivechaindFileName is the drivechaind file name beside bitwindowd. Android
+// only executes binaries from the app's native library folder, which holds
+// them as lib<name>.so.
+func drivechaindFileName(goos string) string {
+	switch goos {
+	case "windows":
+		return "drivechaind.exe"
+	case "android":
+		return "libdrivechaind.so"
+	default:
+		return "drivechaind"
+	}
 }
