@@ -581,4 +581,12 @@ void main() {
     expect(blockStatus(100), 'Mature');
     expect(blockStatus(-1), 'Orphaned');
   });
+
+  test('a phone has no Mining tab', () {
+    expect(hasMiningTab(mobile: true), isFalse);
+  });
+
+  test('a desktop keeps the Mining tab', () {
+    expect(hasMiningTab(mobile: false), isTrue);
+  });
 }
