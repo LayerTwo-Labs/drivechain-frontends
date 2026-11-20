@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
+import 'package:sidechain_core/rpcs/stream_or_poll.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// One bitwindowd sync poll: the reply, or the reason it failed.
@@ -123,8 +124,10 @@ class SyncConnection {
   SyncConnection({required this.rpc, required this.name});
 }
 
-/// Polls a single orchestrator RPC (`GetSyncStatus`) for an atomic snapshot
-/// of mainchain + enforcer + every known sidechain (including bitwindowd).
+/// Reads the orchestrator `WatchSyncStatus` stream for an atomic snapshot of
+/// mainchain + enforcer + every known sidechain, and the bitwindowd
+/// `WatchSyncInfo` stream for its own card. Each polls while its stream is
+/// down.
 /// Carries chain-tip state only — download progress is owned by the
 /// [DownloadProvider] which polls its own RPC on a separate cadence.
 class SyncProvider extends ChangeNotifier implements NetworkScoped {
@@ -217,7 +220,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   /// "Scanning external addresses — 12 checked, 3 used". Shown in the bottom nav.
   String walletSyncStatus = '';
 
-  Timer? _timer;
   bool _isFetching = false;
 
   /// Last seen mainchain block height. Drives the new-block broadcast — every
@@ -316,154 +318,226 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
     _lastMainchainBlocks = 0;
     _lastSidechainBlocks.clear();
     notifyListeners();
+    _refreshWatches();
+  }
+
+  // The streams send only changes, so a value equal across the wipe would
+  // stay empty.
+  void _refreshWatches() {
+    unawaited(_orchWatch?.refresh());
+    unawaited(_bitwindowdWatch?.refresh());
   }
 
   SyncProvider({this.additionalConnection, bool startTimer = true}) {
     if (startTimer && !Environment.isInTest) {
-      _timer = Timer.periodic(POLL_INTERVAL, (_) => _tick());
-      fetch();
+      _orchWatch = StreamOrPoll<orch_pb.WatchSyncStatusResponse, orch_pb.GetSyncStatusResponse>(
+        subscribe: _orchestrator.watchSyncStatus,
+        onFrame: applyWatchFrame,
+        isHeartbeat: (frame) => frame.heartbeat,
+        fetch: _orchestrator.getSyncStatus,
+        onPoll: (resp) => _notifyIf(_applyOrchestrator(resp)),
+        onPollError: (e) => _notifyIf(_applyOrchestratorError(extractConnectException(e))),
+        pollInterval: POLL_INTERVAL,
+        onTransportDeath: _orchestrator.recreateConnection,
+        logger: log,
+        tag: 'SyncProvider',
+      )..start();
+      _bitwindowdModeTimer = Timer.periodic(POLL_INTERVAL, (_) => _syncBitwindowdWatch());
+      _syncBitwindowdWatch();
     }
   }
 
-  Future<void> _tick() async {
-    if (_isFetching) {
+  StreamOrPoll<orch_pb.WatchSyncStatusResponse, orch_pb.GetSyncStatusResponse>? _orchWatch;
+  Timer? _bitwindowdModeTimer;
+  StreamOrPoll<WatchSyncInfoResponse, GetSyncInfoResponse>? _bitwindowdWatch;
+
+  /// Applies one WatchSyncStatus frame.
+  @visibleForTesting
+  void applyWatchFrame(orch_pb.WatchSyncStatusResponse frame) {
+    if (frame.heartbeat) {
       return;
     }
-    _isFetching = true;
-
-    try {
-      await _fetch();
-    } catch (_) {
-      // swallow — _fetch() already records errors per-chain
-    } finally {
-      _isFetching = false;
-    }
+    _notifyIf(_applyOrchestrator(frame.status));
   }
 
-  Future<void> _fetch() async {
-    // Fan out two parallel polls: orchestrator for L1 + sidechains, and
-    // (when applicable) bitwindowd directly for the bitwindow daemon card.
-    // The orchestrator deliberately doesn't know bitwindowd exists, so its
-    // GetSyncStatus skips it and we hit bitwindowd ourselves. The check is
-    // by GetIt registration — every non-bitwindow app skips the second
-    // poll automatically because BitwindowRPC isn't wired in.
-    //
-    // Light mode runs no local Bitcoin Core, so the bitwindowd card reads a
-    // daemon that is not there. Skip the second poll there.
-    final orchFuture = _orchestrator.getSyncStatus();
-    final bitwindowRpc = GetIt.I.isRegistered<BitwindowRPC>() && NodeModeProvider.runsLocalBackends
-        ? GetIt.I.get<BitwindowRPC>()
-        : null;
-    // The handler goes on at creation. Attaching it after the orchestrator
-    // await lets a failure land while nothing listens, and the zone then
-    // reports it as an unhandled error.
-    final bitwindowFuture = bitwindowRpc?.bitwindowd.getSyncInfo().then<_BitwindowSync>(
-      (info) => (info: info, error: null),
-      onError: (Object e) => (info: null, error: extractConnectException(e)),
-    );
-
-    orch_pb.GetSyncStatusResponse? resp;
-    String? orchErr;
-    try {
-      resp = await orchFuture;
-    } catch (e) {
-      orchErr = extractConnectException(e);
-    }
-
-    var changed = false;
-
-    if (resp != null) {
-      final newMainchain = _toSyncInfo(resp.mainchain);
-      if (_diff(mainchainSyncInfo, newMainchain) || mainchainError != _errOrNull(resp.mainchain)) {
-        mainchainSyncInfo = newMainchain;
-        mainchainError = _errOrNull(resp.mainchain);
-        changed = true;
-      }
-      // Fire the new-block broadcast on strict block-height increment. The
-      // SyncInfo equality check above includes progressGoal/lastBlockAt
-      // changes too, so we re-check the blocks delta independently to avoid
-      // false positives when only the header height moved.
-      maybeFireNewBlock(newMainchain.progressCurrent.toInt());
-
-      final newEnforcer = _toSyncInfo(resp.enforcer);
-      if (_diff(enforcerSyncInfo, newEnforcer) || enforcerError != _errOrNull(resp.enforcer)) {
-        enforcerSyncInfo = newEnforcer;
-        enforcerError = _errOrNull(resp.enforcer);
-        changed = true;
-      }
-
-      final newChainSource = _toSyncInfo(resp.chainSource);
-      if (_diff(chainSourceSyncInfo, newChainSource) || chainSourceError != _errOrNull(resp.chainSource)) {
-        chainSourceSyncInfo = newChainSource;
-        chainSourceError = _errOrNull(resp.chainSource);
-        changed = true;
-      }
-
-      final newSidechains = <orch_pb.SidechainType, SyncInfo>{};
-      final newSidechainErrors = <orch_pb.SidechainType, String?>{};
-      for (final entry in resp.sidechains) {
-        newSidechains[entry.type] = _toSyncInfo(entry.sync);
-        newSidechainErrors[entry.type] = _errOrNull(entry.sync);
-        maybeFireNewSidechainBlock(entry.type, newSidechains[entry.type]!);
-      }
-      if (!_sidechainMapEquals(sidechains, newSidechains) ||
-          !_sidechainMapEquals(sidechainErrors, newSidechainErrors)) {
-        sidechains = newSidechains;
-        sidechainErrors = newSidechainErrors;
-        changed = true;
-      }
-
-      if (walletSyncStatus != resp.walletSyncStatus) {
-        walletSyncStatus = resp.walletSyncStatus;
-        changed = true;
-      }
-    } else {
-      if (mainchainError != orchErr) {
-        mainchainError = orchErr;
-        changed = true;
-      }
-      if (enforcerError != orchErr) {
-        enforcerError = orchErr;
-        changed = true;
-      }
-      if (sidechainErrors.values.any((e) => e != orchErr)) {
-        sidechainErrors = {for (final k in sidechainErrors.keys) k: orchErr};
-        changed = true;
-      }
-    }
-
-    if (bitwindowFuture == null) {
-      // A skipped poll leaves the last snapshot behind, and the daemon card
-      // keeps full-mode progress that no longer moves.
-      if (bitwindowdSyncInfo != null || bitwindowdError != null) {
-        bitwindowdSyncInfo = null;
-        bitwindowdError = null;
-        changed = true;
-      }
-    } else {
-      final result = await bitwindowFuture;
-      final info = result.info;
-      if (info != null) {
-        final next = SyncInfo(
-          progressCurrent: info.tipBlockHeight.toDouble(),
-          progressGoal: info.headerHeight.toDouble(),
-          lastBlockAt: info.tipBlockTime != Int64(0) ? Timestamp(seconds: info.tipBlockTime) : null,
-          waitsForCore: info.waitsForCore,
-        );
-        if (_diff(bitwindowdSyncInfo, next) || bitwindowdError != null) {
-          bitwindowdSyncInfo = next;
-          bitwindowdError = null;
-          changed = true;
-        }
-      } else if (bitwindowdError != result.error) {
-        bitwindowdError = result.error;
-        changed = true;
-      }
-    }
-
+  void _notifyIf(bool changed) {
     if (changed) {
       notifyListeners();
     }
+  }
+
+  /// Light mode runs no local Bitcoin Core, so the bitwindowd card reads a
+  /// daemon that is not there. Every non-bitwindow app has no BitwindowRPC.
+  BitwindowRPC? get _bitwindowRpc =>
+      GetIt.I.isRegistered<BitwindowRPC>() && NodeModeProvider.runsLocalBackends ? GetIt.I.get<BitwindowRPC>() : null;
+
+  /// Runs the bitwindowd watch only while [_bitwindowRpc] has a daemon to read.
+  void _syncBitwindowdWatch() {
+    final rpc = _bitwindowRpc;
+    if (rpc == null) {
+      unawaited(_bitwindowdWatch?.dispose());
+      _bitwindowdWatch = null;
+      _notifyIf(_clearBitwindowd());
+      return;
+    }
+    _bitwindowdWatch ??= StreamOrPoll<WatchSyncInfoResponse, GetSyncInfoResponse>(
+      // A recreated connection replaces rpc.bitwindowd, so resolve it per call.
+      subscribe: () => rpc.bitwindowd.watchSyncInfo(),
+      onFrame: applyBitwindowdFrame,
+      isHeartbeat: (frame) => frame.heartbeat,
+      fetch: () => rpc.bitwindowd.getSyncInfo(),
+      onPoll: (info) => _notifyIf(_applyBitwindowd(info)),
+      onPollError: (e) => _notifyIf(_applyBitwindowdError(extractConnectException(e))),
+      pollInterval: POLL_INTERVAL,
+      onTransportDeath: () {},
+      logger: log,
+      tag: 'SyncProvider.bitwindowd',
+    )..start();
+  }
+
+  /// Applies one bitwindowd WatchSyncInfo frame.
+  @visibleForTesting
+  void applyBitwindowdFrame(WatchSyncInfoResponse frame) {
+    if (frame.heartbeat || _bitwindowRpc == null) {
+      return;
+    }
+    _notifyIf(_applyBitwindowd(frame.info));
+  }
+
+  // A skipped poll leaves the last snapshot behind, and the daemon card
+  // keeps full-mode progress that no longer moves.
+  bool _clearBitwindowd() {
+    if (bitwindowdSyncInfo == null && bitwindowdError == null) {
+      return false;
+    }
+    bitwindowdSyncInfo = null;
+    bitwindowdError = null;
+    return true;
+  }
+
+  bool _applyBitwindowdError(String? error) {
+    if (bitwindowdError == error) {
+      return false;
+    }
+    bitwindowdError = error;
+    return true;
+  }
+
+  bool _applyBitwindowd(GetSyncInfoResponse info) {
+    final next = SyncInfo(
+      progressCurrent: info.tipBlockHeight.toDouble(),
+      progressGoal: info.headerHeight.toDouble(),
+      lastBlockAt: info.tipBlockTime != Int64(0) ? Timestamp(seconds: info.tipBlockTime) : null,
+      waitsForCore: info.waitsForCore,
+    );
+    if (!_diff(bitwindowdSyncInfo, next) && bitwindowdError == null) {
+      return false;
+    }
+    bitwindowdSyncInfo = next;
+    bitwindowdError = null;
+    return true;
+  }
+
+  Future<bool> _fetchBitwindowd() async {
+    final rpc = _bitwindowRpc;
+    if (rpc == null) {
+      return _clearBitwindowd();
+    }
+    // The stream holds the newest info, and an older reply would win.
+    if (_bitwindowdWatch?.streaming ?? false) {
+      return false;
+    }
+    final _BitwindowSync result = await rpc.bitwindowd.getSyncInfo().then<_BitwindowSync>(
+      (info) => (info: info, error: null),
+      onError: (Object e) => (info: null, error: extractConnectException(e)),
+    );
+    final info = result.info;
+    return info == null ? _applyBitwindowdError(result.error) : _applyBitwindowd(info);
+  }
+
+  bool _applyOrchestrator(orch_pb.GetSyncStatusResponse resp) {
+    var changed = false;
+    final newMainchain = _toSyncInfo(resp.mainchain);
+    if (_diff(mainchainSyncInfo, newMainchain) || mainchainError != _errOrNull(resp.mainchain)) {
+      mainchainSyncInfo = newMainchain;
+      mainchainError = _errOrNull(resp.mainchain);
+      changed = true;
+    }
+    // Fire the new-block broadcast on strict block-height increment. The
+    // SyncInfo equality check above includes progressGoal/lastBlockAt
+    // changes too, so we re-check the blocks delta independently to avoid
+    // false positives when only the header height moved.
+    maybeFireNewBlock(newMainchain.progressCurrent.toInt());
+
+    final newEnforcer = _toSyncInfo(resp.enforcer);
+    if (_diff(enforcerSyncInfo, newEnforcer) || enforcerError != _errOrNull(resp.enforcer)) {
+      enforcerSyncInfo = newEnforcer;
+      enforcerError = _errOrNull(resp.enforcer);
+      changed = true;
+    }
+
+    final newChainSource = _toSyncInfo(resp.chainSource);
+    if (_diff(chainSourceSyncInfo, newChainSource) || chainSourceError != _errOrNull(resp.chainSource)) {
+      chainSourceSyncInfo = newChainSource;
+      chainSourceError = _errOrNull(resp.chainSource);
+      changed = true;
+    }
+
+    final newSidechains = <orch_pb.SidechainType, SyncInfo>{};
+    final newSidechainErrors = <orch_pb.SidechainType, String?>{};
+    for (final entry in resp.sidechains) {
+      newSidechains[entry.type] = _toSyncInfo(entry.sync);
+      newSidechainErrors[entry.type] = _errOrNull(entry.sync);
+      maybeFireNewSidechainBlock(entry.type, newSidechains[entry.type]!);
+    }
+    if (!_sidechainMapEquals(sidechains, newSidechains) || !_sidechainMapEquals(sidechainErrors, newSidechainErrors)) {
+      sidechains = newSidechains;
+      sidechainErrors = newSidechainErrors;
+      changed = true;
+    }
+
+    if (walletSyncStatus != resp.walletSyncStatus) {
+      walletSyncStatus = resp.walletSyncStatus;
+      changed = true;
+    }
+    return changed;
+  }
+
+  bool _applyOrchestratorError(String? orchErr) {
+    var changed = false;
+    if (mainchainError != orchErr) {
+      mainchainError = orchErr;
+      changed = true;
+    }
+    if (enforcerError != orchErr) {
+      enforcerError = orchErr;
+      changed = true;
+    }
+    if (sidechainErrors.values.any((e) => e != orchErr)) {
+      sidechainErrors = {for (final k in sidechainErrors.keys) k: orchErr};
+      changed = true;
+    }
+    return changed;
+  }
+
+  Future<void> _fetch() async {
+    // The handler goes on at creation. Attaching it after the orchestrator
+    // await lets a failure land while nothing listens, and the zone then
+    // reports it as an unhandled error.
+    final bitwindowFuture = _fetchBitwindowd();
+    var changed = false;
+    // The stream holds the newest snapshot, and an older reply would win.
+    if (_orchWatch?.streaming ?? false) {
+      _notifyIf(await bitwindowFuture);
+      return;
+    }
+    try {
+      changed = _applyOrchestrator(await _orchestrator.getSyncStatus());
+    } catch (e) {
+      changed = _applyOrchestratorError(extractConnectException(e));
+    }
+    changed |= await bitwindowFuture;
+    _notifyIf(changed);
   }
 
   /// Builds a SyncInfo from the proto.
@@ -531,11 +605,14 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
     sidechains = const {};
     sidechainErrors = const {};
     notifyListeners();
+    _refreshWatches();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    unawaited(_orchWatch?.dispose());
+    unawaited(_bitwindowdWatch?.dispose());
+    _bitwindowdModeTimer?.cancel();
     super.dispose();
   }
 }

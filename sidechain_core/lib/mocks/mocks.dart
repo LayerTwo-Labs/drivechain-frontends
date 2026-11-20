@@ -1824,6 +1824,16 @@ class MockSyncProvider implements SyncProvider {
   }
 
   @override
+  void applyWatchFrame(WatchSyncStatusResponse frame) {
+    return;
+  }
+
+  @override
+  void applyBitwindowdFrame(WatchSyncInfoResponse frame) {
+    return;
+  }
+
+  @override
   bool get hasListeners => false;
 
   @override
