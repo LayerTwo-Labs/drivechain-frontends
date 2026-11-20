@@ -70,6 +70,7 @@ class BlockExplorerDialog extends StatelessWidget {
       ),
       onViewModelReady: (model) => model.init(),
       builder: (context, model, child) {
+        final phone = SailStyleValues.phoneLayout(context);
         return SailCard(
           title: '# Blocks: ${model.blockchainProvider.syncProvider.mainchainSyncInfo?.progressCurrent.toInt()}',
           subtitle:
@@ -77,28 +78,52 @@ class BlockExplorerDialog extends StatelessWidget {
           bottomPadding: false,
           child: Column(
             children: [
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Expanded(
-                    child: SailTextField(
-                      controller: model.searchController,
-                      hintText: 'Enter a block height or hash',
-                      onSubmitted: model.searchBlock,
+              if (phone) ...[
+                SailTextField(
+                  controller: model.searchController,
+                  hintText: 'Enter a block height or hash',
+                  onSubmitted: model.searchBlock,
+                ),
+                const SailSpacing(SailStyleValues.padding08),
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SailButton(
+                      onPressed: () => model.searchBlock(model.searchController.text),
+                      label: 'Search',
+                      variant: ButtonVariant.primary,
                     ),
-                  ),
-                  SailButton(
-                    onPressed: () => model.searchBlock(model.searchController.text),
-                    label: 'Search',
-                    variant: ButtonVariant.primary,
-                  ),
-                  SailButton(
-                    onPressed: () => showLoadTransactionDialog(context),
-                    label: 'Load transaction',
-                  ),
-                ],
-              ),
+                    SailButton(
+                      onPressed: () => showLoadTransactionDialog(context),
+                      label: 'Load transaction',
+                    ),
+                  ],
+                ),
+              ] else
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Expanded(
+                      child: SailTextField(
+                        controller: model.searchController,
+                        hintText: 'Enter a block height or hash',
+                        onSubmitted: model.searchBlock,
+                      ),
+                    ),
+                    SailButton(
+                      onPressed: () => model.searchBlock(model.searchController.text),
+                      label: 'Search',
+                      variant: ButtonVariant.primary,
+                    ),
+                    SailButton(
+                      onPressed: () => showLoadTransactionDialog(context),
+                      label: 'Load transaction',
+                    ),
+                  ],
+                ),
               if (model.searchError != null) ...[
                 SailSpacing(SailStyleValues.padding08),
                 Align(
@@ -107,41 +132,63 @@ class BlockExplorerDialog extends StatelessWidget {
                 ),
               ],
               SailSpacing(SailStyleValues.padding16),
-              Expanded(
-                child: SizedBox(
-                  width: 1200, // Match dialog max width
+              if (phone)
+                Expanded(
                   child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
                     controller: model.scrollController,
                     key: PageStorageKey('block_list'),
-                    reverse: true,
                     itemCount: model.blocks.length + (model.isLoadingMoreBlocks ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (model.isLoadingMoreBlocks && index == 0) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: LoadingIndicator(),
-                        );
+                      if (index == model.blocks.length) {
+                        return const Padding(padding: EdgeInsets.all(16), child: LoadingIndicator());
                       }
-                      final adjustedIndex = model.isLoadingMoreBlocks ? index - 1 : index;
-                      final block = model.blocks[adjustedIndex];
-                      return Align(
-                        alignment: Alignment.topCenter,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _BlockColumn(
-                              block: block,
-                              onDoubleTap: () => _showBlockDetails(context, block),
-                            ),
-                            if (adjustedIndex > 0) const _BlockConnector(),
-                          ],
-                        ),
+                      final block = model.blocks[index];
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (index > 0) const _BlockConnector(),
+                          _BlockColumn(block: block, onDoubleTap: () => _showBlockDetails(context, block)),
+                        ],
                       );
                     },
                   ),
+                )
+              else
+                Expanded(
+                  child: SizedBox(
+                    width: 1200, // Match dialog max width
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      controller: model.scrollController,
+                      key: PageStorageKey('block_list'),
+                      reverse: true,
+                      itemCount: model.blocks.length + (model.isLoadingMoreBlocks ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (model.isLoadingMoreBlocks && index == 0) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: LoadingIndicator(),
+                          );
+                        }
+                        final adjustedIndex = model.isLoadingMoreBlocks ? index - 1 : index;
+                        final block = model.blocks[adjustedIndex];
+                        return Align(
+                          alignment: Alignment.topCenter,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _BlockColumn(
+                                block: block,
+                                onDoubleTap: () => _showBlockDetails(context, block),
+                              ),
+                              if (adjustedIndex > 0) const _BlockConnector(),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
               SailSpacing(SailStyleValues.padding16),
             ],
           ),
@@ -852,10 +899,11 @@ class _BlockColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final phone = SailStyleValues.phoneLayout(context);
     return GestureDetector(
       onDoubleTap: onDoubleTap,
       child: Container(
-        width: 400,
+        width: phone ? null : 400,
         padding: const EdgeInsets.all(SailStyleValues.padding16),
         decoration: BoxDecoration(
           color: context.sailTheme.colors.backgroundSecondary,
@@ -882,22 +930,30 @@ class _BlockColumn extends StatelessWidget {
                     ),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SailText.primary13(
-                      '${block.height}',
-                      monospace: true,
-                      color: context.sailTheme.colors.info,
-                    ),
-                    Flexible(
-                      child: SailText.secondary13(
-                        block.blockTime.toDateTime().toLocal().format(),
-                        monospace: true,
+                child: phone
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailText.primary13('${block.height}', monospace: true, color: context.sailTheme.colors.info),
+                          SailText.secondary13(block.blockTime.toDateTime().toLocal().format(), monospace: true),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.primary13(
+                            '${block.height}',
+                            monospace: true,
+                            color: context.sailTheme.colors.info,
+                          ),
+                          Flexible(
+                            child: SailText.secondary13(
+                              block.blockTime.toDateTime().toLocal().format(),
+                              monospace: true,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
               _BlockValueLine(label: 'Hash', value: block.hash),
               _BlockValueLine(label: 'Prev Hash', value: block.previousBlockHash),
@@ -925,7 +981,10 @@ class _BlockValueLine extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailText.primary13(label, monospace: true, color: context.sailTheme.colors.textTertiary),
-          SailText.secondary13(middleEllipsis(value), monospace: true),
+          SailText.secondary13(
+            SailStyleValues.phoneLayout(context) ? value : middleEllipsis(value),
+            monospace: true,
+          ),
         ],
       ),
     );
@@ -937,6 +996,14 @@ class _BlockConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
+        child: Center(
+          child: SailSVG.fromAsset(SailSVGAsset.chevronDown, width: 16, color: context.sailTheme.colors.textTertiary),
+        ),
+      );
+    }
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
       child: SailSVG.fromAsset(SailSVGAsset.chevronLeft, width: 20, color: context.sailTheme.colors.textTertiary),
