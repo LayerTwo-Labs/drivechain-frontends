@@ -69,6 +69,10 @@ import (
 // -ldflags "-X main.version=...".
 var version = "dev"
 
+// hwiWarmDelay is the wait after the listener starts before the hardware
+// wallet daemon starts. The boot RPCs of the app take the CPU first.
+const hwiWarmDelay = 2 * time.Second
+
 func init() {
 	// Without this, zerolog drops the milliseconds from every timestamp.
 	zerolog.TimeFieldFormat = time.RFC3339Nano
@@ -771,6 +775,17 @@ func run(cctx *cli.Context) error {
 	}()
 
 	go clients.Run(ctx)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(hwiWarmDelay):
+		}
+		if err := wallet.WarmHWIDaemon(ctx, netParams()); err != nil {
+			log.Warn().Err(err).Msg("could not start the hardware wallet daemon before use")
+		}
+	}()
 
 	if err := orch.ConnectRemoteEnforcer(ctx); err != nil {
 		return err

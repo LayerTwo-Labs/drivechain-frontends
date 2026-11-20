@@ -3,6 +3,8 @@ package wallet
 import (
 	"context"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -43,4 +45,34 @@ func TestHWIDaemonSmoke(t *testing.T) {
 
 	_, err = runner.Enumerate(ctx, "")
 	require.NoError(t, err, "daemon did not survive the failed commands")
+}
+
+func TestWarmHWIDaemonLeavesTheFirstLookupNoStart(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the fake daemon is a shell script")
+	}
+	dir := t.TempDir()
+	starts := filepath.Join(dir, "starts")
+	fake := filepath.Join(dir, "hwi-daemon")
+	script := "#!/bin/sh\necho start >> '" + starts + "'\nwhile read line; do echo '[]'; done\n"
+	require.NoError(t, os.WriteFile(fake, []byte(script), 0o755))
+	t.Setenv("ORCHESTRATOR_HWI_DAEMON", fake)
+	t.Cleanup(func() {
+		daemonMu.Lock()
+		defer daemonMu.Unlock()
+		if daemon != nil {
+			daemon.close()
+			daemon = nil
+		}
+	})
+
+	require.NoError(t, WarmHWIDaemon(t.Context(), &chaincfg.RegressionNetParams))
+
+	devices, err := NewHWIRunner(&chaincfg.RegressionNetParams).Enumerate(t.Context(), "")
+	require.NoError(t, err)
+	require.Empty(t, devices)
+
+	got, err := os.ReadFile(starts)
+	require.NoError(t, err)
+	require.Equal(t, "start\n", string(got))
 }
