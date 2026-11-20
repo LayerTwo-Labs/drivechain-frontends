@@ -299,98 +299,119 @@ class _AddressBookContentState extends State<AddressBookContent> {
   Widget build(BuildContext context) {
     final direction = widget.viewModel.direction;
     final entries = _sortedEntries;
+    final phone = SailStyleValues.phoneLayout(context);
+    final buttons = SailRow(
+      spacing: SailStyleValues.padding08,
+      children: [
+        if (direction == Direction.DIRECTION_SEND)
+          SailButton(
+            label: 'Add Address',
+            small: phone,
+            onPressed: () async => unawaited(_showCreateDialog(context)),
+          ),
+        SailButton(
+          label: 'Import',
+          variant: ButtonVariant.outline,
+          small: phone,
+          onPressed: () async => widget.viewModel.importLabels(context),
+        ),
+        SailButton(
+          label: 'Export',
+          variant: ButtonVariant.outline,
+          small: phone,
+          onPressed: () async => widget.viewModel.exportLabels(context),
+        ),
+      ],
+    );
 
     return SailCard(
       key: Key('address-book-$direction'),
       title: direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
       subtitle: widget.viewModel.error('create') ?? widget.viewModel.error('edit') ?? widget.viewModel.error('delete'),
       error: widget.viewModel.error('labels')?.toString(),
-      widgetHeaderEnd: SailRow(
-        spacing: SailStyleValues.padding08,
-        children: [
-          if (direction == Direction.DIRECTION_SEND)
-            SailButton(
-              label: 'Add Address',
-              onPressed: () async => unawaited(_showCreateDialog(context)),
-            ),
-          SailButton(
-            label: 'Import',
-            variant: ButtonVariant.outline,
-            onPressed: () async => widget.viewModel.importLabels(context),
-          ),
-          SailButton(
-            label: 'Export',
-            variant: ButtonVariant.outline,
-            onPressed: () async => widget.viewModel.exportLabels(context),
-          ),
-        ],
-      ),
+      widgetHeaderEnd: phone ? null : buttons,
       bottomPadding: false,
-      child: SailTable(
-        getRowId: (index) => entries[index].id.toString(),
-        headerBuilder: (context) => [
-          const SailTableHeaderCell(name: 'Label'),
-          const SailTableHeaderCell(name: 'Address'),
-          const SailTableHeaderCell(
-            name: 'Actions',
-            alignment: Alignment.centerRight,
-            sortable: false,
-          ),
-        ],
-        rowBuilder: (context, row, selected) {
-          final entry = entries[row];
+      child: phone
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                buttons,
+                const SizedBox(height: SailStyleValues.padding08),
+                Flexible(
+                  child: _PhoneAddressList(
+                    entries: entries,
+                    onEdit: (entry) => _showEditDialog(context, entry),
+                    onDelete: (entry) => _showDeleteConfirmation(context, entry),
+                  ),
+                ),
+              ],
+            )
+          : SailTable(
+              getRowId: (index) => entries[index].id.toString(),
+              headerBuilder: (context) => [
+                const SailTableHeaderCell(name: 'Label'),
+                const SailTableHeaderCell(name: 'Address'),
+                const SailTableHeaderCell(
+                  name: 'Actions',
+                  alignment: Alignment.centerRight,
+                  sortable: false,
+                ),
+              ],
+              rowBuilder: (context, row, selected) {
+                final entry = entries[row];
 
-          return [
-            SailTableCell(
-              value: entry.label == '' ? '(no label)' : entry.label,
-              monospace: true,
-              italic: entry.label == '',
-            ),
-            SailTableCell(
-              value: entry.address,
-              copyValue: entry.address,
-              monospace: true,
-            ),
-            SailTableCell(
-              value: 'Actions',
-              width: actionsColumnWidth,
-              alignment: Alignment.centerRight,
-              child: SailRow(
-                spacing: SailStyleValues.padding04,
-                children: [
-                  SailTooltip(
-                    message: 'Edit label',
-                    child: SailButton(
-                      variant: ButtonVariant.icon,
-                      icon: SailSVGAsset.iconPen,
-                      onPressed: () async => unawaited(_showEditDialog(context, entry)),
-                      insideTable: true,
+                return [
+                  SailTableCell(
+                    value: entry.label == '' ? '(no label)' : entry.label,
+                    monospace: true,
+                    italic: entry.label == '',
+                  ),
+                  SailTableCell(
+                    value: entry.address,
+                    copyValue: entry.address,
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: 'Actions',
+                    width: actionsColumnWidth,
+                    alignment: Alignment.centerRight,
+                    child: SailRow(
+                      spacing: SailStyleValues.padding04,
+                      children: [
+                        SailTooltip(
+                          message: 'Edit label',
+                          child: SailButton(
+                            variant: ButtonVariant.icon,
+                            icon: SailSVGAsset.iconPen,
+                            onPressed: () async => unawaited(_showEditDialog(context, entry)),
+                            insideTable: true,
+                          ),
+                        ),
+                        SailTooltip(
+                          message: 'Delete address',
+                          child: SailButton(
+                            variant: ButtonVariant.icon,
+                            icon: SailSVGAsset.iconDelete,
+                            onPressed: () async => unawaited(_showDeleteConfirmation(context, entry)),
+                            insideTable: true,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SailTooltip(
-                    message: 'Delete address',
-                    child: SailButton(
-                      variant: ButtonVariant.icon,
-                      icon: SailSVGAsset.iconDelete,
-                      onPressed: () async => unawaited(_showDeleteConfirmation(context, entry)),
-                      insideTable: true,
-                    ),
-                  ),
-                ],
-              ),
+                ];
+              },
+              rowCount: entries.length,
+              emptyPlaceholder: 'No addresses yet',
+              drawGrid: true,
+              sortColumnIndex: ['label', 'address'].indexOf(sortColumn),
+              sortAscending: sortAscending,
+              onSort: (columnIndex, ascending) => setState(() {
+                sortColumn = ['label', 'address'][columnIndex];
+                sortAscending = ascending;
+              }),
             ),
-          ];
-        },
-        rowCount: entries.length,
-        emptyPlaceholder: 'No addresses yet',
-        drawGrid: true,
-        sortColumnIndex: ['label', 'address'].indexOf(sortColumn),
-        sortAscending: sortAscending,
-        onSort: (columnIndex, ascending) => setState(() {
-          sortColumn = ['label', 'address'][columnIndex];
-          sortAscending = ascending;
-        }),
-      ),
     );
   }
 
@@ -466,6 +487,66 @@ class _AddressBookContentState extends State<AddressBookContent> {
     if (mounted) {
       widget.viewModel.clearError('delete');
     }
+  }
+}
+
+class _PhoneAddressList extends StatelessWidget {
+  final List<AddressBookEntry> entries;
+  final Future<void> Function(AddressBookEntry entry) onEdit;
+  final Future<void> Function(AddressBookEntry entry) onDelete;
+
+  const _PhoneAddressList({required this.entries, required this.onEdit, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    if (entries.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding16),
+        child: SailText.secondary13('No addresses yet'),
+      );
+    }
+    return ListView.separated(
+      shrinkWrap: true,
+      itemCount: entries.length,
+      separatorBuilder: (context, index) => Container(height: 1, color: theme.colors.divider),
+      itemBuilder: (context, index) {
+        final entry = entries[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SailText.primary13(
+                      entry.label == '' ? '(no label)' : entry.label,
+                      bold: true,
+                      italic: entry.label == '',
+                    ),
+                    const SizedBox(height: 2),
+                    SailText.secondary12(entry.address, monospace: true),
+                  ],
+                ),
+              ),
+              const SizedBox(width: SailStyleValues.padding08),
+              SailButton(
+                variant: ButtonVariant.icon,
+                icon: SailSVGAsset.iconPen,
+                onPressed: () async => unawaited(onEdit(entry)),
+              ),
+              SailButton(
+                variant: ButtonVariant.icon,
+                icon: SailSVGAsset.iconDelete,
+                onPressed: () async => unawaited(onDelete(entry)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
