@@ -55,6 +55,7 @@ func NewBitcoind(
 		m4Engine:    m4Engine,
 		nodeMode:    nodeMode,
 		coinnewsLog: coinnewsLog,
+		wake:        make(chan struct{}, 1),
 	}
 }
 
@@ -77,12 +78,22 @@ type Parser struct {
 
 	// tipChanged fires after each tick that processed blocks.
 	tipChanged changeBroadcast
+
+	wake chan struct{}
 }
 
 // SubscribeTip wakes the returned channel after each tick that processed
 // blocks. The channel lives until ctx is done.
 func (p *Parser) SubscribeTip(ctx context.Context) <-chan struct{} {
 	return p.tipChanged.subscribe(ctx)
+}
+
+// Wake makes the parser read the chain now instead of at its next tick.
+func (p *Parser) Wake() {
+	select {
+	case p.wake <- struct{}{}:
+	default:
+	}
 }
 
 // Run runs the engine. It checks if a new block has been mined,
@@ -115,36 +126,42 @@ func (p *Parser) Run(ctx context.Context) error {
 				p.sweepMempool(ctx)
 			}
 
+		case <-p.wake:
+			p.tick(ctx, &sweptOnStart)
 		case <-alertTicker.C:
-			if !p.nodeMode.RunsLocalNode(ctx) {
-				continue
-			}
-			if !sweptOnStart {
-				// Bitcoin Core can still boot when the mode reads full. Mark
-				// the sweep done only once it reaches the mempool.
-				sweptOnStart = p.sweepMempool(ctx)
-			}
-
-			zerolog.Ctx(ctx).Trace().
-				Msgf("bitcoind_engine/parser: processing block tick")
-
-			tickErr := p.handleBlockTick(ctx)
-			if err := p.applyPendingM4(ctx); err != nil {
-				zerolog.Ctx(ctx).Err(err).Msgf("apply M4 votes")
-			}
-			if tickErr != nil {
-				// Don't log Bitcoin Core startup errors (e.g., "-28: Loading block index")
-				if !IsBitcoinCoreStartupError(tickErr.Error()) {
-					zerolog.Ctx(ctx).Err(tickErr).Msgf("handle block tick")
-				}
-				continue
-			}
-
-			zerolog.Ctx(ctx).Trace().
-				Msgf("bitcoind_engine/parser: finished processing block tick")
-
+			p.tick(ctx, &sweptOnStart)
 		}
 	}
+}
+
+// tick processes the blocks Core holds that the parser has not processed.
+func (p *Parser) tick(ctx context.Context, sweptOnStart *bool) {
+	if !p.nodeMode.RunsLocalNode(ctx) {
+		return
+	}
+	if !*sweptOnStart {
+		// Bitcoin Core can still boot when the mode reads full. Mark
+		// the sweep done only once it reaches the mempool.
+		*sweptOnStart = p.sweepMempool(ctx)
+	}
+
+	zerolog.Ctx(ctx).Trace().
+		Msgf("bitcoind_engine/parser: processing block tick")
+
+	tickErr := p.handleBlockTick(ctx)
+	if err := p.applyPendingM4(ctx); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msgf("apply M4 votes")
+	}
+	if tickErr != nil {
+		// Don't log Bitcoin Core startup errors (e.g., "-28: Loading block index")
+		if !IsBitcoinCoreStartupError(tickErr.Error()) {
+			zerolog.Ctx(ctx).Err(tickErr).Msgf("handle block tick")
+		}
+		return
+	}
+
+	zerolog.Ctx(ctx).Trace().
+		Msgf("bitcoind_engine/parser: finished processing block tick")
 }
 
 // sweepMempool drops expired unconfirmed OP_RETURNs and reports whether it
