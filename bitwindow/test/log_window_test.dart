@@ -140,6 +140,25 @@ void main() {
       expect(windowLogs.hasLogsForBinary(BinaryType.BINARY_TYPE_BITCOIND), isFalse);
     });
 
+    test('a filtered and a full relay with one cursor map copy each line one time', () async {
+      final mainLogs = GetIt.I.get<LogProvider>();
+      mainLogs.addLog(bitwindowd('listening on :2122'));
+      final windowLogs = LogProvider();
+      final cursors = <int, int>{};
+
+      await ProcessLogRelay(
+        GetIt.I.get<WindowProvider>(),
+        windowLogs,
+        only: BinaryType.BINARY_TYPE_BITWINDOWD,
+        cursors: cursors,
+      ).pull();
+      await ProcessLogRelay(GetIt.I.get<WindowProvider>(), windowLogs, cursors: cursors).pull();
+
+      expect(windowLogs.getLogsForBinary(BinaryType.BINARY_TYPE_BITWINDOWD).map((e) => e.message), [
+        'listening on :2122',
+      ]);
+    });
+
     test('a relay behind the eviction gets the entries the main window still holds', () {
       final mainLogs = GetIt.I.get<LogProvider>();
       for (var i = 0; i < 12; i++) {

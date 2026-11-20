@@ -13,6 +13,8 @@ import 'package:bitwindow/sidechains/hosted_chains.dart';
 import 'package:bitwindow/pages/sidechain_host_page.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/log_window.dart';
+import 'package:bitwindow/sub_window_host.dart';
+import 'package:sidechain_core/utils/hidden_window_timers.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:bitwindow/pages/debug_window.dart';
@@ -81,6 +83,7 @@ Color getNetworkAccentColor(BitcoinNetwork network) {
 }
 
 void main(List<String> args) async {
+  final subWindowTimers = Platform.isMacOS && args.firstOrNull == 'multi_window' ? HiddenWindowTimers() : null;
   // Some connectrpc/HTTP2 codepaths surface transient socket errors as
   // unhandled future errors during boot (the daemons aren't listening yet).
   // Catch them in a zone so they don't print giant red stack traces.
@@ -94,8 +97,8 @@ void main(List<String> args) async {
           final windowController = await WindowController.fromCurrentEngine();
 
           final (applicationDir, logFile, log) = await init(windowController.arguments);
-          if (isSpareWindowArguments(windowController.arguments)) {
-            return await runSpareWindow(windowController, log, applicationDir, logFile);
+          if (subWindowTimers != null) {
+            return await runPooledSubWindow(windowController, subWindowTimers, log, logFile);
           }
 
           // If arguments are not empty, this is a sub-window
@@ -117,27 +120,47 @@ void main(List<String> args) async {
       // ignore: avoid_print
       print('Unhandled error: $error\n$stack');
     },
+    zoneSpecification: subWindowTimers?.zoneSpecification,
   );
 }
 
 final _daemonWarmUp = DaemonWarmUp();
 
-/// Holds an initialized sub-window engine hidden until the main window gives it a page.
-Future<void> runSpareWindow(
+/// Runs a macOS sub-window engine that the main window can give a new page
+/// after each close.
+Future<void> runPooledSubWindow(
   WindowController windowController,
+  HiddenWindowTimers timers,
   Logger log,
-  Directory applicationDir,
   File logFile,
 ) async {
+  final windows = GetIt.I.get<WindowProvider>();
+  final logCursors = <int, int>{};
+  final host = SubWindowHost(
+    controller: windowController,
+    timers: timers,
+    buildPage: (arguments) {
+      final page = subWindowPage(arguments, logFile, logCursors);
+      return (app: buildSailWindowApp(log, page.title, page.child, _subWindowAccent), work: page.work);
+    },
+    announceShown: () => windows.sendMessageToMain(windowShownMethod, null),
+    announceHidden: (windowType) => announceHiddenWindow(windowController.windowId, windowType),
+  );
+  await host.start();
   await windowController.setWindowMethodHandler((call) async {
     if (call.method != openSpareMethod) {
-      throw MissingPluginException('spare window has no method ${call.method}');
+      throw MissingPluginException('sub-window has no method ${call.method}');
     }
     await GetIt.I.get<SettingsProvider>().reload();
     unawaited(GetIt.I.get<BitcoinConfProvider>().loadConfig());
-    runMultiWindow(call.arguments as String, log, applicationDir, logFile);
+    refetchBuiltOnOpen();
+    await host.open(jsonDecode(call.arguments as String) as Map<String, dynamic>);
     return null;
   });
+  if (!isSpareWindowArguments(windowController.arguments)) {
+    return host.open(jsonDecode(windowController.arguments) as Map<String, dynamic>);
+  }
+  timers.pause();
   await announceSpareWindow(windowController.windowId);
 }
 
@@ -441,6 +464,13 @@ void refetchBuiltOnNewBlock() {
   }
 }
 
+/// Refetches the providers that this window built at an earlier page and that do not poll.
+void refetchBuiltOnOpen() {
+  if (GetIt.I.checkLazySingletonInstanceExists<AddressBookProvider>()) {
+    unawaited(GetIt.I<AddressBookProvider>().fetch());
+  }
+}
+
 Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
   // bitwindowd's output already reaches the console. drivechaind runs
   // detached and writes to the shared file, so a terminal launch shows nothing
@@ -509,7 +539,6 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
 void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) async {
   final arguments = jsonDecode(argumentsStr) as Map<String, dynamic>;
-  final windowType = arguments['window_type'] as String?;
   final windowTitle = arguments['window_title'] as String?;
   final windowX = arguments['window_x'] as double? ?? 100;
   final windowY = arguments['window_y'] as double? ?? 100;
@@ -526,6 +555,28 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
   await windowController.setTitle(windowTitle);
   await windowController.show();
 
+  final page = subWindowPage(arguments, logFile, {});
+
+  unawaited(
+    WidgetsBinding.instance.waitUntilFirstFrameRasterized.then(
+      (_) => GetIt.I.get<WindowProvider>().sendMessageToMain(windowShownMethod, null),
+    ),
+  );
+  return runApp(buildSailWindowApp(log, page.title, page.child, _subWindowAccent));
+}
+
+const _subWindowAccent = Color.fromARGB(255, 255, 153, 0);
+
+/// The page of a sub-window for [arguments]. A logs page copies the process
+/// output from [logCursors] on.
+({String title, Widget child, Timer? work}) subWindowPage(
+  Map<String, dynamic> arguments,
+  File logFile,
+  Map<int, int> logCursors,
+) {
+  final windowType = arguments['window_type'] as String?;
+  final windowTitle = arguments['window_title'] as String;
+  Timer? work;
   Widget child = SailCard(
     title: 'Unknown window type: $windowType',
     child: SailText.primary15('Programmers messed up, and supplied an unknown window type: $windowType'),
@@ -539,7 +590,12 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
 
     case SubWindowTypes.logsId:
       final logWindow = LogWindowArguments.fromWindowArguments(arguments, bitwindowLogPath: logFile.path);
-      ProcessLogRelay(GetIt.I.get<WindowProvider>(), GetIt.I.get<LogProvider>(), only: logWindow.binaryType).start();
+      work = ProcessLogRelay(
+        GetIt.I.get<WindowProvider>(),
+        GetIt.I.get<LogProvider>(),
+        only: logWindow.binaryType,
+        cursors: logCursors,
+      ).start();
       child = LogPage(logPath: logWindow.logPath, title: logWindow.title, binaryType: logWindow.binaryType);
       break;
 
@@ -576,12 +632,7 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
       break;
   }
 
-  unawaited(
-    WidgetsBinding.instance.waitUntilFirstFrameRasterized.then(
-      (_) => GetIt.I.get<WindowProvider>().sendMessageToMain(windowShownMethod, null),
-    ),
-  );
-  return runApp(buildSailWindowApp(log, '$windowTitle | Bitwindow', child, const Color.fromARGB(255, 255, 153, 0)));
+  return (title: '$windowTitle | Bitwindow', child: child, work: work);
 }
 
 void ignoreOverflowErrors(FlutterErrorDetails details, {bool forceReport = false}) {

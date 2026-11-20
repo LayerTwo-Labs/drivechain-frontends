@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitwindow/main.dart';
+import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -39,6 +40,16 @@ class _FakeTransactions implements TransactionProvider {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _FakeAddressBook implements AddressBookProvider {
+  int fetches = 0;
+
+  @override
+  Future<void> fetch() async => fetches++;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -58,6 +69,20 @@ void main() {
     expect(balance.fetches, 0);
     expect(transactions.fetches, 0);
     expect(GetIt.I.checkLazySingletonInstanceExists<BalanceProvider>(), isFalse);
+  });
+
+  test('an open refetches the address book that an earlier page built', () async {
+    addTearDown(GetIt.I.reset);
+    final book = _FakeAddressBook();
+    GetIt.I.registerLazySingleton<AddressBookProvider>(() => book);
+
+    refetchBuiltOnOpen();
+    expect(book.fetches, 0);
+    expect(GetIt.I.checkLazySingletonInstanceExists<AddressBookProvider>(), isFalse);
+
+    GetIt.I.get<AddressBookProvider>();
+    refetchBuiltOnOpen();
+    expect(book.fetches, 1);
   });
 
   test('a sub-window init builds no polling provider', () async {
