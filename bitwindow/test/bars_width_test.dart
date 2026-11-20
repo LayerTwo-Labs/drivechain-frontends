@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
@@ -297,5 +298,22 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Last block: Unknown'), findsOneWidget);
     expect(find.text('Reset'), findsOneWidget);
+  });
+
+  testWidgets('the block age ticks and the status bar does not rebuild', (tester) async {
+    sync.mainchainSyncInfo = SyncInfo(
+      progressCurrent: 412000,
+      progressGoal: 997070,
+      lastBlockAt: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(seconds: 5))),
+    );
+    await pumpBars(tester, 1280);
+    expect(find.text('Last block: 5 seconds ago'), findsOneWidget);
+    final bar = tester.widget<BottomNav>(find.byType(BottomNav));
+
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1100)));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Last block: 6 seconds ago'), findsOneWidget);
+    expect(tester.widget<BottomNav>(find.byType(BottomNav)), same(bar));
   });
 }
