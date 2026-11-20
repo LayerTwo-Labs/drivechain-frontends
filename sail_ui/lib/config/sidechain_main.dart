@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
@@ -297,19 +296,31 @@ const _perArchDaemons = {'bitwindowd', 'drivechaind', 'drivechain-cli', 'hwi-dae
 String embeddedAssetName(String canonical, {required bool isMacOS, required String arch}) =>
     isMacOS && _perArchDaemons.contains(canonical) ? '$canonical-$arch' : canonical;
 
-Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
-  final fileDir = binDir(appDir.path);
+Future<void> copyBinariesFromAssets(Logger log, Directory appDir) =>
+    stageEmbeddedBinaries(log, embeddedBinDir(), binDir(appDir.path));
+
+/// The assets/bin directory of the Flutter assets in the app bundle.
+Directory embeddedBinDir() {
+  final exeDir = path.dirname(Platform.resolvedExecutable);
+  final flutterAssets = Platform.isMacOS
+      ? path.join(exeDir, '..', 'Frameworks', 'App.framework', 'Resources', 'flutter_assets')
+      : path.join(exeDir, 'data', 'flutter_assets');
+  return Directory(path.join(flutterAssets, 'assets', 'bin'));
+}
+
+/// Copies the embedded binaries from [sourceDir] to [fileDir].
+Future<void> stageEmbeddedBinaries(Logger log, Directory sourceDir, Directory fileDir) async {
   await fileDir.create(recursive: true);
   await removeAsideBinaries(fileDir);
 
   for (final binary in allBinaries) {
-    await _copyEmbeddedBinary(log, fileDir, binary.binary, label: binary.name);
+    await _copyEmbeddedBinary(log, sourceDir, fileDir, binary.binary, label: binary.name);
   }
   // drivechain-cli is a CLI (not a launchable Binary in allBinaries), but the
   // console execs it from bin/, so it has to be staged here too.
-  await _copyEmbeddedBinary(log, fileDir, 'drivechain-cli');
+  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'drivechain-cli');
   // hwi-daemon is the bundled hardware-wallet process.
-  await _copyEmbeddedBinary(log, fileDir, 'hwi-daemon');
+  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'hwi-daemon');
 
   log.d('Finished copying all available binaries to assets/bin');
 }
@@ -331,16 +342,24 @@ Future<void> removeAsideBinaries(Directory dir) async {
   }
 }
 
-/// Writes [bytes] to [dest] as an executable, through a temp file and a rename.
+/// Copies [source] to [dest] as an executable, through a temp file and a rename.
 /// With [moveAside], the old file moves to a `.old` name first.
-Future<void> stageBinary(File dest, List<int> bytes, {bool? moveAside}) async {
+Future<void> stageBinary(File dest, File source, {bool? moveAside}) async {
   // A shared temp name lets one writer rename a file another still writes,
   // which stages a torn binary. Two app instances share no pid, and two
   // sub-window engines of one instance share no token.
   final token = Random.secure().nextInt(1 << 32).toRadixString(16);
   final staged = File('${dest.path}.$pid-$token.new');
   try {
-    await staged.writeAsBytes(bytes, flush: true);
+    final out = await staged.open(mode: FileMode.write);
+    try {
+      await for (final chunk in source.openRead()) {
+        await out.writeFrom(chunk);
+      }
+      await out.flush();
+    } finally {
+      await out.close();
+    }
 
     // bitwindowd spawns drivechaind through Go's exec.Command, which does not chmod.
     if (!Platform.isWindows) {
@@ -369,30 +388,31 @@ Future<void> stageBinary(File dest, List<int> bytes, {bool? moveAside}) async {
   }
 }
 
-Future<void> _copyEmbeddedBinary(Logger log, Directory fileDir, String canonical, {String? label}) async {
+Future<void> _copyEmbeddedBinary(
+  Logger log,
+  Directory sourceDir,
+  Directory fileDir,
+  String canonical, {
+  String? label,
+}) async {
   final name = label ?? canonical;
   final exe = Platform.isWindows && !canonical.endsWith('.exe') ? '.exe' : '';
   final destName = '$canonical$exe';
   final assetName = '${embeddedAssetName(canonical, isMacOS: Platform.isMacOS, arch: currentArch())}$exe';
 
-  try {
-    final binResource = await rootBundle.load('assets/bin/$assetName');
-    final file = File(path.join(fileDir.path, destName));
+  // Most binaries aren't bundled into assets/bin, only the embedded daemons are.
+  final source = File(path.join(sourceDir.path, assetName));
+  if (!await source.exists()) {
+    return;
+  }
 
-    final buffer = binResource.buffer;
-    await stageBinary(
-      file,
-      buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
-    );
+  try {
+    final file = File(path.join(fileDir.path, destName));
+    await stageBinary(file, source);
 
     log.d('Wrote binary $name from $assetName to ${file.path}');
   } catch (e) {
-    // Most binaries aren't bundled into assets/bin (only the embedded daemons
-    // are) — Flutter's "Unable to load asset" error is expected for everything
-    // else. Silence it; surface anything else.
-    if (!e.toString().contains('Unable to load asset')) {
-      log.w('Failed to copy binary $name: $e');
-    }
+    log.w('Failed to copy binary $name: $e');
   }
 }
 
