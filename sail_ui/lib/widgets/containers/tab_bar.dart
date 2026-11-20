@@ -73,105 +73,107 @@ class InlineTabBarState extends State<InlineTabBar> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
-              decoration: BoxDecoration(
-                color: widget.secondary
-                    ? context.sailTheme.colors.background
-                    : context.sailTheme.colors.backgroundSecondary,
-                borderRadius: theme.chrome.radius,
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SailRow(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: List.generate(widget.tabs.length, (index) {
-                    final tab = widget.tabs[index];
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
+                decoration: BoxDecoration(
+                  color: widget.secondary
+                      ? context.sailTheme.colors.background
+                      : context.sailTheme.colors.backgroundSecondary,
+                  borderRadius: theme.chrome.radius,
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SailRow(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: List.generate(widget.tabs.length, (index) {
+                      final tab = widget.tabs[index];
 
-                    if (tab is MultiSelectTabItem) {
-                      // Ensure we have a controller for this tab
-                      _menuControllers[tab.title] ??= MenuController();
+                      if (tab is MultiSelectTabItem) {
+                        // Ensure we have a controller for this tab
+                        _menuControllers[tab.title] ??= MenuController();
 
-                      return MenuAnchor(
-                        controller: _menuControllers[tab.title]!,
-                        style: MenuStyle(
-                          backgroundColor: WidgetStatePropertyAll(
-                            context.sailTheme.colors.backgroundSecondary,
-                          ),
-                          padding: const WidgetStatePropertyAll(
-                            EdgeInsets.zero,
-                          ),
-                          shadowColor: const WidgetStatePropertyAll(
-                            Colors.black26,
-                          ),
-                          elevation: const WidgetStatePropertyAll(4),
-                          shape: WidgetStatePropertyAll(
-                            RoundedRectangleBorder(
-                              borderRadius: theme.chrome.radius,
-                              side: BorderSide(
-                                color: context.sailTheme.colors.border,
+                        return MenuAnchor(
+                          controller: _menuControllers[tab.title]!,
+                          style: MenuStyle(
+                            backgroundColor: WidgetStatePropertyAll(
+                              context.sailTheme.colors.backgroundSecondary,
+                            ),
+                            padding: const WidgetStatePropertyAll(
+                              EdgeInsets.zero,
+                            ),
+                            shadowColor: const WidgetStatePropertyAll(
+                              Colors.black26,
+                            ),
+                            elevation: const WidgetStatePropertyAll(4),
+                            shape: WidgetStatePropertyAll(
+                              RoundedRectangleBorder(
+                                borderRadius: theme.chrome.radius,
+                                side: BorderSide(
+                                  color: context.sailTheme.colors.border,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        menuChildren: [
-                          SailMenu(
-                            items: tab.items
-                                .map(
-                                  (item) => SailMenuItem(
-                                    onSelected: () {
-                                      setIndex(index, item.label);
-                                      item.onTap?.call();
-                                      _menuControllers[tab.title]!.close();
-                                    },
-                                    child: SailText.primary13(item.label),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                        builder: (context, controller, child) {
-                          final isSelected = _selectedIndex == index && _selectedSubItem != null;
-                          final displayLabel = isSelected && _selectedSubItem != null ? _selectedSubItem! : tab.label;
+                          menuChildren: [
+                            SailMenu(
+                              items: tab.items
+                                  .map(
+                                    (item) => SailMenuItem(
+                                      onSelected: () {
+                                        setIndex(index, item.label);
+                                        item.onTap?.call();
+                                        _menuControllers[tab.title]!.close();
+                                      },
+                                      child: SailText.primary13(item.label),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                          builder: (context, controller, child) {
+                            final isSelected = _selectedIndex == index && _selectedSubItem != null;
+                            final displayLabel = isSelected && _selectedSubItem != null ? _selectedSubItem! : tab.label;
 
-                          return SailTabItem(
-                            label: displayLabel, // Use the dynamic label
-                            isSelected: isSelected,
-                            icon: tab.icon,
-                            onIconTap: tab.onIconTap,
-                            secondary: widget.secondary,
-                            onTap: () {
-                              if (controller.isOpen) {
-                                controller.close();
-                              } else {
-                                controller.open();
-                              }
-                            },
-                            withDropdown: true,
-                          );
+                            return SailTabItem(
+                              label: displayLabel, // Use the dynamic label
+                              isSelected: isSelected,
+                              icon: tab.icon,
+                              onIconTap: tab.onIconTap,
+                              secondary: widget.secondary,
+                              onTap: () {
+                                if (controller.isOpen) {
+                                  controller.close();
+                                } else {
+                                  controller.open();
+                                }
+                              },
+                              withDropdown: true,
+                            );
+                          },
+                        );
+                      }
+
+                      // Regular tab items
+                      final isSelected = index == _selectedIndex && _selectedSubItem == null;
+                      return SailTabItem(
+                        label: tab.label,
+                        isSelected: isSelected,
+                        icon: tab.icon,
+                        onIconTap: tab.onIconTap,
+                        secondary: widget.secondary,
+                        onLabelChanged: tab.onLabelChanged,
+                        leading: tab.leading,
+                        onTap: () {
+                          setIndex(index, null);
+                          if (tab.onTap != null) {
+                            tab.onTap!();
+                          }
                         },
+                        withDropdown: false,
                       );
-                    }
-
-                    // Regular tab items
-                    final isSelected = index == _selectedIndex && _selectedSubItem == null;
-                    return SailTabItem(
-                      label: tab.label,
-                      isSelected: isSelected,
-                      icon: tab.icon,
-                      onIconTap: tab.onIconTap,
-                      secondary: widget.secondary,
-                      onLabelChanged: tab.onLabelChanged,
-                      leading: tab.leading,
-                      onTap: () {
-                        setIndex(index, null);
-                        if (tab.onTap != null) {
-                          tab.onTap!();
-                        }
-                      },
-                      withDropdown: false,
-                    );
-                  }),
+                    }),
+                  ),
                 ),
               ),
             ),
