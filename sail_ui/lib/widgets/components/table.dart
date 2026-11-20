@@ -937,6 +937,7 @@ class _TableRowState extends State<_TableRow> {
         width: maxWidth.toDouble(),
         items: [
           SailMenuItem(
+            closeOnSelect: false,
             onSelected: () {
               Clipboard.setData(ClipboardData(text: value));
               Navigator.of(context).pop();

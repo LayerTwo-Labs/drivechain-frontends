@@ -56,6 +56,9 @@ Future showSailMenu({
   );
 }
 
+/// True when [route] shows a menu of [showSailMenu].
+bool isSailMenuRoute(Route<dynamic>? route) => route is _PopupMenuRoute;
+
 class _PopupMenuRoute extends PopupRoute {
   _PopupMenuRoute({
     required this.preferredAnchorPoint,

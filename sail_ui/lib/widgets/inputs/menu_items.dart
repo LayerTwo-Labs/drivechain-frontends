@@ -161,6 +161,8 @@ class _SailMenuItemState extends State<SailMenuItem> {
       final menuAnchor = context.findAncestorWidgetOfExactType<MenuAnchor>();
       if (menuAnchor != null) {
         menuAnchor.controller?.close();
+      } else if (SailStyleValues.phoneLayout(context) && isSailMenuRoute(ModalRoute.of(context))) {
+        Navigator.of(context).pop();
       }
     }
 
