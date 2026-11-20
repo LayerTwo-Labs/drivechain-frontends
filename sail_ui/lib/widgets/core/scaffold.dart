@@ -5,8 +5,9 @@ class SailScaffold extends StatelessWidget {
   final Widget body;
   final Color? backgroundColor;
   final PreferredSizeWidget? appBar;
+  final Widget? drawer;
 
-  const SailScaffold({super.key, required this.body, this.backgroundColor, this.appBar});
+  const SailScaffold({super.key, required this.body, this.backgroundColor, this.appBar, this.drawer});
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +15,7 @@ class SailScaffold extends StatelessWidget {
 
     return Scaffold(
       appBar: appBar,
+      drawer: drawer,
       backgroundColor: backgroundColor != null
           ? backgroundColor!
           : Scaffold.maybeOf(context)?.widget.backgroundColor ?? theme.colors.background,
