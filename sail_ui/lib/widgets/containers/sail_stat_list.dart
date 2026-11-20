@@ -5,11 +5,26 @@ import 'package:sail_ui/sail_ui.dart';
 class SailStatList extends StatelessWidget {
   final List<Widget> children;
 
-  const SailStatList({super.key, required this.children});
+  /// False drops the panel and its padding, for rows inside a card that has its own panel.
+  final bool panel;
+
+  const SailStatList({super.key, required this.children, this.panel = true});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final rows = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) Container(height: 1, color: theme.colors.divider),
+          children[i],
+        ],
+      ],
+    );
+    if (!panel) {
+      return rows;
+    }
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(color: theme.colors.border),
@@ -18,15 +33,7 @@ class SailStatList extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < children.length; i++) ...[
-              if (i > 0) Container(height: 1, color: theme.colors.divider),
-              children[i],
-            ],
-          ],
-        ),
+        child: rows,
       ),
     );
   }

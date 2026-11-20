@@ -71,4 +71,32 @@ void main() {
     final value = tester.getCenter(find.text('No activity'));
     expect(title.dy, closeTo(value.dy, 1));
   });
+
+  testWidgets('a list with no panel puts its rows at the edges of its parent', (tester) async {
+    await tester.pumpWidget(
+      SailTheme(
+        data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+        child: const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 600,
+              child: SailStatList(
+                panel: false,
+                children: [
+                  SailStatRow(title: 'Peers', subtitle: '8 in / 2 out', value: '10'),
+                  SailStatRow(title: 'Block Height', subtitle: '', value: '1022811'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(DecoratedBox), findsNothing);
+    expect(tester.getTopLeft(find.text('Peers')).dx, 0);
+    expect(tester.getTopRight(find.text('10')).dx, closeTo(600, 1));
+  });
 }
