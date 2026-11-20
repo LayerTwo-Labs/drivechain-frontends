@@ -125,6 +125,7 @@ class HomepageWidgetCatalog {
       name: 'Graffiti Explorer',
       sizes: [WidgetSize.full],
       group: 'Chain',
+      subtitle: 'Browse blockchain graffiti and OP_RETURN data',
       builder: (_) => SizedBox(
         height: 500,
         child: const GraffitiExplorerView(),
@@ -135,6 +136,7 @@ class HomepageWidgetCatalog {
       name: 'Network Traffic',
       sizes: [WidgetSize.half, WidgetSize.full],
       group: 'Network',
+      subtitle: 'Bandwidth over time',
       builder: (_) => ListenableBuilder(
         listenable: GetIt.I.get<NetworkProvider>(),
         builder: (context, child) => const TrafficGraphWidget(),
@@ -145,6 +147,7 @@ class HomepageWidgetCatalog {
       name: 'Network Stats',
       sizes: [WidgetSize.half, WidgetSize.full],
       group: 'Network',
+      subtitle: 'Connection summary',
       builder: (_) => ListenableBuilder(
         listenable: GetIt.I.get<NetworkProvider>(),
         builder: (context, child) => const NetworkStatsWidget(),
@@ -208,6 +211,7 @@ class HomepageWidgetCatalog {
       name: 'Fast Withdrawal',
       sizes: [WidgetSize.full],
       group: 'Wallet and sidechains',
+      subtitle: 'Quickly withdraw L2 coins to your L1-wallet',
       builder: (_) => const FastWithdrawalTab(),
     ),
   };
