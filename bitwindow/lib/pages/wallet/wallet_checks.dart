@@ -170,6 +170,27 @@ class ChecksTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailDividedList(
+        itemCount: checks.length,
+        itemBuilder: (context, index) {
+          final check = checks[index];
+          return SailListRow(
+            title: _formatDate(check.createdAt),
+            subtitle: check.fundedTxids.isEmpty
+                ? 'Awaiting funding'
+                : _formatSats(
+                    check.hasActualAmountSats() ? check.actualAmountSats.toInt() : check.expectedAmountSats.toInt(),
+                  ),
+            trailing: _CheckActions(
+              check: check,
+              onView: () => _viewCheck(context, check),
+              onDelete: () => _deleteCheck(context, check),
+            ),
+          );
+        },
+      );
+    }
     return Align(
       alignment: Alignment.centerLeft,
       child: SailTable(
@@ -215,32 +236,10 @@ class ChecksTable extends StatelessWidget {
             ),
             SailTableCell(
               value: 'Fund Check / View Details         ',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (check.hasSweptTxid() && check.sweptTxid.isNotEmpty)
-                    SailButton(
-                      label: 'Swept',
-                      onPressed: () async => _viewCheck(context, check),
-                      variant: ButtonVariant.secondary,
-                      insideTable: true,
-                      disabled: true,
-                    )
-                  else
-                    SailButton(
-                      label: check.fundedTxids.isNotEmpty ? 'View Details' : 'Fund Check',
-                      onPressed: () async => _viewCheck(context, check),
-                      variant: check.fundedTxids.isNotEmpty ? ButtonVariant.secondary : ButtonVariant.primary,
-                      insideTable: true,
-                    ),
-                  const SizedBox(width: SailStyleValues.padding08),
-                  SailButton(
-                    icon: SailSVGAsset.iconDelete,
-                    onPressed: () async => _deleteCheck(context, check),
-                    variant: ButtonVariant.destructive,
-                    insideTable: true,
-                  ),
-                ],
+              child: _CheckActions(
+                check: check,
+                onView: () => _viewCheck(context, check),
+                onDelete: () => _deleteCheck(context, check),
               ),
             ),
           ];
@@ -349,5 +348,44 @@ class ChecksTable extends StatelessWidget {
         showSailToast(context, 'Check deleted successfully');
       }
     }
+  }
+}
+
+class _CheckActions extends StatelessWidget {
+  final Cheque check;
+  final VoidCallback onView;
+  final Future<void> Function() onDelete;
+
+  const _CheckActions({required this.check, required this.onView, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (check.hasSweptTxid() && check.sweptTxid.isNotEmpty)
+          SailButton(
+            label: 'Swept',
+            onPressed: () async => onView(),
+            variant: ButtonVariant.secondary,
+            insideTable: true,
+            disabled: true,
+          )
+        else
+          SailButton(
+            label: check.fundedTxids.isNotEmpty ? 'View Details' : 'Fund Check',
+            onPressed: () async => onView(),
+            variant: check.fundedTxids.isNotEmpty ? ButtonVariant.secondary : ButtonVariant.primary,
+            insideTable: true,
+          ),
+        const SizedBox(width: SailStyleValues.padding08),
+        SailButton(
+          icon: SailSVGAsset.iconDelete,
+          onPressed: () async => onDelete(),
+          variant: ButtonVariant.destructive,
+          insideTable: true,
+        ),
+      ],
+    );
   }
 }
