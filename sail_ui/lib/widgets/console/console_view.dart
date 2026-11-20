@@ -581,7 +581,7 @@ class ConsoleEntryWidget extends StatelessWidget {
             )
           : null,
       margin: EdgeInsets.only(
-        left: entry.isGrouped && !phone ? 16 : 0,
+        left: entry.isGrouped ? 16 : 0,
         top: entry.isGroupStart ? 16 : 0,
       ),
       padding: const EdgeInsets.symmetric(vertical: 4),

@@ -40,6 +40,7 @@ void main() {
     expect(output.top, greaterThanOrEqualTo(command.bottom));
     expect(output.left, lessThan(command.left - 40));
     expect(output.right, closeTo(390 - 16, 1));
+    expect(output.left, closeTo(16 + 16 + 2 + 8, 1));
   });
 
   testWidgets('on desktop the output lines up with the command text', (tester) async {
