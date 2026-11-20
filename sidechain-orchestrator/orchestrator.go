@@ -461,16 +461,13 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	// When a process crashes, its stderr error message becomes the monitor's
 	// connectionError so the UI can display it.
 	orch.process.OnExit = func(info ProcessExitInfo) {
-		orch.monitorsMu.Lock()
-		mon, ok := orch.monitors[info.Name]
-		orch.monitorsMu.Unlock()
-
-		if !ok {
-			return
+		if mon := orch.monitor(info.Name); mon != nil {
+			mon.ProcessExited(info.ExitCode, info.ErrMsg)
 		}
-
-		if info.ExitCode != 0 && info.ErrMsg != "" {
-			mon.SetConnectionError(info.ErrMsg)
+	}
+	orch.process.OnStart = func(name string) {
+		if mon := orch.monitor(name); mon != nil {
+			mon.Kick()
 		}
 	}
 
@@ -538,6 +535,13 @@ func (o *Orchestrator) enforcerReachable() bool {
 	mon, ok := o.monitors["enforcer"]
 	o.monitorsMu.Unlock()
 	return ok && mon.Connected()
+}
+
+// monitor returns the ConnectionMonitor of a binary, or nil.
+func (o *Orchestrator) monitor(name string) *ConnectionMonitor {
+	o.monitorsMu.Lock()
+	defer o.monitorsMu.Unlock()
+	return o.monitors[name]
 }
 
 // getOrCreateMonitor returns the ConnectionMonitor for a binary, creating one if needed.
