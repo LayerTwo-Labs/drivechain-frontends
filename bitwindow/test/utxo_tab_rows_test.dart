@@ -87,4 +87,37 @@ void main() {
     expect(tester.getRect(find.text("m/84'/1'/0'/0/1999")).bottom, lessThanOrEqualTo(720));
     expect(tester.takeException(), isNull);
   });
+
+  test('the view model gives the same entries list until the UTXOs or the date range change', () {
+    transactions.utxos = [_coin(0), _coin(1)];
+    final model = LatestUTXOsViewModel();
+    addTearDown(model.dispose);
+
+    final first = model.entries;
+    expect(model.entries, same(first));
+
+    transactions.utxos = [_coin(0), _coin(1), _coin(2, receivedAt: DateTime(2026, 9, 10, 12))];
+    final second = model.entries;
+    expect(second, hasLength(3));
+    expect(model.entries, same(second));
+
+    model.setDateRange((start: DateTime(2026, 9, 10), end: DateTime(2026, 9, 10)));
+    expect(model.entries, hasLength(1));
+    expect(model.entries, same(model.entries));
+  });
+
+  testWidgets('the date sort orders by microsecond, then by output', (tester) async {
+    final entries = [
+      _coin(1, receivedAt: _start.add(const Duration(milliseconds: 1))),
+      _coin(2, receivedAt: _start),
+      _coin(0, receivedAt: _start),
+    ];
+
+    await tester.pumpSailPage(UTXOTable(entries: entries, model: LatestUTXOsViewModel()));
+    await tester.pumpAndSettle();
+
+    double top(int i) => tester.getTopLeft(find.text("m/84'/1'/0'/0/$i")).dy;
+    expect(top(0), lessThan(top(2)));
+    expect(top(2), lessThan(top(1)));
+  });
 }
