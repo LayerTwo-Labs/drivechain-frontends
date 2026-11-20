@@ -24,6 +24,7 @@ import (
 	"connectrpc.com/connect/v2/connecthttp"
 	"golang.org/x/net/http2"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/chaindata"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
@@ -292,6 +293,12 @@ type Orchestrator struct {
 	// newCoreChecker builds the bitcoind health checker. Tests override it.
 	newCoreChecker func(cfg BinaryConfig, opts HealthCheckOpts) HealthChecker
 
+	// chainData holds the Core state that callers read instead of polling Core.
+	chainData *chaindata.Engine
+	// snapshotVerifying is set while Core verifies a UTXO snapshot, which
+	// moves getchainstates with no block event.
+	snapshotVerifying atomic.Bool
+
 	// bootBitcoindForVariantSwap boots bitcoind after a variant swap. Returns
 	// a channel that is closed when boot is complete. Production wires this to
 	// the real boot helper; tests override it to bypass process spawning.
@@ -437,8 +444,13 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	orch.process.SidechainVariant = sidechainVariantResolver
 
 	orch.stopBinary = orch.Stop
+	orch.chainData = chaindata.New(chaindata.Config{
+		Call:    orch.callCore,
+		ZMQAddr: orch.zmqSequenceAddr,
+		Log:     log,
+	})
 	orch.newCoreChecker = func(cfg BinaryConfig, opts HealthCheckOpts) HealthChecker {
-		return NewHealthChecker(cfg, opts)
+		return &chainDataHealthCheck{engine: orch.chainData, first: NewHealthChecker(cfg, opts)}
 	}
 	orch.process.BeforeStart = orch.beforeStart
 	orch.bootBitcoindForVariantSwap = orch.defaultBootBitcoindForVariantSwap
@@ -3548,11 +3560,7 @@ func Project[A, B any](inner Connection[A], fn func(A) B) Connection[B] {
 type bitcoindInfoConnection struct{ o *Orchestrator }
 
 func (c *bitcoindInfoConnection) Fetch(ctx context.Context) (*MainchainBlockchainInfo, error) {
-	client, err := c.o.CoreStatusClient()
-	if err != nil {
-		return nil, err
-	}
-	result, err := client.call(ctx, "getblockchaininfo")
+	result, err := c.o.blockchainInfo(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getblockchaininfo: %w", err)
 	}
@@ -3589,7 +3597,7 @@ func (o *Orchestrator) chainStatesCached() *CachedConnection[*CoreChainStates] {
 	if o.chainStates == nil {
 		o.chainStates = &CachedConnection[*CoreChainStates]{
 			inner: &chainStatesConnection{o: o},
-			ttl:   chainStatesCacheTTL,
+			ttl:   o.coreCacheTTL(chainStatesCacheTTL),
 		}
 	}
 	return o.chainStates
@@ -3684,7 +3692,7 @@ func (o *Orchestrator) bitcoindInfoCached() *CachedConnection[*MainchainBlockcha
 	if o.bitcoindInfo == nil {
 		o.bitcoindInfo = &CachedConnection[*MainchainBlockchainInfo]{
 			inner: &bitcoindInfoConnection{o: o},
-			ttl:   chainSyncCacheTTL,
+			ttl:   o.coreCacheTTL(chainSyncCacheTTL),
 		}
 	}
 	return o.bitcoindInfo
@@ -3703,7 +3711,7 @@ func (o *Orchestrator) syncConnectionFor(name string) Connection[*ChainSyncResul
 		if o.bitcoindInfo == nil {
 			o.bitcoindInfo = &CachedConnection[*MainchainBlockchainInfo]{
 				inner: &bitcoindInfoConnection{o: o},
-				ttl:   chainSyncCacheTTL,
+				ttl:   o.coreCacheTTL(chainSyncCacheTTL),
 			}
 		}
 		if o.bitcoindSync == nil {
