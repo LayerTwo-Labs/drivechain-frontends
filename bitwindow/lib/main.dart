@@ -207,6 +207,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     appDir: applicationDir,
     initialBinaries: initalBinaries(),
     shutdownEnabled: !isSubWindow,
+    upChecks: {
+      BinaryType.BINARY_TYPE_BITWINDOWD: tcpUpCheck(Environment.bitwindowdHost.value, Environment.bitwindowdPort.value),
+    },
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   GetIt.I.registerSingleton<BitcoindConnection>(BitcoindConnection());
