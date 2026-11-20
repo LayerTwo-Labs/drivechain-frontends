@@ -64,6 +64,7 @@ class ChatPage extends StatelessWidget {
             );
           }
 
+          final contacts = model.contacts;
           return Column(
             children: [
               // Identity selector (inlined)
@@ -140,7 +141,7 @@ class ChatPage extends StatelessWidget {
                         title: 'Chats',
                         subtitle: 'You pay a name to reach it. They keep the postage.',
                         bottomPadding: false,
-                        child: model.contacts.isEmpty
+                        child: contacts.isEmpty
                             ? Center(
                                 child: Padding(
                                   padding: const EdgeInsets.all(SailStyleValues.padding20),
@@ -158,9 +159,9 @@ class ChatPage extends StatelessWidget {
                                 ),
                               )
                             : ListView.builder(
-                                itemCount: model.contacts.length,
+                                itemCount: contacts.length,
                                 itemBuilder: (context, index) {
-                                  final contact = model.contacts[index];
+                                  final contact = contacts[index];
                                   final isSelected = model.selectedContact?.id == contact.id;
 
                                   return SailTappable(

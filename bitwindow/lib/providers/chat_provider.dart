@@ -57,7 +57,9 @@ class ChatProvider extends ChangeNotifier {
     if (_selectedContact == null || _selectedIdentity == null) {
       return [];
     }
-    return _messages.where((m) => _withContact(m, _selectedContact!) && _withIdentity(m)).toList()
+    final contact = _selectedContact!;
+    final hash = _contactHash(contact);
+    return _messages.where((m) => _withContactHash(m, contact, hash) && _withIdentity(m)).toList()
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
   }
 
@@ -76,10 +78,11 @@ class ChatProvider extends ChangeNotifier {
   }
 
   ChatContact _withPreview(ChatContact contact) {
+    final hash = _contactHash(contact);
     ChatMessage? last;
     for (final message in _messages) {
       if (_withIdentity(message) &&
-          _withContact(message, contact) &&
+          _withContactHash(message, contact, hash) &&
           (last == null || !message.timestamp.isBefore(last.timestamp))) {
         last = message;
       }
@@ -91,8 +94,13 @@ class ChatProvider extends ChangeNotifier {
     );
   }
 
-  bool _withContact(ChatMessage message, ChatContact contact) {
-    final hash = contact.encryptionPubkey.isEmpty ? null : BitnamesMessage.nameHash(contact.id);
+  bool _withContact(ChatMessage message, ChatContact contact) =>
+      _withContactHash(message, contact, _contactHash(contact));
+
+  String? _contactHash(ChatContact contact) =>
+      contact.encryptionPubkey.isEmpty ? null : BitnamesMessage.nameHash(contact.id);
+
+  bool _withContactHash(ChatMessage message, ChatContact contact, String? hash) {
     return message.isOutgoing
         ? (message.recipientBitname != null
               ? message.recipientBitname == hash
