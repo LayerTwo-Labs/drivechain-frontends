@@ -922,11 +922,14 @@ String formatDate(DateTime date, {bool long = true}) {
     }
   }
 
-  return intl.DateFormat(
-    dateFormat,
-    intl.Intl.getCurrentLocale(),
-  ).format(date.toLocal());
+  return cachedDateFormat(dateFormat, intl.Intl.getCurrentLocale()).format(date.toLocal());
 }
+
+final _dateFormats = <(String, String), intl.DateFormat>{};
+
+/// One [intl.DateFormat] per pattern and locale, built on first use.
+intl.DateFormat cachedDateFormat(String pattern, String locale) =>
+    _dateFormats.putIfAbsent((pattern, locale), () => intl.DateFormat(pattern, locale));
 
 /// Heuristic: Returns true if the locale is likely to use 24-hour time.
 /// This is not perfect, but covers common cases.
