@@ -33,6 +33,9 @@ class WindowProvider extends ChangeNotifier {
   WindowController? _spare;
   bool _spareStarting = false;
 
+  /// Engines of closed sub-windows, oldest first. Each one can show any page.
+  final List<_HiddenWindow> _hidden = [];
+
   int get windowCount => windows.length;
   bool get hasWindows => windows.isNotEmpty;
 
@@ -144,12 +147,14 @@ class WindowProvider extends ChangeNotifier {
       final title = windowType.name;
       log.i('Creating window: $title with type: ${windowType.identifier}');
 
-      final spare = _spare;
-      _spare = null;
+      final pooled = _takeHidden(windowType.identifier) ?? _spare;
+      if (pooled == _spare) {
+        _spare = null;
+      }
       final WindowController windowController;
-      if (spare != null) {
-        await spare.invokeMethod(openSpareMethod, jsonEncode(windowConfig));
-        windowController = spare;
+      if (pooled != null) {
+        await pooled.invokeMethod(openSpareMethod, jsonEncode(windowConfig));
+        windowController = pooled;
       } else {
         windowController = await WindowController.create(
           WindowConfiguration(
@@ -178,9 +183,18 @@ class WindowProvider extends ChangeNotifier {
     }
   }
 
+  /// Takes the engine of a closed [type] window, else the oldest closed one.
+  WindowController? _takeHidden(String type) {
+    if (_hidden.isEmpty) {
+      return null;
+    }
+    final same = _hidden.lastIndexWhere((w) => w.type == type);
+    return _hidden.removeAt(same == -1 ? 0 : same).controller;
+  }
+
   /// Starts a hidden engine for the next [open], unless one is up or on its way.
   Future<void> startSpare() async {
-    if (defaultTargetPlatform != TargetPlatform.macOS || _spare != null || _spareStarting) {
+    if (defaultTargetPlatform != TargetPlatform.macOS || _spare != null || _spareStarting || _hidden.isNotEmpty) {
       return;
     }
     _spareStarting = true;
@@ -294,6 +308,14 @@ class WindowProvider extends ChangeNotifier {
     if (call.method == windowShownMethod) {
       return startSpare();
     }
+    if (call.method == windowHiddenMethod) {
+      final arguments = (call.arguments as Map<Object?, Object?>).cast<String, String>();
+      final id = arguments['id']!;
+      windows.removeWhere((w) => w.id == id);
+      _hidden.add(_HiddenWindow(WindowController.fromWindowId(id), arguments['type']!));
+      notifyListeners();
+      return null;
+    }
 
     // In v3, the fromWindowId needs to be passed in the arguments if needed
     final arguments = call.arguments as Map<String, dynamic>?;
@@ -356,8 +378,17 @@ const processLogsMethod = 'process_logs';
 bool isSpareWindowArguments(String arguments) =>
     arguments.isNotEmpty && (jsonDecode(arguments) as Map<String, dynamic>)['spare'] == true;
 
-/// The spare engine shows the sub-window of the given arguments.
+/// A spare or hidden engine shows the sub-window of the given arguments.
 const openSpareMethod = 'open_spare';
+
+/// A sub-window tells the main window that it hid on close and can show a new page.
+const windowHiddenMethod = 'window_hidden';
+
+/// Tells the main window that the engine [windowId] hid its [type] window.
+Future<void> announceHiddenWindow(String windowId, String type) => const WindowMethodChannel(
+  _windowChannel,
+  mode: ChannelMode.unidirectional,
+).invokeMethod(windowHiddenMethod, {'id': windowId, 'type': type});
 
 /// A spare engine tells the main window that it can take a sub-window.
 const spareReadyMethod = 'spare_ready';
@@ -375,12 +406,13 @@ Future<void> announceSpareWindow(String windowId) => const WindowMethodChannel(
 class ProcessLogRelay {
   final WindowProvider windows;
   final LogProvider target;
-  final Map<int, int> _next = {};
+  final Map<int, int> _next;
   bool _pulling = false;
 
   final BinaryType? only;
 
-  ProcessLogRelay(this.windows, this.target, {this.only});
+  /// Relays that share [cursors] copy each entry one time.
+  ProcessLogRelay(this.windows, this.target, {this.only, Map<int, int>? cursors}) : _next = cursors ?? {};
 
   Future<void> pull() async {
     if (_pulling) {
@@ -429,6 +461,13 @@ class SailWindow {
     this.defaultPosition,
     required this.identifier,
   });
+}
+
+class _HiddenWindow {
+  final WindowController controller;
+  final String type;
+
+  _HiddenWindow(this.controller, this.type);
 }
 
 /// Class representing a window with its properties
