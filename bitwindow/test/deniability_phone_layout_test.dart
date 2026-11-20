@@ -75,7 +75,9 @@ void main() {
     expect(find.text('Denial ID -'), findsOneWidget);
 
     expect(tester.getRect(find.text('Pause')).left, greaterThan(amount.right));
-    expect(find.text('Deny'), findsOneWidget);
+    for (final label in ['Pause', 'Cancel', 'Deny']) {
+      expect(tester.widget<SailButton>(find.widgetWithText(SailButton, label)).variant, ButtonVariant.outline);
+    }
   });
 
   testWidgets('the desktop keeps the large Deny All button and the table', (tester) async {

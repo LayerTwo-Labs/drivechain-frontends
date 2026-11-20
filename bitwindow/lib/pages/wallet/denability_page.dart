@@ -555,12 +555,13 @@ class _PhoneDenialList extends StatelessWidget {
                       label: isPaused ? 'Resume' : 'Pause',
                       onPressed: () async => isPaused ? onResume(info.id) : onPause(info.id),
                       insideTable: true,
+                      variant: ButtonVariant.outline,
                     ),
                     SailButton(
                       label: 'Cancel',
                       onPressed: () async => onCancel(info.id),
                       insideTable: true,
-                      variant: ButtonVariant.secondary,
+                      variant: ButtonVariant.outline,
                     ),
                   ],
                 )
@@ -568,6 +569,7 @@ class _PhoneDenialList extends StatelessWidget {
                   label: 'Deny',
                   onPressed: () async => onDeny(utxo.output, utxo.valueSats.toInt()),
                   insideTable: true,
+                  variant: ButtonVariant.outline,
                 ),
         );
       },
