@@ -149,4 +149,11 @@ void main() {
       flutterFrontendDirFor(BinaryType.BINARY_TYPE_BITWINDOWD, OS.linux, '/data/user/0/app/files'),
     );
   });
+
+  test('iOS keeps BitWindow data in the Linux folder under the app home', () {
+    expect(
+      flutterFrontendDirFor(BinaryType.BINARY_TYPE_BITWINDOWD, OS.ios, '/app/Library/Application Support'),
+      '/app/Library/Application Support/.local/share/bitwindow',
+    );
+  });
 }

@@ -855,42 +855,42 @@ String? flutterFrontendDirFor(BinaryType type, OS os, String home) {
     BinaryType.BINARY_TYPE_BITWINDOWD => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'bitwindow'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitWindow'),
-      OS.linux || OS.android => path.join(home, '.local', 'share', 'bitwindow'),
+      OS.linux || OS.android || OS.ios => path.join(home, '.local', 'share', 'bitwindow'),
     },
     BinaryType.BINARY_TYPE_THUNDER => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.thunder'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Thunder'),
-      OS.linux || OS.android => path.join(home, '.local', 'share', 'com.layertwolabs.thunder'),
+      OS.linux || OS.android || OS.ios => path.join(home, '.local', 'share', 'com.layertwolabs.thunder'),
     },
     BinaryType.BINARY_TYPE_ZSIDE => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.zside'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'ZSide'),
-      OS.linux || OS.android => path.join(home, '.local', 'share', 'com.layertwolabs.zside'),
+      OS.linux || OS.android || OS.ios => path.join(home, '.local', 'share', 'com.layertwolabs.zside'),
     },
     BinaryType.BINARY_TYPE_BITNAMES => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitnames'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitNames'),
-      OS.linux || OS.android => path.join(home, '.local', 'share', 'com.layertwolabs.bitnames'),
+      OS.linux || OS.android || OS.ios => path.join(home, '.local', 'share', 'com.layertwolabs.bitnames'),
     },
     BinaryType.BINARY_TYPE_BITASSETS => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitassets'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitAssets'),
-      OS.linux || OS.android => path.join(home, '.local', 'share', 'com.layertwolabs.bitassets'),
+      OS.linux || OS.android || OS.ios => path.join(home, '.local', 'share', 'com.layertwolabs.bitassets'),
     },
     BinaryType.BINARY_TYPE_TRUTHCOIN => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.truthcoin'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Truthcoin'),
-      OS.linux || OS.android => path.join(home, '.local', 'share', 'com.layertwolabs.truthcoin'),
+      OS.linux || OS.android || OS.ios => path.join(home, '.local', 'share', 'com.layertwolabs.truthcoin'),
     },
     BinaryType.BINARY_TYPE_PHOTON => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.photon'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Photon'),
-      OS.linux || OS.android => path.join(home, '.local', 'share', 'com.layertwolabs.photon'),
+      OS.linux || OS.android || OS.ios => path.join(home, '.local', 'share', 'com.layertwolabs.photon'),
     },
     BinaryType.BINARY_TYPE_COINSHIFT => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.coinshift'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Coinshift'),
-      OS.linux || OS.android => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
+      OS.linux || OS.android || OS.ios => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
     },
     BinaryType.BINARY_TYPE_BITCOIND ||
     BinaryType.BINARY_TYPE_ENFORCER ||
@@ -1033,6 +1033,7 @@ extension BinaryPaths on Binary {
     switch (OS.current) {
       case OS.linux:
       case OS.android:
+      case OS.ios:
         if (type == BinaryType.BINARY_TYPE_BITCOIND || type == BinaryType.BINARY_TYPE_BBC) {
           // Core and its forks keep their datadir directly under $HOME
           return filePath([home]);
@@ -1640,6 +1641,7 @@ String _osJsonKey(OS os) => switch (os) {
   OS.macos => 'macos',
   OS.windows => 'windows',
   OS.android => 'android',
+  OS.ios => 'ios',
 };
 
 /// The running machine's CPU architecture token used in os-arch download keys.

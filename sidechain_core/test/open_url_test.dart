@@ -28,8 +28,9 @@ void main() {
     );
   });
 
-  test('openUrlCommand has no command on Android, which opens a link through an intent', () {
+  test('openUrlCommand has no command on a phone, which opens a link through the app', () {
     expect(() => openUrlCommand(OS.android, uri), throwsUnsupportedError);
+    expect(() => openUrlCommand(OS.ios, uri), throwsUnsupportedError);
   });
 
   test('openUrlCommand keeps a file URI', () {

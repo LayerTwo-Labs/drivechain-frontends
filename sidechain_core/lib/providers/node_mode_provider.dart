@@ -119,4 +119,11 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
 }
 
 /// False for an ABI with no Bitcoin Core, enforcer or sidechain build.
-bool hasLocalBuilds(Abi abi) => !const {Abi.linuxArm64, Abi.androidArm64, Abi.androidArm, Abi.androidX64}.contains(abi);
+bool hasLocalBuilds(Abi abi) => !const {
+  Abi.linuxArm64,
+  Abi.androidArm64,
+  Abi.androidArm,
+  Abi.androidX64,
+  Abi.iosArm64,
+  Abi.iosX64,
+}.contains(abi);

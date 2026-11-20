@@ -47,22 +47,24 @@ void main() {
     expect(args, ['/data/bitwindow']);
   });
 
-  test('Android uses the Linux data folder layout', () {
+  test('a phone uses the Linux data folder layout', () {
     expect(OS.android.dataLayout, OS.linux);
+    expect(OS.ios.dataLayout, OS.linux);
     for (final os in [OS.linux, OS.macos, OS.windows]) {
       expect(os.dataLayout, os);
     }
   });
 
-  test('revealCommand fails on Android, which has no file manager command', () {
+  test('revealCommand fails on a phone, which has no file manager command', () {
     expect(() => revealCommand(OS.android, '/data/bitwindow.log'), throwsUnsupportedError);
+    expect(() => revealCommand(OS.ios, '/data/bitwindow.log'), throwsUnsupportedError);
   });
 
   test('fileManagerName names the file manager of this platform', () {
     final expected = switch (getOS()) {
       OS.macos => 'Finder',
       OS.windows => 'File Explorer',
-      OS.linux || OS.android => 'File Manager',
+      OS.linux || OS.android || OS.ios => 'File Manager',
     };
     expect(fileManagerName(), expected);
   });

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
-import 'package:sidechain_core/utils/android_native.dart';
+import 'package:sidechain_core/utils/native_channel.dart';
 
 /// The daemons the Android APK ships as `lib<name>.so`.
 const androidDaemons = ['bitwindowd', 'drivechaind'];
@@ -9,7 +9,7 @@ const androidDaemons = ['bitwindowd', 'drivechaind'];
 /// Links each of [androidDaemons] into [binDir], so the desktop binary paths
 /// resolve to the APK's native library folder.
 Future<void> linkAndroidDaemons(Directory binDir) async {
-  final nativeDir = await androidNative.invokeMethod<String>('nativeLibraryDir');
+  final nativeDir = await nativeChannel.invokeMethod<String>('nativeLibraryDir');
   if (nativeDir == null || nativeDir.isEmpty) {
     throw StateError('Android returned no native library folder');
   }

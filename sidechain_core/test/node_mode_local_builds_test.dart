@@ -10,8 +10,8 @@ void main() {
     }
   });
 
-  test('Linux arm64 and Android have no local backends', () {
-    for (final abi in [Abi.linuxArm64, Abi.androidArm64, Abi.androidArm, Abi.androidX64]) {
+  test('Linux arm64 and phones have no local backends', () {
+    for (final abi in [Abi.linuxArm64, Abi.androidArm64, Abi.androidArm, Abi.androidX64, Abi.iosArm64, Abi.iosX64]) {
       expect(hasLocalBuilds(abi), isFalse, reason: '$abi');
     }
   });
