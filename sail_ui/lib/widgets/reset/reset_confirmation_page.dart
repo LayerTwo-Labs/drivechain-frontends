@@ -286,16 +286,7 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     ];
 
     if (SailStyleValues.phoneLayout(context)) {
-      return SailPanelPage(
-        title: title,
-        leading: SizedBox(width: 20, height: 20, child: FittedBox(child: icon)),
-        actions: buttons.isEmpty ? null : Row(mainAxisAlignment: MainAxisAlignment.end, children: buttons),
-        children: [
-          Align(alignment: Alignment.centerLeft, child: status),
-          const SizedBox(height: 16),
-          list,
-        ],
-      );
+      return ResetConfirmationPanel(title: title, icon: icon, status: status, list: list, buttons: buttons);
     }
 
     return Stack(
@@ -322,6 +313,38 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
           ),
         ),
         BottomActionBar(children: buttons),
+      ],
+    );
+  }
+}
+
+/// The phone form of the reset confirmation: one panel with the title, the status, the file list and the buttons.
+class ResetConfirmationPanel extends StatelessWidget {
+  final String title;
+  final Widget icon;
+  final Widget status;
+  final Widget list;
+  final List<Widget> buttons;
+
+  const ResetConfirmationPanel({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.status,
+    required this.list,
+    required this.buttons,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailPanelPage(
+      title: title,
+      leading: SizedBox(width: 20, height: 20, child: FittedBox(child: icon)),
+      actions: buttons.isEmpty ? null : Row(mainAxisAlignment: MainAxisAlignment.end, children: buttons),
+      children: [
+        Align(alignment: Alignment.centerLeft, child: status),
+        const SizedBox(height: 16),
+        list,
       ],
     );
   }
