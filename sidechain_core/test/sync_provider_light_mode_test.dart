@@ -101,4 +101,15 @@ void main() {
     expect(bitwindow.syncInfoCalls, 1);
     expect(provider.bitwindowdSyncInfo, isNotNull);
   });
+
+  test('a bitwindowd frame fills the card in full mode only', () async {
+    final full = await boot(wmpb.NodeMode.NODE_MODE_FULL);
+    full.applyBitwindowdFrame(WatchSyncInfoResponse(info: GetSyncInfoResponse(tipBlockHeight: Int64(5))));
+    full.applyBitwindowdFrame(WatchSyncInfoResponse(heartbeat: true));
+    expect(full.bitwindowdSyncInfo?.progressCurrent, 5);
+
+    final light = await boot(wmpb.NodeMode.NODE_MODE_LIGHT);
+    light.applyBitwindowdFrame(WatchSyncInfoResponse(info: GetSyncInfoResponse(tipBlockHeight: Int64(5))));
+    expect(light.bitwindowdSyncInfo, isNull);
+  });
 }
