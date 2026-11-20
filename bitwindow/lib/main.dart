@@ -49,6 +49,7 @@ import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/providers/consolidation_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/services/bitwindowd_start.dart';
+import 'package:bitwindow/services/daemon_warm_up.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/backend_swap.dart';
 import 'package:bitwindow/widgets/datadir_network_notice.dart';
@@ -113,6 +114,8 @@ void main(List<String> args) async {
     },
   );
 }
+
+final _daemonWarmUp = DaemonWarmUp();
 
 Future<(Directory, File, Logger)> init(String arguments) async {
   addFontLicense();
@@ -197,7 +200,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
   GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
 
-  await copyBinariesFromAssets(log, applicationDir);
+  await copyBinariesFromAssets(log, applicationDir, onStaged: isSubWindow ? null : _daemonWarmUp.onStaged);
 
   // Register LogProvider for process output capture
   GetIt.I.registerSingleton<LogProvider>(LogProvider());
@@ -215,10 +218,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<BitcoindConnection>(BitcoindConnection());
   // Enforcer services are bridged by bitwindowd — same endpoint as BitwindowRPC.
   GetIt.I.registerSingleton<EnforcerRPC>(
-    EnforcerLive(
-      host: Environment.bitwindowdHost.value,
-      port: Environment.bitwindowdPort.value,
-    ),
+    EnforcerLive(host: Environment.bitwindowdHost.value, port: Environment.bitwindowdPort.value),
   );
   // Shared system boundary for runtime and wallet flows used across apps.
   final orchestrator = OrchestratorRPC(
@@ -231,10 +231,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final backendStateProvider = BackendStateProvider(orchestrator);
   GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
 
-  final bitwindow = BitwindowRPCLive(
-    host: Environment.bitwindowdHost.value,
-    port: Environment.bitwindowdPort.value,
-  );
+  final bitwindow = BitwindowRPCLive(host: Environment.bitwindowdHost.value, port: Environment.bitwindowdPort.value);
   GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
 
   // bitwindow applies the swap through bitwindowd so it recycles its
@@ -375,11 +372,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   // detached and writes to the shared file, so a terminal launch shows nothing
   // of the daemon that starts every other one.
   if (!orchestratorLogsToStdout(Platform.environment)) {
-    await SharedLogTail(
-      file: logFile,
-      source: 'orchestrator',
-      onLine: debugPrint,
-    ).start();
+    await SharedLogTail(file: logFile, source: 'orchestrator', onLine: debugPrint).start();
   }
 
   const windowOptions = WindowOptions(
@@ -464,11 +457,7 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
     case SubWindowTypes.logsId:
       final logWindow = LogWindowArguments.fromWindowArguments(arguments, bitwindowLogPath: logFile.path);
       ProcessLogRelay(GetIt.I.get<WindowProvider>(), GetIt.I.get<LogProvider>(), only: logWindow.binaryType).start();
-      child = LogPage(
-        logPath: logWindow.logPath,
-        title: logWindow.title,
-        binaryType: logWindow.binaryType,
-      );
+      child = LogPage(logPath: logWindow.logPath, title: logWindow.title, binaryType: logWindow.binaryType);
       break;
 
     case SubWindowTypes.deniabilityId:
@@ -504,28 +493,16 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
       break;
   }
 
-  return runApp(
-    buildSailWindowApp(
-      log,
-      '$windowTitle | Bitwindow',
-      child,
-      const Color.fromARGB(255, 255, 153, 0),
-    ),
-  );
+  return runApp(buildSailWindowApp(log, '$windowTitle | Bitwindow', child, const Color.fromARGB(255, 255, 153, 0)));
 }
 
-void ignoreOverflowErrors(
-  FlutterErrorDetails details, {
-  bool forceReport = false,
-}) {
+void ignoreOverflowErrors(FlutterErrorDetails details, {bool forceReport = false}) {
   bool ifIsOverflowError = false;
 
   // Detect overflow error.
   var exception = details.exception;
   if (exception is FlutterError) {
-    ifIsOverflowError = !exception.diagnostics.any(
-      (e) => e.value.toString().startsWith('A RenderFlex overflowed by'),
-    );
+    ifIsOverflowError = !exception.diagnostics.any((e) => e.value.toString().startsWith('A RenderFlex overflowed by'));
   }
 
   // Ignore if is overflow error.
@@ -545,11 +522,7 @@ class BitwindowApp extends StatefulWidget {
   final Logger log;
   final ValueNotifier<bool> backendReady;
 
-  const BitwindowApp({
-    super.key,
-    required this.log,
-    required this.backendReady,
-  });
+  const BitwindowApp({super.key, required this.log, required this.backendReady});
 
   @override
   State<BitwindowApp> createState() => _BitwindowAppState();
@@ -654,12 +627,7 @@ class _SplashScreen extends StatelessWidget {
       home: QtPage(
         child: Stack(
           children: [
-            Center(
-              child: SailSVG.fromAsset(
-                SailSVGAsset.layerTwoLabsLogo,
-                height: 71,
-              ),
-            ),
+            Center(child: SailSVG.fromAsset(SailSVGAsset.layerTwoLabsLogo, height: 71)),
             Positioned(
               bottom: 50,
               left: 0,
@@ -673,12 +641,7 @@ class _SplashScreen extends StatelessWidget {
                     const BackendSwapSplash(),
                     const SizedBox(
                       width: 200,
-                      child: ProgressBar(
-                        current: 0,
-                        goal: 1,
-                        hideProgressInside: true,
-                        small: true,
-                      ),
+                      child: ProgressBar(current: 0, goal: 1, hideProgressInside: true, small: true),
                     ),
                   ],
                 ),
@@ -755,11 +718,7 @@ class _ErrorCatcher extends StatelessWidget {
             '⚠ Failed to render this component\n${details.exceptionAsString()}',
             maxLines: 6,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.redAccent,
-              fontSize: 12,
-              fontFamily: 'monospace',
-            ),
+            style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontFamily: 'monospace'),
           ),
         ),
       );
@@ -896,6 +855,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
     log: log,
   );
 
+  await _daemonWarmUp.done();
   log.i('STARTUP: BitWindow backend boot task initialized');
 }
 
@@ -1182,12 +1142,8 @@ class SubWindowTypes {
     defaultPosition: Offset(100, 100),
   );
 
-  static SailWindow logsFor(String title) => SailWindow(
-    identifier: logsId,
-    name: title,
-    defaultSize: logs.defaultSize,
-    defaultPosition: logs.defaultPosition,
-  );
+  static SailWindow logsFor(String title) =>
+      SailWindow(identifier: logsId, name: title, defaultSize: logs.defaultSize, defaultPosition: logs.defaultPosition);
 
   static const String deniabilityId = 'deniability';
   static var deniability = SailWindow(
@@ -1264,11 +1220,7 @@ class SubWindowTypes {
 }
 
 List<Binary> initalBinaries() {
-  return [
-    ...coreBinaries,
-    ...sidechainBinaries,
-    resolveFromConfig(BinaryType.BINARY_TYPE_GRPCURL, () => GRPCurl()),
-  ];
+  return [...coreBinaries, ...sidechainBinaries, resolveFromConfig(BinaryType.BINARY_TYPE_GRPCURL, () => GRPCurl())];
 }
 
 Future<void> initAutoUpdater(Logger log) async {
