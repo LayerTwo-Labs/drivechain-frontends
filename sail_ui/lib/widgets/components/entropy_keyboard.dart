@@ -31,6 +31,10 @@ class SailEntropyKeyboard extends StatefulWidget {
   final String caption;
   final String? subCaption;
 
+  /// False hides the Shuffle button on the grid corner, for a caller that draws its own and calls
+  /// [SailEntropyKeyboardState.shuffle].
+  final bool showShuffle;
+
   const SailEntropyKeyboard({
     super.key,
     required this.onType,
@@ -39,13 +43,14 @@ class SailEntropyKeyboard extends StatefulWidget {
     this.enabled = true,
     this.hiddenHeight = 320,
     this.subCaption,
+    this.showShuffle = true,
   });
 
   @override
-  State<SailEntropyKeyboard> createState() => _SailEntropyKeyboardState();
+  State<SailEntropyKeyboard> createState() => SailEntropyKeyboardState();
 }
 
-class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
+class SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
   static const double _maxKeySize = 44;
   static const double _keyGap = 4;
   static const double _padding = 8;
@@ -66,8 +71,8 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
   }
 
   @override
-  void didUpdateWidget(SailEntropyKeyboard old) {
-    super.didUpdateWidget(old);
+  void didUpdateWidget(SailEntropyKeyboard oldWidget) {
+    super.didUpdateWidget(oldWidget);
     if (!widget.enabled) {
       _stop();
     }
@@ -123,8 +128,8 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
     return _layout[index];
   }
 
-  // The pointer sits on the button during a press, so no key is hovered.
-  void _shuffle() {
+  /// Deals a new key layout. The pointer sits on the button during a press, so no key is hovered.
+  void shuffle() {
     setState(() {
       _layout.shuffle(_random);
       _hovered = null;
@@ -234,18 +239,19 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
                 ),
               ],
             ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: SailButton(
-                label: 'Shuffle',
-                icon: SailSVGAsset.shuffle,
-                variant: ButtonVariant.secondary,
-                small: true,
-                disabled: !widget.enabled,
-                onPressed: () async => _shuffle(),
+            if (widget.showShuffle)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: SailButton(
+                  label: 'Shuffle',
+                  icon: SailSVGAsset.shuffle,
+                  variant: ButtonVariant.secondary,
+                  small: true,
+                  disabled: !widget.enabled,
+                  onPressed: () async => shuffle(),
+                ),
               ),
-            ),
           ],
         );
       },

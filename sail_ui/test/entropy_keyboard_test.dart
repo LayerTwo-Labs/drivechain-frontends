@@ -163,4 +163,34 @@ void main() {
     final shuffle = tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Shuffle')).first;
     expect(shuffle.disabled, isTrue, reason: 'a disabled board locks its Shuffle button');
   });
+
+  testWidgets('a board with no Shuffle button deals a new layout from its state', (tester) async {
+    final key = GlobalKey<SailEntropyKeyboardState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SailTheme(
+          data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+          child: Scaffold(
+            body: SizedBox(
+              width: 768,
+              child: SailEntropyKeyboard(
+                key: key,
+                onType: (_) {},
+                showKeys: true,
+                showShuffle: false,
+                caption: 'Move the pointer',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(SailButton, 'Shuffle'), findsNothing);
+    final before = _drawnKeys(tester);
+    key.currentState!.shuffle();
+    await tester.pump();
+    expect(_drawnKeys(tester), isNot(before));
+  });
 }
