@@ -382,6 +382,7 @@ abstract class BitwindowAPI {
   Future<void> pauseDenial(Int64 id);
   Future<void> resumeDenial(Int64 id);
   Future<GetSyncInfoResponse> getSyncInfo();
+  Stream<WatchSyncInfoResponse> watchSyncInfo();
 
   // Address book methods here
   Future<List<AddressBookEntry>> listAddressBook();
@@ -465,6 +466,9 @@ class _BitwindowAPILive implements BitwindowAPI {
     final response = await _client.getSyncInfo(Empty());
     return response;
   }
+
+  @override
+  Stream<WatchSyncInfoResponse> watchSyncInfo() => _client.watchSyncInfo(Empty());
 
   @override
   Future<List<AddressBookEntry>> listAddressBook() async {

@@ -22,6 +22,7 @@ export 'orchestrator.pb.dart';
 
 abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$0.ListBinariesResponse> listBinaries($pb.ServerContext ctx, $0.ListBinariesRequest request);
+  $async.Future<$0.WatchBinariesResponse> watchBinaries($pb.ServerContext ctx, $0.WatchBinariesRequest request);
   $async.Future<$0.GetBinaryStatusResponse> getBinaryStatus($pb.ServerContext ctx, $0.GetBinaryStatusRequest request);
   $async.Future<$0.GetBinaryVersionResponse> getBinaryVersion(
       $pb.ServerContext ctx, $0.GetBinaryVersionRequest request);
@@ -49,8 +50,11 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$0.GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo(
       $pb.ServerContext ctx, $0.GetEnforcerBlockchainInfoRequest request);
   $async.Future<$0.GetSyncStatusResponse> getSyncStatus($pb.ServerContext ctx, $0.GetSyncStatusRequest request);
+  $async.Future<$0.WatchSyncStatusResponse> watchSyncStatus($pb.ServerContext ctx, $0.WatchSyncStatusRequest request);
   $async.Future<$0.GetDownloadStatusResponse> getDownloadStatus(
       $pb.ServerContext ctx, $0.GetDownloadStatusRequest request);
+  $async.Future<$0.WatchDownloadStatusResponse> watchDownloadStatus(
+      $pb.ServerContext ctx, $0.WatchDownloadStatusRequest request);
   $async.Future<$0.GetMainchainBalanceResponse> getMainchainBalance(
       $pb.ServerContext ctx, $0.GetMainchainBalanceRequest request);
   $async.Future<$0.GetSidechainBalanceResponse> getSidechainBalance(
@@ -72,6 +76,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       $pb.ServerContext ctx, $0.StartECashMigrationRequest request);
   $async.Future<$0.GetECashMigrationStatusResponse> getECashMigrationStatus(
       $pb.ServerContext ctx, $0.GetECashMigrationStatusRequest request);
+  $async.Future<$0.WatchECashMigrationStatusResponse> watchECashMigrationStatus(
+      $pb.ServerContext ctx, $0.WatchECashMigrationStatusRequest request);
   $async.Future<$0.GetDatadirNetworkResponse> getDatadirNetwork(
       $pb.ServerContext ctx, $0.GetDatadirNetworkRequest request);
 
@@ -79,6 +85,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'ListBinaries':
         return $0.ListBinariesRequest();
+      case 'WatchBinaries':
+        return $0.WatchBinariesRequest();
       case 'GetBinaryStatus':
         return $0.GetBinaryStatusRequest();
       case 'GetBinaryVersion':
@@ -119,8 +127,12 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return $0.GetEnforcerBlockchainInfoRequest();
       case 'GetSyncStatus':
         return $0.GetSyncStatusRequest();
+      case 'WatchSyncStatus':
+        return $0.WatchSyncStatusRequest();
       case 'GetDownloadStatus':
         return $0.GetDownloadStatusRequest();
+      case 'WatchDownloadStatus':
+        return $0.WatchDownloadStatusRequest();
       case 'GetMainchainBalance':
         return $0.GetMainchainBalanceRequest();
       case 'GetSidechainBalance':
@@ -149,6 +161,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return $0.StartECashMigrationRequest();
       case 'GetECashMigrationStatus':
         return $0.GetECashMigrationStatusRequest();
+      case 'WatchECashMigrationStatus':
+        return $0.WatchECashMigrationStatusRequest();
       case 'GetDatadirNetwork':
         return $0.GetDatadirNetworkRequest();
       default:
@@ -161,6 +175,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'ListBinaries':
         return listBinaries(ctx, request as $0.ListBinariesRequest);
+      case 'WatchBinaries':
+        return watchBinaries(ctx, request as $0.WatchBinariesRequest);
       case 'GetBinaryStatus':
         return getBinaryStatus(ctx, request as $0.GetBinaryStatusRequest);
       case 'GetBinaryVersion':
@@ -201,8 +217,12 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return getEnforcerBlockchainInfo(ctx, request as $0.GetEnforcerBlockchainInfoRequest);
       case 'GetSyncStatus':
         return getSyncStatus(ctx, request as $0.GetSyncStatusRequest);
+      case 'WatchSyncStatus':
+        return watchSyncStatus(ctx, request as $0.WatchSyncStatusRequest);
       case 'GetDownloadStatus':
         return getDownloadStatus(ctx, request as $0.GetDownloadStatusRequest);
+      case 'WatchDownloadStatus':
+        return watchDownloadStatus(ctx, request as $0.WatchDownloadStatusRequest);
       case 'GetMainchainBalance':
         return getMainchainBalance(ctx, request as $0.GetMainchainBalanceRequest);
       case 'GetSidechainBalance':
@@ -231,6 +251,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return startECashMigration(ctx, request as $0.StartECashMigrationRequest);
       case 'GetECashMigrationStatus':
         return getECashMigrationStatus(ctx, request as $0.GetECashMigrationStatusRequest);
+      case 'WatchECashMigrationStatus':
+        return watchECashMigrationStatus(ctx, request as $0.WatchECashMigrationStatusRequest);
       case 'GetDatadirNetwork':
         return getDatadirNetwork(ctx, request as $0.GetDatadirNetworkRequest);
       default:

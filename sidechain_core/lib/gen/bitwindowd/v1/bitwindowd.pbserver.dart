@@ -33,6 +33,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> updateAddressBookEntry($pb.ServerContext ctx, $2.UpdateAddressBookEntryRequest request);
   $async.Future<$1.Empty> deleteAddressBookEntry($pb.ServerContext ctx, $2.DeleteAddressBookEntryRequest request);
   $async.Future<$2.GetSyncInfoResponse> getSyncInfo($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$2.WatchSyncInfoResponse> watchSyncInfo($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> setTransactionNote($pb.ServerContext ctx, $2.SetTransactionNoteRequest request);
   $async.Future<$2.ListTransactionNotesResponse> listTransactionNotes(
       $pb.ServerContext ctx, $2.ListTransactionNotesRequest request);
@@ -73,6 +74,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'DeleteAddressBookEntry':
         return $2.DeleteAddressBookEntryRequest();
       case 'GetSyncInfo':
+        return $1.Empty();
+      case 'WatchSyncInfo':
         return $1.Empty();
       case 'SetTransactionNote':
         return $2.SetTransactionNoteRequest();
@@ -132,6 +135,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
         return deleteAddressBookEntry(ctx, request as $2.DeleteAddressBookEntryRequest);
       case 'GetSyncInfo':
         return getSyncInfo(ctx, request as $1.Empty);
+      case 'WatchSyncInfo':
+        return watchSyncInfo(ctx, request as $1.Empty);
       case 'SetTransactionNote':
         return setTransactionNote(ctx, request as $2.SetTransactionNoteRequest);
       case 'ListTransactionNotes':

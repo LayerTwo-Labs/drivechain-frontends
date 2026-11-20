@@ -864,6 +864,123 @@ class ListBinariesResponse extends $pb.GeneratedMessage {
   $pb.PbList<BinaryStatusMsg> get binaries => $_getList(0);
 }
 
+class WatchBinariesRequest extends $pb.GeneratedMessage {
+  factory WatchBinariesRequest({
+    $core.bool? forceBackend,
+  }) {
+    final result = WatchBinariesRequest._();
+    if (forceBackend != null) result.forceBackend = forceBackend;
+    return result;
+  }
+
+  WatchBinariesRequest._();
+
+  factory WatchBinariesRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBinariesRequest()..mergeFromBuffer(data, registry);
+  factory WatchBinariesRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBinariesRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchBinariesRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchBinariesRequest.$_createMessage)
+    ..aOB(1, _omitFieldNames ? '' : 'forceBackend')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBinariesRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBinariesRequest copyWith(void Function(WatchBinariesRequest) updates) =>
+      super.copyWith((message) => updates(message as WatchBinariesRequest)) as WatchBinariesRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchBinariesRequest() / WatchBinariesRequest.new instead')
+  static WatchBinariesRequest create() => WatchBinariesRequest._();
+  static $pb.GeneratedMessage $_createMessage() => WatchBinariesRequest._();
+  @$core.override
+  WatchBinariesRequest createEmptyInstance() => WatchBinariesRequest._();
+  @$core.pragma('dart2js:noInline')
+  static WatchBinariesRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchBinariesRequest>(WatchBinariesRequest.$_createMessage);
+  static WatchBinariesRequest? _defaultInstance;
+
+  /// Same lever as ListBinariesRequest.force_backend.
+  @$pb.TagNumber(1)
+  $core.bool get forceBackend => $_getBF(0);
+  @$pb.TagNumber(1)
+  set forceBackend($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasForceBackend() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearForceBackend() => $_clearField(1);
+}
+
+class WatchBinariesResponse extends $pb.GeneratedMessage {
+  factory WatchBinariesResponse({
+    $core.Iterable<BinaryStatusMsg>? binaries,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchBinariesResponse._();
+    if (binaries != null) result.binaries.addAll(binaries);
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchBinariesResponse._();
+
+  factory WatchBinariesResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBinariesResponse()..mergeFromBuffer(data, registry);
+  factory WatchBinariesResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBinariesResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchBinariesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchBinariesResponse.$_createMessage)
+    ..pPM<BinaryStatusMsg>(1, _omitFieldNames ? '' : 'binaries', subBuilder: BinaryStatusMsg.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBinariesResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBinariesResponse copyWith(void Function(WatchBinariesResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchBinariesResponse)) as WatchBinariesResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchBinariesResponse() / WatchBinariesResponse.new instead')
+  static WatchBinariesResponse create() => WatchBinariesResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchBinariesResponse._();
+  @$core.override
+  WatchBinariesResponse createEmptyInstance() => WatchBinariesResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchBinariesResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchBinariesResponse>(WatchBinariesResponse.$_createMessage);
+  static WatchBinariesResponse? _defaultInstance;
+
+  /// Empty in a heartbeat frame.
+  @$pb.TagNumber(1)
+  $pb.PbList<BinaryStatusMsg> get binaries => $_getList(0);
+
+  /// True for an idle keepalive frame that carries no status.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 class GetBinaryStatusRequest extends $pb.GeneratedMessage {
   factory GetBinaryStatusRequest({
     $core.String? name,
@@ -3265,6 +3382,114 @@ class GetSyncStatusRequest extends $pb.GeneratedMessage {
   static GetSyncStatusRequest? _defaultInstance;
 }
 
+class WatchSyncStatusRequest extends $pb.GeneratedMessage {
+  factory WatchSyncStatusRequest() => WatchSyncStatusRequest._();
+
+  WatchSyncStatusRequest._();
+
+  factory WatchSyncStatusRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchSyncStatusRequest()..mergeFromBuffer(data, registry);
+  factory WatchSyncStatusRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchSyncStatusRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchSyncStatusRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchSyncStatusRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchSyncStatusRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchSyncStatusRequest copyWith(void Function(WatchSyncStatusRequest) updates) =>
+      super.copyWith((message) => updates(message as WatchSyncStatusRequest)) as WatchSyncStatusRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchSyncStatusRequest() / WatchSyncStatusRequest.new instead')
+  static WatchSyncStatusRequest create() => WatchSyncStatusRequest._();
+  static $pb.GeneratedMessage $_createMessage() => WatchSyncStatusRequest._();
+  @$core.override
+  WatchSyncStatusRequest createEmptyInstance() => WatchSyncStatusRequest._();
+  @$core.pragma('dart2js:noInline')
+  static WatchSyncStatusRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchSyncStatusRequest>(WatchSyncStatusRequest.$_createMessage);
+  static WatchSyncStatusRequest? _defaultInstance;
+}
+
+class WatchSyncStatusResponse extends $pb.GeneratedMessage {
+  factory WatchSyncStatusResponse({
+    GetSyncStatusResponse? status,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchSyncStatusResponse._();
+    if (status != null) result.status = status;
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchSyncStatusResponse._();
+
+  factory WatchSyncStatusResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchSyncStatusResponse()..mergeFromBuffer(data, registry);
+  factory WatchSyncStatusResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchSyncStatusResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchSyncStatusResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchSyncStatusResponse.$_createMessage)
+    ..aOM<GetSyncStatusResponse>(1, _omitFieldNames ? '' : 'status', subBuilder: GetSyncStatusResponse.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchSyncStatusResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchSyncStatusResponse copyWith(void Function(WatchSyncStatusResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchSyncStatusResponse)) as WatchSyncStatusResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchSyncStatusResponse() / WatchSyncStatusResponse.new instead')
+  static WatchSyncStatusResponse create() => WatchSyncStatusResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchSyncStatusResponse._();
+  @$core.override
+  WatchSyncStatusResponse createEmptyInstance() => WatchSyncStatusResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchSyncStatusResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchSyncStatusResponse>(WatchSyncStatusResponse.$_createMessage);
+  static WatchSyncStatusResponse? _defaultInstance;
+
+  /// Unset in a heartbeat frame.
+  @$pb.TagNumber(1)
+  GetSyncStatusResponse get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status(GetSyncStatusResponse value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GetSyncStatusResponse ensureStatus() => $_ensure(0);
+
+  /// True for an idle keepalive frame that carries no status.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 class GetSyncStatusResponse extends $pb.GeneratedMessage {
   factory GetSyncStatusResponse({
     ChainSync? mainchain,
@@ -3679,6 +3904,106 @@ class GetDownloadStatusResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<DownloadStatus> get downloads => $_getList(0);
+}
+
+class WatchDownloadStatusRequest extends $pb.GeneratedMessage {
+  factory WatchDownloadStatusRequest() => WatchDownloadStatusRequest._();
+
+  WatchDownloadStatusRequest._();
+
+  factory WatchDownloadStatusRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchDownloadStatusRequest()..mergeFromBuffer(data, registry);
+  factory WatchDownloadStatusRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchDownloadStatusRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchDownloadStatusRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchDownloadStatusRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchDownloadStatusRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchDownloadStatusRequest copyWith(void Function(WatchDownloadStatusRequest) updates) =>
+      super.copyWith((message) => updates(message as WatchDownloadStatusRequest)) as WatchDownloadStatusRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchDownloadStatusRequest() / WatchDownloadStatusRequest.new instead')
+  static WatchDownloadStatusRequest create() => WatchDownloadStatusRequest._();
+  static $pb.GeneratedMessage $_createMessage() => WatchDownloadStatusRequest._();
+  @$core.override
+  WatchDownloadStatusRequest createEmptyInstance() => WatchDownloadStatusRequest._();
+  @$core.pragma('dart2js:noInline')
+  static WatchDownloadStatusRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchDownloadStatusRequest>(WatchDownloadStatusRequest.$_createMessage);
+  static WatchDownloadStatusRequest? _defaultInstance;
+}
+
+class WatchDownloadStatusResponse extends $pb.GeneratedMessage {
+  factory WatchDownloadStatusResponse({
+    $core.Iterable<DownloadStatus>? downloads,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchDownloadStatusResponse._();
+    if (downloads != null) result.downloads.addAll(downloads);
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchDownloadStatusResponse._();
+
+  factory WatchDownloadStatusResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchDownloadStatusResponse()..mergeFromBuffer(data, registry);
+  factory WatchDownloadStatusResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchDownloadStatusResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchDownloadStatusResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchDownloadStatusResponse.$_createMessage)
+    ..pPM<DownloadStatus>(1, _omitFieldNames ? '' : 'downloads', subBuilder: DownloadStatus.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchDownloadStatusResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchDownloadStatusResponse copyWith(void Function(WatchDownloadStatusResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchDownloadStatusResponse)) as WatchDownloadStatusResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchDownloadStatusResponse() / WatchDownloadStatusResponse.new instead')
+  static WatchDownloadStatusResponse create() => WatchDownloadStatusResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchDownloadStatusResponse._();
+  @$core.override
+  WatchDownloadStatusResponse createEmptyInstance() => WatchDownloadStatusResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchDownloadStatusResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchDownloadStatusResponse>(WatchDownloadStatusResponse.$_createMessage);
+  static WatchDownloadStatusResponse? _defaultInstance;
+
+  /// Empty in a heartbeat frame.
+  @$pb.TagNumber(1)
+  $pb.PbList<DownloadStatus> get downloads => $_getList(0);
+
+  /// True for an idle keepalive frame that carries no list.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
 }
 
 class DownloadStatus extends $pb.GeneratedMessage {
@@ -6542,6 +6867,118 @@ class GetECashMigrationStatusResponse extends $pb.GeneratedMessage {
   ECashMigrationStatus ensureStatus() => $_ensure(0);
 }
 
+class WatchECashMigrationStatusRequest extends $pb.GeneratedMessage {
+  factory WatchECashMigrationStatusRequest() => WatchECashMigrationStatusRequest._();
+
+  WatchECashMigrationStatusRequest._();
+
+  factory WatchECashMigrationStatusRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchECashMigrationStatusRequest()..mergeFromBuffer(data, registry);
+  factory WatchECashMigrationStatusRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchECashMigrationStatusRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchECashMigrationStatusRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchECashMigrationStatusRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchECashMigrationStatusRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchECashMigrationStatusRequest copyWith(void Function(WatchECashMigrationStatusRequest) updates) =>
+      super.copyWith((message) => updates(message as WatchECashMigrationStatusRequest))
+          as WatchECashMigrationStatusRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchECashMigrationStatusRequest() / WatchECashMigrationStatusRequest.new instead')
+  static WatchECashMigrationStatusRequest create() => WatchECashMigrationStatusRequest._();
+  static $pb.GeneratedMessage $_createMessage() => WatchECashMigrationStatusRequest._();
+  @$core.override
+  WatchECashMigrationStatusRequest createEmptyInstance() => WatchECashMigrationStatusRequest._();
+  @$core.pragma('dart2js:noInline')
+  static WatchECashMigrationStatusRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchECashMigrationStatusRequest>(
+          WatchECashMigrationStatusRequest.$_createMessage);
+  static WatchECashMigrationStatusRequest? _defaultInstance;
+}
+
+class WatchECashMigrationStatusResponse extends $pb.GeneratedMessage {
+  factory WatchECashMigrationStatusResponse({
+    ECashMigrationStatus? status,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchECashMigrationStatusResponse._();
+    if (status != null) result.status = status;
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchECashMigrationStatusResponse._();
+
+  factory WatchECashMigrationStatusResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchECashMigrationStatusResponse()..mergeFromBuffer(data, registry);
+  factory WatchECashMigrationStatusResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchECashMigrationStatusResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchECashMigrationStatusResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchECashMigrationStatusResponse.$_createMessage)
+    ..aOM<ECashMigrationStatus>(1, _omitFieldNames ? '' : 'status', subBuilder: ECashMigrationStatus.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchECashMigrationStatusResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchECashMigrationStatusResponse copyWith(void Function(WatchECashMigrationStatusResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchECashMigrationStatusResponse))
+          as WatchECashMigrationStatusResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchECashMigrationStatusResponse() / WatchECashMigrationStatusResponse.new instead')
+  static WatchECashMigrationStatusResponse create() => WatchECashMigrationStatusResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchECashMigrationStatusResponse._();
+  @$core.override
+  WatchECashMigrationStatusResponse createEmptyInstance() => WatchECashMigrationStatusResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchECashMigrationStatusResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchECashMigrationStatusResponse>(
+          WatchECashMigrationStatusResponse.$_createMessage);
+  static WatchECashMigrationStatusResponse? _defaultInstance;
+
+  /// Unset in a heartbeat frame.
+  @$pb.TagNumber(1)
+  ECashMigrationStatus get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status(ECashMigrationStatus value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ECashMigrationStatus ensureStatus() => $_ensure(0);
+
+  /// True for an idle keepalive frame that carries no status.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 class ECashMigrationStatus extends $pb.GeneratedMessage {
   factory ECashMigrationStatus({
     $core.String? jobId,
@@ -6903,6 +7340,11 @@ class OrchestratorServiceApi {
   $async.Future<ListBinariesResponse> listBinaries($pb.ClientContext? ctx, ListBinariesRequest request) =>
       _client.invoke<ListBinariesResponse>(ctx, 'OrchestratorService', 'ListBinaries', request, ListBinariesResponse());
 
+  /// Stream the status of all configured binaries. The first frame holds the
+  /// full list, later frames only a changed list or a heartbeat.
+  $async.Future<WatchBinariesResponse> watchBinaries($pb.ClientContext? ctx, WatchBinariesRequest request) => _client
+      .invoke<WatchBinariesResponse>(ctx, 'OrchestratorService', 'WatchBinaries', request, WatchBinariesResponse());
+
   /// Get the status of a single binary.
   $async.Future<GetBinaryStatusResponse> getBinaryStatus($pb.ClientContext? ctx, GetBinaryStatusRequest request) =>
       _client.invoke<GetBinaryStatusResponse>(
@@ -7033,6 +7475,12 @@ class OrchestratorServiceApi {
   $async.Future<GetSyncStatusResponse> getSyncStatus($pb.ClientContext? ctx, GetSyncStatusRequest request) => _client
       .invoke<GetSyncStatusResponse>(ctx, 'OrchestratorService', 'GetSyncStatus', request, GetSyncStatusResponse());
 
+  /// Stream the GetSyncStatus snapshot. The first frame holds the snapshot,
+  /// later frames only a changed snapshot or a heartbeat.
+  $async.Future<WatchSyncStatusResponse> watchSyncStatus($pb.ClientContext? ctx, WatchSyncStatusRequest request) =>
+      _client.invoke<WatchSyncStatusResponse>(
+          ctx, 'OrchestratorService', 'WatchSyncStatus', request, WatchSyncStatusResponse());
+
   /// Snapshot of every binary the orchestrator is currently downloading.
   /// Reads from the in-memory DownloadManager state — light, polled by the
   /// frontend's DownloadProvider on a fast (100ms) cadence while a download
@@ -7041,6 +7489,13 @@ class OrchestratorServiceApi {
           $pb.ClientContext? ctx, GetDownloadStatusRequest request) =>
       _client.invoke<GetDownloadStatusResponse>(
           ctx, 'OrchestratorService', 'GetDownloadStatus', request, GetDownloadStatusResponse());
+
+  /// Stream the GetDownloadStatus list. The first frame holds the list, later
+  /// frames only a changed list or a heartbeat.
+  $async.Future<WatchDownloadStatusResponse> watchDownloadStatus(
+          $pb.ClientContext? ctx, WatchDownloadStatusRequest request) =>
+      _client.invoke<WatchDownloadStatusResponse>(
+          ctx, 'OrchestratorService', 'WatchDownloadStatus', request, WatchDownloadStatusResponse());
 
   /// Get wallet balance from Bitcoin Core (proxied via orchestrator).
   $async.Future<GetMainchainBalanceResponse> getMainchainBalance(
@@ -7126,6 +7581,13 @@ class OrchestratorServiceApi {
           $pb.ClientContext? ctx, GetECashMigrationStatusRequest request) =>
       _client.invoke<GetECashMigrationStatusResponse>(
           ctx, 'OrchestratorService', 'GetECashMigrationStatus', request, GetECashMigrationStatusResponse());
+
+  /// Stream the GetECashMigrationStatus status. The first frame holds the
+  /// status, later frames only a changed status or a heartbeat.
+  $async.Future<WatchECashMigrationStatusResponse> watchECashMigrationStatus(
+          $pb.ClientContext? ctx, WatchECashMigrationStatusRequest request) =>
+      _client.invoke<WatchECashMigrationStatusResponse>(
+          ctx, 'OrchestratorService', 'WatchECashMigrationStatus', request, WatchECashMigrationStatusResponse());
 
   /// Read the network the blocks on disk belong to, next to the one the app
   /// runs. The blocks name the chain, so a datadir from another network says so

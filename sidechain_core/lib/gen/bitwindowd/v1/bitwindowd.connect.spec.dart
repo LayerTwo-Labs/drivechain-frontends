@@ -90,6 +90,15 @@ abstract final class BitwindowdService {
     bitwindowdv1bitwindowd.GetSyncInfoResponse.new,
   );
 
+  /// Stream GetSyncInfo. The first frame holds the info, later frames only a
+  /// changed info or a heartbeat.
+  static const watchSyncInfo = connect.Spec(
+    '/$name/WatchSyncInfo',
+    connect.StreamType.server,
+    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.WatchSyncInfoResponse.new,
+  );
+
   static const setTransactionNote = connect.Spec(
     '/$name/SetTransactionNote',
     connect.StreamType.unary,

@@ -27,6 +27,25 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// Stream the status of all configured binaries. The first frame holds the
+  /// full list, later frames only a changed list or a heartbeat.
+  Stream<orchestratorv1orchestrator.WatchBinariesResponse> watchBinaries(
+    orchestratorv1orchestrator.WatchBinariesRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.OrchestratorService.watchBinaries,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Get the status of a single binary.
   Future<orchestratorv1orchestrator.GetBinaryStatusResponse> getBinaryStatus(
     orchestratorv1orchestrator.GetBinaryStatusRequest input, {
@@ -423,6 +442,25 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// Stream the GetSyncStatus snapshot. The first frame holds the snapshot,
+  /// later frames only a changed snapshot or a heartbeat.
+  Stream<orchestratorv1orchestrator.WatchSyncStatusResponse> watchSyncStatus(
+    orchestratorv1orchestrator.WatchSyncStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.OrchestratorService.watchSyncStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Snapshot of every binary the orchestrator is currently downloading.
   /// Reads from the in-memory DownloadManager state — light, polled by the
   /// frontend's DownloadProvider on a fast (100ms) cadence while a download
@@ -436,6 +474,25 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.OrchestratorService.getDownloadStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Stream the GetDownloadStatus list. The first frame holds the list, later
+  /// frames only a changed list or a heartbeat.
+  Stream<orchestratorv1orchestrator.WatchDownloadStatusResponse> watchDownloadStatus(
+    orchestratorv1orchestrator.WatchDownloadStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.OrchestratorService.watchDownloadStatus,
       input,
       signal: signal,
       headers: headers,
@@ -703,6 +760,25 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.OrchestratorService.getECashMigrationStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Stream the GetECashMigrationStatus status. The first frame holds the
+  /// status, later frames only a changed status or a heartbeat.
+  Stream<orchestratorv1orchestrator.WatchECashMigrationStatusResponse> watchECashMigrationStatus(
+    orchestratorv1orchestrator.WatchECashMigrationStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.OrchestratorService.watchECashMigrationStatus,
       input,
       signal: signal,
       headers: headers,
