@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -45,9 +46,11 @@ func NewBitcoind(
 	m4Engine *M4Engine,
 	nodeMode *NodeMode,
 	coinnewsLog *zerolog.Logger,
+	rawCall RawCall,
 ) *Parser {
 	return &Parser{
 		bitcoind:    bitcoind,
+		rawCall:     rawCall,
 		enforcer:    enforcer,
 		db:          db,
 		conf:        conf,
@@ -59,9 +62,14 @@ func NewBitcoind(
 	}
 }
 
+// feeBlockReads caps the verbose getblock reads in flight. One mainnet block
+// is megabytes of JSON in Core and the proxy.
+var feeBlockReads = make(chan struct{}, 4)
+
 // Parser is responsible for parsing blocks from bitcoind and storing OP_RETURN data in SQLite
 type Parser struct {
 	bitcoind    *service.Service[corerpc.BitcoinServiceClient]
+	rawCall     RawCall
 	enforcer    *service.Service[validatorrpc.ValidatorServiceClient]
 	db          *sql.DB
 	conf        config.Config
@@ -482,9 +490,10 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 				log.Trace().
 					Msgf("bitcoind_engine/parser: block has more than one transaction, inspecting transactions for OP returns")
 
+				fee := p.blockFees(block.BlockHash().String())
 				for _, tx := range block.Transactions {
 					blockTime := block.Header.Timestamp
-					if err := p.opReturnForTXID(ctx, tx, &height, &blockTime); err != nil {
+					if err := p.opReturnForTXID(ctx, tx, &height, &blockTime, fee); err != nil {
 						return lo.Tuple2[uint32, *wire.MsgBlock]{}, fmt.Errorf("process transaction %s: %w", tx.TxID(), err)
 					}
 				}
@@ -761,7 +770,12 @@ func (p *Parser) HandleNewRawTransaction(
 	ctx context.Context, tx *wire.MsgTx,
 ) error {
 	now := time.Now()
-	if err := p.opReturnForTXID(ctx, tx, nil, &now); err != nil {
+	switch err := p.opReturnForTXID(ctx, tx, nil, &now, p.mempoolFee); {
+	case errors.Is(err, errNotInMempool):
+		// Core also publishes each transaction of a new block. The block scan
+		// records those.
+		return nil
+	case err != nil:
 		return fmt.Errorf("find op return for txid: %w", err)
 	}
 
@@ -773,13 +787,13 @@ func (p *Parser) HandleNewRawTransaction(
 // blocks in a batch are fetched (see processBlocks).
 func (p *Parser) opReturnForTXID(
 	ctx context.Context, tx *wire.MsgTx,
-	height *uint32, createdAt *time.Time,
+	height *uint32, createdAt *time.Time, fee txFee,
 ) error {
 	if createdAt != nil && createdAt.IsZero() {
 		panic("PROGRAMMER ERROR: non-nil, zero create time")
 	}
 
-	opReturns, err := p.handleOpReturns(ctx, tx, height, createdAt)
+	opReturns, err := p.handleOpReturns(ctx, tx, height, createdAt, fee)
 	if err != nil {
 		return fmt.Errorf("find OP_RETURNs: %w", err)
 	}
@@ -991,7 +1005,7 @@ func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, e
 
 // finds all OP_RETURN outputs for a specific tx
 func (p *Parser) handleOpReturns(
-	ctx context.Context, tx *wire.MsgTx, height *uint32, createdAt *time.Time,
+	ctx context.Context, tx *wire.MsgTx, height *uint32, createdAt *time.Time, fee txFee,
 ) ([]opreturns.OPReturn, error) {
 	txid := tx.TxID()
 
@@ -1010,9 +1024,7 @@ func (p *Parser) handleOpReturns(
 		}
 	}
 
-	// Only fetch this a single time if handling multiple outputs
-	var rawTx *corepb.GetRawTransactionResponse
-	var feeUnknown bool
+	var txFee *btcutil.Amount
 
 	var opReturns []opreturns.OPReturn
 	for vout, txout := range tx.TxOut {
@@ -1057,38 +1069,12 @@ func (p *Parser) handleOpReturns(
 		// canonical (height, tx_index, vout_index) order. See
 		// processBlocks → indexCoinNewsBlocks.
 
-		if rawTx == nil && !feeUnknown {
-			core, err := p.bitcoind.Get(ctx)
+		if txFee == nil {
+			amount, err := fee(ctx, txid)
 			if err != nil {
-				return nil, fmt.Errorf("get bitcoind: %w", err)
+				return nil, fmt.Errorf("read fee of %s: %w", txid, err)
 			}
-			res, err := core.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-				// btc-buf maps TX_PREVOUT_INFO to Core verbosity 2, the first that holds the fee.
-				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-				Txid:      txid,
-			}))
-			switch {
-			case err != nil && height != nil && isTxIndexMiss(err.Error()):
-				// Confirmed only: an unconfirmed miss means the transaction
-				// left the mempool, and that row must not land. The fee is the
-				// only field this call feeds, but returning the error aborts
-				// the whole block batch, so processed_blocks never advances.
-				zerolog.Ctx(ctx).Warn().
-					Str("txid", txid).
-					Msg("bitcoind_engine/parser: no txindex entry, recording OP_RETURN without a fee")
-				feeUnknown = true
-
-			case err != nil:
-				return nil, fmt.Errorf("get raw transaction %q: %w", txid, err)
-
-			default:
-				rawTx = res.Msg
-			}
-		}
-
-		fee, err := btcutil.NewAmount(rawTx.GetFee())
-		if err != nil {
-			return nil, err
+			txFee = &amount
 		}
 
 		opReturns = append(opReturns, opreturns.OPReturn{
@@ -1096,12 +1082,87 @@ func (p *Parser) handleOpReturns(
 			Data:      data,
 			Vout:      int32(vout),
 			Height:    height,
-			Fee:       fee,
+			Fee:       *txFee,
 			CreatedAt: createdAt,
 		})
 	}
 
 	return opReturns, nil
+}
+
+// txFee reads the fee of a transaction that holds an OP_RETURN.
+type txFee func(ctx context.Context, txid string) (btcutil.Amount, error)
+
+// blockFees reads the fees of every transaction of a block with one verbose
+// getblock, on the first call. A transaction with no fee from Core reads as
+// zero: a coinbase, or a block whose undo data Core no longer holds.
+func (p *Parser) blockFees(hash string) txFee {
+	var fees map[string]btcutil.Amount
+	return func(ctx context.Context, txid string) (btcutil.Amount, error) {
+		if fees == nil {
+			read, err := p.readBlockFees(ctx, hash)
+			if err != nil {
+				return 0, err
+			}
+			fees = read
+		}
+		return fees[txid], nil
+	}
+}
+
+func (p *Parser) readBlockFees(ctx context.Context, hash string) (map[string]btcutil.Amount, error) {
+	bitcoind, err := p.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get bitcoind: %w", err)
+	}
+
+	select {
+	case feeBlockReads <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	defer func() { <-feeBlockReads }()
+
+	resp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+		Hash:      hash,
+		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("get block %s: %w", hash, err)
+	}
+
+	fees := make(map[string]btcutil.Amount, len(resp.Msg.Transactions))
+	for _, tx := range resp.Msg.Transactions {
+		amount, err := btcutil.NewAmount(tx.Fee)
+		if err != nil {
+			return nil, fmt.Errorf("fee of %s: %w", tx.Txid, err)
+		}
+		fees[tx.Txid] = amount
+	}
+	return fees, nil
+}
+
+var errNotInMempool = errors.New("transaction not in mempool")
+
+// mempoolFee reads the fee of an unconfirmed transaction. A transaction that
+// left the mempool fails with errNotInMempool, so its row does not land.
+func (p *Parser) mempoolFee(ctx context.Context, txid string) (btcutil.Amount, error) {
+	raw, err := p.rawCall(ctx, "getmempoolentry", txid)
+	switch {
+	case err != nil && strings.Contains(err.Error(), "Transaction not in mempool"):
+		return 0, fmt.Errorf("getmempoolentry %s: %w", txid, errNotInMempool)
+	case err != nil:
+		return 0, fmt.Errorf("getmempoolentry %s: %w", txid, err)
+	}
+	var entry struct {
+		Fees struct {
+			Base float64 `json:"base"`
+		} `json:"fees"`
+	}
+	if err := json.Unmarshal(raw, &entry); err != nil {
+		return 0, fmt.Errorf("decode getmempoolentry %s: %w", txid, err)
+	}
+	return btcutil.NewAmount(entry.Fees.Base)
 }
 
 // isTxIndexMiss reports whether getrawtransaction failed because the node

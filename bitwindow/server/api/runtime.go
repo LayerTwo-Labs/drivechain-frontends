@@ -236,10 +236,11 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	} else {
 		log.Warn().Err(err).Str("path", coinnewsLogPath).Msg("open coinnews-sync.log: skip the dedicated log")
 	}
-	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams, rt.m4Engine, rt.walletEngine.NodeMode(), coinnewsLogger)
+	rawCall := coreRawCall(s)
+	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams, rt.m4Engine, rt.walletEngine.NodeMode(), coinnewsLogger, rawCall)
 
 	rt.deniabilityEngine = engines.NewDeniability(s.Bitcoind, rt.db, rt.walletEngine)
-	rt.mempoolWatcher = engines.NewMempoolWatcher(rt.db, coreRawCall(s), func(ctx context.Context) (<-chan engines.SequenceMsg, func(), error) {
+	rt.mempoolWatcher = engines.NewMempoolWatcher(rt.db, rawCall, func(ctx context.Context) (<-chan engines.SequenceMsg, func(), error) {
 		addr, err := zmqAddress(ctx, s.Bitcoind, "pubsequence")
 		if err != nil {
 			return nil, nil, err

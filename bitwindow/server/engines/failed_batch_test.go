@@ -9,6 +9,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
@@ -33,9 +34,11 @@ func TestFailedBatchDropsOrphanRowsOnRetry(t *testing.T) {
 	ctx := t.Context()
 	old := servedChain{}
 	old.extend(1, 101, 1, chainhash.Hash{})
-	first := opReturnTx(t)
-	second := opReturnTx(t)
-	second.LockTime = 1
+	first := opReturnTx(t, 1)
+	stamp := append([]byte(TimestampPrefix), make([]byte, 32)...)
+	second := wire.NewMsgTx(wire.TxVersion)
+	second.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&chainhash.Hash{2}, 0), nil, nil))
+	second.AddTxOut(wire.NewTxOut(0, pkScript(t, stamp)))
 	old[101].Transactions = append(old[101].Transactions, first, second)
 	p := tickParser(t, old, 101)
 	markProcessed(t, ctx, p, old, 1, 100)
