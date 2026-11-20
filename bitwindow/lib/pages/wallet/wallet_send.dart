@@ -554,6 +554,7 @@ class RecipientRow extends StatelessWidget {
       minLines: phone ? 1 : null,
       maxLines: null,
       suffixWidget: phone ? null : addressTools,
+      bottomWidget: phone ? addressTools : null,
     );
     final maxButton = SailButton(
       label: 'MAX',
@@ -591,7 +592,6 @@ class RecipientRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           addressField,
-          Align(alignment: Alignment.centerLeft, child: addressTools),
           Row(
             children: [
               Expanded(child: amountField),
