@@ -2272,6 +2272,59 @@ func TestService_GetNetworkStats(t *testing.T) {
 		assert.Nil(t, resp.EnforcerBandwidth)
 	})
 
+	t.Run("a young chain measures the average block time from block 1", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+		blockTimes := map[string]time.Time{
+			"genesis":    time.Unix(1296688602, 0),
+			"block1":     now.Add(-100 * time.Minute),
+			"latesthash": now,
+		}
+		hashes := map[uint32]string{0: "genesis", 1: "block1"}
+
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		// Before the shared setup, which answers height 1 with an error.
+		mockBitcoind.EXPECT().
+			GetBlockHash(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockHashRequest]) (*connectv1.Response[corepb.GetBlockHashResponse], error) {
+				return connectv1.NewResponse(&corepb.GetBlockHashResponse{Hash: hashes[req.Msg.Height]}), nil
+			}).AnyTimes()
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 101, BestBlockHash: "latesthash", Chain: "signet"},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
+				return connectv1.NewResponse(&corepb.GetBlockResponse{
+					Hash: req.Msg.Hash,
+					Time: timestamppb.New(blockTimes[req.Msg.Hash]),
+				}), nil
+			}).AnyTimes()
+		mockBitcoind.EXPECT().
+			GetNetworkInfo(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.GetNetworkInfoResponse]{Msg: &corepb.GetNetworkInfoResponse{}}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			GetNetTotals(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.GetNetTotalsResponse]{Msg: &corepb.GetNetTotalsResponse{}}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			GetPeerInfo(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.GetPeerInfoResponse]{Msg: &corepb.GetPeerInfoResponse{}}, nil).AnyTimes()
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t),
+			apitests.WithBitcoind(mockBitcoind),
+			apitests.WithOrchestratorControl(binaryPids{pids: map[string]int32{}}),
+		))
+
+		resp, err := cli.GetNetworkStats(t.Context(), &emptypb.Empty{})
+		require.NoError(t, err)
+		assert.InDelta(t, 60.0, resp.AvgBlockTime, 0.01)
+	})
+
 	for _, tc := range []struct {
 		name string
 		err  error
