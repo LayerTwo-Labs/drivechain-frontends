@@ -343,6 +343,7 @@ class FeeCoinNewsTable extends StatelessWidget {
         builder: (context, child) => SailTable(
           shrinkWrap: shrinkWrap,
           getRowId: (index) => index.toString(),
+          phoneColumns: const [2, 1],
           headerBuilder: (context) => const [
             SailTableHeaderCell(name: 'Fees'),
             SailTableHeaderCell(name: 'Time'),

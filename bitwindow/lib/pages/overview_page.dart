@@ -287,6 +287,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
     final entries = [...widget.entries]..sort(compare);
     return SailTable(
       getRowId: (index) => entries[index].txid,
+      phoneColumns: const [0, 1, 4],
       headerBuilder: (context) => [
         SailTableHeaderCell(
           name: 'Time',
@@ -375,6 +376,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
     final blocks = [...widget.blocks]..sort(compare);
     return SailTable(
       getRowId: (index) => blocks[index].hash,
+      phoneColumns: const [0, 1, 3],
       headerBuilder: (context) => [
         const SailTableHeaderCell(name: 'Time'),
         const SailTableHeaderCell(name: 'Height'),

@@ -51,66 +51,56 @@ class OverviewTab extends StatelessWidget {
                 child: SailColumn(
                   spacing: SailStyleValues.padding16,
                   children: [
-                    SailRow(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      spacing: 16,
-                      children: [
-                        Expanded(
-                          child: WalletStats(
-                            title: 'Lifetime fees paid',
-                            value: formatter
-                                .formatSats(model.stats?.totalFeesSats.toInt() ?? 0)
-                                .replaceAll(' ${formatter.currentUnit.symbol}', ''),
-                            subtitle: 'across ${model.stats?.transactionCountTotal.toString() ?? '0'} transactions',
-                            bitcoinAmount: true,
-                            icon: SailSVGAsset.bitcoin,
-                          ),
+                    _StatsGrid(
+                      phone: SailStyleValues.phoneLayout(context),
+                      stats: [
+                        WalletStats(
+                          title: 'Lifetime fees paid',
+                          value: formatter
+                              .formatSats(model.stats?.totalFeesSats.toInt() ?? 0)
+                              .replaceAll(' ${formatter.currentUnit.symbol}', ''),
+                          subtitle: 'across ${model.stats?.transactionCountTotal.toString() ?? '0'} transactions',
+                          bitcoinAmount: true,
+                          icon: SailSVGAsset.bitcoin,
                         ),
-                        Expanded(
-                          child: WalletStats(
-                            title: 'Number of UTXOs',
-                            value: model.stats?.utxosCurrent.toString() ?? '0',
-                            subtitle:
-                                '${model.stats?.utxosUniqueAddresses.toString() ?? '0'} unique address${model.stats?.utxosUniqueAddresses.toInt() == 1 ? '' : 'es'}',
-                            icon: SailSVGAsset.coins,
-                          ),
+                        WalletStats(
+                          title: 'Number of UTXOs',
+                          value: model.stats?.utxosCurrent.toString() ?? '0',
+                          subtitle:
+                              '${model.stats?.utxosUniqueAddresses.toString() ?? '0'} unique address${model.stats?.utxosUniqueAddresses.toInt() == 1 ? '' : 'es'}',
+                          icon: SailSVGAsset.coins,
                         ),
                         // Show sidechain deposit volume (greyed out on mainnet)
-                        Expanded(
-                          child: SailTooltip(
-                            message: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
-                                ? ''
-                                : 'Sidechains require eCash or Signet network',
-                            child: Opacity(
-                              opacity: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains ? 1.0 : 0.4,
-                              child: WalletStats(
-                                title: 'Sidechain Deposit Volume',
-                                value: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
-                                    ? formatter
-                                          .formatSats(model.stats?.sidechainDepositVolume.toInt() ?? 0)
-                                          .replaceAll(' ${formatter.currentUnit.symbol}', '')
-                                    : '-',
-                                subtitle: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
-                                    ? '${formatter.formatSats(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0)} last 30 days'
-                                    : 'Switch networks to unlock',
-                                bitcoinAmount: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains,
-                                icon: SailSVGAsset.wallet,
-                              ),
+                        SailTooltip(
+                          message: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
+                              ? ''
+                              : 'Sidechains require eCash or Signet network',
+                          child: Opacity(
+                            opacity: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains ? 1.0 : 0.4,
+                            child: WalletStats(
+                              title: 'Sidechain Deposit Volume',
+                              value: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
+                                  ? formatter
+                                        .formatSats(model.stats?.sidechainDepositVolume.toInt() ?? 0)
+                                        .replaceAll(' ${formatter.currentUnit.symbol}', '')
+                                  : '-',
+                              subtitle: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
+                                  ? '${formatter.formatSats(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0)} last 30 days'
+                                  : 'Switch networks to unlock',
+                              bitcoinAmount: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains,
+                              icon: SailSVGAsset.wallet,
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: WalletStats(
-                            title: 'Last activity',
-                            value: model.stats?.hasLastTxAt() ?? false
-                                ? _formatTimeAgo(model.stats!.lastTxAt.toDateTime().toLocal())
-                                : 'No activity',
-                            subtitle: model.stats?.hasLastTxAt() ?? false
-                                ? 'at block ${formatWithThousandSpacers(model.stats!.lastTxBlockHeight)}'
-                                : '',
-                            icon: SailSVGAsset.activity,
-                          ),
+                        WalletStats(
+                          title: 'Last activity',
+                          value: model.stats?.hasLastTxAt() ?? false
+                              ? _formatTimeAgo(model.stats!.lastTxAt.toDateTime().toLocal())
+                              : 'No activity',
+                          subtitle: model.stats?.hasLastTxAt() ?? false
+                              ? 'at block ${formatWithThousandSpacers(model.stats!.lastTxBlockHeight)}'
+                              : '',
+                          icon: SailSVGAsset.activity,
                         ),
                       ],
                     ),
@@ -279,6 +269,7 @@ class _TransactionTableState extends State<TransactionTable> {
                     listenable: formatter,
                     builder: (context, child) => SailTable(
                       getRowId: (index) => entries[index].txid,
+                      phoneColumns: const [0, 4, 5],
                       headerBuilder: (context) => [
                         SailTableHeaderCell(
                           name: 'Date',
@@ -893,6 +884,31 @@ class WalletStats extends ViewModelWidget<OverviewViewModel> {
         enabled: viewModel.loading,
         description: 'Waiting for enforcer to boot and wallet to sync..',
       ),
+    );
+  }
+}
+
+/// The wallet stat cards: one row on the desktop, two rows of two on a phone.
+class _StatsGrid extends StatelessWidget {
+  final bool phone;
+  final List<Widget> stats;
+
+  const _StatsGrid({required this.phone, required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget row(List<Widget> cells, double spacing) => SailRow(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: spacing,
+      children: [for (final cell in cells) Expanded(child: cell)],
+    );
+    if (!phone) {
+      return row(stats, 16);
+    }
+    return SailColumn(
+      spacing: 12,
+      children: [for (var i = 0; i < stats.length; i += 2) row(stats.sublist(i, i + 2), 12)],
     );
   }
 }
