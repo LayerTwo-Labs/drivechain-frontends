@@ -166,6 +166,8 @@ type Orchestrator struct {
 	// failedStart is the status of a job that failed before it changed a file.
 	// Guarded by migrationMu.
 	failedStart *ECashMigrationStatus
+	// migrationChanged fires on each change of ECashMigrationStatus.
+	migrationChanged changeBroadcast
 
 	// releases reports whether a newer build of each binary is published.
 	releases *ReleaseChecker
@@ -214,6 +216,8 @@ type Orchestrator struct {
 	// Dart: RPCConnection instances — one per binary, for persistent health monitoring
 	monitors   map[string]*ConnectionMonitor
 	monitorsMu sync.Mutex
+	// binariesChanged fires on each monitor state change.
+	binariesChanged changeBroadcast
 
 	mu sync.RWMutex
 
@@ -327,6 +331,12 @@ func (o *Orchestrator) DownloadStateForTest(name string) (DownloadState, bool) {
 // Source of truth for the GetDownloadStatus RPC.
 func (o *Orchestrator) DownloadStates() map[string]DownloadState {
 	return o.download.States()
+}
+
+// SubscribeDownloads wakes the returned channel on each change of
+// DownloadStates. The channel lives until ctx is done.
+func (o *Orchestrator) SubscribeDownloads(ctx context.Context) <-chan struct{} {
+	return o.download.stateChanged.subscribe(ctx)
 }
 
 // SetOwnerLock records the lock this run holds. A nil lock means the install
@@ -532,6 +542,7 @@ func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, st
 		checker = &enforcerHealthCheck{orch: o, local: checker}
 	}
 	mon := NewConnectionMonitor(name, checker, startupPatterns, o.log)
+	mon.SetOnChange(o.binariesChanged.notify)
 	o.monitors[name] = mon
 	return mon
 }
