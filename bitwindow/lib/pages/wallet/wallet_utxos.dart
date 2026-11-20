@@ -91,8 +91,8 @@ class _UTXOsTabState extends State<UTXOsTab> {
             final walletId = _walletReader.activeWalletId;
             final showChart = walletId != null && !model.loading;
 
-            // Calculate table height based on row count - show ALL rows
-            final rowCount = model.entries.length;
+            final entries = model.entries;
+            final rowCount = entries.length;
             final tableContentHeight = _headerHeight + (rowCount * _rowHeight) + _cardPadding;
             // Minimum height to fill available space, or larger if more rows
             final tableHeight = tableContentHeight.clamp(
@@ -100,12 +100,11 @@ class _UTXOsTabState extends State<UTXOsTab> {
               double.infinity,
             );
 
-            return SingleChildScrollView(
-              child: Column(
-                children: [
-                  // UTXO Distribution Chart
-                  if (showChart)
-                    Padding(
+            return CustomScrollView(
+              slivers: [
+                if (showChart)
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
                       child: SailCard(
                         title: 'UTXO Distribution',
@@ -146,17 +145,15 @@ class _UTXOsTabState extends State<UTXOsTab> {
                         ),
                       ),
                     ),
-
-                  // UTXO Table - height based on content to show all rows
-                  SizedBox(
-                    height: tableHeight,
-                    child: UTXOTable(
-                      entries: model.entries,
-                      model: model,
-                    ),
                   ),
-                ],
-              ),
+                SliverSailTable(
+                  minHeight: tableHeight,
+                  child: UTXOTable(
+                    entries: entries,
+                    model: model,
+                  ),
+                ),
+              ],
             );
           },
         );
