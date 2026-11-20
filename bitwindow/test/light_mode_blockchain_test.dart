@@ -105,6 +105,22 @@ void main() {
     await GetIt.I.reset();
   });
 
+  test('only a mainchain sync change passes through', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_LIGHT);
+    final sync = GetIt.I.get<SyncProvider>();
+    var notifies = 0;
+    provider.addListener(() => notifies++);
+
+    sync.enforcerSyncInfo = SyncInfo(progressCurrent: 5, progressGoal: 9, lastBlockAt: null);
+    sync.notifyListeners();
+    expect(notifies, 0);
+
+    sync.mainchainSyncInfo = SyncInfo(progressCurrent: 9, progressGoal: 9, lastBlockAt: null);
+    sync.notifyListeners();
+    sync.notifyListeners();
+    expect(notifies, 1);
+  });
+
   test('blocks do not poll in light mode', () async {
     final provider = await boot(wmpb.NodeMode.NODE_MODE_LIGHT);
     provider.errors = ['unable to connect to Bitcoin Core'];
