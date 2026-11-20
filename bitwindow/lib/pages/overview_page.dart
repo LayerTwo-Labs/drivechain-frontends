@@ -113,15 +113,19 @@ class FireplaceStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final details = LoadingDetails(
+      enabled: loading,
+      description: 'Waiting for enforcer to boot and wallet to sync..',
+    );
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailStatRow(title: title, subtitle: subtitle, value: value, loading: details);
+    }
     return SailCardStats(
       title: title,
       subtitle: subtitle,
       value: value,
       icon: icon,
-      loading: LoadingDetails(
-        enabled: loading,
-        description: 'Waiting for enforcer to boot and wallet to sync..',
-      ),
+      loading: details,
     );
   }
 }
@@ -1724,6 +1728,10 @@ class FireplaceStatsView extends StatelessWidget {
             loading: loading,
           ),
         ];
+
+        if (SailStyleValues.phoneLayout(context)) {
+          return SailStatList(children: cardList);
+        }
 
         return GridView.count(
           crossAxisCount: crossAxisCount,
