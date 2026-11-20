@@ -157,11 +157,14 @@ class _PhoneTopNav extends StatelessWidget {
   }
 }
 
-/// The phone side nav: the top nav routes as a list, with icon routes at the bottom.
+/// The phone side nav: the top nav routes as a list, then one section per menu, with icon routes at the bottom.
 class TopNavDrawer extends StatelessWidget {
   final List<TopNavRoute> routes;
 
-  const TopNavDrawer({super.key, required this.routes});
+  /// The menu bar menus. Each [PlatformMenu] shows as a section of its items.
+  final List<PlatformMenuItem> menus;
+
+  const TopNavDrawer({super.key, required this.routes, this.menus = const []});
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +221,7 @@ class TopNavDrawer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (final entry in entries.where((e) => e.value.label != null)) item(entry),
+                    for (final menu in menus.whereType<PlatformMenu>()) _DrawerMenuSection(menu: menu),
                     const Spacer(),
                     for (final entry in entries.where((e) => e.value.label == null)) item(entry),
                   ],
@@ -227,6 +231,62 @@ class TopNavDrawer extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DrawerMenuSection extends StatelessWidget {
+  final PlatformMenu menu;
+
+  const _DrawerMenuSection({required this.menu});
+
+  static Iterable<PlatformMenuItem> _items(List<PlatformMenuItem> menus) sync* {
+    for (final entry in menus) {
+      if (entry is PlatformMenuItemGroup) {
+        yield* _items(entry.members);
+      } else if (entry is PlatformMenu) {
+        yield* _items(entry.menus);
+      } else {
+        yield entry;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+    final items = _items(menu.menus).toList();
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 4),
+          child: SailText.secondary12(menu.label.toUpperCase(), bold: true),
+        ),
+        for (final item in items)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: item.onSelected == null
+                ? null
+                : () {
+                    Navigator.of(context).pop();
+                    item.onSelected!();
+                  },
+            child: SizedBox(
+              height: 36,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SailText.primary13(
+                  item.label,
+                  color: item.onSelected == null ? theme.colors.textTertiary : null,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

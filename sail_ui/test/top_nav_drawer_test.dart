@@ -5,7 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 const _tabs = ['Overview', 'Wallet', 'Sidechains', 'Learn', 'Console', 'Chat', 'Mining'];
 
-Future<void> _pumpDrawer(WidgetTester tester, Size size) async {
+Future<void> _pumpDrawer(WidgetTester tester, Size size, {List<PlatformMenuItem> menus = const []}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -21,6 +21,7 @@ Future<void> _pumpDrawer(WidgetTester tester, Size size) async {
           ],
           builder: (context, child) => Scaffold(
             drawer: TopNavDrawer(
+              menus: menus,
               routes: [
                 for (final tab in _tabs) TopNavRoute(label: tab),
                 const TopNavRoute(icon: SailSVGAsset.settings, drawerLabel: 'Settings'),
@@ -63,5 +64,80 @@ void main() {
     final settings = tester.getRect(find.text('Settings'));
     final chat = tester.getRect(find.text('Chat'));
     expect(settings.top - chat.bottom, greaterThan(200));
+  });
+
+  group('menu sections', () {
+    var sent = <String>[];
+    List<PlatformMenuItem> menus() => [
+      PlatformMenu(
+        label: 'Wallet',
+        menus: [
+          PlatformMenuItemGroup(
+            members: [PlatformMenuItem(label: 'Backup', onSelected: () => sent.add('Backup'))],
+          ),
+          PlatformMenuItemGroup(
+            members: [
+              PlatformMenu(
+                label: 'Blockchain Data Storage',
+                menus: [PlatformMenuItem(label: 'BitDrive', onSelected: () => sent.add('BitDrive'))],
+              ),
+            ],
+          ),
+        ],
+      ),
+      const PlatformMenu(
+        label: 'Crypto Tools',
+        menus: [
+          PlatformMenuItemGroup(members: [PlatformMenuItem(label: 'Signatures')]),
+        ],
+      ),
+    ];
+
+    setUp(() => sent = []);
+
+    testWidgets('each menu shows as a labeled section of its items, above Settings', (tester) async {
+      await _pumpDrawer(tester, const Size(412, 900), menus: menus());
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('WALLET'), findsOneWidget);
+      expect(find.text('CRYPTO TOOLS'), findsOneWidget);
+      expect(find.text('Blockchain Data Storage'), findsNothing);
+      final chat = tester.getRect(find.text('Chat'));
+      final wallet = tester.getRect(find.text('WALLET'));
+      final backup = tester.getRect(find.text('Backup'));
+      final bitDrive = tester.getRect(find.text('BitDrive'));
+      expect(wallet.top, greaterThan(chat.bottom));
+      expect(backup.top, greaterThan(wallet.bottom));
+      expect(bitDrive.top, greaterThan(backup.bottom));
+      await tester.scrollUntilVisible(find.text('Settings'), 100);
+      expect(tester.getRect(find.text('Settings')).top, greaterThan(tester.getRect(find.text('Signatures')).bottom));
+    });
+
+    testWidgets('a tap on an item closes the side nav and runs the menu action', (tester) async {
+      await _pumpDrawer(tester, const Size(412, 900), menus: menus());
+
+      await tester.tap(find.text('BitDrive'));
+      await tester.pumpAndSettle();
+      expect(sent, ['BitDrive']);
+      expect(find.byType(TopNavDrawer), findsNothing);
+    });
+
+    testWidgets('an item with no action does nothing', (tester) async {
+      await _pumpDrawer(tester, const Size(412, 900), menus: menus());
+
+      await tester.scrollUntilVisible(find.text('Signatures'), 100);
+      await tester.tap(find.text('Signatures'));
+      await tester.pumpAndSettle();
+      expect(sent, isEmpty);
+      expect(find.byType(TopNavDrawer), findsOneWidget);
+    });
+
+    testWidgets('the side nav scrolls through every section on a landscape phone', (tester) async {
+      await _pumpDrawer(tester, const Size(800, 360), menus: menus());
+
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(find.text('Settings'), 100);
+      expect(find.text('Settings').hitTestable(), findsOneWidget);
+    });
   });
 }
