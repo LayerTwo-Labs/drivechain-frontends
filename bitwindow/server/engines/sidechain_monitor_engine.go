@@ -81,15 +81,16 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 	log.Info().Msg("sidechain monitor engine starting")
 
 	sidechains := []struct {
-		name   string
-		client func(context.Context) (sidechainRPC, error)
+		name      string
+		client    func(context.Context) (sidechainRPC, error)
+		connected func(context.Context) <-chan bool
 	}{
-		{"thunder", rpcOf(e.thunder)},
-		{"bitnames", rpcOf(e.bitnames)},
-		{"bitassets", rpcOf(e.bitassets)},
-		{"truthcoin", rpcOf(e.truthcoin)},
-		{"photon", rpcOf(e.photon)},
-		{"coinshift", rpcOf(e.coinshift)},
+		{"thunder", rpcOf(e.thunder), e.thunder.ConnectedChan},
+		{"bitnames", rpcOf(e.bitnames), e.bitnames.ConnectedChan},
+		{"bitassets", rpcOf(e.bitassets), e.bitassets.ConnectedChan},
+		{"truthcoin", rpcOf(e.truthcoin), e.truthcoin.ConnectedChan},
+		{"photon", rpcOf(e.photon), e.photon.ConnectedChan},
+		{"coinshift", rpcOf(e.coinshift), e.coinshift.ConnectedChan},
 	}
 
 	pool := logpool.New(ctx, "sidechain-monitor")
@@ -98,20 +99,46 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 			log := zerolog.Ctx(ctx).With().Str("sidechain", sc.name).Logger()
 			ctx = log.WithContext(ctx)
 
-			for {
+			return pollWhileConnected(ctx, sc.connected(ctx), sidechainMonitorPollInterval, func() {
 				if err := e.monitor(ctx, sc.name, sc.client); err != nil {
 					log.Debug().Err(err).Msgf("%s monitor error, retrying", sc.name)
 				}
-
-				select {
-				case <-ctx.Done():
-					return nil
-				case <-time.After(sidechainMonitorPollInterval):
-				}
-			}
+			})
 		})
 	}
 	return pool.Wait(ctx)
+}
+
+// pollWhileConnected calls poll when the service comes up, and again each
+// interval while it stays up. A down service gets no call.
+func pollWhileConnected(ctx context.Context, connected <-chan bool, interval time.Duration, poll func()) error {
+	up := false
+	timer := time.NewTimer(interval)
+	defer timer.Stop()
+	for {
+		var tick <-chan time.Time
+		if up {
+			tick = timer.C
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case v, ok := <-connected:
+			if !ok {
+				return nil
+			}
+			if v == up {
+				continue
+			}
+			up = v
+			if !up {
+				continue
+			}
+		case <-tick:
+		}
+		poll()
+		timer.Reset(interval)
+	}
 }
 
 func (e *SidechainMonitorEngine) GetDetectedWithdrawals(ctx context.Context) ([]DetectedWithdrawal, error) {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -160,4 +161,42 @@ func TestSidechainMonitorEngine_Monitor(t *testing.T) {
 		})
 		require.ErrorContains(t, err, "get photon client: not running")
 	})
+}
+
+func TestPollWhileConnected(t *testing.T) {
+	connected := make(chan bool, 1)
+	polls := make(chan struct{}, 10)
+	go func() {
+		_ = pollWhileConnected(t.Context(), connected, 50*time.Millisecond, func() { polls <- struct{}{} })
+	}()
+	waitPoll := func(within time.Duration) {
+		t.Helper()
+		select {
+		case <-polls:
+		case <-time.After(within):
+			t.Fatal("no poll")
+		}
+	}
+	noPoll := func(during time.Duration) {
+		t.Helper()
+		select {
+		case <-polls:
+			t.Fatal("a poll of a down service")
+		case <-time.After(during):
+		}
+	}
+
+	connected <- false
+	noPoll(150 * time.Millisecond)
+
+	connected <- true
+	waitPoll(20 * time.Millisecond)
+	waitPoll(200 * time.Millisecond)
+
+	connected <- false
+	time.Sleep(10 * time.Millisecond)
+	for len(polls) > 0 {
+		<-polls
+	}
+	noPoll(150 * time.Millisecond)
 }
