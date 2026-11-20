@@ -4,9 +4,11 @@ import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/sidechain_conf.connect.client.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/sidechain_conf.pb.dart';
+import 'package:sidechain_core/rpcs/stream_or_poll.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// RPC-backed sidechain configuration provider.
@@ -23,7 +25,8 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
   final List<String> _skippedCliKeysValue;
 
   late SidechainConfServiceClient _client;
-  Timer? _pollTimer;
+  StreamOrPoll<WatchSidechainConfigResponse, GetSidechainConfigResponse>? _watch;
+  GetSidechainConfigResponse? _last;
   String _network = 'signet';
 
   BackendSidechainConfProvider._({
@@ -55,7 +58,9 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
     );
     instance._initClient();
     await instance._loadFromBackend();
-    instance._startPolling();
+    if (!Environment.isInTest) {
+      instance._startWatch();
+    }
     return instance;
   }
 
@@ -69,11 +74,28 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
     _client = SidechainConfServiceClient(transport);
   }
 
-  void _startPolling() {
-    if (Environment.isInTest) {
-      return;
+  void _startWatch() {
+    _watch ??= StreamOrPoll<WatchSidechainConfigResponse, GetSidechainConfigResponse>(
+      // A recreated client replaces _client, so resolve it per call.
+      subscribe: () => _client.watchSidechainConfig(GetSidechainConfigRequest(sidechainName: sidechainName)),
+      onFrame: applyWatchFrame,
+      isHeartbeat: (frame) => frame.heartbeat,
+      fetch: () => _client.getSidechainConfig(GetSidechainConfigRequest(sidechainName: sidechainName)),
+      onPoll: _apply,
+      onPollError: _onLoadError,
+      pollInterval: const Duration(seconds: 5),
+      onTransportDeath: _initClient,
+      logger: _logger,
+      tag: 'BackendSidechainConfProvider($sidechainName)',
+    )..start();
+  }
+
+  /// Applies one WatchSidechainConfig frame.
+  @visibleForTesting
+  void applyWatchFrame(WatchSidechainConfigResponse frame) {
+    if (!frame.heartbeat) {
+      _apply(frame.config);
     }
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadFromBackend());
   }
 
   bool _isConnectionError(Object e) {
@@ -86,30 +108,39 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
 
   Future<void> _loadFromBackend() async {
     try {
-      final resp = await _client.getSidechainConfig(
-        GetSidechainConfigRequest(sidechainName: sidechainName),
-      );
-
-      configPath = resp.configPath.isEmpty ? null : resp.configPath;
-
-      if (resp.configContent.isNotEmpty) {
-        currentConfig = GenericAppConfig.parse(resp.configContent, appName: appName);
-      }
-      if (resp.network.isNotEmpty) {
-        _network = resp.network;
-      }
-
-      notifyListeners();
+      _apply(await _client.getSidechainConfig(GetSidechainConfigRequest(sidechainName: sidechainName)));
     } catch (e) {
-      _logger.e('BackendSidechainConfProvider($sidechainName): failed to load config: $e');
-      if (_isConnectionError(e)) {
-        _logger.i('BackendSidechainConfProvider($sidechainName): recreating connection');
-        _initClient();
-      }
+      _onLoadError(e);
     }
   }
 
-  /// The orchestrator owns the network, and it answers with the one it runs.
+  /// Reads the config after a write. The stream sends the same change, and a
+  /// frame that arrives first wins.
+  Future<void> _reload() => _watch?.refresh() ?? _loadFromBackend();
+
+  void _apply(GetSidechainConfigResponse resp) {
+    if (resp == _last) {
+      return;
+    }
+    _last = resp;
+    configPath = resp.configPath.isEmpty ? null : resp.configPath;
+    if (resp.configContent.isNotEmpty) {
+      currentConfig = GenericAppConfig.parse(resp.configContent, appName: appName);
+    }
+    if (resp.network.isNotEmpty) {
+      _network = resp.network;
+    }
+    notifyListeners();
+  }
+
+  void _onLoadError(Object e) {
+    _logger.e('BackendSidechainConfProvider($sidechainName): failed to load config: $e');
+    if (_isConnectionError(e)) {
+      _logger.i('BackendSidechainConfProvider($sidechainName): recreating connection');
+      _initClient();
+    }
+  }
+
   @override
   String get network => _network;
 
@@ -137,7 +168,7 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
       await _client.writeSidechainConfig(
         WriteSidechainConfigRequest(sidechainName: sidechainName, configContent: content),
       );
-      await _loadFromBackend();
+      await _reload();
     } catch (e) {
       _logger.e('BackendSidechainConfProvider($sidechainName): failed to write config: $e');
       rethrow;
@@ -150,7 +181,7 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
       await _client.syncSidechainNetworkFromBitcoinConf(
         SyncSidechainNetworkFromBitcoinConfRequest(sidechainName: sidechainName),
       );
-      await _loadFromBackend();
+      await _reload();
     } catch (e) {
       _logger.e('BackendSidechainConfProvider($sidechainName): failed to sync network: $e');
     }
@@ -158,7 +189,8 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
+    unawaited(_watch?.dispose());
+    _watch = null;
     super.dispose();
   }
 }

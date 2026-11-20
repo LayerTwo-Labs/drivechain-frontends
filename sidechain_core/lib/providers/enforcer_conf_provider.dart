@@ -6,6 +6,7 @@ import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
+import 'package:sidechain_core/rpcs/stream_or_poll.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// Enforcer configuration provider backed by orchestrator's EnforcerConfService.
@@ -13,18 +14,24 @@ import 'package:sidechain_core/sidechain_core.dart';
 class EnforcerConfProvider extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
   late EnforcerConfServiceClient _client;
-  Timer? _pollTimer;
+  StreamOrPoll<WatchEnforcerConfigResponse, GetEnforcerConfigResponse>? _watch;
+  GetEnforcerConfigResponse? _last;
 
   EnforcerConfig? currentConfig;
   String? configPath;
 
   EnforcerConfProvider._create();
 
+  @visibleForTesting
+  EnforcerConfProvider.empty();
+
   static Future<EnforcerConfProvider> create() async {
     final instance = EnforcerConfProvider._create();
     instance._initClient();
     await instance._loadFromBackend();
-    instance._startPolling();
+    if (!Environment.isInTest) {
+      instance.startWatch();
+    }
     return instance;
   }
 
@@ -38,14 +45,31 @@ class EnforcerConfProvider extends ChangeNotifier {
     _client = EnforcerConfServiceClient(transport);
   }
 
-  void _startPolling() {
-    if (Environment.isInTest) {
-      return;
+  /// Starts the WatchEnforcerConfig stream. It polls each 5 s while the
+  /// stream is down.
+  @visibleForTesting
+  void startWatch() {
+    _watch ??= StreamOrPoll<WatchEnforcerConfigResponse, GetEnforcerConfigResponse>(
+      // A recreated client replaces _client, so resolve it per call.
+      subscribe: () => _client.watchEnforcerConfig(WatchEnforcerConfigRequest()),
+      onFrame: applyWatchFrame,
+      isHeartbeat: (frame) => frame.heartbeat,
+      fetch: () => _client.getEnforcerConfig(GetEnforcerConfigRequest()),
+      onPoll: _apply,
+      onPollError: _onLoadError,
+      pollInterval: const Duration(seconds: 5),
+      onTransportDeath: _initClient,
+      logger: log,
+      tag: 'EnforcerConfProvider',
+    )..start();
+  }
+
+  /// Applies one WatchEnforcerConfig frame.
+  @visibleForTesting
+  void applyWatchFrame(WatchEnforcerConfigResponse frame) {
+    if (!frame.heartbeat) {
+      _apply(frame.config);
     }
-    _pollTimer = Timer.periodic(
-      const Duration(seconds: 5),
-      (_) => _loadFromBackend(),
-    );
   }
 
   bool _isConnectionError(Object e) {
@@ -58,22 +82,34 @@ class EnforcerConfProvider extends ChangeNotifier {
 
   Future<void> _loadFromBackend() async {
     try {
-      final resp = await _client.getEnforcerConfig(GetEnforcerConfigRequest());
-
-      configPath = resp.configPath.isEmpty ? null : resp.configPath;
-
-      if (resp.configContent.isNotEmpty) {
-        currentConfig = EnforcerConfig.parse(resp.configContent);
-      }
-
-      notifyListeners();
+      _apply(await _client.getEnforcerConfig(GetEnforcerConfigRequest()));
     } catch (e) {
-      if (!isExpectedBootError(e)) {
-        log.e('EnforcerConfProvider: failed to load config: $e');
-      }
-      if (_isConnectionError(e)) {
-        _initClient();
-      }
+      _onLoadError(e);
+    }
+  }
+
+  /// Reads the config after a write. The stream sends the same change, and a
+  /// frame that arrives first wins.
+  Future<void> _reload() => _watch?.refresh() ?? _loadFromBackend();
+
+  void _apply(GetEnforcerConfigResponse resp) {
+    if (resp == _last) {
+      return;
+    }
+    _last = resp;
+    configPath = resp.configPath.isEmpty ? null : resp.configPath;
+    if (resp.configContent.isNotEmpty) {
+      currentConfig = EnforcerConfig.parse(resp.configContent);
+    }
+    notifyListeners();
+  }
+
+  void _onLoadError(Object e) {
+    if (!isExpectedBootError(e)) {
+      log.e('EnforcerConfProvider: failed to load config: $e');
+    }
+    if (_isConnectionError(e)) {
+      _initClient();
     }
   }
 
@@ -126,7 +162,7 @@ class EnforcerConfProvider extends ChangeNotifier {
       await _client.syncNodeRpcFromBitcoinConf(
         SyncNodeRpcFromBitcoinConfRequest(),
       );
-      await _loadFromBackend();
+      await _reload();
     } catch (e) {
       log.e('EnforcerConfProvider: failed to sync: $e');
     }
@@ -182,7 +218,7 @@ class EnforcerConfProvider extends ChangeNotifier {
       await _client.writeEnforcerConfig(
         WriteEnforcerConfigRequest(configContent: content),
       );
-      await _loadFromBackend();
+      await _reload();
     } catch (e) {
       log.e('EnforcerConfProvider: failed to write config: $e');
       rethrow;
@@ -191,7 +227,8 @@ class EnforcerConfProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
+    unawaited(_watch?.dispose());
+    _watch = null;
     super.dispose();
   }
 }
