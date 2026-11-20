@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
+import 'package:sidechain_core/utils/share_file.dart';
 
 import 'mocks/api_mock.dart';
 import 'test_utils.dart';
@@ -81,6 +82,7 @@ void main() {
   });
 
   tearDown(() async {
+    BitDriveViewModel.share = shareFile;
     SailStyleValues.phoneLayoutOverride = null;
     await GetIt.I.reset();
   });
@@ -114,5 +116,34 @@ void main() {
     await _pumpMyFiles(tester, phone: false);
 
     expect(find.byType(SailTable), findsOneWidget);
+  });
+
+  testWidgets('on a phone a tap on a file shares it, and Open Folder is gone', (tester) async {
+    final shared = <String>[];
+    BitDriveViewModel.share = (path) async => shared.add(path);
+    await _pumpMyFiles(tester, phone: true);
+
+    expect(find.text('Open Folder'), findsNothing);
+    await tester.tap(find.text('genesis-note.txt'));
+    await tester.pump();
+
+    expect(shared, ['/tmp/mock-bitdrive/genesis-note.txt']);
+  });
+
+  testWidgets('on a phone a failed share shows the error', (tester) async {
+    BitDriveViewModel.share = (path) async => throw const ShareFileException('no app can take this file');
+    await _pumpMyFiles(tester, phone: true);
+
+    await tester.tap(find.text('genesis-note.txt'));
+    await tester.pump();
+
+    expect(find.text('no app can take this file'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('the desktop keeps Open Folder', (tester) async {
+    await _pumpMyFiles(tester, phone: false);
+
+    expect(find.text('Open Folder'), findsOneWidget);
   });
 }

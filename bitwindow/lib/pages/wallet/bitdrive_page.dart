@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
+import 'package:sidechain_core/utils/share_file.dart';
 import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/sail_ui.dart';
 
@@ -22,11 +23,10 @@ class BitDriveTab extends StatelessWidget {
           subtitle:
               'BitDrive lets you permanently store files and text on the ${activeTicker.name} blockchain. Your data becomes part of ${activeTicker.name} history.',
           bottomPadding: false,
-          widgetHeaderEnd: model.bitdriveDir != null
+          widgetHeaderEnd: model.bitdriveDir != null && !SailStyleValues.phoneLayout(context)
               ? SailButton(
                   label: 'Open Folder',
                   variant: ButtonVariant.secondary,
-                  small: SailStyleValues.phoneLayout(context),
                   icon: SailSVGAsset.folderOpen,
                   onPressed: () async => model.openBitdriveDir(),
                 )
@@ -389,10 +389,31 @@ class _PhoneMyFiles extends StatelessWidget {
                         itemCount: files.length,
                         itemBuilder: (context, index) {
                           final file = files[index];
-                          return SailListRow(
-                            title: file.filename,
-                            subtitle: DateFormat('MMM d, yyyy').format(_fileDate(file)),
-                            trailing: SailText.primary13(_formatFileSize(file.sizeBytes.toInt())),
+                          return SailTappable(
+                            onTap: () async {
+                              try {
+                                await model.shareDownloadedFile(file.filename);
+                              } catch (e) {
+                                if (context.mounted) {
+                                  showSailToast(context, '$e', variant: SailToastVariant.destructive);
+                                }
+                              }
+                            },
+                            child: SailListRow(
+                              title: file.filename,
+                              subtitle: DateFormat('MMM d, yyyy').format(_fileDate(file)),
+                              trailing: SailRow(
+                                spacing: SailStyleValues.padding12,
+                                children: [
+                                  SailText.primary13(_formatFileSize(file.sizeBytes.toInt())),
+                                  SailSVG.fromAsset(
+                                    SailSVGAsset.share,
+                                    width: 14,
+                                    color: SailTheme.of(context).colors.textSecondary,
+                                  ),
+                                ],
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -406,6 +427,9 @@ class _PhoneMyFiles extends StatelessWidget {
 }
 
 class BitDriveViewModel extends BaseViewModel {
+  @visibleForTesting
+  static Future<void> Function(String path) share = shareFile;
+
   final BitDriveProvider provider = GetIt.I.get<BitDriveProvider>();
   final TextEditingController textController = TextEditingController();
   late final TextEditingController feeController = TextEditingController(text: '${provider.feeSatPerVbyte}');
@@ -510,6 +534,15 @@ class BitDriveViewModel extends BaseViewModel {
     } catch (e) {
       log.e('Error loading downloaded files: $e');
     }
+  }
+
+  /// Opens the phone share sheet for a downloaded file.
+  Future<void> shareDownloadedFile(String filename) async {
+    final dir = _bitdriveDir;
+    if (dir == null) {
+      throw StateError('the BitDrive folder is not known yet');
+    }
+    await share(p.join(dir, filename));
   }
 
   Future<void> openBitdriveDir() async {
