@@ -1,4 +1,5 @@
 import 'package:bitwindow/pages/overview_page.dart';
+import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:bitwindow/widgets/fee_coinnews.dart';
 import 'package:bitwindow/widgets/network_stats_widget.dart';
 import 'package:fixnum/fixnum.dart';
@@ -162,6 +163,43 @@ void main() {
       expect(find.byType(SailStatRow), findsNothing);
       expect(find.byType(StatItem), findsNWidgets(6));
       expect(tester.getRect(find.text('Block Height')).left, greaterThan(tester.getRect(find.text('Peers')).right));
+    });
+  });
+
+  group('Hacker Coin News', () {
+    double cellWidth(WidgetTester tester, String value) =>
+        tester.getSize(find.ancestor(of: find.text(value).first, matching: find.byType(SailTableCell))).width;
+
+    Future<void> pump(WidgetTester tester, double width) async {
+      await loadBundledFonts();
+      await tester.pumpSailPage(
+        SizedBox(
+          width: width,
+          child: CoinNewsTable(entries: news, onSort: (_) {}, loading: false),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('on a phone the title column takes the width the date and read time leave', (tester) async {
+      SailStyleValues.phoneLayoutOverride = true;
+      await pump(tester, 335);
+
+      expect(find.text('Topic'), findsNothing);
+      final shortDate = formatDate(time, long: false);
+      expect(cellWidth(tester, shortDate), closeTo(136, 1));
+      expect(cellWidth(tester, '1 min'), closeTo(88, 1));
+      expect(cellWidth(tester, news.first.headline), closeTo(335 - 136 - 88, 2));
+      expect(tester.getSize(find.text(shortDate).first).height, tester.getSize(find.text('1 min').first).height);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('on the desktop the table keeps the topic and the long date', (tester) async {
+      SailStyleValues.phoneLayoutOverride = false;
+      await pump(tester, 1200);
+
+      expect(find.text('Topic'), findsOneWidget);
+      expect(find.text(formatDate(time)), findsNWidgets(2));
     });
   });
 }
