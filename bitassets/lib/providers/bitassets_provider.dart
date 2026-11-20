@@ -79,14 +79,17 @@ class BitAssetsProvider extends ChangeNotifier {
     if (Environment.isInTest) return;
 
     _retryTimer?.cancel();
-    _retryTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (entries.isNotEmpty && initialized && walletRead) {
-        timer.cancel();
-        _startPollTimer();
-        return;
-      }
-      fetch();
-    });
+    _retryTimer = Timer.periodic(const Duration(milliseconds: 500), (_) => retryTick());
+  }
+
+  /// One tick of the start retry. An empty asset list is an answer too.
+  @visibleForTesting
+  void retryTick() {
+    if (initialized && walletRead) {
+      _startPollTimer();
+      return;
+    }
+    unawaited(fetch());
   }
 
   /// A coin in the mempool fires no block event, and the sidechain mines a
