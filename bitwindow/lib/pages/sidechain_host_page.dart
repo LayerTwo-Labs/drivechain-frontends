@@ -79,13 +79,26 @@ class SidechainHostPage extends StatelessWidget {
                     key: ValueKey(module.chain.registryKey),
                     child: SidechainScopeHost(
                       module: module,
-                      child: HostedChainView(module: module),
+                      child: _ShownWithSidechainsTab(child: HostedChainView(module: module)),
                     ),
                   ),
           ),
         ],
       ),
     );
+  }
+}
+
+/// Stops the tickers and refreshes of the chain view while another BitWindow tab shows.
+class _ShownWithSidechainsTab extends StatelessWidget {
+  final Widget child;
+
+  const _ShownWithSidechainsTab({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final tabs = TabsRouterScope.of(context, watch: true)?.controller;
+    return TickerMode(enabled: tabs == null || tabs.current.name == SidechainsRoute.name, child: child);
   }
 }
 
