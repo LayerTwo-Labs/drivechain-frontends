@@ -115,7 +115,8 @@ class HomepageWidgetEntry {
 }
 
 /// Two half-width widgets share a row. A bar or a full-width widget takes a row alone.
-/// With [oneColumn], every widget takes a row alone, and a full-width widget builds at half width.
+/// With [oneColumn], every widget takes a row alone, and a full-width widget builds at half width
+/// unless it is [HomepageWidgetInfo.fullOnPhones].
 List<List<HomepageWidgetEntry>> homepageRows(
   List<HomepageWidgetConfig> widgets,
   Map<String, HomepageWidgetInfo> catalog, {
@@ -125,7 +126,12 @@ List<List<HomepageWidgetEntry>> homepageRows(
     return [
       for (final config in widgets)
         if (catalog[config.widgetId] case final info?)
-          [HomepageWidgetEntry(info, info.sizeOf(config) == WidgetSize.full ? WidgetSize.half : info.sizeOf(config))],
+          [
+            HomepageWidgetEntry(
+              info,
+              info.sizeOf(config) == WidgetSize.full && !info.fullOnPhones ? WidgetSize.half : info.sizeOf(config),
+            ),
+          ],
     ];
   }
   final rows = <List<HomepageWidgetEntry>>[];

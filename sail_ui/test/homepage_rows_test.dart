@@ -43,4 +43,25 @@ void main() {
   test('one column skips a widget that is not in the catalog', () {
     expect(homepageRows(const [HomepageWidgetConfig(widgetId: 'gone')], catalog, oneColumn: true), isEmpty);
   });
+
+  test('one column keeps the full size of a widget that stacks on phones', () {
+    final stacking = {
+      'news': HomepageWidgetInfo(
+        id: 'news',
+        name: 'news',
+        sizes: const [WidgetSize.half, WidgetSize.full],
+        fullOnPhones: true,
+        builder: (_) => const SizedBox(),
+      ),
+    };
+
+    expect(
+      layout(
+        homepageRows(const [HomepageWidgetConfig(widgetId: 'news', size: WidgetSize.full)], stacking, oneColumn: true),
+      ),
+      [
+        ['news:full'],
+      ],
+    );
+  });
 }
