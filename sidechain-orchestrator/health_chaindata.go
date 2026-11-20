@@ -90,3 +90,13 @@ func (o *Orchestrator) coreCacheTTL(ttl time.Duration) time.Duration {
 	}
 	return ttl
 }
+
+// SidechainRunning reports whether a layer-2 sidechain process runs.
+func (o *Orchestrator) SidechainRunning() bool {
+	for name, cfg := range o.Configs() {
+		if cfg.ChainLayer == 2 && o.process.IsRunning(name) {
+			return true
+		}
+	}
+	return false
+}

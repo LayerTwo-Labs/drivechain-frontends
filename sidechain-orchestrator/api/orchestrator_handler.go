@@ -44,7 +44,7 @@ func NewHandler(orch *orchestrator.Orchestrator) *Handler {
 		return &Handler{orch: orch, syncSource: poll}
 	}
 	poll.interval = engineSyncStatusPollInterval
-	return &Handler{orch: orch, syncSource: engineSyncStatus{pollSyncStatus: poll, engine: orch.ChainData()}}
+	return &Handler{orch: orch, syncSource: engineSyncStatus{pollSyncStatus: poll, engine: orch.ChainData(), sidechainRunning: orch.SidechainRunning}}
 }
 
 // SetSidechainBalance names the reader that answers one chain's balance. It is

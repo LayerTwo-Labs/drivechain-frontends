@@ -68,6 +68,36 @@ func (p pollSyncStatus) SyncStatus(ctx context.Context) (*orchestrator.SyncStatu
 type engineSyncStatus struct {
 	pollSyncStatus
 	engine *chaindata.Engine
+	// sidechainRunning reports whether a sidechain runs. Its height has no
+	// event, so it keeps the fast poll.
+	sidechainRunning func() bool
+}
+
+// poll ticks each syncStatusPollInterval while a sidechain runs, else each
+// interval.
+func (e engineSyncStatus) poll(ctx context.Context) <-chan struct{} {
+	ch := make(chan struct{}, 1)
+	go func() {
+		ticker := time.NewTicker(syncStatusPollInterval)
+		defer ticker.Stop()
+		last := time.Now()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+			if !e.sidechainRunning() && time.Since(last) < e.interval {
+				continue
+			}
+			last = time.Now()
+			select {
+			case ch <- struct{}{}:
+			default:
+			}
+		}
+	}()
+	return ch
 }
 
 // followUps are the extra wakes after a Core event.
@@ -97,7 +127,7 @@ func (e engineSyncStatus) SubscribeSyncStatus(ctx context.Context) <-chan struct
 			}
 		}
 	}
-	go forward(e.pollSyncStatus.SubscribeSyncStatus(ctx), nil)
+	go forward(e.poll(ctx), nil)
 	go forward(e.engine.Subscribe(ctx, chaindata.KindBlockchainInfo), followUps)
 	go forward(e.engine.Subscribe(ctx, chaindata.KindHealth), followUps)
 	return out

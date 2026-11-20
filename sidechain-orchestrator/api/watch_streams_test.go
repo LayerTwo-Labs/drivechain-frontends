@@ -134,7 +134,7 @@ func TestEngineSyncStatusWakesOnANewBlock(t *testing.T) {
 	go engine.Run(t.Context())
 	require.Eventually(t, func() bool { return engine.Health() == nil }, time.Second, time.Millisecond)
 
-	src := engineSyncStatus{pollSyncStatus: pollSyncStatus{interval: time.Hour}, engine: engine}
+	src := engineSyncStatus{pollSyncStatus: pollSyncStatus{interval: time.Hour}, engine: engine, sidechainRunning: func() bool { return false }}
 	changed := src.SubscribeSyncStatus(t.Context())
 	height.Add(1)
 	select {
@@ -142,4 +142,27 @@ func TestEngineSyncStatusWakesOnANewBlock(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("no wake after a new block")
 	}
+}
+
+func TestEngineSyncStatusPollsFastOnlyWhileASidechainRuns(t *testing.T) {
+	var running atomic.Bool
+	src := engineSyncStatus{pollSyncStatus: pollSyncStatus{interval: time.Hour}, sidechainRunning: running.Load}
+	ticks := src.poll(t.Context())
+
+	select {
+	case <-ticks:
+		t.Fatal("a tick with no sidechain")
+	case <-time.After(3 * syncStatusPollInterval):
+	}
+
+	running.Store(true)
+	start := time.Now()
+	for range 3 {
+		select {
+		case <-ticks:
+		case <-time.After(2 * syncStatusPollInterval):
+			t.Fatal("no fast tick while a sidechain runs")
+		}
+	}
+	require.Less(t, time.Since(start), 4*syncStatusPollInterval)
 }
