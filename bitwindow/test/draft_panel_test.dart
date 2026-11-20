@@ -8,6 +8,7 @@ import 'package:bitwindow/widgets/draft_panel.dart';
 import 'package:bitwindow/widgets/grouped_address.dart';
 import 'package:bitwindow/widgets/tx_flow_diagram.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as walletpb;
@@ -438,5 +439,92 @@ void main() {
       expect(button('Sign with trezor'), findsNothing);
       expect(button('Import a signature'), findsNothing);
     });
+
+    testWidgets('on a phone a broadcast shows green text, the link at the right and the txid below', (tester) async {
+      SailStyleValues.phoneLayoutOverride = true;
+      addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+      await pumpOneKeyPanel(tester);
+
+      await tester.ensureVisible(button('Broadcast'));
+      await tester.pumpAndSettle();
+      await tester.tap(button('Broadcast'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FlowChip), findsNothing);
+      final status = tester.getRect(find.text('Broadcast'));
+      final link = tester.getRect(button('View transaction'));
+      final txid = tester.getRect(find.text('cc' * 32));
+      expect(link.left, greaterThanOrEqualTo(status.right));
+      expect(link.center.dy, closeTo(status.center.dy, 2));
+      expect(txid.top, greaterThan(link.bottom - 1));
+    });
+  });
+
+  group('the phone layout', () {
+    Finder button(String label) => find.byWidgetPredicate((w) => w is SailButton && w.label == label);
+
+    setUp(() => SailStyleValues.phoneLayoutOverride = true);
+    tearDown(() => SailStyleValues.phoneLayoutOverride = null);
+
+    testWidgets('the keys table has 40 px rows and no ACTION column', (tester) async {
+      final draftId = await setUpPanelDeps();
+
+      await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ACTION'), findsNothing);
+      expect(find.text('KEY'), findsOneWidget);
+      expect(find.text('STATUS'), findsOneWidget);
+      final first = tester.getCenter(find.text('Key 1')).dy;
+      final second = tester.getCenter(find.text('Key 2')).dy;
+      expect(second - first, closeTo(40, 1));
+      expect(button('Sign'), findsOneWidget);
+    });
+
+    testWidgets('statuses and flow labels are plain colored text', (tester) async {
+      final draftId = await setUpPanelDeps();
+
+      await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FlowChip), findsNothing);
+      final theme = SailTheme.of(tester.element(find.text('Signed')));
+      expect(tester.widget<Text>(find.text('Signed')).style?.color, theme.colors.success);
+      expect(find.text('Awaiting signature'), findsNWidgets(2));
+      expect(find.text('payment'), findsOneWidget);
+      expect(find.text('1 of 2 collected'), findsOneWidget);
+    });
+
+    testWidgets('the actions stack under the keys card like a one-key send', (tester) async {
+      final draftId = await setUpPanelDeps();
+
+      await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.pumpAndSettle();
+
+      final keys = tester.getRect(find.text('Key 3'));
+      final rects = [
+        for (final l in ['Broadcast', 'Import a signature', 'Copy PSBT', 'Discard']) tester.getRect(button(l)),
+      ];
+      expect(rects.first.top, greaterThan(keys.bottom));
+      for (var i = 1; i < rects.length; i++) {
+        expect(rects[i].top, greaterThan(rects[i - 1].bottom - 1));
+      }
+      expect(rects[1].width, closeTo(rects[0].width, 1));
+      expect(rects[3].width, closeTo(rects[0].width, 1));
+      expect(rects[2].width, lessThan(rects[0].width));
+    });
+  });
+
+  testWidgets('the desktop keys table keeps the ACTION column and the chips', (tester) async {
+    SailStyleValues.phoneLayoutOverride = false;
+    addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+    final draftId = await setUpPanelDeps();
+
+    await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ACTION'), findsOneWidget);
+    expect(find.text('HELD BY'), findsOneWidget);
+    expect(find.byType(FlowChip), findsWidgets);
   });
 }
