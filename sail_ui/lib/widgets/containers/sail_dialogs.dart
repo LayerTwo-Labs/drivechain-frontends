@@ -45,7 +45,7 @@ Future<T?> _showDialogSheet<T>({
   return navigator.push<T>(
     _DialogSheetRoute<T>(
       context: context,
-      builder: (context) => _DialogSheet(child: builder(context)),
+      builder: (context) => _DialogSheet(dismissible: barrierDismissible, child: builder(context)),
       barrierColor: SailColorScheme.black.withValues(alpha: 0.55),
       barrierDismissible: barrierDismissible,
       themes: InheritedTheme.capture(from: context, to: navigator.context),
@@ -84,10 +84,35 @@ class _DialogSheetRoute<T> extends DialogRoute<T> {
 }
 
 /// Puts a dialog at the bottom edge at full width, with round top corners.
-class _DialogSheet extends StatelessWidget {
+class _DialogSheet extends StatefulWidget {
+  final bool dismissible;
   final Widget child;
 
-  const _DialogSheet({required this.child});
+  const _DialogSheet({required this.dismissible, required this.child});
+
+  @override
+  State<_DialogSheet> createState() => _DialogSheetState();
+}
+
+class _DialogSheetState extends State<_DialogSheet> {
+  static const _closeDistance = 96.0;
+  static const _closeVelocity = 700.0;
+
+  double _drag = 0;
+
+  void _update(DragUpdateDetails details) {
+    setState(() => _drag = (_drag + details.delta.dy).clamp(0, double.infinity));
+  }
+
+  Future<void> _end(DragEndDetails details) async {
+    if (_drag > _closeDistance || (details.primaryVelocity ?? 0) > _closeVelocity) {
+      final closed = await Navigator.of(context).maybePop();
+      if (closed || !mounted) {
+        return;
+      }
+    }
+    setState(() => _drag = 0);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +128,13 @@ class _DialogSheet extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: top),
         ),
       ),
-      child: SailSheetScope(child: child),
+      child: SailSheetScope(
+        child: GestureDetector(
+          onVerticalDragUpdate: widget.dismissible ? _update : null,
+          onVerticalDragEnd: widget.dismissible ? _end : null,
+          child: Transform.translate(offset: Offset(0, _drag), child: widget.child),
+        ),
+      ),
     );
   }
 }

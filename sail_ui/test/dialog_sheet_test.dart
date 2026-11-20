@@ -9,6 +9,7 @@ Future<void> _open(
   WidgetBuilder builder, {
   EdgeInsets padding = EdgeInsets.zero,
   bool plain = false,
+  bool dismissible = true,
 }) async {
   tester.view.physicalSize = _screen;
   tester.view.devicePixelRatio = 1;
@@ -24,8 +25,8 @@ Future<void> _open(
       home: Builder(
         builder: (context) => TextButton(
           onPressed: () => plain
-              ? showSailDialog<void>(context: context, builder: builder)
-              : showThemedDialog<void>(context: context, builder: builder),
+              ? showSailDialog<void>(context: context, builder: builder, barrierDismissible: dismissible)
+              : showThemedDialog<void>(context: context, builder: builder, barrierDismissible: dismissible),
           child: const Text('open'),
         ),
       ),
@@ -145,6 +146,35 @@ void main() {
       await _open(tester, body);
 
       expect(tester.getRect(find.widgetWithText(SailCard, 'Deposit')).center.dy, closeTo(_screen.height / 2, 1));
+    });
+  });
+
+  group('a drag on a phone sheet', () {
+    setUp(() => SailStyleValues.phoneLayoutOverride = true);
+
+    testWidgets('a long drag down closes the sheet', (tester) async {
+      await _open(tester, _dialog);
+
+      await tester.drag(find.text('Edit wallet'), const Offset(0, 200));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit wallet'), findsNothing);
+    });
+
+    testWidgets('a short drag down puts the sheet back at the bottom edge', (tester) async {
+      await _open(tester, _dialog);
+
+      await tester.timedDrag(find.text('Edit wallet'), const Offset(0, 40), const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit wallet'), findsOneWidget);
+      expect(tester.getRect(find.widgetWithText(SailCard, 'Edit wallet').first).bottom, _screen.height);
+    });
+
+    testWidgets('a sheet that the barrier does not close does not close on a drag', (tester) async {
+      await _open(tester, _dialog, dismissible: false);
+
+      await tester.drag(find.text('Edit wallet'), const Offset(0, 200));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit wallet'), findsOneWidget);
     });
   });
 }
