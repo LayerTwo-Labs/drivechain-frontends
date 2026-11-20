@@ -45,32 +45,36 @@ build:
         *)        echo "Unknown operating system" && exit 1 ;;
     esac
 # Builds bitwindowd and drivechaind into one static library per iOS SDK.
+# BITWINDOW_DEFAULT_NETWORK sets the network of a new install.
 ios-backend:
     #!/usr/bin/env bash
     set -euo pipefail
+    network_ldflag() { [[ -z "${BITWINDOW_DEFAULT_NETWORK:-}" ]] || echo "-X github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config.DefaultNetwork=$BITWINDOW_DEFAULT_NETWORK"; }
     for pair in iphonesimulator:arm64-apple-ios15.0-simulator iphoneos:arm64-apple-ios15.0; do
         sdk="${pair%%:*}"
         out="$PWD/ios/Backend/$sdk"
         mkdir -p "$out"
         export CGO_ENABLED=1 GOOS=ios GOARCH=arm64
         export CC="$(xcrun --sdk "$sdk" -f clang) -isysroot $(xcrun --sdk "$sdk" --show-sdk-path) -target ${pair#*:}"
-        (cd server && go build -trimpath -buildmode=c-archive -ldflags="-s -w" -o "$out/libbitwindow_backend.a" ./mobile)
+        (cd server && go build -trimpath -buildmode=c-archive -ldflags="-s -w $(network_ldflag)" -o "$out/libbitwindow_backend.a" ./mobile)
     done
 
 ios: ios-backend
     flutter build ios --simulator
 
 # Builds bitwindowd and drivechaind into one library in the APK's arm64 jniLibs folder.
+# BITWINDOW_DEFAULT_NETWORK sets the network of a new install.
 android-backend:
     #!/usr/bin/env bash
     set -euo pipefail
+    network_ldflag() { [[ -z "${BITWINDOW_DEFAULT_NETWORK:-}" ]] || echo "-X github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config.DefaultNetwork=$BITWINDOW_DEFAULT_NETWORK"; }
     sdk="${ANDROID_HOME:-$(flutter config --list | sed -n 's/^ *android-sdk: //p')}"
     ndk="$(ls -d "$sdk"/ndk/* | sort -V | tail -1)"
     cc="$(ls "$ndk"/toolchains/llvm/prebuilt/*/bin/aarch64-linux-android29-clang)"
     out="$PWD/android/app/src/main/jniLibs/arm64-v8a"
     mkdir -p "$out"
     export CGO_ENABLED=1 GOOS=android GOARCH=arm64 CC="$cc"
-    (cd server && go build -trimpath -buildmode=c-shared -ldflags="-s -w -extldflags=-Wl,-z,max-page-size=16384" -o "$out/libbitwindow_backend.so" ./mobile)
+    (cd server && go build -trimpath -buildmode=c-shared -ldflags="-s -w $(network_ldflag) -extldflags=-Wl,-z,max-page-size=16384" -o "$out/libbitwindow_backend.so" ./mobile)
     rm "$out/libbitwindow_backend.h"
 
 android: android-backend
