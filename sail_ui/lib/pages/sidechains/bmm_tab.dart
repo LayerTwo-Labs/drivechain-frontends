@@ -186,7 +186,7 @@ class BMMTab extends StatelessWidget {
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Controls(viewModel: viewModel),
+                BMMControls(viewModel: viewModel),
                 BMMCurrentSlot(viewModel: viewModel),
                 _BidsOnNextBlock(viewModel: viewModel),
                 _HistoricBids(viewModel: viewModel),
@@ -201,9 +201,10 @@ class BMMTab extends StatelessWidget {
 
 const double _controlsGap = 44;
 
-class _Controls extends StatelessWidget {
+@visibleForTesting
+class BMMControls extends StatelessWidget {
   final BMMViewModel viewModel;
-  const _Controls({required this.viewModel});
+  const BMMControls({super.key, required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
@@ -211,51 +212,63 @@ class _Controls extends StatelessWidget {
     // Stopping stays available while the enforcer is behind: an engine started
     // before it fell back has to be stoppable.
     final blocked = !viewModel.canBid;
+    final toggle = SailButton(
+      label: viewModel.running ? 'Stop auto-bidding' : 'Start auto-bidding',
+      disabled: blocked && !viewModel.running,
+      onPressed: () async => viewModel.running ? await viewModel.stopBidding() : await viewModel.startBidding(),
+    );
+    final wallet = _Field(
+      label: 'Wallet:',
+      width: 220,
+      child: WalletPicker(
+        selectedWalletId: viewModel.fundingWalletId,
+        onChanged: viewModel.setFundingWallet,
+      ),
+    );
+    final minBid = _Field(
+      label: 'Min bid:',
+      child: SailTextField(
+        controller: viewModel.minBidController,
+        hintText: '0.00005000',
+        readOnly: true,
+      ),
+    );
+    final maxBid = _Field(
+      label: 'Max bid:',
+      child: SailTextField(
+        controller: viewModel.maxBidController,
+        hintText: '0.00020000',
+      ),
+    );
+    final manual = SailButton(
+      label: 'Bid manually',
+      variant: ButtonVariant.secondary,
+      disabled: blocked,
+      onPressed: () async => _showManualBidDialog(context, viewModel),
+    );
 
     return SailColumn(
       spacing: SailStyleValues.padding08,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailRow(
-          spacing: _controlsGap,
-          children: [
-            SailButton(
-              label: viewModel.running ? 'Stop auto-bidding' : 'Start auto-bidding',
-              disabled: blocked && !viewModel.running,
-              onPressed: () async => viewModel.running ? await viewModel.stopBidding() : await viewModel.startBidding(),
-            ),
-            _Field(
-              label: 'Wallet:',
-              width: 220,
-              child: WalletPicker(
-                selectedWalletId: viewModel.fundingWalletId,
-                onChanged: viewModel.setFundingWallet,
-              ),
-            ),
-            _Field(
-              label: 'Min bid:',
-              child: SailTextField(
-                controller: viewModel.minBidController,
-                hintText: '0.00005000',
-                readOnly: true,
-              ),
-            ),
-            _Field(
-              label: 'Max bid:',
-              child: SailTextField(
-                controller: viewModel.maxBidController,
-                hintText: '0.00020000',
-              ),
-            ),
-            Expanded(child: Container()),
-            SailButton(
-              label: 'Bid manually',
-              variant: ButtonVariant.secondary,
-              disabled: blocked,
-              onPressed: () async => _showManualBidDialog(context, viewModel),
-            ),
-          ],
-        ),
+        if (SailStyleValues.phoneLayout(context)) ...[
+          SizedBox(width: double.infinity, child: toggle),
+          wallet,
+          minBid,
+          maxBid,
+          SizedBox(width: double.infinity, child: manual),
+        ] else
+          SailRow(
+            spacing: _controlsGap,
+            children: [
+              toggle,
+              wallet,
+              minBid,
+              maxBid,
+              Expanded(child: Container()),
+              manual,
+            ],
+          ),
         if (viewModel.isLight) SailText.secondary12(bidSourceInLightMode),
         if (viewModel.fundingWarning)
           SailText.secondary12(
@@ -372,7 +385,7 @@ class BMMCurrentSlot extends StatelessWidget {
             ),
             if (viewModel.slotHint.isNotEmpty) SailText.secondary12(viewModel.slotHint),
             SailStatList(
-              framed: false,
+              panel: false,
               children: [
                 SailStatRow(title: 'Block worth', subtitle: '', value: viewModel.satsLabel(viewModel.blockWorthSats)),
                 SailStatRow(title: 'Your bid', subtitle: '', value: yourBid),
