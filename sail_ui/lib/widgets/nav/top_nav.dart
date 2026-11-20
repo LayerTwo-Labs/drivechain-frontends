@@ -264,7 +264,7 @@ class _DrawerMenuSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 4),
-          child: SailText.secondary12(menu.label.toUpperCase(), bold: true),
+          child: SailText.primary10(menu.label.toUpperCase(), color: theme.colors.textSecondary),
         ),
         for (final item in items)
           GestureDetector(
