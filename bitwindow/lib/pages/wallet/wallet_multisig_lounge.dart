@@ -44,27 +44,11 @@ class MultisigLoungeTab extends StatefulWidget {
 }
 
 class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindingObserver {
-  MultisigLoungeViewModel? _viewModel;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _viewModel?.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<MultisigLoungeViewModel>.reactive(
       viewModelBuilder: () => MultisigLoungeViewModel(),
-      onViewModelReady: (model) {
-        _viewModel = model;
-        model.initialize();
-      },
+      onViewModelReady: (model) => model.initialize(),
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
           return const SailPage(
