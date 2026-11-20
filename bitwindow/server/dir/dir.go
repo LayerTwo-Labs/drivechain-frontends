@@ -55,7 +55,7 @@ func DefaultDataDir() (string, error) {
 	var dir string
 
 	switch runtime.GOOS {
-	case "linux", "android":
+	case "linux", "android", "ios":
 		linuxDir, err := linuxDataDir()
 		if err != nil {
 			return "", err
