@@ -6,7 +6,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/android_daemons.dart';
 import 'package:sail_ui/pages/router.dart';
 import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -275,14 +274,12 @@ typedef OnStaged = void Function(String canonical, File file);
 /// Copies the embedded binaries from [sourceDir] to [fileDir]. A binary that
 /// is already staged from the same bundle file stays.
 Future<void> stageEmbeddedBinaries(Logger log, Directory sourceDir, Directory fileDir, {OnStaged? onStaged}) async {
-  await fileDir.create(recursive: true);
-  await removeAsideBinaries(fileDir);
-
-  if (Platform.isAndroid) {
-    await linkAndroidDaemons(fileDir);
-    log.d('Linked the Android daemons into assets/bin');
+  // A phone runs the daemons in the app process.
+  if (isMobile) {
     return;
   }
+  await fileDir.create(recursive: true);
+  await removeAsideBinaries(fileDir);
 
   for (final binary in allBinaries) {
     await _copyEmbeddedBinary(log, sourceDir, fileDir, binary.binary, label: binary.name, onStaged: onStaged);
