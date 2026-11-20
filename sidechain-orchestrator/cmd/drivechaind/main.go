@@ -146,6 +146,11 @@ func main() {
 				Usage:   "shut down once this process exits (the frontend that owns us)",
 				EnvVars: []string{"ORCHESTRATOR_OWNER_PID"},
 			},
+			&cli.StringFlag{
+				Name:    "pprof-addr",
+				Usage:   "loopback host:port for the pprof debug server; empty disables it",
+				EnvVars: []string{"ORCHESTRATOR_PPROF_ADDR"},
+			},
 		},
 		Action: run,
 	}
@@ -205,6 +210,12 @@ func run(cctx *cli.Context) error {
 		Str("network", network).
 		Str("rpclisten", listenAddr).
 		Msg("starting drivechaind")
+
+	if addr := cctx.String("pprof-addr"); addr != "" {
+		if _, err := listenPprof(ctx, addr, log); err != nil {
+			return err
+		}
+	}
 
 	if err := wallet.SanityCheck(); err != nil {
 		return fmt.Errorf("random source sanity check failed, refusing to start: %w", err)
