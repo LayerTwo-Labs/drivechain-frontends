@@ -2101,17 +2101,20 @@ func TestService_GetNetworkStats(t *testing.T) {
 				Msg: &corepb.GetBlockHashResponse{Hash: "latesthash"},
 			}, nil).AnyTimes()
 
-		// Mock GetBlock for difficulty and avg block time calculation
+		// Core sends only the hex for raw data, so the difficulty stays empty.
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
-			Return(&connectv1.Response[corepb.GetBlockResponse]{
-				Msg: &corepb.GetBlockResponse{
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
+				if req.Msg.Verbosity == corepb.GetBlockRequest_VERBOSITY_RAW_DATA {
+					return connectv1.NewResponse(&corepb.GetBlockResponse{Hex: "00"}), nil
+				}
+				return connectv1.NewResponse(&corepb.GetBlockResponse{
 					Height:     1000,
 					Hash:       "latesthash",
 					Time:       timestamppb.Now(),
 					Difficulty: 12345.67,
-				},
-			}, nil).AnyTimes()
+				}), nil
+			}).AnyTimes()
 
 		// Mock GetNetworkInfo
 		mockBitcoind.EXPECT().

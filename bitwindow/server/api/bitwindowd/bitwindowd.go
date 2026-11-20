@@ -1094,7 +1094,7 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.G
 		}
 		block, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 			Hash:      hash.Msg.Hash,
-			Verbosity: 1,
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 		}))
 		if err != nil {
 			return nil, fmt.Errorf("get latest block: %w", err)
