@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:bitwindow/providers/fork_provider.dart';
+import 'package:bitwindow/utils/second_clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -112,19 +111,19 @@ class _Countdown extends StatefulWidget {
 }
 
 class _CountdownState extends State<_Countdown> {
-  late final Timer _ticker;
-
   @override
   void initState() {
     super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    SecondClock.shared.addListener(_tick);
   }
 
   @override
   void dispose() {
-    _ticker.cancel();
+    SecondClock.shared.removeListener(_tick);
     super.dispose();
   }
+
+  void _tick() => setState(() {});
 
   String _two(int n) => n.toString().padLeft(2, '0');
 
