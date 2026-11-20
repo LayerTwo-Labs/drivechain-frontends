@@ -6,10 +6,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os/exec"
 	"runtime"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -44,6 +42,7 @@ import (
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/utils/bandwidth"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	wmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
@@ -1129,13 +1128,14 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.G
 		}
 	}
 
-	bitcoindBandwidth, err := s.processBandwidth(ctx, "bitcoind")
+	orchestrator := dial.Orchestrator(s.config.OrchestratorAddr, s.config.BitwindowDir())
+	bitcoindBandwidth, err := s.processBandwidth(ctx, orchestrator, "bitcoind", "bitcoind")
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connect.NewError(connect.CodeOf(err), err.Error()).WithCause(err)
 	}
-	enforcerBandwidth, err := s.processBandwidth(ctx, "bip300301-enforcer")
+	enforcerBandwidth, err := s.processBandwidth(ctx, orchestrator, "enforcer", "bip300301-enforcer")
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connect.NewError(connect.CodeOf(err), err.Error()).WithCause(err)
 	}
 
 	return &pb.GetNetworkStatsResponse{
@@ -1155,26 +1155,20 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.G
 	}, nil
 }
 
-// processBandwidth gives nil when no process has the name.
-func (s *Server) processBandwidth(ctx context.Context, name string) (*pb.ProcessBandwidth, error) {
-	// Windows has no pgrep.
+// processBandwidth gives nil when the orchestrator runs no process for binary.
+func (s *Server) processBandwidth(
+	ctx context.Context, orchestrator orchrpc.OrchestratorServiceClient, binary, name string,
+) (*pb.ProcessBandwidth, error) {
 	if runtime.GOOS == "windows" {
 		return nil, nil
 	}
-	output, err := exec.CommandContext(ctx, "pgrep", "-x", name).Output()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+	resp, err := orchestrator.GetBinaryStatus(ctx, &orchpb.GetBinaryStatusRequest{Name: binary})
+	if err != nil {
+		return nil, fmt.Errorf("orchestrator.GetBinaryStatus %s: %w", binary, err)
+	}
+	pid := int(resp.GetStatus().GetPid())
+	if !resp.GetStatus().GetRunning() || pid <= 0 {
 		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("pgrep %s: %w", name, err)
-	}
-
-	// pgrep may return multiple PIDs, take the first one
-	first, _, _ := strings.Cut(strings.TrimSpace(string(output)), "\n")
-	pid, err := strconv.Atoi(first)
-	if err != nil {
-		return nil, fmt.Errorf("parse pid of %s: %w", name, err)
 	}
 
 	stats, err := s.bandwidthTracker.GetStats(pid, name)
