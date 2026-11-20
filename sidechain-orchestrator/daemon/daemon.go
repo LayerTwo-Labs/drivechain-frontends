@@ -1,0 +1,847 @@
+package daemon
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"path/filepath"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/rs/zerolog"
+
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	coreproxy "github.com/barebitcoin/btc-buf/server"
+
+	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
+	bbcrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bbc/v1/bbcv1connect"
+	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
+	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
+	bmmrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1/bmmv1connect"
+	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
+	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	explorerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1/explorerv1connect"
+	multisigloungerpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1/multisigloungev1connect"
+	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
+	stratumrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/stratum/v1/stratumv1connect"
+	thunderrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1/thunderv1connect"
+	truthcoinrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1/truthcoinv1connect"
+	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	zsiderpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1/zsidev1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpcmeter"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
+	bbcsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
+	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
+	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	coinshiftsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/nodes"
+	photonsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
+	thundersvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
+	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
+	zsidesvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
+)
+
+// hwiWarmDelay is the wait after the listener starts before the hardware
+// wallet daemon starts. The boot RPCs of the app take the CPU first.
+const hwiWarmDelay = 2 * time.Second
+
+func init() {
+	// Without this, zerolog drops the milliseconds from every timestamp.
+	zerolog.TimeFieldFormat = time.RFC3339Nano
+}
+
+// Config holds the drivechaind settings.
+type Config struct {
+	DataDir           string
+	Network           string
+	ListenAddr        string
+	BitwindowDir      string
+	AppHome           string
+	LocalAuth         bool
+	ThunderEsploraURL string
+	// Binaries are the sidechains to start with their dependencies on boot.
+	Binaries     []string
+	ForceBackend bool
+	// OwnerPID is the frontend process. The daemon stops when it exits and no
+	// client is left.
+	OwnerPID  int
+	PprofAddr string
+	Log       zerolog.Logger
+	// Exit ends the process after a shutdown drain. With a nil Exit, Run
+	// returns instead, so the daemon can run inside another process.
+	Exit func(code int)
+}
+
+// Run serves drivechaind until ctx ends or a shutdown drain completes.
+func Run(ctx context.Context, cfg Config) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	log := cfg.Log
+
+	// net/http repeats a refused dial and a dropped frame once a second while a
+	// daemon boots. Only those two drop to debug; a handler panic stays at error.
+	transportLog := logfile.StdLogger(log, logfile.TransportNoise)
+
+	dataDir := cfg.DataDir
+	network := cfg.Network
+	listenAddr := cfg.ListenAddr
+	bitwindowDir := cfg.BitwindowDir
+	localAuth := cfg.LocalAuth
+
+	if appHome := cfg.AppHome; appHome != "" {
+		config.SetHomeDir(appHome)
+		log.Info().Str("app_home", appHome).Msg("binary paths resolve against app-home")
+	}
+
+	log.Info().
+		Str("datadir", dataDir).
+		Str("network", network).
+		Str("rpclisten", listenAddr).
+		Msg("starting drivechaind")
+
+	if addr := cfg.PprofAddr; addr != "" {
+		if _, err := listenPprof(ctx, addr, log); err != nil {
+			return err
+		}
+	}
+
+	if err := wallet.SanityCheck(); err != nil {
+		return fmt.Errorf("random source sanity check failed, refusing to start: %w", err)
+	}
+
+	// Single-instance check. With local auth enabled, adopting an existing
+	// listener would require sending it the bearer cookie; a port-squatter could
+	// harvest that token. Fail closed instead.
+	if conn, dialErr := net.DialTimeout("tcp", listenAddr, 200*time.Millisecond); dialErr == nil {
+		_ = conn.Close()
+		if localAuth {
+			return fmt.Errorf("RPC address %s is already in use; refusing to adopt an existing listener while local auth is enabled", listenAddr)
+		}
+		log.Info().Str("addr", listenAddr).Msg("drivechaind already running on this port; exiting (will be adopted by caller)")
+		return nil
+	}
+
+	// Load binary configs from JSON (in bitwindow dir), falling back to hardcoded defaults
+	configPath := orchestrator.ConfigFilePath(bitwindowDir)
+	configs := orchestrator.LoadConfigFile(configPath, log)
+	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
+	orch.SetBackendOnly(cfg.ForceBackend)
+	exited := make(chan struct{})
+	var exitOnce sync.Once
+	orch.SetExit(func(code int) {
+		if cfg.Exit != nil {
+			cfg.Exit(code)
+			return
+		}
+		exitOnce.Do(func() { close(exited) })
+	})
+
+	// Whoever holds this owns the binaries in dataDir. The kernel frees it when
+	// the holder dies, so a leftover from a crashed run is ours to stop.
+	orch.ClaimOwnerLock(ctx, dataDir)
+
+	orch.StartReleaseChecks(ctx)
+
+	// Local RPC auth (bitcoind-style cookie). When enabled, a fresh token is
+	// written once this process owns the listener (see WriteCookie below) — it
+	// overwrites any stale one, so we never delete the cookie out from under a
+	// client. When disabled, drop any leftover cookie so nothing presents it.
+	// authIC is added to every handler below, so all endpoints are authed
+	// uniformly.
+	authIC := localauth.Interceptor("")
+	authDir := ""
+	if localAuth {
+		authIC = localauth.Interceptor(bitwindowDir)
+		authDir = bitwindowDir
+	} else if err := localauth.RemoveCookie(bitwindowDir); err != nil {
+		log.Warn().Err(err).Msg("could not clear stale local auth cookie")
+	}
+
+	// Watch config file for changes
+	stopWatch, err := orchestrator.WatchConfigFile(configPath, func(newConfigs []orchestrator.BinaryConfig) {
+		orch.UpdateConfigs(newConfigs)
+	}, log)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to watch config file")
+	} else {
+		defer stopWatch()
+	}
+
+	// Initialize wallet service
+	walletSvc := wallet.NewService(bitwindowDir, log)
+	walletSvc.SetNetwork(orch.CurrentNetwork())
+	walletSvc.OnStopAllBinaries = func() error {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		ch, err := orch.ShutdownAll(shutdownCtx, false)
+		if err != nil {
+			return err
+		}
+
+		for progress := range ch {
+			if progress.Error != nil {
+				return progress.Error
+			}
+		}
+
+		return nil
+	}
+	walletSvc.GetBinaryWalletPaths = orch.BinaryWalletPaths
+	if orch.BitcoinConf != nil {
+		walletSvc.CoreDataDir = config.BitcoinCoreDirs.RootDirNetwork(orch.BitcoinConf.Network)
+	}
+	if err := walletSvc.Init(); err != nil {
+		return fmt.Errorf("init wallet service: %w", err)
+	}
+	defer walletSvc.Close()
+	orch.WalletSvc = walletSvc
+
+	// A saved job that stopped in its download changed no file, but it refuses every node start.
+	if err := orch.DropUnstartedECashMigration(); err != nil {
+		return fmt.Errorf("drop the unstarted ECX migration: %w", err)
+	}
+
+	// Adopt orphaned processes from previous session
+	if err := orch.AdoptOrphans(ctx); err != nil {
+		log.Warn().Err(err).Msg("adopt orphans")
+	}
+
+	// Strictly after AdoptOrphans: a eCash network rollover wipes chain
+	// data, and it decides whether that is safe by asking whether bitcoind is
+	// running. Before adoption the process manager is empty, so a Core still
+	// alive from the previous session would look stopped and have its blocks
+	// renamed out from under it. Still before the listener binds, so the
+	// generation is settled before anything can be served.
+	orch.ResolveNetworkCatalog(ctx)
+
+	// A swap that died between the park and the conf write left this network's
+	// state parked. Bring it back before anything opens the datadir.
+	//
+	// Fatal: the listener and the --binary auto-boot both start daemons, and a
+	// daemon over an absent path builds fresh state that hides the real one.
+	if err := orch.RestoreParkedSwapState(); err != nil {
+		return fmt.Errorf("restore parked network-swap state: %w", err)
+	}
+
+	if err := orch.ApplyPendingEnforcerWipe(); err != nil {
+		return fmt.Errorf("apply the enforcer cleanup a switch left behind: %w", err)
+	}
+
+	// Set up gRPC/ConnectRPC server
+	handler := api.NewHandler(orch)
+	mux := http.NewServeMux()
+	rpcServer := connect.NewServer(localauth.ServerInterceptor(authDir))
+	if localAuth {
+		// Allows a relaunched bitwindowd to verify that an occupied RPC port is
+		// the previous drivechaind without sending the bearer cookie to an
+		// arbitrary listener.
+		mux.HandleFunc("/local-auth/challenge", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			nonce := r.URL.Query().Get("nonce")
+			if nonce == "" || len(nonce) > 256 {
+				http.Error(w, "invalid nonce", http.StatusBadRequest)
+				return
+			}
+			token, err := localauth.ReadCookie(bitwindowDir)
+			if err != nil {
+				http.Error(w, "read auth cookie", http.StatusInternalServerError)
+				return
+			}
+			if token == "" {
+				http.Error(w, "auth cookie missing", http.StatusServiceUnavailable)
+				return
+			}
+			_, _ = io.WriteString(w, localauth.ChallengeResponse(token, nonce))
+		})
+	}
+
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, handler)
+
+	// Wallet manager service
+	walletHandler := api.NewWalletHandler(walletSvc)
+	walletHandler.SetOrchestrator(orch)
+	bip47SendStore := bip47state.NewStore(walletSvc.NetworkDir())
+	walletHandler.SetBip47StateStore(bip47SendStore)
+
+	multisigLoungeHandler := api.NewMultisigLoungeHandler()
+	multisigLoungeHandler.SetService(walletSvc)
+	multisigLoungeHandler.SetCoreCaller(handler.RawCoreCall)
+
+	// bitwindow-bitcoin.conf wins over the --network flag, which drivechaind
+	// is usually launched without.
+	currentNetwork := func() string {
+		if n := orch.CurrentNetwork(); n != "" {
+			return n
+		}
+		return network
+	}
+	// Every key path, address and hardware request takes its coin from these
+	// params. A guess reaches a device as the wrong coin, so an unknown network
+	// stops the daemon here rather than deeper, one wrong answer at a time.
+	if _, known := config.LookupNetwork(currentNetwork()); !known {
+		return fmt.Errorf("unknown network %q", currentNetwork())
+	}
+	netParams := wallet.ParamsFunc(func() *chaincfg.Params {
+		n, known := config.LookupNetwork(currentNetwork())
+		if !known {
+			panic(fmt.Sprintf("network %q became unknown after startup", currentNetwork()))
+		}
+		return config.ChainParamsFor(n)
+	})
+	orch.NetParams = netParams
+
+	// Chain wallet provider — CoreBackend today; electrum/btcd providers
+	// slot in behind the same wallet.Backend interface.
+	var chainBackend wallet.Backend
+	var localChain wallet.ChainSource
+	if orch.BitcoinConf != nil {
+		orch.ChainData().Start(ctx)
+
+		// Port and credentials both move with the network.
+		// Every RPC call resolves the endpoint again, and Core writes the
+		// cookie seconds after boot. Without the gate one missing cookie fills
+		// the log with thousands of copies of the same line.
+		credGate := &changeGate{}
+		coreEndpoint := func() wallet.CoreEndpoint {
+			endpoint := wallet.CoreEndpoint{
+				Host: orch.BitcoinConf.GetRPCHost(),
+				Port: orch.BitcoinConf.GetRPCPort(),
+			}
+			user, password, err := orch.BitcoinConf.GetRPCCredentials()
+			if err != nil {
+				if credGate.fires(err.Error()) {
+					log.Warn().Err(err).Msg("core wallet rpc has no credentials")
+				}
+				return endpoint
+			}
+			if credGate.fires("") {
+				log.Info().Msg("core wallet rpc got its credentials")
+			}
+			endpoint.User, endpoint.Password = user, password
+			return endpoint
+		}
+		coreRPC := wallet.NewCoreRPCClient(coreEndpoint)
+		coreRPC.Cache = orch.ChainData()
+		coreBackend := wallet.NewCoreBackend(walletSvc, coreRPC, netParams, log)
+		chainBackend = coreBackend
+		localChain = coreBackend.Chain()
+		log.Info().Int("rpc_port", coreEndpoint().Port).Msg("core wallet provider initialized")
+	}
+
+	if _, ok := orch.Configs()["enforcer"]; ok {
+		// Enforcer passthrough: sidechain apps funnel all enforcer traffic
+		// through drivechaind instead of dialing the enforcer directly.
+		enforcerBridge := enforcerproxy.ConnectDynamic(orch.EnforcerURL, transportLog)
+		for _, svc := range []string{
+			enforcerrpc.ValidatorServiceName,
+			cryptorpc.CryptoServiceName,
+			// The proposal and ACK RPCs the enforcer moved off its wallet.
+			enforcerrpc.BlockProducerServiceName,
+			// Mining, so a regtest operator can produce the mainchain block
+			// that takes a BMM bid without reaching past the orchestrator.
+			enforcerrpc.MiningServiceName,
+		} {
+			mux.Handle("/"+svc+"/", localauth.Middleware(authDir, enforcerBridge))
+		}
+		mux.Handle("/enforcer/jsonrpc", localauth.Middleware(authDir, enforcerproxy.JSONRPC(config.EnforcerJSONRPCAddr())))
+	}
+
+	// Electrum wallet provider — derives BIP84 keys locally and reads/broadcasts
+	// chain state over the Esplora REST API. The wallet backend speaks Esplora,
+	// so it needs an Esplora endpoint; bitwindow's higher-level reads route
+	// through the hosted orchestrator separately (see Server.buildDataSource).
+	// Endpoint and params are looked up per call from the orchestrator's current
+	// network, so a network swap applies without restarting the process.
+	resolveChainTarget := func() wallet.ChainTarget {
+		current := currentNetwork()
+		net := config.NetworkFromString(current)
+		urls := config.WalletChainSourceURLsForNetwork(net)
+		// A persisted runtime override replaces the network default endpoint.
+		if override := orch.ElectrumServerOverride(); override != "" {
+			urls = []string{override}
+		}
+		return wallet.ChainTarget{Network: current, URLs: urls, Params: netParams()}
+	}
+
+	chainSource := wallet.NewNetworkChainSource(resolveChainTarget, log)
+	if torEnabled, torProxy := orch.TorConfigOverride(); torEnabled && torProxy != "" {
+		if err := chainSource.SetProxy(true, torProxy); err != nil {
+			return fmt.Errorf("apply persisted tor proxy %q: %w", torProxy, err)
+		}
+		log.Info().Str("tor_proxy", torProxy).Msg("electrum wallet routing through tor proxy")
+	}
+	orch.SetChainTipSource(chainSource)
+	electrumBackend := wallet.NewElectrumBackend(walletSvc, chainSource, netParams, log)
+	log.Info().Strs("chain_source_urls", resolveChainTarget().URLs).Msg("electrum wallet provider initialized")
+
+	router := wallet.NewBackendRouter(walletSvc, chainBackend, electrumBackend)
+	walletEngine := wallet.NewWalletEngine(walletSvc, router, netParams, log)
+	walletEngine.OnNetworkReset(func(dir string) { bip47SendStore.Rebind(dir) })
+	orch.SetWalletEngine(walletEngine)
+	walletHandler.SetEngine(walletEngine)
+	multisigLoungeHandler.SetEngine(walletEngine)
+
+	if chainBackend != nil {
+		// Fork engine: single source of truth for eCash fork state, needs
+		// Core-backed wallet access for its claimable scan.
+		orch.InitForkEngine(walletEngine)
+		go orch.RunStrandedRelease(ctx)
+
+		// Split engine: one BTC-mainnet lookup per claimable outpoint, so the
+		// claim UI can mark which coins are splittable.
+		splitClient := wallet.NewEsploraClient(config.SplitCheckEsploraURLs(), log)
+		splitClient.SetMinInterval(500 * time.Millisecond)
+		// The split client obeys the same Tor routing as the wallet chain
+		// source — persisted config at boot, runtime changes via the backend.
+		if torEnabled, torProxy := orch.TorConfigOverride(); torEnabled && torProxy != "" {
+			if err := splitClient.SetProxy(true, torProxy); err != nil {
+				return fmt.Errorf("apply persisted tor proxy %q to split client: %w", torProxy, err)
+			}
+		}
+		if electrumBackend != nil {
+			electrumBackend.OnProxyChange(splitClient.SetProxy)
+		}
+		splitEngine := engines.NewSplitEngine(log, orch, orch, splitClient, localChain, walletSvc, currentNetwork)
+		walletEngine.OnNetworkReset(splitEngine.ResetForNetwork)
+		go func() {
+			if err := splitEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				log.Error().Err(err).Msg("split engine exited")
+			}
+		}()
+	}
+
+	// BIP47 receive engine: watches each BIP47-capable wallet's (Core + electrum)
+	// notification address for incoming notification txs, decodes their OP_RETURN
+	// payload to recover the sender's payment code, and imports per-payment
+	// receive keys so subsequent payments are spendable. Starts whenever any
+	// BIP47-capable backend is configured — an electrum-only wallet needs it too.
+	if chainBackend != nil || electrumBackend != nil {
+		bip47InboundStore := bip47state.NewInboundStore(walletSvc.NetworkDir())
+		bip47Engine := engines.NewBIP47Engine(log, walletSvc, walletEngine, bip47InboundStore)
+		walletEngine.OnNetworkReset(bip47Engine.ResetForNetwork)
+		go func() {
+			if err := bip47Engine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				log.Error().Err(err).Msg("bip47 engine exited")
+			}
+		}()
+	}
+
+	// Wallet sync engine: keeps every electrum wallet on the current network
+	// warm, so switching wallets serves stored history with no scan wait.
+	if electrumBackend != nil {
+		walletSyncEngine := engines.NewWalletSyncEngine(log, walletSvc, walletEngine)
+		walletEngine.OnNetworkReset(walletSyncEngine.ResetForNetwork)
+		go func() {
+			if err := walletSyncEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				log.Error().Err(err).Msg("wallet sync engine exited")
+			}
+		}()
+	}
+
+	// Deposit watch engine: a deposit that loses the race for the treasury
+	// output leaves the mempool and never confirms. Nothing else notices, so
+	// it would count as pending for ever.
+	depositWatch := engines.NewDepositWatchEngine(log, walletSvc, walletEngine, func() []uint32 {
+		// The deposits themselves name the slots. A slot the enforcer holds
+		// takes a deposit even with no binary configured here, and a slot with
+		// no open deposit costs nothing to skip.
+		slots, err := walletSvc.SidechainDepositSlots(ctx)
+		if err != nil {
+			log.Warn().Err(err).Msg("could not list the slots with open deposits")
+			return nil
+		}
+		return slots
+	})
+	walletEngine.OnNetworkReset(depositWatch.ResetForNetwork)
+	go func() {
+		if err := depositWatch.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Error().Err(err).Msg("deposit watch engine exited")
+		}
+	}()
+
+	seedPeer := engines.NewSeedPeerEngine(log, orch)
+	go func() {
+		if err := seedPeer.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Error().Err(err).Msg("seed peer engine exited")
+		}
+	}()
+
+	// BMM engine: bids for sidechain blocks on every new mainchain tip and
+	// connects the blocks miners take, with no frontend attached.
+	bmmHandler := api.NewBMMHandler(orch, walletHandler)
+	bmmStore := bmmstate.NewStore(walletSvc.NetworkDir(), 0)
+	bmmEngine := engines.NewBmmEngine(log, bmmHandler, orch, orch, bmmStore)
+	bmmHandler.SetEngine(bmmEngine)
+	walletSvc.SetFrozenCoins(bmmHandler.FrozenCoins)
+	walletEngine.OnNetworkReset(bmmEngine.ResetForNetwork)
+	go func() {
+		if err := bmmEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Error().Err(err).Msg("bmm engine exited")
+		}
+	}()
+
+	bmmrpc.RegisterBMMServiceHandler(rpcServer, bmmHandler)
+
+	stratumHandler := api.NewStratumHandler(ctx, api.StratumDeps{
+		Network:  orch,
+		Settings: orch.Settings,
+		PayoutAddress: func(context.Context) (string, error) {
+			return walletSvc.CoinbaseRecipient(orch.NetParams.Resolve())
+		},
+		Core:        handler.RawCoreCall,
+		HistoryPath: api.HashrateHistoryPath(walletSvc.NetworkDir()),
+		HoldDaemon:  orch.HoldClients,
+		Log:         log.With().Str("component", "stratum").Logger(),
+	})
+	walletEngine.OnNetworkReset(stratumHandler.Reset)
+	stratumrpc.RegisterStratumServiceHandler(rpcServer, stratumHandler)
+
+	explorerHandler := api.NewExplorerHandler(orch)
+	explorerHandler.SetCoreCaller(handler.RawCoreCall)
+	explorerrpc.RegisterExplorerServiceHandler(rpcServer, explorerHandler)
+
+	walletrpc.RegisterWalletManagerServiceHandler(rpcServer, walletHandler)
+
+	multisigloungerpc.RegisterMultisigLoungeServiceHandler(rpcServer, multisigLoungeHandler)
+
+	// Bitcoin config service
+	if orch.BitcoinConf != nil {
+		confHandler := api.NewBitcoinConfHandler(orch)
+		rpc.RegisterBitcoinConfServiceHandler(rpcServer, confHandler)
+	}
+
+	// Bitcoin Core proxy (btc-buf BitcoinService) — single canonical route
+	// to bitcoind. Behind a swappable shim so a network swap can rebuild
+	// the underlying proxy with fresh creds without re-registering the mux
+	// path or restarting the orchestrator. OnNetworkChanged fires after
+	// SwapNetwork persists the new config.
+	if orch.BitcoinConf != nil {
+		// Meter every call through the proxy so we can see which bitcoind RPCs
+		// the frontend actually issues and how slow each is. authIC stays
+		// outermost (auth before metering); meterIC times only the post-auth
+		// handler. Logs a per-method summary every coreMeterInterval.
+		const coreMeterInterval = 5 * time.Minute
+		meterIC := rpcmeter.New(ctx, log, coreMeterInterval).Interceptor()
+
+		swappable := newSwappableHandler()
+		// The proxy authenticates via the cookie file and re-reads it on Core
+		// restarts, so it only needs rebuilding on a network swap.
+		var coreProxyMu sync.Mutex
+		rebuildCoreProxy := func(reason string) {
+			coreProxyMu.Lock()
+			defer coreProxyMu.Unlock()
+
+			proxy, err := startCoreProxy(ctx, orch, log)
+			if err != nil {
+				log.Warn().Err(err).Str("reason", reason).Msg("failed to start bitcoin core proxy")
+				return
+			}
+			_, h := corerpc.NewBitcoinServiceHandler(proxy, coreProxyHandlerOptions(authIC, meterIC, orch.ChainData().Interceptor()))
+			swappable.swap(h)
+			log.Info().Str("reason", reason).Msg("bitcoin core proxy ready")
+		}
+		rebuildCoreProxy("startup")
+		// The path is constant; register once.
+		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, coreProxyHandlerOptions(authIC, meterIC, orch.ChainData().Interceptor()))
+		mux.Handle(corePath, swappable)
+		log.Info().Str("service", "bitcoin.bitcoind.v1alpha.BitcoinService").Msg("registered bitcoin core proxy")
+
+		orch.BitcoinConf.OnNetworkChanged = func() {
+			rebuildCoreProxy("network swap")
+			orch.ChainData().Restart()
+			log.Info().Str("network", string(orch.BitcoinConf.Network)).Msg("rebuilt bitcoin core proxy for new network")
+		}
+	}
+
+	// Enforcer config service
+	if orch.EnforcerConf != nil {
+		enforcerHandler := api.NewEnforcerConfHandler(orch.EnforcerConf)
+		rpc.RegisterEnforcerConfServiceHandler(rpcServer, enforcerHandler)
+	}
+
+	// Generic sidechain config service (all sidechains)
+	sidechainConfHandler := api.NewSidechainConfHandler(orch.SidechainConfs)
+	rpc.RegisterSidechainConfServiceHandler(rpcServer, sidechainConfHandler)
+
+	// Per-sidechain typed RPC services (proxy to sidechain binary JSON-RPC)
+	thunderEsploraURL := cfg.ThunderEsploraURL
+	sidechainServer := connect.NewServer(localauth.ServerInterceptor(authDir), sidechain.KeepErrorText())
+	for name, cfg := range orch.Configs() {
+		proxy := nodes.Proxy(name, cfg.RPCHost(), cfg.Port, config.Network(orch.Network))
+		switch name {
+		case "thunder":
+			h := thundersvc.NewHandlerWithIndex(proxy, thunderEsploraURL)
+			thunderrpc.RegisterThunderServiceHandler(sidechainServer, h)
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "bitnames":
+			h := bitnamessvc.NewHandler(proxy)
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			bitnamesrpc.RegisterBitnamesServiceHandler(sidechainServer, h)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "bitassets":
+			h := bitassetssvc.NewHandler(proxy)
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			bitassetsrpc.RegisterBitAssetsServiceHandler(sidechainServer, h)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "photon":
+			h := photonsvc.NewHandler(proxy)
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			photonrpc.RegisterPhotonServiceHandler(sidechainServer, h)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "truthcoin":
+			h := truthcoinsvc.NewHandler(proxy)
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			truthcoinrpc.RegisterTruthcoinServiceHandler(sidechainServer, h)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "coinshift":
+			h := coinshiftsvc.NewHandler(proxy)
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			coinshiftrpc.RegisterCoinShiftServiceHandler(sidechainServer, h)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "zside":
+			h := zsidesvc.NewHandler(proxy)
+			zsiderpc.RegisterZSideServiceHandler(sidechainServer, h)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "bbc":
+			// Core derived: its own client, authenticated by the node's cookie.
+			dirs, ok := config.DirConfigByName(name)
+			if !ok {
+				log.Warn().Str("sidechain", name).Msg("no directory config; skipping RPC service")
+				continue
+			}
+			cookie := filepath.Join(dirs.DatadirNetwork(config.Network(orch.Network), ""), ".cookie")
+			h := bbcsvc.NewHandler(bbcsvc.NewClient(cfg.RPCHost(), cfg.Port, cookie))
+			bbcrpc.RegisterBbcServiceHandler(sidechainServer, h)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		}
+	}
+
+	connecthttp.Mount(mux, rpcServer, mountOptions()...)
+	connecthttp.Mount(mux, sidechainServer, mountOptions()...)
+
+	// h2c (HTTP/2 cleartext) via http.Server.Protocols — the ConnectRPC-blessed
+	// replacement for h2c.NewHandler. Carries Connect, gRPC and gRPC-Web on one
+	// listener. SendPingTimeout preserves the old http2.Server.ReadIdleTimeout
+	// behavior: ping every 30s of idle to evict dead connections.
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+	clients := lease.New(cfg.OwnerPID, lease.DefaultGrace, func() {
+		log.Info().Msg("no clients left and the owner is gone, shutting down")
+		orch.RequestExit()
+	})
+	orch.SetLease(clients)
+
+	srv := &http.Server{
+		ConnState: clients.ConnState,
+		ErrorLog:  transportLog,
+		Handler:   localauth.LoopbackHost(listenAddr, mux),
+		Protocols: protocols,
+		HTTP2:     &http.HTTP2Config{SendPingTimeout: 30 * time.Second},
+		// A socket that never sends a request would hold the lease forever.
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	// Bind listener first so we know the port is ours before logging.
+	lis, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		return fmt.Errorf("listen %s: %w", listenAddr, err)
+	}
+	if localAuth {
+		if _, err := localauth.WriteCookie(bitwindowDir); err != nil {
+			_ = lis.Close()
+			return fmt.Errorf("write local auth cookie: %w", err)
+		}
+		log.Info().Str("cookie", localauth.CookiePath(bitwindowDir)).Msg("local RPC auth enabled")
+	}
+	log.Info().Str("addr", lis.Addr().String()).Msg("serving gRPC")
+
+	errs := make(chan error, 1)
+	go func() {
+		if err := srv.Serve(lis); err != nil && err != http.ErrServerClosed {
+			errs <- fmt.Errorf("serve: %w", err)
+		}
+	}()
+
+	go clients.Run(ctx)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(hwiWarmDelay):
+		}
+		if err := wallet.WarmHWIDaemon(ctx, netParams()); err != nil {
+			log.Warn().Err(err).Msg("could not start the hardware wallet daemon before use")
+		}
+	}()
+
+	if err := orch.ConnectRemoteEnforcer(ctx); err != nil {
+		return err
+	}
+
+	// After the network, its parked state and the chain params are settled: a
+	// wallet swap parks wallet.mdb under the eCash network and may start L1.
+	orch.WatchSidechainWallets(ctx)
+
+	// Auto-boot sidechains specified via --binary flags
+	binariesToBoot := cfg.Binaries
+	forceBackend := orch.BackendOnly()
+	for _, name := range binariesToBoot {
+		go func(target string) {
+			log.Info().Str("binary", target).Bool("force_backend", forceBackend).Msg("auto-booting sidechain with deps")
+			ch, err := orch.StartWithL1(ctx, target, orchestrator.StartOpts{
+				TargetArgs:   []string{"--headless"},
+				ForceBackend: forceBackend,
+			})
+			if err != nil {
+				log.Error().Err(err).Str("binary", target).Msg("failed to start sidechain")
+				return
+			}
+			for p := range ch {
+				if p.Done {
+					log.Info().Str("binary", target).Msg("sidechain startup complete")
+					break
+				}
+				if p.Error != nil {
+					log.Error().Err(p.Error).Str("binary", target).Msg("sidechain startup error")
+					break
+				}
+			}
+		}(name)
+	}
+
+	// Wait for shutdown signal or error
+	select {
+	case <-ctx.Done():
+		log.Info().Msg("received shutdown signal")
+	case <-exited:
+		log.Info().Msg("drivechaind shutdown complete")
+		return shutdownServer(srv)
+	case err := <-errs:
+		log.Error().Err(err).Msg("server error")
+		cancel()
+	}
+
+	// Route signal-driven shutdown through the same state machine the
+	// Shutdown RPC uses. BeginShutdown drains children in a goroutine and then
+	// calls the exit; AwaitShutdownIdle blocks until the drain finishes.
+	log.Info().Msg("shutting down managed binaries...")
+	orch.BeginShutdown(false)
+	_ = orch.AwaitShutdownIdle(context.Background())
+	if cfg.Exit != nil {
+		cfg.Exit(0)
+	}
+
+	log.Info().Msg("drivechaind shutdown complete")
+	return shutdownServer(srv)
+}
+
+// shutdownServer closes the RPC listener, so a next Run in this process can bind it.
+func shutdownServer(srv *http.Server) error {
+	if err := srv.Close(); err != nil {
+		return fmt.Errorf("close RPC server: %w", err)
+	}
+	return nil
+}
+
+// swappableHandler holds an http.Handler atomically so the registered
+// /bitcoin.bitcoind.v1alpha.BitcoinService/ path can swap its dispatch
+// target on network change without re-registering the mux.
+type swappableHandler struct {
+	inner atomic.Pointer[http.Handler]
+}
+
+func newSwappableHandler() *swappableHandler {
+	return &swappableHandler{}
+}
+
+func (s *swappableHandler) swap(h http.Handler) {
+	s.inner.Store(&h)
+}
+
+func (s *swappableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	cur := s.inner.Load()
+	if cur == nil {
+		http.Error(w, "bitcoin service not ready", http.StatusServiceUnavailable)
+		return
+	}
+	(*cur).ServeHTTP(w, r)
+}
+
+// noopBitcoinService satisfies the BitcoinServiceHandler interface for the
+// sole purpose of asking corerpc.NewBitcoinServiceHandler what mux path to
+// register under. The returned handler is discarded — only the path is used.
+type noopBitcoinService struct {
+	corerpc.UnimplementedBitcoinServiceHandler
+}
+
+// startCoreProxy initializes the btc-buf BitcoinService proxy against the
+// bitcoind managed by this orchestrator. The proxy survives a not-yet-running
+// bitcoind via WithoutInitialConnectionCheck — btc-buf's rpcclient reconnects
+// once Core comes up.
+func startCoreProxy(ctx context.Context, orch *orchestrator.Orchestrator, log zerolog.Logger) (*coreproxy.Bitcoind, error) {
+	port := orch.BitcoinConf.GetRPCPort()
+	host := fmt.Sprintf("%s:%d", orch.BitcoinConf.GetRPCHost(), port)
+
+	// Explicit creds win; otherwise pass the cookie path so the proxy re-reads
+	// it on Core restarts instead of pinning a rotated-out cookie. Empty creds
+	// fall through to cookie auth, so the proxy can start before Core writes it.
+	explicitUser, explicitPass := orch.BitcoinConf.GetExplicitRPCCredentials()
+	log.Info().Str("host", host).Str("user", explicitUser).Msg("starting Bitcoin Core proxy")
+
+	// Quiet the proxy's connection logs — its rpcclient retries on a tight
+	// loop while bitcoind is starting and floods stdout otherwise.
+	proxyLog := log.Level(zerolog.WarnLevel)
+	initCtx := proxyLog.WithContext(ctx)
+
+	return coreproxy.NewBitcoind(
+		initCtx, host, explicitUser, explicitPass,
+		coreproxy.WithCookiePath(orch.BitcoinConf.GetRPCCookiePath()),
+		coreproxy.WithLogging(func(_ context.Context) *zerolog.Logger { return &proxyLog }),
+		coreproxy.WithoutInitialConnectionCheck(),
+	)
+}
+
+// changeGate reports a state one time and stays quiet until the state changes.
+// A closure that runs per RPC call uses it to keep one cause to one log line.
+type changeGate struct {
+	mu     sync.Mutex
+	last   string
+	report bool
+}
+
+func (g *changeGate) fires(state string) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.report && state == g.last {
+		return false
+	}
+	g.last, g.report = state, true
+	return true
+}
