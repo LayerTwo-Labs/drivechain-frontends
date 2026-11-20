@@ -2,6 +2,7 @@ import 'package:bitwindow/pages/root_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sail_ui/sail_ui.dart' show openLogsMenuItem;
 
 import 'test_utils.dart';
 
@@ -11,10 +12,7 @@ void main() {
   testWidgets('About dialog renders refreshed copy', (tester) async {
     await tester.pumpSailPage(const AboutBitwindowDialog());
 
-    expect(
-      find.textContaining('BitWindow — GUI for the BIP300/301 sidechain enforcer.'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('BitWindow — GUI for the BIP300/301 sidechain enforcer.'), findsOneWidget);
     expect(find.textContaining('2009-2026 The Drivechain developers'), findsOneWidget);
     expect(find.textContaining('2009-2026 The Bitcoin Core developers'), findsOneWidget);
 
@@ -53,10 +51,7 @@ void main() {
         for (final hasWallet in [false, true]) {
           for (final group in build(encrypted: encrypted, hasWallet: hasWallet)) {
             expect(
-              () => group.toChannelRepresentation(
-                DefaultPlatformMenuDelegate(),
-                getId: (_) => 0,
-              ),
+              () => group.toChannelRepresentation(DefaultPlatformMenuDelegate(), getId: (_) => 0),
               returnsNormally,
             );
           }
@@ -74,16 +69,80 @@ void main() {
       final items = buildVisibilityMenuItems();
       expect(items, hasLength(1));
       expect(items.single.label, 'Minimize bitwindow');
-      expect(
-        items.single.shortcut,
-        const SingleActivator(LogicalKeyboardKey.keyM, meta: true),
-      );
+      expect(items.single.shortcut, const SingleActivator(LogicalKeyboardKey.keyM, meta: true));
 
       expect(
         items.where((m) => m.label == 'Hide bitwindow' || m.label == 'Show All'),
         isEmpty,
         reason: 'hide/show-all must not return as menu items — bringing the window back relied on a dock icon that hide() removed',
       );
+    });
+  });
+
+  group('phoneMenus', () {
+    void noop() {}
+    final about = PlatformMenuItem(label: 'About bitwindow', onSelected: noop);
+    final stats = PlatformMenuItem(label: 'Network Statistics', onSelected: noop);
+    final viewLogs = PlatformMenuItem(label: 'View Logs', onSelected: noop);
+    final desktop = [
+      PlatformMenu(
+        label: 'bitwindow',
+        menus: [
+          PlatformMenuItemGroup(members: [about]),
+          PlatformMenuItemGroup(members: buildVisibilityMenuItems()),
+          PlatformMenuItemGroup(
+            members: [PlatformMenuItem(label: 'Quit bitwindow', onSelected: noop)],
+          ),
+        ],
+      ),
+      PlatformMenu(
+        label: 'Work for Bitcoin',
+        menus: [
+          PlatformMenuItemGroup(
+            members: [
+              PlatformMenuItem(label: 'Mine', onSelected: noop),
+              stats,
+              PlatformMenuItem(label: 'Mining Pools', onSelected: noop),
+            ],
+          ),
+        ],
+      ),
+      PlatformMenu(
+        label: 'This Node',
+        menus: [
+          PlatformMenuItemGroup(members: [viewLogs, openLogsMenuItem()]),
+        ],
+      ),
+    ];
+
+    List<PlatformMenuItem> items(List<PlatformMenuItem> menus) => [
+      for (final entry in menus)
+        if (entry is PlatformMenuItemGroup)
+          ...items(entry.members)
+        else if (entry is PlatformMenu)
+          ...items(entry.menus)
+        else
+          entry,
+    ];
+
+    test('a phone gets no Mine, Mining Pools, Minimize, Quit or Open Logs', () {
+      final phone = items(phoneMenus(desktop));
+
+      expect(phone, [about, stats, viewLogs], reason: 'the kept items carry the desktop actions');
+    });
+
+    test('a phone keeps every menu as a section, in the desktop order', () {
+      expect(
+        [for (final menu in phoneMenus(desktop).cast<PlatformMenu>()) menu.label],
+        ['bitwindow', 'Work for Bitcoin', 'This Node'],
+      );
+    });
+
+    test('the desktop menus keep every item', () {
+      phoneMenus(desktop);
+
+      expect(items(desktop).map((i) => i.label), contains('Quit bitwindow'));
+      expect(items(desktop), hasLength(8));
     });
   });
 }
