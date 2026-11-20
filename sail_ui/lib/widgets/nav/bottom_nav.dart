@@ -249,180 +249,186 @@ class BottomNav extends StatelessWidget {
     ConnectionMonitor additionalConnection,
     bool onlyShowAdditional,
   ) {
-    widgetDialog(
-      context: context,
-      title: 'Daemon Status',
-      child: ViewModelBuilder.reactive(
-        viewModelBuilder: () => BottomNavViewModel(
-          mainchainInfo: mainchainInfo,
-          additionalConnection: additionalConnection,
-          navigateToLogs: navigateToLogs,
-        ),
-        builder: ((context, model, child) {
-          final binaryProvider = GetIt.I.get<BinaryProvider>();
-          final walletNeedsBackends = NodeModeProvider.runsLocalBackends;
-          final runLocally = onRunLocally;
-          final lightRemote = runLocally != null && (model.nodeMode?.isLight ?? false);
-          final showMainchain = showDaemonCard(
-            walletNeedsBackends: walletNeedsBackends,
-            connected: model.mainchain.connected,
-            initializing: model.mainchain.initializingBinary,
-          );
-          final showEnforcer = showDaemonCard(
-            walletNeedsBackends: model.needsEnforcer,
-            connected: model.enforcer.connected,
-            initializing: model.enforcer.initializingBinary,
-          );
-          final additional = additionalConnection.rpc;
-          final showAdditional = showDaemonCard(
-            walletNeedsBackends: model.needsAdditional,
-            connected: additional.connected,
-            initializing: additional.initializingBinary,
-          );
+    final content = ViewModelBuilder.reactive(
+      viewModelBuilder: () => BottomNavViewModel(
+        mainchainInfo: mainchainInfo,
+        additionalConnection: additionalConnection,
+        navigateToLogs: navigateToLogs,
+      ),
+      builder: ((context, model, child) {
+        final binaryProvider = GetIt.I.get<BinaryProvider>();
+        final walletNeedsBackends = NodeModeProvider.runsLocalBackends;
+        final runLocally = onRunLocally;
+        final lightRemote = runLocally != null && (model.nodeMode?.isLight ?? false);
+        final showMainchain = showDaemonCard(
+          walletNeedsBackends: walletNeedsBackends,
+          connected: model.mainchain.connected,
+          initializing: model.mainchain.initializingBinary,
+        );
+        final showEnforcer = showDaemonCard(
+          walletNeedsBackends: model.needsEnforcer,
+          connected: model.enforcer.connected,
+          initializing: model.enforcer.initializingBinary,
+        );
+        final additional = additionalConnection.rpc;
+        final showAdditional = showDaemonCard(
+          walletNeedsBackends: model.needsAdditional,
+          connected: additional.connected,
+          initializing: additional.initializingBinary,
+        );
 
-          return SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding20,
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailColumn(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (lightRemote) ...[
+        return SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding20,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailColumn(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (lightRemote) ...[
+                    DaemonConnectionCard(
+                      connection: model.remoteChain,
+                      syncInfo: null,
+                      infoMessage: null,
+                      remote: true,
+                      remoteBadge: true,
+                      navigateToLogs: model.navigateToLogs,
+                    ),
+                    if (model.needsEnforcer)
                       DaemonConnectionCard(
-                        connection: model.remoteChain,
+                        connection: model.enforcer,
                         syncInfo: null,
                         infoMessage: null,
                         remote: true,
                         remoteBadge: true,
                         navigateToLogs: model.navigateToLogs,
                       ),
-                      if (model.needsEnforcer)
-                        DaemonConnectionCard(
-                          connection: model.enforcer,
-                          syncInfo: null,
-                          infoMessage: null,
-                          remote: true,
-                          remoteBadge: true,
-                          navigateToLogs: model.navigateToLogs,
-                        ),
-                    ],
-                    if (!lightRemote &&
-                        showMainchain &&
-                        (!model.mainchain.connected ||
-                            !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
-                            !onlyShowAdditional))
-                      DaemonConnectionCard(
-                        connection: model.mainchain,
-                        syncInfo: model.syncProvider.mainchainSyncInfo,
-                        restartDaemon: () => binaryProvider.restart(
-                          binaryProvider.binaries.firstWhere(
-                            (b) => b.name == BitcoinCore().name,
-                          ),
-                        ),
-                        stopDaemon: () => binaryProvider.stop(
-                          binaryProvider.binaries.firstWhere(
-                            (b) => b.name == BitcoinCore().name,
-                          ),
-                        ),
-                        infoMessage: null,
-                        navigateToLogs: model.navigateToLogs,
-                        onOpenConfConfigurator: onOpenConfConfigurator,
-                      ),
-                    if (!lightRemote &&
-                        showEnforcer &&
-                        (!model.enforcer.connected ||
-                            !(model.syncProvider.enforcerSyncInfo?.allSyncsComplete ?? false) ||
-                            !onlyShowAdditional))
-                      DaemonConnectionCard(
-                        connection: model.enforcer,
-                        syncInfo: model.syncProvider.enforcerSyncInfo,
-                        remote: !walletNeedsBackends,
-                        infoMessage: model.mainchain.initializingBinary
-                            ? 'Waiting for mainchain to finish initializing'
-                            : model.syncProvider.inHeaderSync
-                            ? 'Waiting for L1 to sync headers...'
-                            : null,
-                        restartDaemon: walletNeedsBackends
-                            ? () => binaryProvider.restart(
-                                binaryProvider.binaries.firstWhere(
-                                  (b) => b.name == Enforcer().name,
-                                ),
-                              )
-                            : null,
-                        stopDaemon: walletNeedsBackends
-                            ? () => binaryProvider.stop(
-                                binaryProvider.binaries.firstWhere(
-                                  (b) => b.name == Enforcer().name,
-                                ),
-                              )
-                            : null,
-                        navigateToLogs: model.navigateToLogs,
-                        onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
-                      ),
-                    if (showAdditional)
-                      Builder(
-                        builder: (context) {
-                          final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
-                          final bool coreReady =
-                              !model.needsBackends ||
-                              !isSidechain ||
-                              (model.mainchain.connected &&
-                                  !model.mainchain.initializingBinary &&
-                                  model.mainchain.startupError == null &&
-                                  !model.syncProvider.inHeaderSync);
-                          final infoMessage = additionalDaemonWait(
-                            headerSyncPending: isSidechain && !coreReady,
-                            waitsForCore: model.additionalSyncInfo?.waitsForCore ?? false,
-                          );
-                          return DaemonConnectionCard(
-                            connection: additionalConnection.rpc,
-                            syncInfo: infoMessage == null ? model.additionalSyncInfo : null,
-                            infoMessage: infoMessage,
-                            restartDaemon: () => binaryProvider.restart(
-                              binaryProvider.binaries.firstWhere(
-                                (b) => b.name == additionalConnection.rpc.binary.name,
-                              ),
-                            ),
-                            stopDaemon: () => binaryProvider.stop(
-                              binaryProvider.binaries.firstWhere(
-                                (b) => b.name == additionalConnection.rpc.binary.name,
-                              ),
-                            ),
-                            navigateToLogs: model.navigateToLogs,
-                            onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
-                          );
-                        },
-                      ),
-                    // Everything else runs under drivechaind, and a hot start
-                    // adopts one this process never spawned. So it carries no
-                    // start or stop control.
-                    if (model.drivechaind case final orchestrator?)
-                      DaemonConnectionCard(
-                        connection: orchestrator,
-                        syncInfo: null,
-                        infoMessage: null,
-                        navigateToLogs: model.navigateToLogs,
-                      ),
                   ],
+                  if (!lightRemote &&
+                      showMainchain &&
+                      (!model.mainchain.connected ||
+                          !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
+                          !onlyShowAdditional))
+                    DaemonConnectionCard(
+                      connection: model.mainchain,
+                      syncInfo: model.syncProvider.mainchainSyncInfo,
+                      restartDaemon: () => binaryProvider.restart(
+                        binaryProvider.binaries.firstWhere(
+                          (b) => b.name == BitcoinCore().name,
+                        ),
+                      ),
+                      stopDaemon: () => binaryProvider.stop(
+                        binaryProvider.binaries.firstWhere(
+                          (b) => b.name == BitcoinCore().name,
+                        ),
+                      ),
+                      infoMessage: null,
+                      navigateToLogs: model.navigateToLogs,
+                      onOpenConfConfigurator: onOpenConfConfigurator,
+                    ),
+                  if (!lightRemote &&
+                      showEnforcer &&
+                      (!model.enforcer.connected ||
+                          !(model.syncProvider.enforcerSyncInfo?.allSyncsComplete ?? false) ||
+                          !onlyShowAdditional))
+                    DaemonConnectionCard(
+                      connection: model.enforcer,
+                      syncInfo: model.syncProvider.enforcerSyncInfo,
+                      remote: !walletNeedsBackends,
+                      infoMessage: model.mainchain.initializingBinary
+                          ? 'Waiting for mainchain to finish initializing'
+                          : model.syncProvider.inHeaderSync
+                          ? 'Waiting for L1 to sync headers...'
+                          : null,
+                      restartDaemon: walletNeedsBackends
+                          ? () => binaryProvider.restart(
+                              binaryProvider.binaries.firstWhere(
+                                (b) => b.name == Enforcer().name,
+                              ),
+                            )
+                          : null,
+                      stopDaemon: walletNeedsBackends
+                          ? () => binaryProvider.stop(
+                              binaryProvider.binaries.firstWhere(
+                                (b) => b.name == Enforcer().name,
+                              ),
+                            )
+                          : null,
+                      navigateToLogs: model.navigateToLogs,
+                      onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
+                    ),
+                  if (showAdditional)
+                    Builder(
+                      builder: (context) {
+                        final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
+                        final bool coreReady =
+                            !model.needsBackends ||
+                            !isSidechain ||
+                            (model.mainchain.connected &&
+                                !model.mainchain.initializingBinary &&
+                                model.mainchain.startupError == null &&
+                                !model.syncProvider.inHeaderSync);
+                        final infoMessage = additionalDaemonWait(
+                          headerSyncPending: isSidechain && !coreReady,
+                          waitsForCore: model.additionalSyncInfo?.waitsForCore ?? false,
+                        );
+                        return DaemonConnectionCard(
+                          connection: additionalConnection.rpc,
+                          syncInfo: infoMessage == null ? model.additionalSyncInfo : null,
+                          infoMessage: infoMessage,
+                          restartDaemon: () => binaryProvider.restart(
+                            binaryProvider.binaries.firstWhere(
+                              (b) => b.name == additionalConnection.rpc.binary.name,
+                            ),
+                          ),
+                          stopDaemon: () => binaryProvider.stop(
+                            binaryProvider.binaries.firstWhere(
+                              (b) => b.name == additionalConnection.rpc.binary.name,
+                            ),
+                          ),
+                          navigateToLogs: model.navigateToLogs,
+                          onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
+                        );
+                      },
+                    ),
+                  // Everything else runs under drivechaind, and a hot start
+                  // adopts one this process never spawned. So it carries no
+                  // start or stop control.
+                  if (model.drivechaind case final orchestrator?)
+                    DaemonConnectionCard(
+                      connection: orchestrator,
+                      syncInfo: null,
+                      infoMessage: null,
+                      navigateToLogs: model.navigateToLogs,
+                    ),
+                ],
+              ),
+              if (lightRemote)
+                SailButton(
+                  label: 'Run everything locally',
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    runLocally();
+                  },
                 ),
-                if (lightRemote)
-                  SailButton(
-                    label: 'Run everything locally',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      runLocally();
-                    },
-                  ),
-              ],
-            ),
-          );
-        }),
-      ),
+            ],
+          ),
+        );
+      }),
     );
+
+    if (SailStyleValues.phoneLayout(context)) {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SailPhonePage(title: 'Daemon Status', child: content),
+        ),
+      );
+      return;
+    }
+    widgetDialog(context: context, title: 'Daemon Status', child: content);
   }
 }
 
