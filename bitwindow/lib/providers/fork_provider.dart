@@ -114,6 +114,8 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
 
   Timer? _timer;
   bool _fetching = false;
+  GetForkStatusResponse? _lastStatus;
+  List<WalletData>? _lastStatusWallets;
   bool _syncingSplits = false;
   bool _resyncQueued = false;
   bool _disposed = false;
@@ -226,6 +228,8 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     replayedTxids.clear();
     _dismissedClaimOutpoints.clear();
     walletsWithUnreadDrafts = {};
+    _lastStatus = null;
+    _lastStatusWallets = null;
     notifyListeners();
     fetch();
   }
@@ -259,43 +263,57 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     _fetching = true;
     try {
       final s = await _orchestrator.getForkStatus();
-      simulated = s.simulated;
-      forkHeight = s.forkHeight;
-      networkName = s.networkName;
-      replayLockTime = s.replayLockTime;
-      currentHeight = s.currentHeight;
-      currentHeaders = s.currentHeaders;
-      claimBoundary = s.claimBoundary;
-      hasFundsToClaim = s.hasFundsToClaim;
-      showCountdown = s.showCountdown;
-      claims = s.claims
-          .map(
-            (c) => WalletClaim(
-              walletId: c.walletId,
-              walletName: c.walletName,
-              claimableSats: c.claimableSats.toInt(),
-              multisig: _walletReader.wallets.where((w) => w.id == c.walletId).firstOrNull?.multisig,
-              walletResolved: _walletReader.wallets.any((w) => w.id == c.walletId),
-              utxos: c.utxos
-                  .map(
-                    (u) => bwpb.UnspentOutput(
-                      output: u.outpoint,
-                      address: u.address,
-                      label: u.label,
-                      valueSats: u.sats,
-                      height: u.height,
-                      splittable: u.hasSplittable() ? u.splittable : null,
-                    ),
-                  )
-                  .toList(),
-            ),
-          )
-          .toList();
+      final wallets = s.claims.isEmpty ? const <WalletData>[] : _walletReader.wallets;
+      final statusChanged = !claimsLoaded || s != _lastStatus || !identical(wallets, _lastStatusWallets);
+      if (statusChanged) {
+        _lastStatus = s;
+        _lastStatusWallets = wallets;
+        simulated = s.simulated;
+        forkHeight = s.forkHeight;
+        networkName = s.networkName;
+        replayLockTime = s.replayLockTime;
+        currentHeight = s.currentHeight;
+        currentHeaders = s.currentHeaders;
+        claimBoundary = s.claimBoundary;
+        hasFundsToClaim = s.hasFundsToClaim;
+        showCountdown = s.showCountdown;
+        claims = s.claims
+            .map(
+              (c) => WalletClaim(
+                walletId: c.walletId,
+                walletName: c.walletName,
+                claimableSats: c.claimableSats.toInt(),
+                multisig: wallets.where((w) => w.id == c.walletId).firstOrNull?.multisig,
+                walletResolved: wallets.any((w) => w.id == c.walletId),
+                utxos: c.utxos
+                    .map(
+                      (u) => bwpb.UnspentOutput(
+                        output: u.outpoint,
+                        address: u.address,
+                        label: u.label,
+                        valueSats: u.sats,
+                        height: u.height,
+                        splittable: u.hasSplittable() ? u.splittable : null,
+                      ),
+                    )
+                    .toList(),
+              ),
+            )
+            .toList();
+      }
 
       claimsLoaded = true;
+      final splitsBefore = pendingSplits;
+      final unreadBefore = walletsWithUnreadDrafts;
       await _syncPendingSplits();
+      final targetBefore = forkTargetDate;
       _updateForkTarget();
-      notifyListeners();
+      if (statusChanged ||
+          forkTargetDate != targetBefore ||
+          !listEquals(pendingSplits, splitsBefore) ||
+          !setEquals(walletsWithUnreadDrafts, unreadBefore)) {
+        notifyListeners();
+      }
     } catch (e) {
       _log.e('ForkProvider.fetch failed: $e');
     } finally {
