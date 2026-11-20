@@ -233,7 +233,10 @@ class BootTitle extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 30),
-        SailText.primary40(title, bold: true, textAlign: TextAlign.center),
+        if (SailStyleValues.phoneLayout(context))
+          SailText.primary24(title, bold: true, textAlign: TextAlign.center)
+        else
+          SailText.primary40(title, bold: true, textAlign: TextAlign.center),
         const SizedBox(height: 24),
         SailText.primary15(subtitle, textAlign: TextAlign.center),
         const SizedBox(height: 30),
