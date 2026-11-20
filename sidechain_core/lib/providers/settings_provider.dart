@@ -32,6 +32,9 @@ class SettingsProvider extends ChangeNotifier {
     return instance;
   }
 
+  /// Loads all settings from storage again, as another window can change them.
+  Future<void> reload() => _loadAllSettings();
+
   /// Load all settings from storage
   Future<void> _loadAllSettings() async {
     await _loadDebugMode();

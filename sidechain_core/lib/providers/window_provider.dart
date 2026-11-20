@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -28,6 +29,10 @@ class WindowProvider extends ChangeNotifier {
 
   List<WindowInfo> windows = [];
 
+  /// A started hidden engine that the next [open] shows.
+  WindowController? _spare;
+  bool _spareStarting = false;
+
   int get windowCount => windows.length;
   bool get hasWindows => windows.isNotEmpty;
 
@@ -50,7 +55,7 @@ class WindowProvider extends ChangeNotifier {
     // Sub-windows can invoke methods but don't register
     if (isMainWindow) {
       const channel = WindowMethodChannel(
-        'sail_ui_window_channel',
+        _windowChannel,
         mode: ChannelMode.unidirectional,
       );
       await channel.setMethodCallHandler(_handleMethodCall);
@@ -139,12 +144,20 @@ class WindowProvider extends ChangeNotifier {
       final title = windowType.name;
       log.i('Creating window: $title with type: ${windowType.identifier}');
 
-      final windowController = await WindowController.create(
-        WindowConfiguration(
-          hiddenAtLaunch: true,
-          arguments: jsonEncode(windowConfig),
-        ),
-      );
+      final spare = _spare;
+      _spare = null;
+      final WindowController windowController;
+      if (spare != null) {
+        await spare.invokeMethod(openSpareMethod, jsonEncode(windowConfig));
+        windowController = spare;
+      } else {
+        windowController = await WindowController.create(
+          WindowConfiguration(
+            hiddenAtLaunch: true,
+            arguments: jsonEncode(windowConfig),
+          ),
+        );
+      }
 
       // Window will set its own position/size/title in runMultiWindow()
 
@@ -162,6 +175,24 @@ class WindowProvider extends ChangeNotifier {
     } catch (e) {
       log.e('could not create window: $e', error: e);
       return null;
+    }
+  }
+
+  /// Starts a hidden engine for the next [open], unless one is up or on its way.
+  Future<void> startSpare() async {
+    if (defaultTargetPlatform != TargetPlatform.macOS || _spare != null || _spareStarting) {
+      return;
+    }
+    _spareStarting = true;
+    try {
+      await WindowController.create(
+        WindowConfiguration(
+          arguments: jsonEncode({'spare': true, 'application_dir': appDir.path, 'log_file': logFile.path}),
+        ),
+      );
+    } catch (e) {
+      _spareStarting = false;
+      rethrow;
     }
   }
 
@@ -205,7 +236,7 @@ class WindowProvider extends ChangeNotifier {
   ) async {
     try {
       const channel = WindowMethodChannel(
-        'sail_ui_window_channel',
+        _windowChannel,
         mode: ChannelMode.unidirectional,
       );
       final response = await channel.invokeMethod(method, arguments);
@@ -235,7 +266,7 @@ class WindowProvider extends ChangeNotifier {
   Future<dynamic> sendMessageToMain(String method, dynamic arguments) async {
     try {
       const channel = WindowMethodChannel(
-        'sail_ui_window_channel',
+        _windowChannel,
         mode: ChannelMode.unidirectional,
       );
       final response = await channel.invokeMethod(method, arguments);
@@ -253,6 +284,15 @@ class WindowProvider extends ChangeNotifier {
       final since = (arguments['since'] as Map<Object?, Object?>).cast<int, int>();
       final only = arguments['binary_type'] as int?;
       return GetIt.I.get<LogProvider>().entriesSince(since, only: only == null ? null : BinaryType.valueOf(only));
+    }
+
+    if (call.method == spareReadyMethod) {
+      _spare = WindowController.fromWindowId(call.arguments as String);
+      _spareStarting = false;
+      return null;
+    }
+    if (call.method == windowShownMethod) {
+      return startSpare();
     }
 
     // In v3, the fromWindowId needs to be passed in the arguments if needed
@@ -308,7 +348,28 @@ class WindowProvider extends ChangeNotifier {
   }
 }
 
+const _windowChannel = 'sail_ui_window_channel';
+
 const processLogsMethod = 'process_logs';
+
+/// True for the arguments of a hidden engine that waits for a sub-window.
+bool isSpareWindowArguments(String arguments) =>
+    arguments.isNotEmpty && (jsonDecode(arguments) as Map<String, dynamic>)['spare'] == true;
+
+/// The spare engine shows the sub-window of the given arguments.
+const openSpareMethod = 'open_spare';
+
+/// A spare engine tells the main window that it can take a sub-window.
+const spareReadyMethod = 'spare_ready';
+
+/// A sub-window tells the main window that it drew its first frame.
+const windowShownMethod = 'window_shown';
+
+/// Tells the main window that the spare engine [windowId] is ready.
+Future<void> announceSpareWindow(String windowId) => const WindowMethodChannel(
+  _windowChannel,
+  mode: ChannelMode.unidirectional,
+).invokeMethod(spareReadyMethod, windowId);
 
 /// Copies the process output the main window holds into [target] of a sub-window.
 class ProcessLogRelay {
