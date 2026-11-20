@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+import 'test_utils.dart';
+
 class _Conf extends ChangeNotifier implements BitcoinConfProvider {
   @override
   bool get networkSupportsSidechains => true;
@@ -44,7 +46,8 @@ void main() {
 
   testWidgets('a phone shows a 16 px title at the left and the txids as rows', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
-    await pumpForm(tester, 420);
+    await loadBundledFonts();
+    await pumpForm(tester, 390);
 
     expect(tester.takeException(), isNull);
     final title = find.text('Withdrawal Completed');
@@ -53,6 +56,7 @@ void main() {
     expect(find.text('L1 TXID'), findsOneWidget);
     expect(find.text('L2 TXID'), findsOneWidget);
     expect(find.textContaining('L1 TXID:'), findsNothing);
+    expect(find.byType(SailCard), findsOneWidget);
   });
 
   testWidgets('the desktop keeps the 24 px title and the txid lines', (tester) async {
