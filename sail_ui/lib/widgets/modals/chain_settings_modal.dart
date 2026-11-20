@@ -345,7 +345,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
             spacing: SailStyleValues.padding04,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SailText.primary20(binary.name),
+              SailStyleValues.phoneLayout(context)
+                  ? SailText.primary16(binary.name, bold: true)
+                  : SailText.primary20(binary.name),
               SailText.secondary13(
                 widget.remote
                     ? '${_chainLayer(binary)} · remote'
@@ -590,6 +592,8 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
   }
 }
 
+double _labelWidth(BuildContext context) => SailStyleValues.phoneLayout(context) ? 112 : 170;
+
 /// Label and value on one line, with an optional copy action.
 class _FieldRow extends StatelessWidget {
   final String label;
@@ -612,7 +616,7 @@ class _FieldRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 170,
+            width: _labelWidth(context),
             child: SailText.secondary13(label, color: theme.colors.textSecondary),
           ),
           Expanded(
@@ -731,7 +735,7 @@ class _HashRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 170,
+              width: _labelWidth(context),
               child: SailText.secondary13(
                 label,
                 color: isMismatch ? theme.colors.error : theme.colors.textSecondary,
