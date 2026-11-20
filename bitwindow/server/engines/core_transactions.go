@@ -11,8 +11,9 @@ import (
 
 // ReadCoreTransactions returns complete transactions for recentRows rows, or all rows when recentRows is zero.
 func ReadCoreTransactions(ctx context.Context, client corerpc.BitcoinServiceClient, walletName string, recentRows uint32) ([]*corepb.GetTransactionResponse, error) {
-	count := recentRows
-	if count == 0 {
+	// One row more than asked shows whether the oldest kept row starts its txid.
+	count := recentRows + 1
+	if recentRows == 0 {
 		count = 1000
 	}
 	for {

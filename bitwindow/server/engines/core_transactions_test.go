@@ -38,11 +38,28 @@ func TestCoreHistoryReturnsTheReadError(t *testing.T) {
 	client := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 	gomock.InOrder(
 		client.EXPECT().ListTransactions(gomock.Any(), gomock.Any()).Return(connect.NewResponse(&corepb.ListTransactionsResponse{
-			Transactions: []*corepb.GetTransactionResponse{{Txid: "receipt"}},
+			Transactions: []*corepb.GetTransactionResponse{{Txid: "receipt"}, {Txid: "receipt"}},
 		}), nil),
 		client.EXPECT().ListTransactions(gomock.Any(), gomock.Any()).Return(nil, readErr),
 	)
 	result, err := ReadCoreTransactions(t.Context(), client, "wallet", 1)
 	require.ErrorIs(t, err, readErr)
 	require.Nil(t, result)
+}
+
+func TestCoreHistoryReadsALongHistoryOneTime(t *testing.T) {
+	var rows []*corepb.GetTransactionResponse
+	for i := range 150 {
+		rows = append(rows, &corepb.GetTransactionResponse{Txid: fmt.Sprintf("tx-%d", i)})
+	}
+	client := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	client.EXPECT().ListTransactions(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, req *connect.Request[corepb.ListTransactionsRequest]) (*connect.Response[corepb.ListTransactionsResponse], error) {
+			start := max(0, len(rows)-int(req.Msg.Count))
+			return connect.NewResponse(&corepb.ListTransactionsResponse{Transactions: rows[start:]}), nil
+		},
+	).Times(1)
+	result, err := ReadCoreTransactions(t.Context(), client, "wallet", 100)
+	require.NoError(t, err)
+	require.Equal(t, rows[50:], result)
 }
