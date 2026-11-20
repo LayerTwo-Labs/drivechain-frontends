@@ -548,9 +548,11 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   );
 
   final claimsTruthcoinLinks = !GetIt.I.get<SettingsProvider>().bitwindowSettings.openSidechainsInWindow;
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    startTruthcoinLinks(log, claimScheme: claimsTruthcoinLinks);
-  });
+  if (truthcoinLinksServe(Platform.operatingSystem)) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      startTruthcoinLinks(log, claimScheme: claimsTruthcoinLinks);
+    });
+  }
 
   return runApp(BitwindowApp(log: log, backendReady: backendReady));
 }
