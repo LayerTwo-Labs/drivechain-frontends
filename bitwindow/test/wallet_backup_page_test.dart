@@ -413,18 +413,31 @@ void main() {
     expect(created.single.mnemonic, _wordsFor(_osHex, 12).join(' '));
   });
 
-  testWidgets('words that do not match create nothing', (tester) async {
+  testWidgets('Create Wallet stays off until the words match', (tester) async {
+    await _pumpPage(tester);
+    await _toReenter(tester);
+
+    final words = _wordsFor(_osHex, 12);
+    await _enterWords(tester, words.take(7).toList());
+    expect(find.text('7 of 12 entered'), findsOneWidget);
+    expect(_createWalletButton(tester).disabled, isTrue);
+
+    await _enterWords(tester, words);
+    expect(_createWalletButton(tester).disabled, isFalse);
+  });
+
+  testWidgets('a wrong word names its number and creates nothing', (tester) async {
     final created = <SeedBackup>[];
     await _pumpPage(tester, onCreate: (seed) async => created.add(seed));
     await _toReenter(tester);
 
     final words = _wordsFor(_osHex, 12);
-    await _enterWords(tester, [...words.take(11), 'wrong']);
-    expect(_createWalletButton(tester).disabled, isFalse);
+    await _enterWords(tester, [...words.take(4), 'wrong', ...words.skip(5)]);
+    expect(find.text('Word 5 does not match your backup'), findsOneWidget);
+    expect(_createWalletButton(tester).disabled, isTrue);
 
     await _tapAndSettle(tester, 'Create Wallet');
     expect(created, isEmpty);
-    expect(find.text('12 of 12 entered'), findsOneWidget);
   });
 
   testWidgets('words that match create the wallet', (tester) async {
