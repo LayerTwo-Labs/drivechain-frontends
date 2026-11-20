@@ -145,6 +145,25 @@ class _Orchestrator implements OrchestratorRPC {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _Downloads extends ChangeNotifier implements DownloadProvider {
+  int listeners = 0;
+
+  @override
+  void addListener(VoidCallback listener) {
+    listeners++;
+    super.addListener(listener);
+  }
+
+  @override
+  void removeListener(VoidCallback listener) {
+    listeners--;
+    super.removeListener(listener);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late _Enforcer enforcer;
   late _Daemon daemon;
@@ -249,6 +268,17 @@ void main() {
       );
     });
   }
+
+  test('a disposed model stops listening to downloads', () {
+    final downloads = _Downloads();
+    GetIt.I.registerSingleton<DownloadProvider>(downloads);
+    BottomNavViewModel(
+      additionalConnection: ConnectionMonitor(rpc: daemon, name: 'Thunder'),
+      mainchainInfo: true,
+      navigateToLogs: (_, _, _) {},
+    ).dispose();
+    expect(downloads.listeners, 0);
+  });
 
   test('light mode connects without local Core', () {
     expect(model.needsBackends, isFalse);
