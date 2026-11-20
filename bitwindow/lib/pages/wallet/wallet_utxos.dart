@@ -69,7 +69,8 @@ class _UTXOsTabState extends State<UTXOsTab> {
           ],
           SailMenuItem(
             onSelected: () {
-              showSailToast(context, 'Selected ${bucket.count} UTXO(s) for sending - go to Send tab');
+              final selected = WalletPage.selectSendCoins(bucket.outpoints);
+              showSailToast(context, 'Selected $selected UTXO(s) for sending - go to Send tab');
             },
             child: SailText.primary12(
               isSingleUtxo ? 'Send This UTXO' : 'Send These ${bucket.count} UTXOs',
