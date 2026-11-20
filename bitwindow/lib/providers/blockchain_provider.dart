@@ -81,16 +81,27 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       final newTXs = await tReq;
       final newPeers = (await pReq).peers;
       final (newBlocks, hasMore) = await bReq;
+      final connects = hasMore && newBlocks.isNotEmpty && blocks.any((b) => b.hash == newBlocks.last.previousBlockHash);
+      final olderBlocks = [
+        if (connects)
+          for (final b in blocks.where((b) => b.height < newBlocks.last.height))
+            b.deepCopy()
+              ..confirmations = newBlocks.first.height - b.height + 1
+              ..nextBlockHash = b.hash == newBlocks.last.previousBlockHash ? newBlocks.last.hash : b.nextBlockHash,
+      ];
+      final mergedBlocks = [...newBlocks, ...olderBlocks];
 
       var hasChanges = recentTransactions.updateWith(newTXs);
       hasChanges = hasChanges | peers.updateWith(newPeers);
       hasChanges =
           hasChanges |
           blocks.updateWith(
-            newBlocks,
+            mergedBlocks,
             afterUpdate: () {
-              hasMoreBlocks = hasMore;
-              loadedBlockHeights = newBlocks.map((b) => b.height).toSet();
+              if (olderBlocks.isEmpty) {
+                hasMoreBlocks = hasMore;
+              }
+              loadedBlockHeights = mergedBlocks.map((b) => b.height).toSet();
             },
           );
       if (hasChanges) {
