@@ -3,6 +3,7 @@ import 'package:bitwindow/providers/content_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/core/cover_image.dart';
 
 @RoutePage()
 class LearnPage extends StatelessWidget {
@@ -333,17 +334,11 @@ class _StoryCardContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: background != null
-                ? Image.asset(
-                    background!,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  )
-                : SailSVG.png(
-                    SailPNGAsset.articleBeginner,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
+            child: CoverImage(
+              background != null
+                  ? AssetImage(background!)
+                  : AssetImage(SailPNGAsset.articleBeginner.toAssetPath(), package: 'sail_ui'),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(SailStyleValues.padding16),
