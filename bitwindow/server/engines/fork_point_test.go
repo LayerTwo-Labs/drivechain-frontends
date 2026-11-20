@@ -374,3 +374,29 @@ func TestHandleBlockTick(t *testing.T) {
 		assert.Equal(t, tip, highest)
 	})
 }
+
+func TestHandleBlockTickAtTheCoreTipReadsNoBlock(t *testing.T) {
+	ctx := t.Context()
+	chain := servedChain{}
+	chain.extend(1, 10, 1, chainhash.Hash{})
+
+	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	core.EXPECT().
+		GetBlockchainInfo(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&corepb.GetBlockchainInfoResponse{
+			Blocks:        10,
+			BestBlockHash: chain.hash(10).String(),
+		}), nil).
+		Times(2)
+	p := &Parser{
+		db:   database.Test(t),
+		conf: config.Config{BitcoinCoreNetwork: config.NetworkRegtest},
+		bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return core, nil
+		}),
+	}
+	markProcessed(t, ctx, p, chain, 1, 10)
+
+	require.NoError(t, p.handleBlockTick(ctx))
+	require.NoError(t, p.handleBlockTick(ctx))
+}
