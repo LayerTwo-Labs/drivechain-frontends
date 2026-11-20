@@ -261,7 +261,10 @@ class _BandwidthGraph extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.primary20('Bandwidth Graph'),
+        if (SailStyleValues.phoneLayout(context))
+          SailText.primary15('Bandwidth Graph', bold: true)
+        else
+          SailText.primary20('Bandwidth Graph'),
         const SizedBox(height: 8),
         SailText.secondary13('Last ${bandwidthHistory.length * 5} seconds'),
         const SizedBox(height: 16),
