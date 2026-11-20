@@ -241,8 +241,10 @@ func TestSwapNetwork_BootPollsTheNewCorePort(t *testing.T) {
 
 	mon := o.getOrCreateMonitor("bitcoind", nil, nil)
 	mon.mu.Lock()
-	checker, ok := mon.Checker.(*BitcoindHealthCheck)
+	wrapped, ok := mon.Checker.(*chainDataHealthCheck)
 	mon.mu.Unlock()
+	require.True(t, ok)
+	checker, ok := wrapped.first.(*BitcoindHealthCheck)
 	require.True(t, ok)
 	require.True(t, strings.HasSuffix(checker.URL, ":18443"), checker.URL)
 }

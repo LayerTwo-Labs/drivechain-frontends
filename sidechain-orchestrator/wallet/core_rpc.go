@@ -46,6 +46,14 @@ type CoreRPCClient struct {
 	// reads it to drop a wallet Core stopped holding, which reaches all of its
 	// wallet calls rather than the few a reader remembers to change.
 	OnWalletError func(walletName string, err error)
+
+	// Cache answers repeated reads from memory. Nil sends every call to Core.
+	Cache CallCache
+}
+
+// CallCache answers a Core read from memory, or reads it with fetch.
+type CallCache interface {
+	Call(ctx context.Context, walletName, method string, params []any, fetch func(context.Context) (json.RawMessage, error)) (json.RawMessage, error)
 }
 
 // NewCoreRPCClient creates a new Bitcoin Core RPC client.
@@ -93,7 +101,16 @@ func (c *CoreRPCClient) call(ctx context.Context, walletName, method string, par
 }
 
 func (c *CoreRPCClient) callWith(ctx context.Context, client *http.Client, walletName, method string, params ...interface{}) (json.RawMessage, error) {
-	raw, err := c.callWallet(ctx, client, walletName, method, params...)
+	fetch := func(ctx context.Context) (json.RawMessage, error) {
+		return c.callWallet(ctx, client, walletName, method, params...)
+	}
+	var raw json.RawMessage
+	var err error
+	if c.Cache != nil {
+		raw, err = c.Cache.Call(ctx, walletName, method, params, fetch)
+	} else {
+		raw, err = fetch(ctx)
+	}
 	if err != nil && walletName != "" && c.OnWalletError != nil {
 		c.OnWalletError(walletName, err)
 	}

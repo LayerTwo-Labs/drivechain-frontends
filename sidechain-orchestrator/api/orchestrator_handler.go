@@ -1213,6 +1213,9 @@ func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet st
 	req.SetBasicAuth(user, password)
 
 	resp, err := http.DefaultClient.Do(req)
+	if engine := h.orch.ChainData(); engine != nil {
+		defer engine.Wrote(method)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", method, err)
 	}

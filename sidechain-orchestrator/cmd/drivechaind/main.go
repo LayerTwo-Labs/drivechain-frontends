@@ -410,6 +410,8 @@ func run(cctx *cli.Context) error {
 	var chainBackend wallet.Backend
 	var localChain wallet.ChainSource
 	if orch.BitcoinConf != nil {
+		orch.ChainData().Start(ctx)
+
 		// Port and credentials both move with the network.
 		// Every RPC call resolves the endpoint again, and Core writes the
 		// cookie seconds after boot. Without the gate one missing cookie fills
@@ -434,6 +436,7 @@ func run(cctx *cli.Context) error {
 			return endpoint
 		}
 		coreRPC := wallet.NewCoreRPCClient(coreEndpoint)
+		coreRPC.Cache = orch.ChainData()
 		coreBackend := wallet.NewCoreBackend(walletSvc, coreRPC, netParams, log)
 		chainBackend = coreBackend
 		localChain = coreBackend.Chain()
@@ -648,18 +651,19 @@ func run(cctx *cli.Context) error {
 				log.Warn().Err(err).Str("reason", reason).Msg("failed to start bitcoin core proxy")
 				return
 			}
-			_, h := corerpc.NewBitcoinServiceHandler(proxy, coreProxyHandlerOptions(authIC, meterIC))
+			_, h := corerpc.NewBitcoinServiceHandler(proxy, coreProxyHandlerOptions(authIC, meterIC, orch.ChainData().Interceptor()))
 			swappable.swap(h)
 			log.Info().Str("reason", reason).Msg("bitcoin core proxy ready")
 		}
 		rebuildCoreProxy("startup")
 		// The path is constant; register once.
-		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, coreProxyHandlerOptions(authIC, meterIC))
+		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, coreProxyHandlerOptions(authIC, meterIC, orch.ChainData().Interceptor()))
 		mux.Handle(corePath, swappable)
 		log.Info().Str("service", "bitcoin.bitcoind.v1alpha.BitcoinService").Msg("registered bitcoin core proxy")
 
 		orch.BitcoinConf.OnNetworkChanged = func() {
 			rebuildCoreProxy("network swap")
+			orch.ChainData().Restart()
 			log.Info().Str("network", string(orch.BitcoinConf.Network)).Msg("rebuilt bitcoin core proxy for new network")
 		}
 	}

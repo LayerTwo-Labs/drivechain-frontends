@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/chaindata"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
@@ -216,13 +217,24 @@ func (o *Orchestrator) chainStatesFrom(ctx context.Context) (CoreChainStates, er
 	if err != nil {
 		return CoreChainStates{}, err
 	}
-	raw, err := client.call(ctx, "getchainstates")
+	fetch := func(ctx context.Context) (json.RawMessage, error) { return client.call(ctx, "getchainstates") }
+	var raw json.RawMessage
+	if o.snapshotVerifying.Load() {
+		raw, err = fetch(ctx)
+	} else {
+		raw, err = o.chainData.Call(ctx, "", "getchainstates", nil, fetch)
+	}
 	if err != nil {
 		return CoreChainStates{}, err
 	}
 	states, err := parseChainStates(raw)
 	if err != nil {
 		return CoreChainStates{}, err
+	}
+	verifying := states.Snapshot.Present && !states.Snapshot.Validated
+	if o.snapshotVerifying.Swap(verifying) && !verifying {
+		// The cached getchainstates predates the end of the verification.
+		o.chainData.Fire(chaindata.EventBlock)
 	}
 	if !states.Snapshot.Present {
 		return states, nil
