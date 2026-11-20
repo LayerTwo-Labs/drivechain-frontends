@@ -586,18 +586,24 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ...List.generate(widget.fields.length, (i) {
-            final field = widget.fields[i];
+            final label = SailText.primary13(widget.fields[i].name, bold: true);
+            final input = SailTextField(
+              controller: controllers[i],
+              hintText: '',
+              autofocus: i == 0,
+            );
+            if (SailStyleValues.phoneLayout(context)) {
+              return SailColumn(
+                spacing: SailStyleValues.padding08,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [label, input],
+              );
+            }
             return SailRow(
               spacing: 16,
               children: [
-                SailText.primary13(field.name, bold: true),
-                Expanded(
-                  child: SailTextField(
-                    controller: controllers[i],
-                    hintText: '',
-                    autofocus: i == 0,
-                  ),
-                ),
+                label,
+                Expanded(child: input),
               ],
             );
           }),
