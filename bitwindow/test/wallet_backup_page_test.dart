@@ -12,6 +12,8 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
+import 'test_utils.dart';
+
 const _osHex = 'abababababababababababababababab';
 
 /// The words the fake backend derives. They depend only on the text.
@@ -171,7 +173,10 @@ void main() {
     GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator(wallet));
   });
 
-  tearDown(() async => GetIt.I.reset());
+  tearDown(() async {
+    SailStyleValues.phoneLayoutOverride = null;
+    await GetIt.I.reset();
+  });
 
   testWidgets('opens with OS entropy in the field and its words shown', (tester) async {
     await _pumpPage(tester);
@@ -184,6 +189,35 @@ void main() {
     expect(find.text('32 characters'), findsOneWidget);
     expect(find.text('0 samples'), findsOneWidget);
     expect(tester.widgetList<SailButton>(find.widgetWithText(SailButton, 'Continue')).first.disabled, isFalse);
+  });
+
+  testWidgets('on a phone the title stays on one line and Shuffle sits on the legend row', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
+    await tester.binding.setSurfaceSize(const Size(390, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_app(SeedEntryMode.generate, null));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.text('Mnemonic Words (BIP39)')).height, lessThan(25));
+    expect(tester.widget<Text>(find.text('Mnemonic Words (BIP39)')).style!.fontSize, 15);
+    final legend = tester.getRect(find.text('OS entropy'));
+    final shuffle = tester.getRect(find.widgetWithText(SailButton, 'Shuffle').first);
+    expect(find.widgetWithText(SailButton, 'Shuffle'), findsWidgets);
+    expect(tester.widget<SailEntropyKeyboard>(find.byType(SailEntropyKeyboard)).showShuffle, isFalse);
+    expect(shuffle.center.dy, closeTo(legend.center.dy, 4));
+    final hint = tester.getRect(find.text("Remove the OS entropy if you don't want it mixed in."));
+    expect(hint.top, greaterThan(shuffle.bottom - 1));
+    expect(hint.left, legend.left - 14);
+    expect(tester.getRect(find.byKey(const Key('mouse-entropy-pad'))).top, greaterThan(hint.bottom));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('on the desktop Shuffle stays on the board corner', (tester) async {
+    await _pumpPage(tester);
+
+    final shuffle = tester.getRect(find.widgetWithText(SailButton, 'Shuffle').first);
+    expect(shuffle.top, greaterThan(tester.getRect(find.text('OS entropy')).bottom));
   });
 
   testWidgets('the legend swatches match the field colors', (tester) async {

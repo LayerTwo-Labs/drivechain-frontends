@@ -44,6 +44,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   WalletWriterProvider get _writer => GetIt.I.get<WalletWriterProvider>();
 
   final _EntropyController _entropy = _EntropyController();
+  final _keyboard = GlobalKey<SailEntropyKeyboardState>();
   final TextEditingController _passphrase = TextEditingController();
   List<TextEditingController> _reentered = [];
   List<TextEditingController> _imported = [];
@@ -574,6 +575,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   Widget _entropyBody(BuildContext context) {
     final theme = SailTheme.of(context);
     final count = _entropy.text.characters.length;
+    final phone = SailStyleValues.phoneLayout(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -586,17 +588,26 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: SailText.primary16(
-                      'Mnemonic Words (BIP39)',
-                      bold: true,
+              if (phone)
+                Row(
+                  children: [
+                    Expanded(child: SailText.primary15('Mnemonic Words (BIP39)', bold: true, maxLines: 1)),
+                    const SizedBox(width: 8),
+                    _wordCountDropdown(),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: SailText.primary16(
+                        'Mnemonic Words (BIP39)',
+                        bold: true,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 210, child: _wordCountDropdown()),
-                ],
-              ),
+                    SizedBox(width: 210, child: _wordCountDropdown()),
+                  ],
+                ),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -628,22 +639,43 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 count == 1 ? '1 character' : '$count characters',
               ),
               const SizedBox(height: 6),
-              Row(
-                children: [
-                  _EntropyLegendEntry(label: 'OS entropy', color: theme.colors.text),
-                  const SizedBox(width: 16),
-                  _EntropyLegendEntry(label: 'Your entropy', color: theme.colors.primary),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SailText.secondary12(
-                      "Remove the OS entropy if you don't want it mixed in.",
-                      monospace: true,
+              if (phone) ...[
+                Row(
+                  children: [
+                    _EntropyLegendEntry(label: 'OS entropy', color: theme.colors.text),
+                    const SizedBox(width: 16),
+                    _EntropyLegendEntry(label: 'Your entropy', color: theme.colors.primary),
+                    const Spacer(),
+                    SailButton(
+                      label: 'Shuffle',
+                      icon: SailSVGAsset.shuffle,
+                      variant: ButtonVariant.secondary,
+                      small: true,
+                      onPressed: () async => _keyboard.currentState?.shuffle(),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                SailText.secondary12("Remove the OS entropy if you don't want it mixed in.", monospace: true),
+              ] else
+                Row(
+                  children: [
+                    _EntropyLegendEntry(label: 'OS entropy', color: theme.colors.text),
+                    const SizedBox(width: 16),
+                    _EntropyLegendEntry(label: 'Your entropy', color: theme.colors.primary),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: SailText.secondary12(
+                        "Remove the OS entropy if you don't want it mixed in.",
+                        monospace: true,
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 16),
               SailEntropyKeyboard(
+                key: _keyboard,
+                showShuffle: !phone,
                 onType: _type,
                 showKeys: true,
                 caption: 'Move your mouse as randomly as you can across this grid. The more the better.',
@@ -663,19 +695,27 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  if (_words.isNotEmpty) ...[
-                    SailSVG.icon(
-                      SailSVGAsset.iconSuccess,
-                      width: 12,
-                      color: theme.colors.success,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        if (_words.isNotEmpty) ...[
+                          SailSVG.icon(
+                            SailSVGAsset.iconSuccess,
+                            width: 12,
+                            color: theme.colors.success,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: SailText.secondary13(
+                              'Valid checksum',
+                              color: theme.colors.success,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    SailText.secondary13(
-                      'Valid checksum',
-                      color: theme.colors.success,
-                    ),
-                  ],
-                  const Spacer(),
+                  ),
+                  const SizedBox(width: 8),
                   SailButton(
                     label: 'Copy Mnemonic for backup',
                     variant: ButtonVariant.secondary,
