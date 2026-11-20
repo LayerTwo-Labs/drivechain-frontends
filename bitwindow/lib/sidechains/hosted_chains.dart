@@ -64,7 +64,7 @@ class SidechainSession {
       // A lazy provider built later would start its work only when a page reads it.
       GetIt.I.findAll<Object>(onlyInScope: scope, instantiateLazySingletons: true);
       final transactions = SidechainTransactionsProvider(rpc: rpc);
-      final balance = SidechainBalanceProvider(sidechain: rpc);
+      final balance = _balanceOf(rpc);
       return SidechainSession._(
         _watch(module, navigator, transactions, balance),
         module: module,
@@ -81,6 +81,17 @@ class SidechainSession {
       await GetIt.I.dropScope(scope);
       rethrow;
     }
+  }
+
+  /// A view of the BitWindow balance poll when it reads [rpc], so no two polls read one chain.
+  static SidechainBalanceProvider _balanceOf(SidechainRPC rpc) {
+    if (GetIt.I.isRegistered<BalanceProvider>()) {
+      final source = GetIt.I.get<BalanceProvider>();
+      if (source.connections.contains(rpc)) {
+        return SidechainBalanceProvider.mirror(sidechain: rpc, source: source);
+      }
+    }
+    return SidechainBalanceProvider(sidechain: rpc);
   }
 
   /// Starts the chain notifications, and the refetch on each new block.
