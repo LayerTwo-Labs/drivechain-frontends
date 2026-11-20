@@ -48,11 +48,23 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
   @override
   void initState() {
     super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    _fork.addListener(_syncTicker);
+    _syncTicker();
+  }
+
+  // A hidden strip has no clock to move, so it does not tick.
+  void _syncTicker() {
+    if (!_fork.showCountdown || _fork.forkTargetDate == null) {
+      _ticker?.cancel();
+      _ticker = null;
+      return;
+    }
+    _ticker ??= Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
   }
 
   @override
   void dispose() {
+    _fork.removeListener(_syncTicker);
     _ticker?.cancel();
     super.dispose();
   }
