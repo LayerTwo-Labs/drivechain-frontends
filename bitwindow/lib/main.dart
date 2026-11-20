@@ -772,11 +772,37 @@ class _ErrorCatcher extends StatelessWidget {
   }
 }
 
-/// Polls of 500 ms the boot waits for drivechaind. A fresh bitwindowd first
-/// retires the drivechaind of the last session, and one that predates the
-/// keep_l1 field drains bitcoind before it goes. A short wait would end the
-/// boot before that daemon frees the port, and the L1 stack would stay down.
-const drivechaindReadyTries = 300;
+/// How long the boot waits for drivechaind. A fresh bitwindowd first retires
+/// the drivechaind of the last session, and one that predates the keep_l1
+/// field drains bitcoind before it goes. A short wait would end the boot
+/// before that daemon frees the port, and the L1 stack would stay down.
+const drivechaindReadyTimeout = Duration(seconds: 150);
+
+/// The time between two drivechaind readiness probes. The UI waits for the
+/// first answer, so a long gap delays the boot.
+const drivechaindReadyPoll = Duration(milliseconds: 25);
+
+/// Calls [probe] until it returns without an error. Returns false when
+/// [timeout] ends first.
+Future<bool> waitForDrivechaind(
+  Future<void> Function() probe, {
+  Duration every = drivechaindReadyPoll,
+  Duration timeout = drivechaindReadyTimeout,
+}) async {
+  final elapsed = Stopwatch()..start();
+  for (var waited = Duration.zero; ; waited += every) {
+    try {
+      await probe();
+      return true;
+    } catch (_) {
+      // [waited] counts the polls, so a test with a fake clock ends too.
+      if (waited >= timeout || elapsed.elapsed >= timeout) {
+        return false;
+      }
+      await Future.delayed(every);
+    }
+  }
+}
 
 Future<void> bootBitwindowBackend(Logger log) async {
   log.i('STARTUP: Booting BitWindow backend');
@@ -831,31 +857,25 @@ Future<void> bootBitwindowBackend(Logger log) async {
   binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_DRIVECHAIND, 'Waiting for drivechaind...');
   binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_BITWINDOWD, 'Waiting for drivechaind...');
 
-  var orchestratorReady = false;
-  for (var i = 0; i < drivechaindReadyTries; i++) {
-    try {
-      await orchestrator.listBinaries();
-      log.i('STARTUP: drivechaind is ready');
-      orchestratorReady = true;
-      // Backend is up now; load the real network before the UI shows so it
-      // never renders the default one.
-      await GetIt.I.get<BitcoinConfProvider>().loadConfig();
-      // SettingsProvider.create ran before drivechaind was up, so the
-      // test-sidechains flag may still be the cached/default value. Pull
-      // the real one from drivechaind now — BinaryProvider listens to
-      // SettingsProvider and re-fetches binary release timestamps with
-      // the right (test vs prod) URL when this flips.
-      if (bitwindowRpc != null) {
-        bitwindowRpc.initializingBinary = false;
-        bitwindowRpc.markStateChanged();
-      }
-      break;
-    } catch (_) {
-      if (i == drivechaindReadyTries - 1) {
-        log.e('STARTUP: drivechaind did not become ready after ${drivechaindReadyTries ~/ 2}s');
-      }
-      await Future.delayed(const Duration(milliseconds: 500));
+  final orchestratorReady = await waitForDrivechaind(() async {
+    await orchestrator.listBinaries();
+    // Backend is up now; load the real network before the UI shows so it
+    // never renders the default one.
+    await GetIt.I.get<BitcoinConfProvider>().loadConfig();
+  });
+  if (orchestratorReady) {
+    log.i('STARTUP: drivechaind is ready');
+    // SettingsProvider.create ran before drivechaind was up, so the
+    // test-sidechains flag may still be the cached/default value. Pull
+    // the real one from drivechaind now — BinaryProvider listens to
+    // SettingsProvider and re-fetches binary release timestamps with
+    // the right (test vs prod) URL when this flips.
+    if (bitwindowRpc != null) {
+      bitwindowRpc.initializingBinary = false;
+      bitwindowRpc.markStateChanged();
     }
+  } else {
+    log.e('STARTUP: drivechaind did not become ready after ${drivechaindReadyTimeout.inSeconds}s');
   }
   // If the wait exhausted without success, leave initializingBinary alone —
   // let the error state surface naturally via backendState.startWatching().
