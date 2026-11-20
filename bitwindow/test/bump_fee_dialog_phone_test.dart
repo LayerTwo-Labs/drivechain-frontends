@@ -52,8 +52,19 @@ class _WalletReader extends WalletReaderProvider {
 
 Finder _button(String label) => find.byWidgetPredicate((w) => w is SailButton && w.label == label);
 
-Future<void> _pumpDialog(WidgetTester tester) async {
+Future<void> _pumpDialog(WidgetTester tester, {bool phone = false}) async {
   await tester.pumpSailPage(const BumpFeeDialog(txid: 'ab12'));
+  if (phone) {
+    await tester.usePhoneSize();
+  }
+  await tester.pumpAndSettle();
+}
+
+// A sheet as wide as the phone, with no dialog inset.
+Future<void> _pumpSheetBody(WidgetTester tester) async {
+  await tester.pumpSailPage(const BumpFeeDialog(txid: 'ab12'));
+  await tester.binding.setSurfaceSize(const Size(470, 844));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpAndSettle();
 }
 
@@ -75,7 +86,7 @@ void main() {
 
   testWidgets('on a phone Replace is full width, Cancel and RBF share a row, Close comes last', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
-    await _pumpDialog(tester);
+    await _pumpSheetBody(tester);
 
     final replace = tester.getRect(_button('Replace transaction'));
     final cancel = tester.getRect(_button('Cancel transaction'));
@@ -89,9 +100,19 @@ void main() {
     expect(rbf.right - cancel.left, closeTo(replace.width, 1));
   });
 
+  testWidgets('in a 390 px dialog the narrow button pair stacks with no overflow', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await _pumpDialog(tester, phone: true);
+
+    final cancel = tester.getRect(_button('Cancel transaction'));
+    final rbf = tester.getRect(_button('I want to RBF it'));
+    expect(rbf.top, greaterThan(cancel.bottom - 1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('on a phone the headings are 13 px', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
-    await _pumpDialog(tester);
+    await _pumpDialog(tester, phone: true);
 
     expect(tester.widget<Text>(find.text('This transaction')).style?.fontSize, 13);
     expect(tester.widget<Text>(find.text('New fee')).style?.fontSize, 13);
@@ -109,17 +130,23 @@ void main() {
 
   testWidgets('on a phone the cancel labels take a 148 px column', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
-    await _pumpDialog(tester);
+    await _pumpDialog(tester, phone: true);
 
     await tester.tap(_button('Cancel transaction'));
     await tester.pumpAndSettle();
 
     final label = tester.getRect(find.text('Returns to this wallet'));
-    final value = tester.getRect(find.text('Transaction ID'));
-    final fee = tester.getRect(find.text('Fee'));
-    expect(fee.left, closeTo(label.left, 1));
-    expect(value.left, closeTo(label.left, 1));
-    final amount = tester.getTopLeft(find.textContaining('0.0009'));
-    expect(amount.dx, greaterThanOrEqualTo(label.left + 148 + 16 - 1));
+    expect(tester.getTopLeft(find.text('Fee')).dx, closeTo(label.left, 1));
+    expect(tester.getTopLeft(find.textContaining('0.0009')).dx, closeTo(label.left + 148, 1));
+    expect(tester.getTopLeft(find.text('ab12')).dx, closeTo(label.left + 148, 1));
+  });
+
+  testWidgets('on a phone the bump values start 132 px from the labels', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await _pumpDialog(tester, phone: true);
+
+    final label = tester.getRect(find.text('Inputs'));
+    expect(tester.getTopLeft(find.textContaining('1 coins')).dx, closeTo(label.left + 132, 1));
+    expect(tester.takeException(), isNull);
   });
 }

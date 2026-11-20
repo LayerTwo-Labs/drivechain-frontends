@@ -300,14 +300,24 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
                     children: [
                       ?replace,
                       ?accelerate,
-                      if (cancel != null || override != null)
-                        SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            if (cancel != null) Expanded(child: cancel),
-                            if (override != null) Expanded(child: override),
-                          ],
-                        ),
+                      if (cancel != null && override != null)
+                        LayoutBuilder(
+                          builder: (context, constraints) => constraints.maxWidth < _pairMinWidth
+                              ? SailColumn(
+                                  spacing: SailStyleValues.padding08,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [cancel, override],
+                                )
+                              : SailRow(
+                                  spacing: SailStyleValues.padding08,
+                                  children: [
+                                    Expanded(child: cancel),
+                                    Expanded(child: override),
+                                  ],
+                                ),
+                        )
+                      else
+                        ?(cancel ?? override),
                       close,
                     ],
                   ),
@@ -325,20 +335,24 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
     return SailText.primary15(label);
   }
 
-  Widget _cancelRow(String label, String value) {
+  /// A label and its value. A phone puts the value in a column [labelWidth] from the left.
+  Widget _detailRow(String label, String value, {double labelWidth = _detailLabelWidth}) {
     if (!SailStyleValues.phoneLayout(context)) {
       return DetailRow(label: label, value: value);
     }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: _cancelLabelWidth, child: SailText.primary13(label)),
-        const SizedBox(width: SailStyleValues.padding16),
-        Expanded(child: SailText.secondary13(value, textAlign: TextAlign.end)),
+        SizedBox(width: labelWidth, child: SailText.secondary13(label)),
+        Expanded(child: SailText.primary13(value, overflow: TextOverflow.visible)),
       ],
     );
   }
 
+  static const _detailLabelWidth = 132.0;
+
+  // Narrower than this, the two secondary buttons cut their labels, so they stack.
+  static const _pairMinWidth = 300.0;
   static const _cancelLabelWidth = 148.0;
 
   Widget _cancelConfirmation(wmpb.CancelPlan cancel) {
@@ -368,9 +382,13 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
           spacing: SailStyleValues.padding12,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _cancelRow('Transaction ID', widget.txid),
-            _cancelRow('Returns to this wallet', formatter.formatSats(cancel.recoveredSats.toInt())),
-            _cancelRow('Fee', formatter.formatSats(cancel.feeSats.toInt())),
+            _detailRow('Transaction ID', widget.txid, labelWidth: _cancelLabelWidth),
+            _detailRow(
+              'Returns to this wallet',
+              formatter.formatSats(cancel.recoveredSats.toInt()),
+              labelWidth: _cancelLabelWidth,
+            ),
+            _detailRow('Fee', formatter.formatSats(cancel.feeSats.toInt()), labelWidth: _cancelLabelWidth),
           ],
         ),
       ),
@@ -381,12 +399,11 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
     final formatter = GetIt.I<FormatterProvider>();
     return [
       _heading('This transaction'),
-      DetailRow(label: 'Transaction ID', value: widget.txid),
-      DetailRow(label: 'Inputs', value: '${preview.inputCount} coins · ${preview.vsizeVbytes} vB'),
-      DetailRow(
-        label: 'Fee now',
-        value:
-            '${formatter.formatSats(preview.oldFeeSats.toInt())} · '
+      _detailRow('Transaction ID', widget.txid),
+      _detailRow('Inputs', '${preview.inputCount} coins · ${preview.vsizeVbytes} vB'),
+      _detailRow(
+        'Fee now',
+        '${formatter.formatSats(preview.oldFeeSats.toInt())} · '
             '${preview.oldFeeRateSatVb.toStringAsFixed(1)} ${activeTicker.feeRate}',
       ),
     ];
@@ -403,19 +420,21 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
       SailRow(
         spacing: SailStyleValues.padding08,
         children: [
-          SizedBox(
-            width: 120,
-            child: SailTextField(
-              controller: _rateController,
-              size: TextFieldSize.small,
-              textFieldType: TextFieldType.number,
-              hintText: preview.suggestedFeeRate.toString(),
-              enabled: !_replacing,
-              onChanged: _onRateChanged,
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 120),
+              child: SailTextField(
+                controller: _rateController,
+                size: TextFieldSize.small,
+                textFieldType: TextFieldType.number,
+                hintText: preview.suggestedFeeRate.toString(),
+                enabled: !_replacing,
+                onChanged: _onRateChanged,
+              ),
             ),
           ),
           SailText.secondary13(activeTicker.feeRate),
-          const Spacer(),
+          if (!SailStyleValues.phoneLayout(context)) const Spacer(),
           SailDropdownButton<int>(
             value: null,
             hint: 'Estimate',
@@ -429,16 +448,15 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
         ],
       ),
       if (plan != null) ...[
-        DetailRow(
-          label: 'New fee',
-          value:
-              '${formatter.formatSats(plan.newFeeSats.toInt())} · '
+        _detailRow(
+          'New fee',
+          '${formatter.formatSats(plan.newFeeSats.toInt())} · '
               '${plan.newFeeRateSatVb.toStringAsFixed(1)} ${activeTicker.feeRate}',
         ),
-        DetailRow(label: 'You pay more', value: formatter.formatSats(plan.extraFeeSats.toInt())),
-        DetailRow(
-          label: 'Output ${plan.feeFromVout} · ${plan.reducesPayment ? 'payment' : 'change'}',
-          value: plan.outputRemoved
+        _detailRow('You pay more', formatter.formatSats(plan.extraFeeSats.toInt())),
+        _detailRow(
+          'Output ${plan.feeFromVout} · ${plan.reducesPayment ? 'payment' : 'change'}',
+          plan.outputRemoved
               ? '${formatter.formatSats(plan.amountBeforeSats.toInt())} → goes away'
               : '${formatter.formatSats(plan.amountBeforeSats.toInt())} → '
                     '${formatter.formatSats(plan.amountAfterSats.toInt())}',
