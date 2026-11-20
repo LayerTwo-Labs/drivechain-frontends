@@ -1235,8 +1235,9 @@ func (s *Server) tipStats(ctx context.Context, bitcoind corerpc.BitcoinServiceCl
 	}
 	stats.difficulty = tip.Msg.Difficulty
 
-	// Default to 10 minutes if there are not enough blocks.
-	lookback := min(uint32(144), height)
+	// Default to 10 minutes if there are not enough blocks. The genesis time
+	// is fixed in the chain params, so a young chain measures from block 1.
+	lookback := min(uint32(144), height-1)
 	if lookback > 1 {
 		if tip.Msg.Time == nil {
 			return nil, fmt.Errorf("block time is nil for height %d", height)
