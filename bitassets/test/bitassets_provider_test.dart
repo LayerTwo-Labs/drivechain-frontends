@@ -62,6 +62,19 @@ void main() {
     expect(provider.ownedHashes, contains(hash));
   });
 
+  test('a chain with no assets ends the start retry after one read', () async {
+    final provider = BitAssetsProvider();
+    addTearDown(provider.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(provider.initialized, isTrue);
+    expect(provider.entries, isEmpty);
+
+    final calls = rpc.listCalls;
+    provider.retryTick();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(rpc.listCalls, calls);
+  });
+
   test('saveHashNameMapping merges with persisted mappings', () async {
     final existingName = 'ExistingAsset';
     final existingHash = blake3Hex(utf8.encode(existingName));
@@ -260,9 +273,13 @@ class _AssetListBitAssetsRPC extends MockBitAssetsRPC {
   List<BitAssetEntry> assets = [];
   List<SidechainUTXO> utxos = [];
   String? utxoError;
+  int listCalls = 0;
 
   @override
-  Future<List<BitAssetEntry>> listBitAssets() async => assets;
+  Future<List<BitAssetEntry>> listBitAssets() async {
+    listCalls++;
+    return assets;
+  }
 
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
