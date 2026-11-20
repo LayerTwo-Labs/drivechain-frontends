@@ -515,7 +515,7 @@ class _TransactionTableState extends State<TransactionTable> {
   }
 
   void _showUtxoDetails(BuildContext context, CoreTransaction utxo) {
-    showDialog(
+    showSailDialog<void>(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -664,7 +664,7 @@ class SidechainBalanceRows extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailStatList(
-      framed: false,
+      panel: false,
       children: [
         SailStatRow(title: 'Total', subtitle: '', value: total, loading: loading),
         SailStatRow(title: 'Available', subtitle: '', value: available, loading: loading),

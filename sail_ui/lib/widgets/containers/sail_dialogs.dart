@@ -9,16 +9,7 @@ Future<T?> showThemedDialog<T>({
   bool barrierDismissible = true,
 }) async {
   if (SailStyleValues.phoneLayout(context)) {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    return await navigator.push<T>(
-      _DialogSheetRoute<T>(
-        context: context,
-        builder: (context) => _DialogSheet(child: builder(context)),
-        barrierColor: SailColorScheme.black.withValues(alpha: 0.55),
-        barrierDismissible: barrierDismissible,
-        themes: InheritedTheme.capture(from: context, to: navigator.context),
-      ),
-    );
+    return await _showDialogSheet<T>(context: context, builder: builder, barrierDismissible: barrierDismissible);
   }
   return await showDialog(
     context: context,
@@ -29,6 +20,35 @@ Future<T?> showThemedDialog<T>({
     builder: (context) => BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
       child: builder(context),
+    ),
+  );
+}
+
+/// Shows a plain [showDialog] on a desktop, and the same dialog as a sheet on a phone.
+Future<T?> showSailDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+}) {
+  if (SailStyleValues.phoneLayout(context)) {
+    return _showDialogSheet<T>(context: context, builder: builder, barrierDismissible: barrierDismissible);
+  }
+  return showDialog<T>(context: context, builder: builder, barrierDismissible: barrierDismissible);
+}
+
+Future<T?> _showDialogSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  required bool barrierDismissible,
+}) {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  return navigator.push<T>(
+    _DialogSheetRoute<T>(
+      context: context,
+      builder: (context) => _DialogSheet(child: builder(context)),
+      barrierColor: SailColorScheme.black.withValues(alpha: 0.55),
+      barrierDismissible: barrierDismissible,
+      themes: InheritedTheme.capture(from: context, to: navigator.context),
     ),
   );
 }

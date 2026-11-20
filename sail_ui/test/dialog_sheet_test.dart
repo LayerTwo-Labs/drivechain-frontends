@@ -4,7 +4,12 @@ import 'package:sail_ui/sail_ui.dart';
 
 const _screen = Size(400, 800);
 
-Future<void> _open(WidgetTester tester, WidgetBuilder builder, {EdgeInsets padding = EdgeInsets.zero}) async {
+Future<void> _open(
+  WidgetTester tester,
+  WidgetBuilder builder, {
+  EdgeInsets padding = EdgeInsets.zero,
+  bool plain = false,
+}) async {
   tester.view.physicalSize = _screen;
   tester.view.devicePixelRatio = 1;
   tester.view.padding = FakeViewPadding(top: padding.top, bottom: padding.bottom);
@@ -18,7 +23,9 @@ Future<void> _open(WidgetTester tester, WidgetBuilder builder, {EdgeInsets paddi
       ),
       home: Builder(
         builder: (context) => TextButton(
-          onPressed: () => showThemedDialog<void>(context: context, builder: builder),
+          onPressed: () => plain
+              ? showSailDialog<void>(context: context, builder: builder)
+              : showThemedDialog<void>(context: context, builder: builder),
           child: const Text('open'),
         ),
       ),
@@ -94,5 +101,30 @@ void main() {
     expect(card.bottom, lessThan(_screen.height - 20));
     expect(card.center.dy, closeTo(_screen.height / 2, 1));
     expect(_clip(tester, 'Edit wallet').bottomLeft, isNot(Radius.zero));
+  });
+
+  group('a plain dialog', () {
+    Widget alert(BuildContext context) =>
+        AlertDialog(title: const Text('Delete wallet?'), content: const Text('Gone.'));
+
+    testWidgets('shows as a sheet at the bottom edge on a phone', (tester) async {
+      SailStyleValues.phoneLayoutOverride = true;
+      await _open(tester, alert, plain: true);
+
+      expect(tester.takeException(), isNull);
+      final dialog = tester.getRect(find.byType(AlertDialog));
+      expect(dialog.bottom, _screen.height);
+      expect(dialog.width, _screen.width);
+    });
+
+    testWidgets('stays a plain dialog in the middle on a desktop', (tester) async {
+      SailStyleValues.phoneLayoutOverride = false;
+      await _open(tester, alert, plain: true);
+
+      final dialog = tester.getRect(find.byType(AlertDialog));
+      expect(dialog.center.dy, closeTo(_screen.height / 2, 1));
+      expect(find.byType(BackdropFilter), findsNothing);
+      expect(tester.widget<ModalBarrier>(find.byType(ModalBarrier).last).color, Colors.black54);
+    });
   });
 }

@@ -1100,11 +1100,7 @@ class UpdateIndicator extends StatelessWidget {
         await updateProvider.performUpdate();
       },
     );
-    if (SailStyleValues.phoneLayout(context)) {
-      showThemedDialog<void>(context: context, builder: alert);
-      return;
-    }
-    showDialog(context: context, builder: alert);
+    showSailDialog<void>(context: context, builder: alert);
   }
 }
 

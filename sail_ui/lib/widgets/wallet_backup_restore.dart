@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sidechain_core/utils/share_file.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Create a wallet backup zip file via backend RPC.
@@ -25,6 +26,27 @@ Future<String> createWalletBackup({
   log.i('Backup created successfully via RPC: $destinationPath');
   return destinationPath;
 }
+
+/// Writes a backup from [fetch] as [fileName] into a cleared [dir], then hands the file to [share].
+/// A phone app cannot write to a folder that the user picks, so the share sheet saves it.
+Future<String> shareWalletBackup({
+  required Future<List<int>> Function() fetch,
+  required Future<void> Function(String path) share,
+  required Directory dir,
+  required String fileName,
+}) async {
+  if (await dir.exists()) {
+    await dir.delete(recursive: true);
+  }
+  await dir.create(recursive: true);
+  final file = File(path.join(dir.path, fileName));
+  await file.writeAsBytes(await fetch());
+  await share(file.path);
+  return file.path;
+}
+
+@visibleForTesting
+Future<void> Function(String path) backupSharer = shareFile;
 
 /// Check if current wallet exists
 Future<bool> hasCurrentWallet(WalletWriterProvider walletProvider) async {
@@ -77,12 +99,38 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
   String? _error;
   bool _success = false;
 
+  String _backupFileName() {
+    final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+    return '${widget.appName.toLowerCase()}-backup-$timestamp.zip';
+  }
+
+  Future<void> _shareBackup() async {
+    setState(() {
+      _isCreatingBackup = true;
+      _error = null;
+    });
+    try {
+      await shareWalletBackup(
+        fetch: () async => (await GetIt.I.get<BitwindowRPC>().wallet.createBackup()).backupData,
+        share: backupSharer,
+        dir: Directory(path.join(Directory.systemTemp.path, 'wallet-backup')),
+        fileName: _backupFileName(),
+      );
+    } catch (e) {
+      log.e('Backup failed: $e');
+      if (mounted) {
+        setState(() => _error = 'Backup failed: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingBackup = false);
+      }
+    }
+  }
+
   Future<void> _selectSaveLocation() async {
     try {
-      final timestamp = DateFormat(
-        'yyyy-MM-dd_HH-mm-ss',
-      ).format(DateTime.now());
-      final defaultFileName = '${widget.appName.toLowerCase()}-backup-$timestamp.zip';
+      final defaultFileName = _backupFileName();
 
       final result = await FilePicker.getDirectoryPath(
         dialogTitle: 'Save Wallet Backup',
@@ -180,37 +228,39 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        if (!phone) ...[
+          const SizedBox(height: 24),
 
-        // File selection
-        SailText.primary13('Save location:', bold: true),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: _isCreatingBackup ? null : _selectSaveLocation,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: _selectedPath != null ? theme.colors.primary : theme.colors.border,
+          // File selection
+          SailText.primary13('Save location:', bold: true),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _isCreatingBackup ? null : _selectSaveLocation,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: _selectedPath != null ? theme.colors.primary : theme.colors.border,
+                ),
+                borderRadius: BorderRadius.circular(8),
               ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SailText.secondary13(
-                    _selectedPath ?? 'Click to choose save location...',
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SailText.secondary13(
+                      _selectedPath ?? 'Click to choose save location...',
+                    ),
                   ),
-                ),
-                Icon(
-                  Icons.folder_open,
-                  color: theme.colors.textSecondary,
-                  size: 20,
-                ),
-              ],
+                  Icon(
+                    Icons.folder_open,
+                    color: theme.colors.textSecondary,
+                    size: 20,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
 
         if (_error != null) ...[
           const SizedBox(height: 16),
@@ -242,8 +292,8 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
           label: 'Create Backup',
           variant: ButtonVariant.primary,
           loading: _isCreatingBackup,
-          disabled: _selectedPath == null,
-          onPressed: _createBackup,
+          disabled: !phone && _selectedPath == null,
+          onPressed: phone ? _shareBackup : _createBackup,
         ),
       ],
     );
@@ -743,13 +793,13 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
   Future<String?> _promptBackupPassword(wmpb.WalletBackup backup) async {
     final controller = TextEditingController();
     try {
-      return await showDialog<String>(
+      return await showSailDialog<String>(
         context: context,
         builder: (context) {
           final theme = SailTheme.of(context);
           return Dialog(
             backgroundColor: theme.colors.background,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: SailSheetScope.of(context) ? null : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 400),
               padding: const EdgeInsets.all(24),

@@ -179,7 +179,7 @@ class DaemonConnectionCard extends StatelessWidget {
                 SailButton(
                   variant: ButtonVariant.icon,
                   onPressed: () async {
-                    await showDialog(
+                    await showSailDialog<void>(
                       context: context,
                       builder: (context) => ChainSettingsModal(
                         connection: chain,
