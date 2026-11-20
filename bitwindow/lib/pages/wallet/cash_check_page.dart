@@ -28,6 +28,7 @@ class _CashCheckPageState extends State<CashCheckPage> {
 
   @override
   Widget build(BuildContext context) {
+    final phone = SailStyleValues.phoneLayout(context);
     return SailScaffold(
       backgroundColor: SailTheme.of(context).colors.background,
       appBar: SailAppBar.build(context, title: SailText.primary20('Cash Check')),
@@ -36,45 +37,50 @@ class _CashCheckPageState extends State<CashCheckPage> {
           child: SingleChildScrollView(
             child: Container(
               constraints: const BoxConstraints(maxWidth: 600),
-              padding: const EdgeInsets.all(SailStyleValues.padding20),
-              child: SailColumn(
-                spacing: SailStyleValues.padding32,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SailText.primary24('Enter the private key (WIF)'),
-                  SailText.secondary13(
-                    'Paste the private key from the check you received. The funds will be swept to your wallet.',
-                    textAlign: TextAlign.center,
-                  ),
-                  SailTextField(
-                    controller: _wifController,
-                    hintText: 'Private key (WIF format)',
-                    textFieldType: TextFieldType.text,
-                    maxLines: 3,
-                    onChanged: (_) {
-                      if (_error != null) {
-                        setState(() => _error = null);
-                      }
-                    },
-                  ),
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      SailButton(
-                        label: 'Cancel',
-                        variant: ButtonVariant.ghost,
-                        onPressed: () async => context.router.maybePop(),
-                      ),
-                      SailButton(
-                        label: 'Cash Check',
-                        loading: _isCashing,
-                        onPressed: () async => _cashCheck(),
-                      ),
-                    ],
-                  ),
-                  if (_error != null) SailInlineError(_error!),
-                ],
+              padding: EdgeInsets.all(phone ? SailStyleValues.padding16 : SailStyleValues.padding20),
+              child: _PhonePanel(
+                phone: phone,
+                child: SailColumn(
+                  spacing: phone ? SailStyleValues.padding16 : SailStyleValues.padding32,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    phone
+                        ? SailText.primary15('Enter the private key (WIF)', bold: true)
+                        : SailText.primary24('Enter the private key (WIF)'),
+                    SailText.secondary13(
+                      'Paste the private key from the check you received. The funds will be swept to your wallet.',
+                      textAlign: phone ? TextAlign.start : TextAlign.center,
+                    ),
+                    SailTextField(
+                      controller: _wifController,
+                      hintText: 'Private key (WIF format)',
+                      textFieldType: TextFieldType.text,
+                      maxLines: 3,
+                      onChanged: (_) {
+                        if (_error != null) {
+                          setState(() => _error = null);
+                        }
+                      },
+                    ),
+                    SailRow(
+                      spacing: SailStyleValues.padding08,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        SailButton(
+                          label: 'Cancel',
+                          variant: ButtonVariant.ghost,
+                          onPressed: () async => context.router.maybePop(),
+                        ),
+                        SailButton(
+                          label: 'Cash Check',
+                          loading: _isCashing,
+                          onPressed: () async => _cashCheck(),
+                        ),
+                      ],
+                    ),
+                    if (_error != null) SailInlineError(_error!),
+                  ],
+                ),
               ),
             ),
           ),
@@ -209,4 +215,15 @@ class _CashCheckPageState extends State<CashCheckPage> {
 
     passwordController.dispose();
   }
+}
+
+/// The phone form puts the page content in one panel.
+class _PhonePanel extends StatelessWidget {
+  final bool phone;
+  final Widget child;
+
+  const _PhonePanel({required this.phone, required this.child});
+
+  @override
+  Widget build(BuildContext context) => phone ? SailCard(child: child) : child;
 }
