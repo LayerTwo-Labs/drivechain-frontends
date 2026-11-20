@@ -33,6 +33,9 @@ class _FakeCheckProvider extends ChangeNotifier implements CheckProvider {
   );
 
   @override
+  List<bwpb.Cheque> get checks => const [];
+
+  @override
   void startPolling(int checkId, {Duration interval = const Duration(seconds: 5)}) {}
 
   @override
@@ -137,7 +140,8 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(_inCard('Awaiting funding'), isTrue);
-      expect(_fontSize(tester, 'Awaiting funding'), 15);
+      final card = tester.getRect(find.byType(SailCard));
+      expect(tester.getCenter(find.text('Awaiting funding')).dx, greaterThan(card.center.dx));
       expect(find.byWidgetPredicate((w) => w is Container && w.constraints?.maxWidth == 8), findsOneWidget);
 
       final address = tester.getRect(find.text(_address));
@@ -146,7 +150,6 @@ void main() {
       expect(copy.left, greaterThanOrEqualTo(address.right));
       expect(copy.center.dy, closeTo(address.center.dy, 2));
 
-      final card = tester.getRect(find.byType(SailCard));
       final button = tester.getRect(find.widgetWithText(SailButton, 'Fund with Wallet'));
       expect(button.width, closeTo(card.width - 32 - 2, 2));
     });
@@ -189,7 +192,8 @@ void main() {
 
       final card = tester.getRect(find.byType(SailCard));
       final done = tester.getRect(find.widgetWithText(SailButton, 'Done'));
-      expect(done.right, closeTo(card.right, 1));
+      expect(_inCard('Done'), isTrue);
+      expect(done.right, closeTo(card.right - 16 - 1, 1));
     });
 
     testWidgets('the desktop keeps the large title and the colon labels', (tester) async {

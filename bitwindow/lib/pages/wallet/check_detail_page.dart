@@ -314,7 +314,7 @@ class CheckDetailPage extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: phone ? MainAxisAlignment.start : MainAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 if (phone)
                                   Container(
@@ -363,10 +363,7 @@ class CheckDetailPage extends StatelessWidget {
                                     ),
                                   ),
                                 SizedBox(width: phone ? SailStyleValues.padding08 : SailStyleValues.padding12),
-                                if (phone)
-                                  SailText.primary15(_statusLabel(check), bold: true)
-                                else
-                                  SailText.primary13(_statusLabel(check)),
+                                SailText.primary13(_statusLabel(check)),
                               ],
                             ),
                             if (check.fundedTxids.isEmpty)
@@ -386,7 +383,7 @@ class CheckDetailPage extends StatelessWidget {
                             if (check.fundedTxids.isEmpty && phone)
                               Row(
                                 children: [
-                                  Expanded(child: SailText.primary13(check.address, monospace: true)),
+                                  Expanded(child: SailText.primary13(check.address)),
                                   const SizedBox(width: SailStyleValues.padding08),
                                   CopyButton(text: check.address),
                                 ],

@@ -122,44 +122,41 @@ class _PhoneCashedBody extends StatelessWidget {
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(SailStyleValues.padding16),
-        child: SailColumn(
-          spacing: SailStyleValues.padding16,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: SailCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: theme.colors.success),
-                      ),
-                      const SizedBox(width: SailStyleValues.padding08),
-                      Expanded(child: SailText.primary15('Your Check was Cashed', bold: true)),
-                    ],
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: theme.colors.success),
                   ),
-                  const SizedBox(height: SailStyleValues.padding04),
-                  SailText.secondary13('Funds are on their way to your wallet'),
-                  const SizedBox(height: SailStyleValues.padding08),
-                  SailValueRow(label: 'Amount', value: amount),
-                  Container(height: 1, color: theme.colors.divider),
-                  SailValueRow(
-                    label: 'Transaction',
-                    value: '${txid.substring(0, 10)}...${txid.substring(txid.length - 10)}',
-                    action: CopyButton(text: txid),
-                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  Expanded(child: SailText.primary15('Your Check was Cashed', bold: true)),
                 ],
               ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: SailButton(label: 'Done', onPressed: _done),
-            ),
-          ],
+              const SizedBox(height: SailStyleValues.padding08),
+              SailText.secondary13('Funds are on their way to your wallet'),
+              const SizedBox(height: SailStyleValues.padding08),
+              Container(height: 1, color: theme.colors.divider),
+              SailValueRow(label: 'Amount', value: amount),
+              Container(height: 1, color: theme.colors.divider),
+              SailValueRow(
+                label: 'Transaction',
+                value: '${txid.substring(0, 10)}...${txid.substring(txid.length - 10)}',
+                valueColor: theme.colors.textSecondary,
+                action: CopyButton(text: txid),
+              ),
+              Container(height: 1, color: theme.colors.divider),
+              const SizedBox(height: SailStyleValues.padding12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: SailButton(label: 'Done', onPressed: _done),
+              ),
+            ],
+          ),
         ),
       ),
     );
