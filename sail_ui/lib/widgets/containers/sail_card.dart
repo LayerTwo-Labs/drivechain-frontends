@@ -376,8 +376,47 @@ class SailAlertCard extends StatelessWidget {
     this.cancelText = 'Cancel',
   });
 
+  Future<void> _cancel(BuildContext context) async {
+    if (onCancel != null) {
+      await onCancel!();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (SailSheetScope.of(context)) {
+      return Align(
+        alignment: Alignment.bottomCenter,
+        child: SailCard(
+          title: title,
+          subtitle: subtitle,
+          child: SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              Expanded(
+                child: SailButton(
+                  label: cancelText,
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async => _cancel(context),
+                ),
+              ),
+              Expanded(
+                child: SailButton(
+                  label: confirmText,
+                  variant: confirmButtonVariant ?? ButtonVariant.primary,
+                  loadingLabel: loadingLabel,
+                  loading: loadingLabel != null,
+                  onPressed: onConfirm,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Center(
       child: SizedBox(
         width: 512,
@@ -392,13 +431,7 @@ class SailAlertCard extends StatelessWidget {
               SailButton(
                 label: cancelText,
                 variant: ButtonVariant.ghost,
-                onPressed: () async {
-                  if (onCancel != null) {
-                    await onCancel!();
-                  } else {
-                    Navigator.of(context).pop();
-                  }
-                },
+                onPressed: () async => _cancel(context),
               ),
               SailButton(
                 label: confirmText,

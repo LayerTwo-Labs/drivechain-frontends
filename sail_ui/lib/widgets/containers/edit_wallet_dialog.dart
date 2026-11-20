@@ -159,36 +159,64 @@ class _EditWalletDialogState extends State<_EditWalletDialog> {
               onSubmitted: (_) => _submit(),
             ),
             Divider(height: 1, thickness: 1, color: theme.colors.divider),
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SailButton(
-                  label: 'Delete wallet',
-                  variant: ButtonVariant.ghost,
-                  textColor: theme.colors.error,
-                  small: true,
-                  onPressed: _delete,
-                ),
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailButton(
-                      label: 'Cancel',
-                      variant: ButtonVariant.outline,
-                      small: true,
-                      onPressed: () async => Navigator.of(context).pop(),
-                    ),
-                    SailButton(
-                      label: 'Save',
-                      small: true,
-                      disabled: _name.text.trim().isEmpty,
-                      onPressed: () async => _submit(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            if (SailStyleValues.phoneLayout(context))
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SailButton(
+                    label: 'Delete wallet',
+                    variant: ButtonVariant.destructive,
+                    onPressed: _delete,
+                  ),
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SailButton(
+                        label: 'Cancel',
+                        variant: ButtonVariant.secondary,
+                        onPressed: () async => Navigator.of(context).pop(),
+                      ),
+                      SailButton(
+                        label: 'Save',
+                        disabled: _name.text.trim().isEmpty,
+                        onPressed: () async => _submit(),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            else
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SailButton(
+                    label: 'Delete wallet',
+                    variant: ButtonVariant.ghost,
+                    textColor: theme.colors.error,
+                    small: true,
+                    onPressed: _delete,
+                  ),
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SailButton(
+                        label: 'Cancel',
+                        variant: ButtonVariant.outline,
+                        small: true,
+                        onPressed: () async => Navigator.of(context).pop(),
+                      ),
+                      SailButton(
+                        label: 'Save',
+                        small: true,
+                        disabled: _name.text.trim().isEmpty,
+                        onPressed: () async => _submit(),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
           ],
         ),
       ),

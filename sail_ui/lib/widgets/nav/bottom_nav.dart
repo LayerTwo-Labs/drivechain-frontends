@@ -1084,25 +1084,27 @@ class UpdateIndicator extends StatelessWidget {
   }
 
   void _showUpdateDialog(BuildContext context, UpdateProvider updateProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Update Available',
-        subtitle:
-            'A new version (v${updateProvider.latestVersion}) is available.\n\n'
-            'The application will download and install the update, then restart automatically.',
-        cancelText: 'Hide Alert',
-        confirmText: 'Update',
-        onCancel: () async {
-          updateProvider.dismissUpdate();
-          Navigator.of(context).pop();
-        },
-        onConfirm: () async {
-          Navigator.of(context).pop();
-          await updateProvider.performUpdate();
-        },
-      ),
+    Widget alert(BuildContext context) => SailAlertCard(
+      title: 'Update Available',
+      subtitle:
+          'A new version (v${updateProvider.latestVersion}) is available.\n\n'
+          'The application will download and install the update, then restart automatically.',
+      cancelText: 'Hide Alert',
+      confirmText: 'Update',
+      onCancel: () async {
+        updateProvider.dismissUpdate();
+        Navigator.of(context).pop();
+      },
+      onConfirm: () async {
+        Navigator.of(context).pop();
+        await updateProvider.performUpdate();
+      },
     );
+    if (SailStyleValues.phoneLayout(context)) {
+      showThemedDialog<void>(context: context, builder: alert);
+      return;
+    }
+    showDialog(context: context, builder: alert);
   }
 }
 
