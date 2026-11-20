@@ -234,7 +234,7 @@ class RecentActionsViewModel extends BaseViewModel {
 
       actions = response.actions.map((action) {
         return ActionEntry(
-          avatar: _getAvatarForSidechain(action.sidechainSlot),
+          avatar: SidechainActionAvatar(slot: action.sidechainSlot),
           title: _getTitleForAction(action.actionType),
           subtitle: action.sidechainName,
           value: _getValueForAction(action),
@@ -249,31 +249,6 @@ class RecentActionsViewModel extends BaseViewModel {
       subtitle = null;
       notifyListeners();
     }
-  }
-
-  Widget _getAvatarForSidechain(int slot) {
-    final assetName = switch (slot) {
-      2 => 'bitnames',
-      4 => 'bitassets',
-      9 => 'thunder',
-      13 => 'truthcoin',
-      98 => 'zside',
-      99 => 'photon',
-      _ => 'thunder', // fallback
-    };
-    return Image.asset(
-      'packages/sail_ui/assets/pngs/$assetName.png',
-      width: 40,
-      height: 40,
-      errorBuilder: (context, error, stackTrace) => Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: SailTheme.of(context).colors.backgroundSecondary,
-        ),
-      ),
-    );
   }
 
   String _getTitleForAction(String actionType) {
@@ -308,5 +283,44 @@ class RecentActionsViewModel extends BaseViewModel {
       return number.toString();
     }
     return '${(number / 1000).toStringAsFixed(0)} ${number % 1000}'.trim();
+  }
+}
+
+/// The 40 px picture of the sidechain in [slot], decoded at its display size.
+class SidechainActionAvatar extends StatelessWidget {
+  const SidechainActionAvatar({super.key, required this.slot});
+
+  final int slot;
+
+  @override
+  Widget build(BuildContext context) {
+    final assetName = switch (slot) {
+      2 => 'bitnames',
+      4 => 'bitassets',
+      9 => 'thunder',
+      13 => 'truthcoin',
+      98 => 'zside',
+      99 => 'photon',
+      _ => 'thunder', // fallback
+    };
+    final pixels = (40 * MediaQuery.devicePixelRatioOf(context)).ceil();
+    return Image(
+      image: ResizeImage(
+        AssetImage('packages/sail_ui/assets/pngs/$assetName.png'),
+        width: pixels,
+        height: pixels,
+        policy: ResizeImagePolicy.fit,
+      ),
+      width: 40,
+      height: 40,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: SailTheme.of(context).colors.backgroundSecondary,
+        ),
+      ),
+    );
   }
 }
