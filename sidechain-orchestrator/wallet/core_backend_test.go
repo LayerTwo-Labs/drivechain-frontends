@@ -2915,6 +2915,7 @@ func TestCoreBackendListReceivedReportsLastUsed(t *testing.T) {
 	selfAddr := p2wpkhAddr(t, fixedKey(0x52), net)
 	mergedAddr := p2wpkhAddr(t, fixedKey(0x53), net)
 	changeAddr := p2wpkhAddr(t, fixedKey(0x54), net)
+	freshAddr := p2wpkhAddr(t, fixedKey(0x55), net)
 
 	type walletTx struct {
 		hex    string
@@ -2944,18 +2945,22 @@ func TestCoreBackendListReceivedReportsLastUsed(t *testing.T) {
 	merged := addTx(&wire.OutPoint{Hash: chainhash.Hash{0x02}}, mergedAddr, 1100, false)
 	// A consolidation pays only change, so listtransactions leaves it out.
 	consolidation := addTx(merged, changeAddr, 3000, true)
+	// A plain receive that still holds its coin.
+	fresh := addTx(&wire.OutPoint{Hash: chainhash.Hash{0x03}}, freshAddr, 4000, false)
 
 	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
 		return []map[string]any{
 			{"address": spentAddr, "amount": 0.001, "txids": []string{fund.Hash.String()}},
 			{"address": selfAddr, "amount": 0.001, "txids": []string{self.Hash.String()}},
 			{"address": mergedAddr, "amount": 0.001, "txids": []string{merged.Hash.String()}},
+			{"address": freshAddr, "amount": 0.001, "txids": []string{fresh.Hash.String()}},
 		}, ""
 	})
 	fake.handle("listunspent", func(bitcoindCall) (any, string) {
 		return []map[string]any{
 			{"txid": self.Hash.String(), "vout": 0, "address": selfAddr, "amount": 0.001},
 			{"txid": consolidation.Hash.String(), "vout": 0, "address": changeAddr, "amount": 0.001},
+			{"txid": fresh.Hash.String(), "vout": 0, "address": freshAddr, "amount": 0.001},
 		}, ""
 	})
 	fake.handle("listtransactions", func(bitcoindCall) (any, string) {
@@ -2964,6 +2969,7 @@ func TestCoreBackendListReceivedReportsLastUsed(t *testing.T) {
 			{"txid": merged.Hash.String(), "category": "receive", "address": mergedAddr, "time": 1100},
 			{"txid": self.Hash.String(), "category": "receive", "address": selfAddr, "time": 2000},
 			{"txid": self.Hash.String(), "category": "send", "address": selfAddr, "time": 2000},
+			{"txid": fresh.Hash.String(), "category": "receive", "address": freshAddr, "time": 4000},
 		}, ""
 	})
 	fake.handle("gettransaction", func(c bitcoindCall) (any, string) {
@@ -2991,8 +2997,9 @@ func TestCoreBackendListReceivedReportsLastUsed(t *testing.T) {
 		assert.EqualValues(t, 2000, lastUsed[selfAddr], "a self-payment counts")
 		assert.EqualValues(t, 3000, lastUsed[mergedAddr], "a consolidation counts for the coins it merges")
 		assert.EqualValues(t, 3000, lastUsed[changeAddr], "change from a consolidation counts")
+		assert.EqualValues(t, 4000, lastUsed[freshAddr], "a receive counts")
 	}
-	assert.Len(t, fake.callsFor("gettransaction"), 4, "each wallet tx reads one time")
+	assert.Len(t, fake.callsFor("gettransaction"), 4, "each wallet tx reads one time, and a listed receive never")
 
 	backend.ResetNetworkState()
 	_, err := backend.ListReceivedByAddress(context.Background(), coreID)
