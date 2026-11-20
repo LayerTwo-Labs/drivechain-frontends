@@ -79,6 +79,7 @@ class OverviewTab extends StatelessWidget {
                             opacity: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains ? 1.0 : 0.4,
                             child: WalletStats(
                               title: 'Sidechain Deposit Volume',
+                              phoneTitle: 'Sidechain deposits',
                               value: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
                                   ? formatter
                                         .formatSats(model.stats?.sidechainDepositVolume.toInt() ?? 0)
@@ -864,9 +865,13 @@ class WalletStats extends ViewModelWidget<OverviewViewModel> {
   final SailSVGAsset icon;
   final bool bitcoinAmount;
 
+  /// A shorter title for the phone row, where the title shares its line with the value.
+  final String? phoneTitle;
+
   const WalletStats({
     super.key,
     required this.title,
+    this.phoneTitle,
     required this.subtitle,
     required this.value,
     required this.icon,
@@ -875,20 +880,24 @@ class WalletStats extends ViewModelWidget<OverviewViewModel> {
 
   @override
   Widget build(BuildContext context, OverviewViewModel viewModel) {
+    final loading = LoadingDetails(
+      enabled: viewModel.loading,
+      description: 'Waiting for enforcer to boot and wallet to sync..',
+    );
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailStatRow(title: phoneTitle ?? title, subtitle: subtitle, value: value, loading: loading);
+    }
     return SailCardStats(
       title: title,
       subtitle: subtitle,
       value: value,
       icon: icon,
-      loading: LoadingDetails(
-        enabled: viewModel.loading,
-        description: 'Waiting for enforcer to boot and wallet to sync..',
-      ),
+      loading: loading,
     );
   }
 }
 
-/// The wallet stat cards: one row on the desktop, two rows of two on a phone.
+/// The wallet stats: one row of cards on the desktop, one list panel on a phone.
 class _StatsGrid extends StatelessWidget {
   final bool phone;
   final List<Widget> stats;
@@ -897,18 +906,14 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget row(List<Widget> cells, double spacing) => SailRow(
-      mainAxisSize: MainAxisSize.max,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: spacing,
-      children: [for (final cell in cells) Expanded(child: cell)],
-    );
-    if (!phone) {
-      return row(stats, 16);
+    if (phone) {
+      return SailStatList(children: stats);
     }
-    return SailColumn(
-      spacing: 12,
-      children: [for (var i = 0; i < stats.length; i += 2) row(stats.sublist(i, i + 2), 12)],
+    return SailRow(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.start,
+      spacing: 16,
+      children: [for (final stat in stats) Expanded(child: stat)],
     );
   }
 }
