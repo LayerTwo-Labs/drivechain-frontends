@@ -291,6 +291,18 @@ func WaitsForCore(inIBD bool, network config.Network) bool {
 }
 
 func (p *Parser) handleBlockTick(ctx context.Context) error {
+	switch current, err := p.processedTipIsCoreTip(ctx); {
+	case connect.CodeOf(err) == connect.CodeUnavailable:
+		zerolog.Ctx(ctx).Debug().
+			Msgf("bitcoind_engine/parser: bitcoin core is not available, waiting for connection..")
+		return nil
+
+	case err != nil:
+		return err
+
+	case current:
+		return nil
+	}
 
 	switch err := p.ensureSyncIsHealthy(ctx); {
 	case err != nil &&
@@ -868,6 +880,20 @@ func (p *Parser) handleTimestamp(
 		Msg("discovered timestamp on blockchain")
 
 	return nil
+}
+
+// processedTipIsCoreTip reports whether the processed tip is the tip of Core.
+// The hash commits to the whole chain, so there is then nothing to scan.
+func (p *Parser) processedTipIsCoreTip(ctx context.Context) (bool, error) {
+	processed, err := blocks.GetProcessedTipHash(ctx, p.db)
+	if err != nil || processed == nil {
+		return false, err
+	}
+	_, tip, _, err := p.currentChainState(ctx)
+	if err != nil {
+		return false, fmt.Errorf("fetch current tip: %w", err)
+	}
+	return tip == *processed, nil
 }
 
 // currentChainState returns the tip plus the IBD flag in one RPC. Callers

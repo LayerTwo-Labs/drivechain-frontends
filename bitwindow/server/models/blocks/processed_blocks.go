@@ -27,6 +27,24 @@ func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
 	return &pb, nil
 }
 
+// GetProcessedTipHash returns the hash of the highest processed block, or nil
+// when no block is processed.
+func GetProcessedTipHash(ctx context.Context, db *sql.DB) (*chainhash.Hash, error) {
+	var raw string
+	err := db.QueryRowContext(ctx, `SELECT block_hash FROM processed_blocks ORDER BY height DESC LIMIT 1`).Scan(&raw)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("query processed tip hash: %w", err)
+	}
+	hash, err := chainhash.NewHashFromStr(raw)
+	if err != nil {
+		return nil, fmt.Errorf("parse block hash: %w", err)
+	}
+	return hash, nil
+}
+
 var selectProcessedBlock = sq.
 	Select("height", "block_hash", "txids", "block_time", "processed_at").
 	From("processed_blocks").
