@@ -66,6 +66,9 @@ class BackendStateProvider extends ChangeNotifier {
     _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
   }
 
+  @visibleForTesting
+  Future<void> poll() => _poll();
+
   Future<void> _poll() async {
     if (_polling) {
       return;
@@ -76,9 +79,10 @@ class BackendStateProvider extends ChangeNotifier {
         forceBackend: Binary.isSidechainApp,
       );
       _consecutiveFailures = 0;
+      final recovered = !orchestratorReachable || !orchestratorAnswered;
       orchestratorReachable = true;
       orchestratorAnswered = true;
-      _apply(resp.binaries);
+      _apply(resp.binaries, recovered: recovered);
     } catch (e) {
       // A blip keeps the last frame on screen, but an orchestrator that stays
       // unreachable must stop reading as a healthy stack.
@@ -120,9 +124,11 @@ class BackendStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _apply(List<BinaryStatusMsg> statuses) {
+  void _apply(List<BinaryStatusMsg> statuses, {required bool recovered}) {
     final changedRpcs = <RPCConnection>{};
+    var changed = recovered;
     for (final status in statuses) {
+      changed |= !_sameStatus(binaries[status.name], status);
       binaries[status.name] = status;
       final rpc = _syncConnectionState(status);
       if (rpc != null) {
@@ -133,8 +139,14 @@ class BackendStateProvider extends ChangeNotifier {
     for (final rpc in changedRpcs) {
       rpc.notifyListeners();
     }
-    notifyListeners();
+    if (changed) {
+      notifyListeners();
+    }
   }
+
+  // The uptime moves on each poll, and no reader shows it.
+  static bool _sameStatus(BinaryStatusMsg? prev, BinaryStatusMsg next) =>
+      prev != null && (prev.deepCopy()..uptimeSeconds = next.uptimeSeconds) == next;
 
   /// Sync all connection state from the Go backend to the Flutter RPCConnection.
   /// The Go ConnectionMonitor is the single source of truth — just assign all fields.
