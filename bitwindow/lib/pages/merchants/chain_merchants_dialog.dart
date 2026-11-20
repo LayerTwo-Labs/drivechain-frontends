@@ -104,19 +104,14 @@ class _PhoneMerchantList extends StatelessWidget {
       itemBuilder: (context, index) {
         final merchant = merchants[index];
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               GestureDetector(
                 onTap: () async => openUrl(Uri.parse(merchant.url)),
-                child: SailText.primary13(
-                  merchant.name,
-                  bold: true,
-                  color: theme.colors.info,
-                  underline: true,
-                ),
+                child: SailText.primary13(merchant.name, color: theme.colors.primary, underline: true),
               ),
               const SizedBox(height: 2),
               SailText.secondary12(merchant.description),

@@ -22,6 +22,7 @@ void main() {
     };
     addTearDown(() => openUrlProcessRunner = Process.run);
     SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
     await tester.pumpSailPage(const ChainMerchantsDialog());
     await tester.binding.setSurfaceSize(const Size(390, 800));
     await tester.pumpAndSettle();
@@ -32,6 +33,9 @@ void main() {
     final description = tester.getRect(find.text('Buy gift cards and mobile top-ups with Bitcoin'));
     expect(description.top, greaterThanOrEqualTo(name.bottom));
     expect(description.left, closeTo(name.left, 1));
+    final nameStyle = tester.widget<Text>(find.text('BitRefill')).style!;
+    expect(nameStyle.color, SailTheme.of(tester.element(find.text('BitRefill'))).colors.primary);
+    expect(nameStyle.decoration, TextDecoration.underline);
     expect(tester.getRect(find.text('Shopify via BTCPay')).top, greaterThan(description.bottom));
 
     await tester.tap(find.text('BitRefill'));
