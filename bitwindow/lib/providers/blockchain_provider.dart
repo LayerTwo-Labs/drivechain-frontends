@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
@@ -44,7 +45,20 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     mainchain.addListener(fetch);
     bitwindowd.addListener(fetch);
     enforcer.addListener(fetch);
-    syncProvider.addListener(notifyListeners);
+    syncProvider.addListener(_onSyncChanged);
+  }
+
+  /// The mainchain sync fields that listeners read through [syncProvider].
+  (bool?, double?, Timestamp?) _mainchainSync = (null, null, null);
+
+  void _onSyncChanged() {
+    final info = syncProvider.mainchainSyncInfo;
+    final next = (info?.isSynced, info?.progressCurrent, info?.lastBlockAt);
+    if (next == _mainchainSync) {
+      return;
+    }
+    _mainchainSync = next;
+    notifyListeners();
   }
 
   // call this function from anywhere to refetch blockchain info
@@ -204,6 +218,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     _fetchTimer?.cancel();
     _fetchTimer = null;
     mainchain.removeListener(fetch);
+    syncProvider.removeListener(_onSyncChanged);
     super.dispose();
   }
 }
