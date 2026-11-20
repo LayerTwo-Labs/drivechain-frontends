@@ -103,7 +103,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     (id: TabIndices.learn, route: LearnRoute(), nav: TopNavRoute(label: 'Learn')),
     (id: TabIndices.console, route: ConsoleRoute(), nav: TopNavRoute(label: 'Console')),
     (id: TabIndices.chat, route: ChatRoute(), nav: TopNavRoute(label: 'Chat')),
-    (id: TabIndices.settings, route: SettingsRoute(), nav: TopNavRoute(icon: SailSVGAsset.settings)),
+    (
+      id: TabIndices.settings,
+      route: SettingsRoute(),
+      nav: const TopNavRoute(icon: SailSVGAsset.settings, drawerLabel: 'Settings'),
+    ),
   ];
 
   int _tabIndex(int id) {
@@ -975,9 +979,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               builder: (context, child, controller) {
                 final theme = SailTheme.of(context);
 
+                final phone = SailStyleValues.phoneLayout(context);
                 return SailSelectionArea(
                   child: SailScaffold(
                     backgroundColor: theme.colors.background,
+                    drawer: phone ? TopNavDrawer(routes: [for (final t in _navTabs) t.nav]) : null,
                     appBar: TopNav(
                       locked: _homepageProvider.editing,
                       leadingWidget: _isWalletSwitching
@@ -1106,14 +1112,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                               );
                             },
                           ),
-                          SailButton(
-                            onPressed: () async {
-                              await openUrl(Uri.parse('https://t.me/DcInsiders'));
-                            },
-                            variant: ButtonVariant.icon,
-                            icon: SailSVGAsset.telegram,
-                            small: true,
-                          ),
+                          if (!phone)
+                            SailButton(
+                              onPressed: () async {
+                                await openUrl(Uri.parse('https://t.me/DcInsiders'));
+                              },
+                              variant: ButtonVariant.icon,
+                              icon: SailSVGAsset.telegram,
+                              small: true,
+                            ),
                         ],
                       ),
                     ),

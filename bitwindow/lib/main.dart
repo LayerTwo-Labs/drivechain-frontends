@@ -757,6 +757,20 @@ class _BitwindowAppContent extends StatelessWidget {
         // layout cost on normal routes. When either daemon fails terminally
         // it renders a 36px red banner — visible on pre-auth screens where
         // root_page's richer BottomNav isn't mounted.
+        // A Scaffold bottom bar takes the bottom inset from the page, which a phone page needs.
+        if (SailStyleValues.phoneLayout(context)) {
+          return _ErrorBoundary(
+            child: Material(
+              color: theme.colors.background,
+              child: Column(
+                children: [
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                  const BackendSwapBar(child: PersistentStatusBar()),
+                ],
+              ),
+            ),
+          );
+        }
         return _ErrorBoundary(
           child: Scaffold(
             body: child ?? const SizedBox.shrink(),
