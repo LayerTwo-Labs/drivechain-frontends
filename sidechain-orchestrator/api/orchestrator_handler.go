@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -35,6 +36,24 @@ type Handler struct {
 	// Light mode starts no sidechain node, so nothing may dial one here.
 	sidechainBalances map[string]SidechainBalanceFunc
 	syncSource        SyncStatusSource
+
+	feedsMu sync.Mutex
+	feeds   map[bool]*binariesFeed
+}
+
+// binariesFeed returns the shared feed for one ForceBackend value.
+func (h *Handler) binariesFeed(forceBackend bool) *binariesFeed {
+	h.feedsMu.Lock()
+	defer h.feedsMu.Unlock()
+	if h.feeds == nil {
+		h.feeds = map[bool]*binariesFeed{}
+	}
+	f, ok := h.feeds[forceBackend]
+	if !ok {
+		f = newBinariesFeed(h.orch, orchestrator.DownloadOptions{ForceBackend: forceBackend})
+		h.feeds[forceBackend] = f
+	}
+	return f
 }
 
 // SidechainBalanceFunc reads one sidechain balance, in sats.

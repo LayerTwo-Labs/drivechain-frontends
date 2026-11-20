@@ -788,6 +788,12 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 // the test sidechain resolver, so a sidechain app reports the daemon it runs
 // instead of the test build BitWindow launches.
 func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) BinaryStatus {
+	return o.status(name, opts, true)
+}
+
+// status reads the state of a binary. With dialPort, a binary that this
+// process does not run gets a port probe; else its monitor answers PortInUse.
+func (o *Orchestrator) status(name string, opts DownloadOptions, dialPort bool) BinaryStatus {
 	opts = o.downloadOptsFor(opts)
 	config, err := o.getConfig(name)
 	if err != nil {
@@ -852,7 +858,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	}
 
 	// Quick port probe if not already known to be running.
-	if config.Port > 0 && !status.Running {
+	if dialPort && config.Port > 0 && !status.Running {
 		conn, err := net.DialTimeout("tcp", config.RPCAddr(), 200*time.Millisecond)
 		if err == nil {
 			_ = conn.Close()
@@ -871,6 +877,9 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 		status.Initializing = mon.InitializingBinary()
 		status.ConnectModeOnly = mon.ConnectModeOnly()
 		status.StartupLogs = mon.StartupLogs()
+		if !dialPort && !status.Running {
+			status.PortInUse = status.Connected
+		}
 	}
 	o.monitorsMu.Unlock()
 
@@ -886,6 +895,16 @@ func (o *Orchestrator) ListAll() []BinaryStatus {
 // ListAllWithOptions is ListAll with the force-backend lever of
 // StatusWithOptions.
 func (o *Orchestrator) ListAllWithOptions(opts DownloadOptions) []BinaryStatus {
+	return o.listAll(opts, true)
+}
+
+// ListAllState is ListAllWithOptions with no port probe: it reads only the
+// state that drivechaind holds.
+func (o *Orchestrator) ListAllState(opts DownloadOptions) []BinaryStatus {
+	return o.listAll(opts, false)
+}
+
+func (o *Orchestrator) listAll(opts DownloadOptions, dialPort bool) []BinaryStatus {
 	opts = o.downloadOptsFor(opts)
 	// Snapshot names and release before Status: it re-acquires o.mu via
 	// getConfig, and a queued writer would deadlock the nested read lock.
@@ -898,7 +917,7 @@ func (o *Orchestrator) ListAllWithOptions(opts DownloadOptions) []BinaryStatus {
 
 	statuses := make([]BinaryStatus, 0, len(names))
 	for _, name := range names {
-		statuses = append(statuses, o.StatusWithOptions(name, opts))
+		statuses = append(statuses, o.status(name, opts, dialPort))
 	}
 	sort.Slice(statuses, func(i, j int) bool {
 		if statuses[i].ChainLayer != statuses[j].ChainLayer {

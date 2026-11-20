@@ -15,8 +15,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/watch"
 )
 
-// binariesRecheckInterval is how often WatchBinaries reads the binary state
-// that no monitor event covers, such as a file on disk or a port in use.
+// binariesRecheckInterval is how often the binaries feed reads the state that
+// no monitor event covers, such as a file on disk.
 const binariesRecheckInterval = time.Second
 
 // SyncStatusSource supplies the snapshot that WatchSyncStatus streams.
@@ -151,17 +151,8 @@ func (h *Handler) WatchSyncStatus(ctx context.Context, req *pb.WatchSyncStatusRe
 }
 
 func (h *Handler) WatchBinaries(ctx context.Context, req *pb.WatchBinariesRequest, stream rpc.OrchestratorServiceWatchBinariesServerStream) error {
-	changed := h.orch.SubscribeBinaries(ctx)
-	opts := orchestrator.DownloadOptions{ForceBackend: req.ForceBackend}
-	read := func() ([]*pb.BinaryStatusMsg, error) {
-		statuses := h.orch.ListAllWithOptions(opts)
-		out := make([]*pb.BinaryStatusMsg, len(statuses))
-		for i, s := range statuses {
-			out[i] = statusToProto(s)
-		}
-		return out, nil
-	}
-	return watch.Changes(ctx, changed, binariesRecheckInterval, WatchHeartbeatInterval, read, sameBinaries,
+	feed := h.binariesFeed(req.ForceBackend)
+	return watch.Changes(ctx, feed.subscribe(ctx), WatchHeartbeatInterval, WatchHeartbeatInterval, feed.latest, sameBinaries,
 		func(binaries []*pb.BinaryStatusMsg) error {
 			return stream.Send(&pb.WatchBinariesResponse{Binaries: binaries})
 		},
