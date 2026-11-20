@@ -122,6 +122,44 @@ class _Header extends StatelessWidget {
     final period = model.currentPeriod;
     final status = model.slotStatus;
 
+    const subtitle = 'You answer every decision slot that your Votecoin covers.';
+    final badge = period == null
+        ? null
+        : SailBadge(
+            'Period ${period.periodId} · ${period.status}',
+            tone: period.isActive ? SailBadgeTone.success : SailBadgeTone.neutral,
+          );
+    final blocks = status == null ? null : SailText.secondary13('${status.blocksPerPeriod} blocks per period');
+    final refresh = SailButton(
+      plainLabel: true,
+      label: 'Refresh',
+      variant: ButtonVariant.secondary,
+      small: true,
+      loading: model.isLoading,
+      onPressed: () async => model.loadData(),
+    );
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailColumn(
+            spacing: SailStyleValues.padding04,
+            children: [SailText.primary20('Oracle voting', bold: true), SailText.secondary13(subtitle)],
+          ),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              ?badge,
+              Expanded(child: blocks ?? const SizedBox()),
+              refresh,
+            ],
+          ),
+        ],
+      );
+    }
+
     return Wrap(
       spacing: SailStyleValues.padding12,
       runSpacing: SailStyleValues.padding08,
@@ -131,23 +169,12 @@ class _Header extends StatelessWidget {
           spacing: SailStyleValues.padding04,
           children: [
             SailText.primary24('Oracle voting', bold: true),
-            SailText.secondary13('You answer every decision slot that your Votecoin covers.'),
+            SailText.secondary13(subtitle),
           ],
         ),
-        if (period != null)
-          SailBadge(
-            'Period ${period.periodId} · ${period.status}',
-            tone: period.isActive ? SailBadgeTone.success : SailBadgeTone.neutral,
-          ),
-        if (status != null) SailText.secondary13('${status.blocksPerPeriod} blocks per period'),
-        SailButton(
-          plainLabel: true,
-          label: 'Refresh',
-          variant: ButtonVariant.secondary,
-          small: true,
-          loading: model.isLoading,
-          onPressed: () async => model.loadData(),
-        ),
+        ?badge,
+        ?blocks,
+        refresh,
       ],
     );
   }

@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+import 'package:sail_ui/sail_ui.dart' show SailBadge, SailStatList, SailStyleValues;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -43,6 +45,20 @@ void main() {
   });
 
   group('VotingDashboardPage', () {
+    testWidgets('a phone puts the period, the block count and Refresh on one row over a stat panel', (tester) async {
+      SailStyleValues.phoneLayoutOverride = true;
+      addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+      await tester.pumpSailPage(const VotingDashboardPage());
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SailStatList), findsOneWidget);
+      expect(tester.widget<Text>(find.text('Oracle voting')).style!.fontSize, 20);
+      final badge = tester.getCenter(find.byType(SailBadge).first);
+      final refresh = tester.getCenter(find.text('Refresh').first);
+      expect(refresh.dy, closeTo(badge.dy, 6));
+    });
     testWidgets('renders voting dashboard page', (WidgetTester tester) async {
       await tester.pumpSailPage(const VotingDashboardPage());
       await tester.pumpAndSettle();
