@@ -91,6 +91,31 @@ class SyncInfo {
   );
 }
 
+/// Tells a [SyncProvider] listener when a synced node reaches a new tip, so
+/// it refetches once per block and not on each sync poll.
+class SyncedTipWatch {
+  (double?, double?, double?)? _last;
+
+  /// True when [synced] holds and the mainchain, enforcer or bitwindowd tip
+  /// moved since the last call that returned true.
+  bool moved(SyncProvider sync, {required bool synced}) {
+    if (!synced) {
+      _last = null;
+      return false;
+    }
+    final tip = (
+      sync.mainchainSyncInfo?.progressCurrent,
+      sync.enforcerSyncInfo?.progressCurrent,
+      sync.bitwindowdSyncInfo?.progressCurrent,
+    );
+    if (tip == _last) {
+      return false;
+    }
+    _last = tip;
+    return true;
+  }
+}
+
 /// Represents a binary that has some sort of sync-status
 class SyncConnection {
   final RPCConnection rpc;
