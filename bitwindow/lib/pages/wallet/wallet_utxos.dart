@@ -194,6 +194,7 @@ class _UTXOTableState extends State<UTXOTable> {
   String sortColumn = 'date';
   bool sortAscending = true;
   List<UnspentOutput> sortedEntries = [];
+  int frozenCount = 0;
   bool hideFrozen = false;
 
   CoinSelectionProvider get _coinSelection => GetIt.I<CoinSelectionProvider>();
@@ -202,7 +203,6 @@ class _UTXOTableState extends State<UTXOTable> {
   @override
   void initState() {
     super.initState();
-    sortedEntries = List.from(widget.entries);
     sortEntries();
     _coinSelection.addListener(_onMetadataChange);
   }
@@ -222,8 +222,7 @@ class _UTXOTableState extends State<UTXOTable> {
   @override
   void didUpdateWidget(UTXOTable oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.entries != oldWidget.entries) {
-      sortedEntries = List.from(widget.entries);
+    if (!identical(widget.entries, oldWidget.entries)) {
       sortEntries();
     }
   }
@@ -241,12 +240,10 @@ class _UTXOTableState extends State<UTXOTable> {
   }
 
   void sortEntries() {
-    var entries = List<UnspentOutput>.from(widget.entries);
-
-    // Filter frozen if needed
-    if (hideFrozen) {
-      entries = entries.where((u) => !_coinSelection.isFrozen(u.output)).toList();
-    }
+    frozenCount = widget.entries.where((u) => _coinSelection.isFrozen(u.output)).length;
+    final entries = hideFrozen
+        ? widget.entries.where((u) => !_coinSelection.isFrozen(u.output)).toList()
+        : List<UnspentOutput>.of(widget.entries);
 
     entries.sort((a, b) {
       dynamic aValue, bValue;
@@ -256,9 +253,9 @@ class _UTXOTableState extends State<UTXOTable> {
           bValue = _coinSelection.isFrozen(b.output) ? 1 : 0;
           break;
         case 'date':
-          aValue = a.receivedAt.toDateTime();
-          bValue = b.receivedAt.toDateTime();
-          if (aValue.compareTo(bValue) == 0) {
+          aValue = _receivedAtMicros(a);
+          bValue = _receivedAtMicros(b);
+          if (aValue == bValue) {
             return a.output.compareTo(b.output);
           }
           break;
@@ -296,6 +293,10 @@ class _UTXOTableState extends State<UTXOTable> {
 
     sortedEntries = entries;
   }
+
+  // The precision of Timestamp.toDateTime, with no DateTime per compare.
+  static int _receivedAtMicros(UnspentOutput utxo) =>
+      utxo.receivedAt.seconds.toInt() * Duration.microsecondsPerSecond + utxo.receivedAt.nanos ~/ 1000;
 
   String _getLabel(UnspentOutput utxo) {
     final metaLabel = _coinSelection.getLabel(utxo.output);
@@ -399,7 +400,6 @@ class _UTXOTableState extends State<UTXOTable> {
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
     final theme = SailTheme.of(context);
-    final frozenCount = widget.entries.where((u) => _coinSelection.isFrozen(u.output)).length;
 
     return SailCard(
       title: 'Your UTXOs',
@@ -554,34 +554,46 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
 
+  static final _loadingEntries = List<UnspentOutput>.unmodifiable([
+    UnspentOutput(
+      output: 'dummy_output:0',
+      address: 'dummy_address',
+      label: 'dummy_label',
+    ),
+    UnspentOutput(
+      output: 'dummy_output:1',
+      address: 'dummy_address',
+      label: 'dummy_label',
+    ),
+    UnspentOutput(
+      output: 'dummy_output:2',
+      address: 'dummy_address',
+      label: 'dummy_label',
+    ),
+  ]);
+
+  List<UnspentOutput>? _entries;
+  List<UnspentOutput>? _entriesSource;
+  ({DateTime start, DateTime end})? _entriesRange;
+
+  /// The same list until the UTXOs, the loading state or the date range change.
   List<UnspentOutput> get entries {
     if (loading) {
-      return [
-        UnspentOutput(
-          output: 'dummy_output:0',
-          address: 'dummy_address',
-          label: 'dummy_label',
-        ),
-        UnspentOutput(
-          output: 'dummy_output:1',
-          address: 'dummy_address',
-          label: 'dummy_label',
-        ),
-        UnspentOutput(
-          output: 'dummy_output:2',
-          address: 'dummy_address',
-          label: 'dummy_label',
-        ),
-      ];
+      return _loadingEntries;
     }
 
+    final utxos = _txProvider.utxos;
     final range = dateRange;
-    if (range == null) {
-      return _txProvider.utxos.toList();
+    if (_entries != null && identical(utxos, _entriesSource) && range == _entriesRange) {
+      return _entries!;
     }
-    return _txProvider.utxos
-        .where((utxo) => utxo.hasReceivedAt() && isInDateRange(utxo.receivedAt.toDateTime(), range))
-        .toList();
+    _entriesSource = utxos;
+    _entriesRange = range;
+    return _entries = range == null
+        ? List.unmodifiable(utxos)
+        : List.unmodifiable(
+            utxos.where((utxo) => utxo.hasReceivedAt() && isInDateRange(utxo.receivedAt.toDateTime(), range)),
+          );
   }
 
   String sortColumn = 'date';
