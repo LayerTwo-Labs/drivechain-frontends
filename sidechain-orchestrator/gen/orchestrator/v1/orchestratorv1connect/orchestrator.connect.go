@@ -27,6 +27,9 @@ const (
 	// OrchestratorServiceListBinariesProcedure is the procedure name of the OrchestratorService's
 	// ListBinaries RPC.
 	OrchestratorServiceListBinariesProcedure = "/orchestrator.v1.OrchestratorService/ListBinaries"
+	// OrchestratorServiceWatchBinariesProcedure is the procedure name of the OrchestratorService's
+	// WatchBinaries RPC.
+	OrchestratorServiceWatchBinariesProcedure = "/orchestrator.v1.OrchestratorService/WatchBinaries"
 	// OrchestratorServiceGetBinaryStatusProcedure is the procedure name of the OrchestratorService's
 	// GetBinaryStatus RPC.
 	OrchestratorServiceGetBinaryStatusProcedure = "/orchestrator.v1.OrchestratorService/GetBinaryStatus"
@@ -87,9 +90,15 @@ const (
 	// OrchestratorServiceGetSyncStatusProcedure is the procedure name of the OrchestratorService's
 	// GetSyncStatus RPC.
 	OrchestratorServiceGetSyncStatusProcedure = "/orchestrator.v1.OrchestratorService/GetSyncStatus"
+	// OrchestratorServiceWatchSyncStatusProcedure is the procedure name of the OrchestratorService's
+	// WatchSyncStatus RPC.
+	OrchestratorServiceWatchSyncStatusProcedure = "/orchestrator.v1.OrchestratorService/WatchSyncStatus"
 	// OrchestratorServiceGetDownloadStatusProcedure is the procedure name of the OrchestratorService's
 	// GetDownloadStatus RPC.
 	OrchestratorServiceGetDownloadStatusProcedure = "/orchestrator.v1.OrchestratorService/GetDownloadStatus"
+	// OrchestratorServiceWatchDownloadStatusProcedure is the procedure name of the
+	// OrchestratorService's WatchDownloadStatus RPC.
+	OrchestratorServiceWatchDownloadStatusProcedure = "/orchestrator.v1.OrchestratorService/WatchDownloadStatus"
 	// OrchestratorServiceGetMainchainBalanceProcedure is the procedure name of the
 	// OrchestratorService's GetMainchainBalance RPC.
 	OrchestratorServiceGetMainchainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBalance"
@@ -132,6 +141,9 @@ const (
 	// OrchestratorServiceGetECashMigrationStatusProcedure is the procedure name of the
 	// OrchestratorService's GetECashMigrationStatus RPC.
 	OrchestratorServiceGetECashMigrationStatusProcedure = "/orchestrator.v1.OrchestratorService/GetECashMigrationStatus"
+	// OrchestratorServiceWatchECashMigrationStatusProcedure is the procedure name of the
+	// OrchestratorService's WatchECashMigrationStatus RPC.
+	OrchestratorServiceWatchECashMigrationStatusProcedure = "/orchestrator.v1.OrchestratorService/WatchECashMigrationStatus"
 	// OrchestratorServiceGetDatadirNetworkProcedure is the procedure name of the OrchestratorService's
 	// GetDatadirNetwork RPC.
 	OrchestratorServiceGetDatadirNetworkProcedure = "/orchestrator.v1.OrchestratorService/GetDatadirNetwork"
@@ -143,6 +155,13 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("ListBinaries"),
 			Procedure:  OrchestratorServiceListBinariesProcedure,
+		}
+	})
+	orchestratorServiceWatchBinariesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("WatchBinaries"),
+			Procedure:  OrchestratorServiceWatchBinariesProcedure,
 		}
 	})
 	orchestratorServiceGetBinaryStatusSpec = sync.OnceValue(func() connect.Spec {
@@ -285,11 +304,25 @@ var (
 			Procedure:  OrchestratorServiceGetSyncStatusProcedure,
 		}
 	})
+	orchestratorServiceWatchSyncStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("WatchSyncStatus"),
+			Procedure:  OrchestratorServiceWatchSyncStatusProcedure,
+		}
+	})
 	orchestratorServiceGetDownloadStatusSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("GetDownloadStatus"),
 			Procedure:  OrchestratorServiceGetDownloadStatusProcedure,
+		}
+	})
+	orchestratorServiceWatchDownloadStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("WatchDownloadStatus"),
+			Procedure:  OrchestratorServiceWatchDownloadStatusProcedure,
 		}
 	})
 	orchestratorServiceGetMainchainBalanceSpec = sync.OnceValue(func() connect.Spec {
@@ -390,6 +423,13 @@ var (
 			Procedure:  OrchestratorServiceGetECashMigrationStatusProcedure,
 		}
 	})
+	orchestratorServiceWatchECashMigrationStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_orchestrator_v1_orchestrator_proto.Services().ByName("OrchestratorService").Methods().ByName("WatchECashMigrationStatus"),
+			Procedure:  OrchestratorServiceWatchECashMigrationStatusProcedure,
+		}
+	})
 	orchestratorServiceGetDatadirNetworkSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -403,6 +443,9 @@ var (
 type OrchestratorServiceClient interface {
 	// List all configured binaries and their status.
 	ListBinaries(context.Context, *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error)
+	// Stream the status of all configured binaries. The first frame holds the
+	// full list, later frames only a changed list or a heartbeat.
+	WatchBinaries(context.Context, *v1.WatchBinariesRequest) (OrchestratorServiceWatchBinariesClientStream, error)
 	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error)
 	// Resolve a binary's on-disk path the same way the launcher does (variant-
@@ -479,11 +522,17 @@ type OrchestratorServiceClient interface {
 	// Backend fans out to all three in parallel so the three numbers are taken
 	// at the same wall-clock instant — no two cards in the UI can ever disagree.
 	GetSyncStatus(context.Context, *v1.GetSyncStatusRequest) (*v1.GetSyncStatusResponse, error)
+	// Stream the GetSyncStatus snapshot. The first frame holds the snapshot,
+	// later frames only a changed snapshot or a heartbeat.
+	WatchSyncStatus(context.Context, *v1.WatchSyncStatusRequest) (OrchestratorServiceWatchSyncStatusClientStream, error)
 	// Snapshot of every binary the orchestrator is currently downloading.
 	// Reads from the in-memory DownloadManager state — light, polled by the
 	// frontend's DownloadProvider on a fast (100ms) cadence while a download
 	// is in flight, and dropping back to 2s when the response is empty.
 	GetDownloadStatus(context.Context, *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error)
+	// Stream the GetDownloadStatus list. The first frame holds the list, later
+	// frames only a changed list or a heartbeat.
+	WatchDownloadStatus(context.Context, *v1.WatchDownloadStatusRequest) (OrchestratorServiceWatchDownloadStatusClientStream, error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error)
 	// Get wallet balance from a sidechain daemon (proxied via orchestrator).
@@ -527,6 +576,9 @@ type OrchestratorServiceClient interface {
 	StartECashMigration(context.Context, *v1.StartECashMigrationRequest) (*v1.StartECashMigrationResponse, error)
 	// Read the saved migration state from the daemon.
 	GetECashMigrationStatus(context.Context, *v1.GetECashMigrationStatusRequest) (*v1.GetECashMigrationStatusResponse, error)
+	// Stream the GetECashMigrationStatus status. The first frame holds the
+	// status, later frames only a changed status or a heartbeat.
+	WatchECashMigrationStatus(context.Context, *v1.WatchECashMigrationStatusRequest) (OrchestratorServiceWatchECashMigrationStatusClientStream, error)
 	// Read the network the blocks on disk belong to, next to the one the app
 	// runs. The blocks name the chain, so a datadir from another network says so
 	// before a rollback throws the balance away.
@@ -537,6 +589,27 @@ type OrchestratorServiceClient interface {
 // service. Multiple service clients may share a single connect.Client.
 func NewOrchestratorServiceClient(client *connect.Client) OrchestratorServiceClient {
 	return &orchestratorServiceClient{client: client}
+}
+
+// OrchestratorServiceWatchBinariesClientStream is the client stream for the OrchestratorService's
+// WatchBinaries RPC.
+type OrchestratorServiceWatchBinariesClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceWatchBinariesClientStream) Receive() (*v1.WatchBinariesResponse, error) {
+	var res v1.WatchBinariesResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceWatchBinariesClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // OrchestratorServiceStreamLogsClientStream is the client stream for the OrchestratorService's
@@ -602,6 +675,48 @@ func (s OrchestratorServiceShutdownAllClientStream) Close() error {
 	return s.stream.Close()
 }
 
+// OrchestratorServiceWatchSyncStatusClientStream is the client stream for the OrchestratorService's
+// WatchSyncStatus RPC.
+type OrchestratorServiceWatchSyncStatusClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceWatchSyncStatusClientStream) Receive() (*v1.WatchSyncStatusResponse, error) {
+	var res v1.WatchSyncStatusResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceWatchSyncStatusClientStream) Close() error {
+	return s.stream.Close()
+}
+
+// OrchestratorServiceWatchDownloadStatusClientStream is the client stream for the
+// OrchestratorService's WatchDownloadStatus RPC.
+type OrchestratorServiceWatchDownloadStatusClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceWatchDownloadStatusClientStream) Receive() (*v1.WatchDownloadStatusResponse, error) {
+	var res v1.WatchDownloadStatusResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceWatchDownloadStatusClientStream) Close() error {
+	return s.stream.Close()
+}
+
 // OrchestratorServiceDeleteFilesClientStream is the client stream for the OrchestratorService's
 // DeleteFiles RPC.
 type OrchestratorServiceDeleteFilesClientStream struct {
@@ -644,11 +759,35 @@ func (s OrchestratorServiceResetToBlockClientStream) Close() error {
 	return s.stream.Close()
 }
 
+// OrchestratorServiceWatchECashMigrationStatusClientStream is the client stream for the
+// OrchestratorService's WatchECashMigrationStatus RPC.
+type OrchestratorServiceWatchECashMigrationStatusClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s OrchestratorServiceWatchECashMigrationStatusClientStream) Receive() (*v1.WatchECashMigrationStatusResponse, error) {
+	var res v1.WatchECashMigrationStatusResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrchestratorServiceWatchECashMigrationStatusClientStream) Close() error {
+	return s.stream.Close()
+}
+
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
 	// List all configured binaries and their status.
 	ListBinaries(context.Context, *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error)
+	// Stream the status of all configured binaries. The first frame holds the
+	// full list, later frames only a changed list or a heartbeat.
+	WatchBinaries(context.Context, *v1.WatchBinariesRequest, OrchestratorServiceWatchBinariesServerStream) error
 	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error)
 	// Resolve a binary's on-disk path the same way the launcher does (variant-
@@ -725,11 +864,17 @@ type OrchestratorServiceHandler interface {
 	// Backend fans out to all three in parallel so the three numbers are taken
 	// at the same wall-clock instant — no two cards in the UI can ever disagree.
 	GetSyncStatus(context.Context, *v1.GetSyncStatusRequest) (*v1.GetSyncStatusResponse, error)
+	// Stream the GetSyncStatus snapshot. The first frame holds the snapshot,
+	// later frames only a changed snapshot or a heartbeat.
+	WatchSyncStatus(context.Context, *v1.WatchSyncStatusRequest, OrchestratorServiceWatchSyncStatusServerStream) error
 	// Snapshot of every binary the orchestrator is currently downloading.
 	// Reads from the in-memory DownloadManager state — light, polled by the
 	// frontend's DownloadProvider on a fast (100ms) cadence while a download
 	// is in flight, and dropping back to 2s when the response is empty.
 	GetDownloadStatus(context.Context, *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error)
+	// Stream the GetDownloadStatus list. The first frame holds the list, later
+	// frames only a changed list or a heartbeat.
+	WatchDownloadStatus(context.Context, *v1.WatchDownloadStatusRequest, OrchestratorServiceWatchDownloadStatusServerStream) error
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error)
 	// Get wallet balance from a sidechain daemon (proxied via orchestrator).
@@ -773,6 +918,9 @@ type OrchestratorServiceHandler interface {
 	StartECashMigration(context.Context, *v1.StartECashMigrationRequest) (*v1.StartECashMigrationResponse, error)
 	// Read the saved migration state from the daemon.
 	GetECashMigrationStatus(context.Context, *v1.GetECashMigrationStatusRequest) (*v1.GetECashMigrationStatusResponse, error)
+	// Stream the GetECashMigrationStatus status. The first frame holds the
+	// status, later frames only a changed status or a heartbeat.
+	WatchECashMigrationStatus(context.Context, *v1.WatchECashMigrationStatusRequest, OrchestratorServiceWatchECashMigrationStatusServerStream) error
 	// Read the network the blocks on disk belong to, next to the one the app
 	// runs. The blocks name the chain, so a datadir from another network says so
 	// before a rollback throws the balance away.
@@ -785,6 +933,7 @@ func RegisterOrchestratorServiceHandler(server *connect.Server, svc Orchestrator
 	adapter := orchestratorServiceHandler{svc: svc}
 	server.Register(
 		connect.Method{Spec: orchestratorServiceListBinariesSpec(), Handler: adapter.listBinaries},
+		connect.Method{Spec: orchestratorServiceWatchBinariesSpec(), Handler: adapter.watchBinaries},
 		connect.Method{Spec: orchestratorServiceGetBinaryStatusSpec(), Handler: adapter.getBinaryStatus},
 		connect.Method{Spec: orchestratorServiceGetBinaryVersionSpec(), Handler: adapter.getBinaryVersion},
 		connect.Method{Spec: orchestratorServiceDownloadBinarySpec(), Handler: adapter.downloadBinary},
@@ -805,7 +954,9 @@ func RegisterOrchestratorServiceHandler(server *connect.Server, svc Orchestrator
 		connect.Method{Spec: orchestratorServiceGetMainchainBlockchainInfoSpec(), Handler: adapter.getMainchainBlockchainInfo},
 		connect.Method{Spec: orchestratorServiceGetEnforcerBlockchainInfoSpec(), Handler: adapter.getEnforcerBlockchainInfo},
 		connect.Method{Spec: orchestratorServiceGetSyncStatusSpec(), Handler: adapter.getSyncStatus},
+		connect.Method{Spec: orchestratorServiceWatchSyncStatusSpec(), Handler: adapter.watchSyncStatus},
 		connect.Method{Spec: orchestratorServiceGetDownloadStatusSpec(), Handler: adapter.getDownloadStatus},
+		connect.Method{Spec: orchestratorServiceWatchDownloadStatusSpec(), Handler: adapter.watchDownloadStatus},
 		connect.Method{Spec: orchestratorServiceGetMainchainBalanceSpec(), Handler: adapter.getMainchainBalance},
 		connect.Method{Spec: orchestratorServiceGetSidechainBalanceSpec(), Handler: adapter.getSidechainBalance},
 		connect.Method{Spec: orchestratorServiceGatherFilesToDeleteSpec(), Handler: adapter.gatherFilesToDelete},
@@ -820,8 +971,25 @@ func RegisterOrchestratorServiceHandler(server *connect.Server, svc Orchestrator
 		connect.Method{Spec: orchestratorServicePreviewECashMigrationSpec(), Handler: adapter.previewECashMigration},
 		connect.Method{Spec: orchestratorServiceStartECashMigrationSpec(), Handler: adapter.startECashMigration},
 		connect.Method{Spec: orchestratorServiceGetECashMigrationStatusSpec(), Handler: adapter.getECashMigrationStatus},
+		connect.Method{Spec: orchestratorServiceWatchECashMigrationStatusSpec(), Handler: adapter.watchECashMigrationStatus},
 		connect.Method{Spec: orchestratorServiceGetDatadirNetworkSpec(), Handler: adapter.getDatadirNetwork},
 	)
+}
+
+// OrchestratorServiceWatchBinariesServerStream is the server stream for the OrchestratorService's
+// WatchBinaries RPC.
+type OrchestratorServiceWatchBinariesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceWatchBinariesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceWatchBinariesServerStream) Send(res *v1.WatchBinariesResponse) error {
+	return s.stream.Send(res)
 }
 
 // OrchestratorServiceStreamLogsServerStream is the server stream for the OrchestratorService's
@@ -872,6 +1040,38 @@ func (s OrchestratorServiceShutdownAllServerStream) Send(res *v1.ShutdownAllResp
 	return s.stream.Send(res)
 }
 
+// OrchestratorServiceWatchSyncStatusServerStream is the server stream for the OrchestratorService's
+// WatchSyncStatus RPC.
+type OrchestratorServiceWatchSyncStatusServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceWatchSyncStatusServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceWatchSyncStatusServerStream) Send(res *v1.WatchSyncStatusResponse) error {
+	return s.stream.Send(res)
+}
+
+// OrchestratorServiceWatchDownloadStatusServerStream is the server stream for the
+// OrchestratorService's WatchDownloadStatus RPC.
+type OrchestratorServiceWatchDownloadStatusServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceWatchDownloadStatusServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceWatchDownloadStatusServerStream) Send(res *v1.WatchDownloadStatusResponse) error {
+	return s.stream.Send(res)
+}
+
 // OrchestratorServiceDeleteFilesServerStream is the server stream for the OrchestratorService's
 // DeleteFiles RPC.
 type OrchestratorServiceDeleteFilesServerStream struct {
@@ -904,11 +1104,31 @@ func (s OrchestratorServiceResetToBlockServerStream) Send(res *v1.ResetToBlockRe
 	return s.stream.Send(res)
 }
 
+// OrchestratorServiceWatchECashMigrationStatusServerStream is the server stream for the
+// OrchestratorService's WatchECashMigrationStatus RPC.
+type OrchestratorServiceWatchECashMigrationStatusServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrchestratorServiceWatchECashMigrationStatusServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrchestratorServiceWatchECashMigrationStatusServerStream) Send(res *v1.WatchECashMigrationStatusResponse) error {
+	return s.stream.Send(res)
+}
+
 // UnimplementedOrchestratorServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedOrchestratorServiceHandler struct{}
 
 func (UnimplementedOrchestratorServiceHandler) ListBinaries(context.Context, *v1.ListBinariesRequest) (*v1.ListBinariesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.ListBinaries is not implemented")
+}
+
+func (UnimplementedOrchestratorServiceHandler) WatchBinaries(context.Context, *v1.WatchBinariesRequest, OrchestratorServiceWatchBinariesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.WatchBinaries is not implemented")
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetBinaryStatus(context.Context, *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error) {
@@ -991,8 +1211,16 @@ func (UnimplementedOrchestratorServiceHandler) GetSyncStatus(context.Context, *v
 	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetSyncStatus is not implemented")
 }
 
+func (UnimplementedOrchestratorServiceHandler) WatchSyncStatus(context.Context, *v1.WatchSyncStatusRequest, OrchestratorServiceWatchSyncStatusServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.WatchSyncStatus is not implemented")
+}
+
 func (UnimplementedOrchestratorServiceHandler) GetDownloadStatus(context.Context, *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetDownloadStatus is not implemented")
+}
+
+func (UnimplementedOrchestratorServiceHandler) WatchDownloadStatus(context.Context, *v1.WatchDownloadStatusRequest, OrchestratorServiceWatchDownloadStatusServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.WatchDownloadStatus is not implemented")
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Context, *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error) {
@@ -1051,6 +1279,10 @@ func (UnimplementedOrchestratorServiceHandler) GetECashMigrationStatus(context.C
 	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetECashMigrationStatus is not implemented")
 }
 
+func (UnimplementedOrchestratorServiceHandler) WatchECashMigrationStatus(context.Context, *v1.WatchECashMigrationStatusRequest, OrchestratorServiceWatchECashMigrationStatusServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.WatchECashMigrationStatus is not implemented")
+}
+
 func (UnimplementedOrchestratorServiceHandler) GetDatadirNetwork(context.Context, *v1.GetDatadirNetworkRequest) (*v1.GetDatadirNetworkResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "orchestrator.v1.OrchestratorService.GetDatadirNetwork is not implemented")
 }
@@ -1065,6 +1297,14 @@ func (c *orchestratorServiceClient) ListBinaries(ctx context.Context, req *v1.Li
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *orchestratorServiceClient) WatchBinaries(ctx context.Context, req *v1.WatchBinariesRequest) (OrchestratorServiceWatchBinariesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceWatchBinariesSpec(), req)
+	if err != nil {
+		return OrchestratorServiceWatchBinariesClientStream{}, err
+	}
+	return OrchestratorServiceWatchBinariesClientStream{stream: stream}, nil
 }
 
 func (c *orchestratorServiceClient) GetBinaryStatus(ctx context.Context, req *v1.GetBinaryStatusRequest) (*v1.GetBinaryStatusResponse, error) {
@@ -1227,12 +1467,28 @@ func (c *orchestratorServiceClient) GetSyncStatus(ctx context.Context, req *v1.G
 	return &res, nil
 }
 
+func (c *orchestratorServiceClient) WatchSyncStatus(ctx context.Context, req *v1.WatchSyncStatusRequest) (OrchestratorServiceWatchSyncStatusClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceWatchSyncStatusSpec(), req)
+	if err != nil {
+		return OrchestratorServiceWatchSyncStatusClientStream{}, err
+	}
+	return OrchestratorServiceWatchSyncStatusClientStream{stream: stream}, nil
+}
+
 func (c *orchestratorServiceClient) GetDownloadStatus(ctx context.Context, req *v1.GetDownloadStatusRequest) (*v1.GetDownloadStatusResponse, error) {
 	var res v1.GetDownloadStatusResponse
 	if err := c.client.CallUnary(ctx, orchestratorServiceGetDownloadStatusSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *orchestratorServiceClient) WatchDownloadStatus(ctx context.Context, req *v1.WatchDownloadStatusRequest) (OrchestratorServiceWatchDownloadStatusClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceWatchDownloadStatusSpec(), req)
+	if err != nil {
+		return OrchestratorServiceWatchDownloadStatusClientStream{}, err
+	}
+	return OrchestratorServiceWatchDownloadStatusClientStream{stream: stream}, nil
 }
 
 func (c *orchestratorServiceClient) GetMainchainBalance(ctx context.Context, req *v1.GetMainchainBalanceRequest) (*v1.GetMainchainBalanceResponse, error) {
@@ -1347,6 +1603,14 @@ func (c *orchestratorServiceClient) GetECashMigrationStatus(ctx context.Context,
 	return &res, nil
 }
 
+func (c *orchestratorServiceClient) WatchECashMigrationStatus(ctx context.Context, req *v1.WatchECashMigrationStatusRequest) (OrchestratorServiceWatchECashMigrationStatusClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, orchestratorServiceWatchECashMigrationStatusSpec(), req)
+	if err != nil {
+		return OrchestratorServiceWatchECashMigrationStatusClientStream{}, err
+	}
+	return OrchestratorServiceWatchECashMigrationStatusClientStream{stream: stream}, nil
+}
+
 func (c *orchestratorServiceClient) GetDatadirNetwork(ctx context.Context, req *v1.GetDatadirNetworkRequest) (*v1.GetDatadirNetworkResponse, error) {
 	var res v1.GetDatadirNetworkResponse
 	if err := c.client.CallUnary(ctx, orchestratorServiceGetDatadirNetworkSpec(), req, &res); err != nil {
@@ -1367,6 +1631,14 @@ func (h orchestratorServiceHandler) listBinaries(ctx context.Context, _ connect.
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) watchBinaries(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchBinariesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchBinaries(ctx, &req, OrchestratorServiceWatchBinariesServerStream{stream: stream})
 }
 
 func (h orchestratorServiceHandler) getBinaryStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
@@ -1597,6 +1869,14 @@ func (h orchestratorServiceHandler) getSyncStatus(ctx context.Context, _ connect
 	return stream.Send(res)
 }
 
+func (h orchestratorServiceHandler) watchSyncStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchSyncStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchSyncStatus(ctx, &req, OrchestratorServiceWatchSyncStatusServerStream{stream: stream})
+}
+
 func (h orchestratorServiceHandler) getDownloadStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
 	var req v1.GetDownloadStatusRequest
 	if err := stream.Receive(&req); err != nil {
@@ -1607,6 +1887,14 @@ func (h orchestratorServiceHandler) getDownloadStatus(ctx context.Context, _ con
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) watchDownloadStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchDownloadStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchDownloadStatus(ctx, &req, OrchestratorServiceWatchDownloadStatusServerStream{stream: stream})
 }
 
 func (h orchestratorServiceHandler) getMainchainBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
@@ -1767,6 +2055,14 @@ func (h orchestratorServiceHandler) getECashMigrationStatus(ctx context.Context,
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h orchestratorServiceHandler) watchECashMigrationStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchECashMigrationStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchECashMigrationStatus(ctx, &req, OrchestratorServiceWatchECashMigrationStatusServerStream{stream: stream})
 }
 
 func (h orchestratorServiceHandler) getDatadirNetwork(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {

@@ -6,6 +6,10 @@ service OrchestratorService {
   // List all configured binaries and their status.
   rpc ListBinaries(ListBinariesRequest) returns (ListBinariesResponse);
 
+  // Stream the status of all configured binaries. The first frame holds the
+  // full list, later frames only a changed list or a heartbeat.
+  rpc WatchBinaries(WatchBinariesRequest) returns (stream WatchBinariesResponse);
+
   // Get the status of a single binary.
   rpc GetBinaryStatus(GetBinaryStatusRequest) returns (GetBinaryStatusResponse);
 
@@ -102,11 +106,19 @@ service OrchestratorService {
   // at the same wall-clock instant — no two cards in the UI can ever disagree.
   rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
 
+  // Stream the GetSyncStatus snapshot. The first frame holds the snapshot,
+  // later frames only a changed snapshot or a heartbeat.
+  rpc WatchSyncStatus(WatchSyncStatusRequest) returns (stream WatchSyncStatusResponse);
+
   // Snapshot of every binary the orchestrator is currently downloading.
   // Reads from the in-memory DownloadManager state — light, polled by the
   // frontend's DownloadProvider on a fast (100ms) cadence while a download
   // is in flight, and dropping back to 2s when the response is empty.
   rpc GetDownloadStatus(GetDownloadStatusRequest) returns (GetDownloadStatusResponse);
+
+  // Stream the GetDownloadStatus list. The first frame holds the list, later
+  // frames only a changed list or a heartbeat.
+  rpc WatchDownloadStatus(WatchDownloadStatusRequest) returns (stream WatchDownloadStatusResponse);
 
   // Get wallet balance from Bitcoin Core (proxied via orchestrator).
   rpc GetMainchainBalance(GetMainchainBalanceRequest) returns (GetMainchainBalanceResponse);
@@ -170,6 +182,10 @@ service OrchestratorService {
 
   // Read the saved migration state from the daemon.
   rpc GetECashMigrationStatus(GetECashMigrationStatusRequest) returns (GetECashMigrationStatusResponse);
+
+  // Stream the GetECashMigrationStatus status. The first frame holds the
+  // status, later frames only a changed status or a heartbeat.
+  rpc WatchECashMigrationStatus(WatchECashMigrationStatusRequest) returns (stream WatchECashMigrationStatusResponse);
 
   // Read the network the blocks on disk belong to, next to the one the app
   // runs. The blocks name the chain, so a datadir from another network says so
@@ -275,6 +291,18 @@ message ListBinariesRequest {
 
 message ListBinariesResponse {
   repeated BinaryStatusMsg binaries = 1;
+}
+
+message WatchBinariesRequest {
+  // Same lever as ListBinariesRequest.force_backend.
+  bool force_backend = 1;
+}
+
+message WatchBinariesResponse {
+  // Empty in a heartbeat frame.
+  repeated BinaryStatusMsg binaries = 1;
+  // True for an idle keepalive frame that carries no status.
+  bool heartbeat = 2;
 }
 
 // GetBinaryStatus
@@ -529,6 +557,15 @@ message GetEnforcerBlockchainInfoResponse {
 
 message GetSyncStatusRequest {}
 
+message WatchSyncStatusRequest {}
+
+message WatchSyncStatusResponse {
+  // Unset in a heartbeat frame.
+  GetSyncStatusResponse status = 1;
+  // True for an idle keepalive frame that carries no status.
+  bool heartbeat = 2;
+}
+
 message GetSyncStatusResponse {
   ChainSync mainchain = 1;                   // bitcoind
   ChainSync enforcer = 2;                    // BIP300/301 enforcer
@@ -649,6 +686,15 @@ message GetDownloadStatusRequest {}
 
 message GetDownloadStatusResponse {
   repeated DownloadStatus downloads = 1;
+}
+
+message WatchDownloadStatusRequest {}
+
+message WatchDownloadStatusResponse {
+  // Empty in a heartbeat frame.
+  repeated DownloadStatus downloads = 1;
+  // True for an idle keepalive frame that carries no list.
+  bool heartbeat = 2;
 }
 
 message DownloadStatus {
@@ -1016,6 +1062,15 @@ message GetECashMigrationStatusRequest {}
 
 message GetECashMigrationStatusResponse {
   ECashMigrationStatus status = 1;
+}
+
+message WatchECashMigrationStatusRequest {}
+
+message WatchECashMigrationStatusResponse {
+  // Unset in a heartbeat frame.
+  ECashMigrationStatus status = 1;
+  // True for an idle keepalive frame that carries no status.
+  bool heartbeat = 2;
 }
 
 message ECashMigrationStatus {
