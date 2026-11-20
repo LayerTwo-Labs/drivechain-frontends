@@ -21,6 +21,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/miningpools"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -154,22 +155,23 @@ func New(
 	photonSvc := service.New("photon", svcs.PhotonConnector)
 	coinshiftSvc := service.New("coinshift", svcs.CoinShiftConnector)
 
-	// bitcoind dials no remote, so connect it now; the others wait for the reconnect loop.
+	// bitcoind dials no remote, so connect it now. The others follow the
+	// binary state of drivechaind.
 	_, _ = bitcoindSvc.Connect(ctx)
 
-	// Reconnect loops are inherent service behavior — keep them on the
-	// root ctx so they survive runtime recycles.
-	bitcoindSvc.StartReconnectLoop(ctx)
-	validatorSvc.StartReconnectLoop(ctx)
-	cryptoSvc.StartReconnectLoop(ctx)
-	blockProducerSvc.StartReconnectLoop(ctx)
-	miningSvc.StartReconnectLoop(ctx)
-	thunderSvc.StartReconnectLoop(ctx)
-	bitnamesSvc.StartReconnectLoop(ctx)
-	bitassetsSvc.StartReconnectLoop(ctx)
-	truthcoinSvc.StartReconnectLoop(ctx)
-	photonSvc.StartReconnectLoop(ctx)
-	coinshiftSvc.StartReconnectLoop(ctx)
+	// The services live on the root ctx, so they survive runtime recycles.
+	targets := connectionTargets{}
+	targets.add(ctx, "enforcer", validatorSvc)
+	targets.add(ctx, "enforcer", cryptoSvc)
+	targets.add(ctx, "enforcer", blockProducerSvc)
+	targets.add(ctx, "enforcer", miningSvc)
+	targets.add(ctx, "thunder", thunderSvc)
+	targets.add(ctx, "bitnames", bitnamesSvc)
+	targets.add(ctx, "bitassets", bitassetsSvc)
+	targets.add(ctx, "truthcoin", truthcoinSvc)
+	targets.add(ctx, "photon", photonSvc)
+	targets.add(ctx, "coinshift", coinshiftSvc)
+	go followConnections(ctx, dial.Orchestrator(svcs.OrchestratorAddr, svcs.BitwindowDir), targets)
 
 	srv := &Server{
 		topSwap:       newSwappableHandler(),

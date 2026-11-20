@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -57,6 +58,7 @@ type configg struct {
 	authDir    string
 	onShutdown func(ctx context.Context)
 	control    orchctlrpc.OrchestratorServiceHandler
+	dials      *atomic.Int32
 }
 
 type ServerOpt func(opt *configg)
@@ -157,6 +159,11 @@ func WithOrchestratorControl(handler orchctlrpc.OrchestratorServiceHandler) Serv
 	return func(opt *configg) { opt.control = handler }
 }
 
+// WithDialCount counts each dial of a service other than bitcoind.
+func WithDialCount(dials *atomic.Int32) ServerOpt {
+	return func(opt *configg) { opt.dials = dials }
+}
+
 func RPC(t *testing.T, database *sql.DB, options ...ServerOpt) *connect.Client {
 	t.Helper()
 	client, address := API(t, database, options...)
@@ -204,44 +211,59 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (*http.Client, st
 	}
 
 	orchestratorAddr := orchestratorServer(t, conf.control)
+	dialed := func() {
+		if conf.dials != nil {
+			conf.dials.Add(1)
+		}
+	}
 
 	// Create connectors that return our mock clients
 	services := api.Services{
 		Database: database,
 		EnforcerConnector: func(ctx context.Context) (mainchainv1connect.ValidatorServiceClient, error) {
+			dialed()
 			return conf.enforcer, nil
 		},
 		BlockProducerConnector: func(ctx context.Context) (mainchainv1connect.BlockProducerServiceClient, error) {
+			dialed()
 			if conf.blockProducer == nil {
 				return nil, errors.New("block producer not available in tests")
 			}
 			return conf.blockProducer, nil
 		},
 		MiningConnector: func(ctx context.Context) (mainchainv1connect.MiningServiceClient, error) {
+			dialed()
 			return nil, errors.New("mining not available in tests")
 		},
 		CryptoConnector: func(ctx context.Context) (cryptov1connect.CryptoServiceClient, error) {
+			dialed()
 			return conf.crypto, nil
 		},
 		BitcoindConnector: func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
 			return conf.bitcoind, nil
 		},
 		ThunderConnector: func(ctx context.Context) (*thunder.Client, error) {
+			dialed()
 			return nil, errors.New("thunder not available in tests")
 		},
 		BitNamesConnector: func(ctx context.Context) (*bitnames.Client, error) {
+			dialed()
 			return nil, errors.New("bitnames not available in tests")
 		},
 		BitAssetsConnector: func(ctx context.Context) (*bitassets.Client, error) {
+			dialed()
 			return nil, errors.New("bitassets not available in tests")
 		},
 		TruthcoinConnector: func(ctx context.Context) (*truthcoin.Client, error) {
+			dialed()
 			return nil, errors.New("truthcoin not available in tests")
 		},
 		PhotonConnector: func(ctx context.Context) (*photon.Client, error) {
+			dialed()
 			return nil, errors.New("photon not available in tests")
 		},
 		CoinShiftConnector: func(ctx context.Context) (*coinshift.Client, error) {
+			dialed()
 			return nil, errors.New("coinshift not available in tests")
 		},
 		ChainParams:        &chaincfg.SigNetParams,
