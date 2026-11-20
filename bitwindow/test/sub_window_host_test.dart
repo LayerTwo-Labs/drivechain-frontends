@@ -26,11 +26,17 @@ class _CounterState extends State<_Counter> {
 }
 
 void main() {
-  testWidgets('a close drops the page and pauses the timers, and the next open builds a new page', (tester) async {
+  testWidgets('an open draws the page before the show, and a close drops the page and pauses the timers', (
+    tester,
+  ) async {
     final messenger = tester.binding.defaultBinaryMessenger;
     final calls = <String>[];
+    final pageAtShow = <bool>[];
     messenger.setMockMethodCallHandler(_windows, (call) async {
       calls.add(call.method);
+      if (call.method == 'window_show') {
+        pageAtShow.add(find.byType(_Counter).evaluate().isNotEmpty);
+      }
       return null;
     });
     addTearDown(() => messenger.setMockMethodCallHandler(_windows, null));
@@ -51,11 +57,14 @@ void main() {
     final arguments = {'window_type': 'hash_calculator', 'window_title': 'Hash Calculator'};
 
     await host.start();
-    await host.open(arguments);
+    final opened = host.open(arguments);
+    await tester.pump();
+    await opened;
     await tester.pump();
     expect(find.text('taps 0'), findsOneWidget);
     expect(shown, 1);
-    expect(calls, ['window_set_hide_on_close', 'window_set_frame', 'window_set_title', 'window_show']);
+    expect(calls, ['window_set_hide_on_close', 'window_set_title', 'window_set_frame', 'window_show']);
+    expect(pageAtShow, [true]);
     tester.state<_CounterState>(find.byType(_Counter))
       ..tap()
       ..tap()
@@ -73,13 +82,61 @@ void main() {
     expect(timers.paused, isTrue);
     expect(hidden, ['hash_calculator']);
 
-    await host.open(arguments);
+    final reopened = host.open(arguments);
+    await tester.pump();
+    await reopened;
     await tester.pump();
     expect(find.text('taps 0'), findsOneWidget);
+    expect(pageAtShow, [true, true]);
     expect(timers.paused, isFalse);
     expect(shown, 2);
     expect(work.first.isActive, isFalse);
     expect(work.last.isActive, isTrue);
     work.last.cancel();
+  });
+
+  testWidgets('a resize of a reused window draws the new page in the resize frame', (tester) async {
+    final messenger = tester.binding.defaultBinaryMessenger;
+    final pageAtShow = <bool>[];
+    var resizes = 0;
+    messenger.setMockMethodCallHandler(_windows, (call) async {
+      if (call.method == 'window_set_frame' && resizes++ == 1) {
+        tester.view.physicalSize = const Size(1200, 900);
+        expect(find.byType(_Counter).evaluate(), isNotEmpty);
+      }
+      if (call.method == 'window_show') {
+        pageAtShow.add(find.byType(_Counter).evaluate().isNotEmpty);
+      }
+      return null;
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(_windows, null);
+      tester.view.resetPhysicalSize();
+    });
+    final host = SubWindowHost(
+      controller: WindowController.fromWindowId('w1'),
+      timers: HiddenWindowTimers(),
+      buildPage: (arguments) => (app: const _Counter(), work: null),
+      announceShown: () async {},
+      announceHidden: (windowType) async {},
+    );
+    final arguments = {'window_type': 'hash_calculator', 'window_title': 'Hash Calculator'};
+    await host.start();
+    final opened = host.open(arguments);
+    await tester.pump();
+    await opened;
+    await messenger.handlePlatformMessage(
+      _windows.name,
+      _windows.codec.encodeMethodCall(const MethodCall('onWindowHidden', {})),
+      (_) {},
+    );
+    await tester.pump();
+
+    final reopened = host.open(arguments);
+    await tester.pump();
+    await reopened;
+
+    expect(resizes, 2);
+    expect(pageAtShow, [true, true]);
   });
 }
