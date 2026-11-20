@@ -187,7 +187,7 @@ class BMMTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _Controls(viewModel: viewModel),
-                _CurrentSlot(viewModel: viewModel),
+                BMMCurrentSlot(viewModel: viewModel),
                 _BidsOnNextBlock(viewModel: viewModel),
                 _HistoricBids(viewModel: viewModel),
               ],
@@ -340,14 +340,50 @@ class _Field extends StatelessWidget {
 }
 
 /// The block being bid on: what it is worth, what we bid, what we stand to make.
-class _CurrentSlot extends StatelessWidget {
+@visibleForTesting
+class BMMCurrentSlot extends StatelessWidget {
   final BMMViewModel viewModel;
-  const _CurrentSlot({required this.viewModel});
+  const BMMCurrentSlot({super.key, required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
     final colors = SailTheme.of(context).colors;
     final live = viewModel.bmmProvider.liveBid;
+    final yourBid = live == null ? '—' : viewModel.satsLabel(live.bidSats.toInt());
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(SailStyleValues.padding16),
+        decoration: BoxDecoration(
+          color: colors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SailColumn(
+          spacing: SailStyleValues.padding08,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              children: [
+                SailText.primary13('Current slot', bold: true),
+                SailBadge(viewModel.slotStatus, tone: viewModel.slotTone),
+              ],
+            ),
+            if (viewModel.slotHint.isNotEmpty) SailText.secondary12(viewModel.slotHint),
+            SailStatList(
+              framed: false,
+              children: [
+                SailStatRow(title: 'Block worth', subtitle: '', value: viewModel.satsLabel(viewModel.blockWorthSats)),
+                SailStatRow(title: 'Your bid', subtitle: '', value: yourBid),
+                SailStatRow(title: 'Profit if won', subtitle: '', value: viewModel.satsLabel(viewModel.profitIfWon)),
+                SailStatRow(title: 'Sidechain block ready', subtitle: '', value: viewModel.currentCriticalHash),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       width: double.infinity,
@@ -379,7 +415,7 @@ class _CurrentSlot extends StatelessWidget {
               ),
               _Figure(
                 label: 'Your bid',
-                value: live == null ? '—' : viewModel.satsLabel(live.bidSats.toInt()),
+                value: yourBid,
               ),
               _Figure(
                 label: 'Profit if won',
