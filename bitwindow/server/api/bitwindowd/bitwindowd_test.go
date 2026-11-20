@@ -14,6 +14,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -1916,7 +1917,6 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				},
 			}, nil)
 
-		// Mock GetBlock - returns empty txids to avoid needing GetRawTransaction mocks
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetBlockResponse]{
@@ -1924,10 +1924,9 @@ func TestService_ListRecentTransactions(t *testing.T) {
 					Height:            1,
 					Hash:              "blockhash1",
 					Time:              timestamppb.Now(),
-					Txids:             []string{}, // Empty - no transactions to fetch
-					PreviousBlockHash: "",         // Genesis, stop loop
+					PreviousBlockHash: "", // Genesis, stop loop
 				},
-			}, nil).Times(2) // First for GetBlock with BestBlockHash, second for the loop
+			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
@@ -1964,15 +1963,16 @@ func TestService_ListRecentTransactions(t *testing.T) {
 			GetRawMempool(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
 				Msg: &corepb.GetRawMempoolResponse{Transactions: map[string]*corepb.MempoolEntry{}},
-			}, nil)
+			}, nil).Times(2)
 
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 7, BestBlockHash: "blockhash7"},
-			}, nil)
+			}, nil).Times(2)
 
-		// btc-buf fills Txids only at block-info verbosity.
+		// btc-buf fills Txids only at block-info verbosity. The second call
+		// reads the same tip, so it reads no block.
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
@@ -1981,23 +1981,105 @@ func TestService_ListRecentTransactions(t *testing.T) {
 					block.Txids = []string{"coinbase", "tx1"}
 				}
 				return connectv1.NewResponse(block), nil
-			}).Times(2)
+			}).Times(1)
 
 		mockBitcoind.EXPECT().
 			GetRawTransaction(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetRawTransactionResponse]{
 				Msg: &corepb.GetRawTransactionResponse{Vsize: 141, Fee: 0.00002000},
-			}, nil)
+			}, nil).Times(1)
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 
-		resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{Count: 10})
-		require.NoError(t, err)
-		require.Len(t, resp.Transactions, 1)
-		assert.Equal(t, "tx1", resp.Transactions[0].Txid)
-		assert.Equal(t, uint32(7), resp.Transactions[0].GetConfirmedInBlock())
-		assert.Equal(t, uint64(2000), resp.Transactions[0].FeeSats)
-		assert.Equal(t, uint32(141), resp.Transactions[0].VirtualSize)
+		for range 2 {
+			resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{Count: 10})
+			require.NoError(t, err)
+			require.Len(t, resp.Transactions, 1)
+			assert.Equal(t, "tx1", resp.Transactions[0].Txid)
+			assert.Equal(t, uint32(7), resp.Transactions[0].GetConfirmedInBlock())
+			assert.Equal(t, uint64(2000), resp.Transactions[0].FeeSats)
+			assert.Equal(t, uint32(141), resp.Transactions[0].VirtualSize)
+		}
+	})
+
+	t.Run("a new tip reads only the new blocks", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+		mockBitcoind.EXPECT().
+			GetRawMempool(gomock.Any(), gomock.Any()).
+			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
+				Msg: &corepb.GetRawMempoolResponse{Transactions: map[string]*corepb.MempoolEntry{}},
+			}, nil).Times(3)
+
+		// Blocks 1 to 102 each hold one tx. The walk reads 100 blocks.
+		var tip atomic.Uint32
+		tip.Store(100)
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(context.Context, *connectv1.Request[corepb.GetBlockchainInfoRequest]) (*connectv1.Response[corepb.GetBlockchainInfoResponse], error) {
+				return connectv1.NewResponse(&corepb.GetBlockchainInfoResponse{Blocks: tip.Load(), BestBlockHash: fmt.Sprintf("hash%d", tip.Load())}), nil
+			}).Times(3)
+
+		var reads atomic.Int32
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
+				reads.Add(1)
+				var height uint32
+				_, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height)
+				require.NoError(t, err)
+				block := &corepb.GetBlockResponse{
+					Hash:   req.Msg.Hash,
+					Height: height,
+					Time:   timestamppb.New(time.Unix(int64(height)*600, 0)),
+					Txids:  []string{"coinbase", fmt.Sprintf("tx%d", height)},
+				}
+				if height > 1 {
+					block.PreviousBlockHash = fmt.Sprintf("hash%d", height-1)
+				}
+				return connectv1.NewResponse(block), nil
+			}).AnyTimes()
+
+		var txReads atomic.Int32
+		mockBitcoind.EXPECT().
+			GetRawTransaction(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(context.Context, *connectv1.Request[corepb.GetRawTransactionRequest]) (*connectv1.Response[corepb.GetRawTransactionResponse], error) {
+				txReads.Add(1)
+				return connectv1.NewResponse(&corepb.GetRawTransactionResponse{Vsize: 141, Fee: 0.00001}), nil
+			}).AnyTimes()
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
+		list := func() []string {
+			resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{Count: 200})
+			require.NoError(t, err)
+			return lo.Map(resp.Transactions, func(tx *v1.RecentTransaction, _ int) string { return tx.Txid })
+		}
+		want := func(top uint32) []string {
+			var txids []string
+			for h := top; h > top-100; h-- {
+				txids = append(txids, fmt.Sprintf("tx%d", h))
+			}
+			return txids
+		}
+
+		assert.Equal(t, want(100), list())
+		assert.Equal(t, int32(100), reads.Load())
+		assert.Equal(t, int32(100), txReads.Load())
+
+		tip.Store(102)
+		assert.Equal(t, want(102), list())
+		assert.Equal(t, int32(102), reads.Load())
+		assert.Equal(t, int32(102), txReads.Load())
+
+		// A reorg leaves the old tip off the chain, so the walk reads all 100 blocks.
+		tip.Store(101)
+		assert.Equal(t, want(101), list())
+		assert.Equal(t, int32(202), reads.Load())
+		assert.Equal(t, int32(202), txReads.Load())
 	})
 
 	t.Run("empty mempool and genesis block", func(t *testing.T) {
@@ -2038,7 +2120,6 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				},
 			}, nil)
 
-		// Genesis block - empty txids
 		mockBitcoind.EXPECT().
 			GetBlock(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetBlockResponse]{
@@ -2046,10 +2127,9 @@ func TestService_ListRecentTransactions(t *testing.T) {
 					Height:            0,
 					Hash:              "genesis",
 					Time:              timestamppb.Now(),
-					Txids:             []string{}, // Empty
-					PreviousBlockHash: "",         // Genesis, no previous
+					PreviousBlockHash: "", // Genesis, no previous
 				},
-			}, nil).Times(2)
+			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
 

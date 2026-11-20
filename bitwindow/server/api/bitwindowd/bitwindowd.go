@@ -93,6 +93,15 @@ type Server struct {
 	// hash too, so same-height reorgs invalidate.
 	listBlocksCache sync.Map // listBlocksCacheKey -> *listBlocksCacheEntry
 	listBlocksTip   atomic.Pointer[blocksTip]
+
+	recentTxsMu sync.Mutex
+	recentTxs   *recentTxsEntry
+}
+
+type recentTxsEntry struct {
+	tip   string
+	count int64
+	txs   []*pb.RecentTransaction
 }
 
 type listBlocksCacheKey struct {
@@ -977,29 +986,66 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *pb.ListRecentTra
 		}, nil
 	}
 
-	// Resolve the requested count up front so the block walk can stop as
-	// soon as we have enough.
 	count := int64(100)
 	if c.Count > 0 {
 		count = c.Count
 	}
 
-	// Get block at latest height
-	blockHashRes, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
-		Hash:      info.Msg.BestBlockHash,
-		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
-	}))
+	confirmed, err := s.recentConfirmed(ctx, bitcoind, info.Msg.BestBlockHash, count)
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind: get block at height %d: %w", info.Msg.Blocks, err)
+		return nil, err
+	}
+	transactions = append(transactions, confirmed...)
+
+	// Sort by time, newest first
+	slices.SortStableFunc(transactions, func(a, b *pb.RecentTransaction) int {
+		return cmp.Compare(b.Time.AsTime().Unix(), a.Time.AsTime().Unix())
+	})
+
+	// Limit to requested count
+	if count > int64(len(transactions)) {
+		count = int64(len(transactions))
+	}
+	transactions = transactions[:count]
+
+	return &pb.ListRecentTransactionsResponse{
+		Transactions: transactions,
+	}, nil
+}
+
+// recentConfirmed returns the newest count non-coinbase transactions of the
+// chain that ends at tip. The result is shared between calls: treat it as read-only.
+func (s *Server) recentConfirmed(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, tip string, count int64) ([]*pb.RecentTransaction, error) {
+	s.recentTxsMu.Lock()
+	defer s.recentTxsMu.Unlock()
+	if s.recentTxs != nil && s.recentTxs.tip == tip && s.recentTxs.count == count {
+		return s.recentTxs.txs, nil
 	}
 
-	// Walk recent blocks, fetching per-tx fee info, until we have `count`
-	// non-coinbase transactions. Cap the walk at maxBlocks so an empty
-	// signet/regtest chain doesn't run away.
+	prev := s.recentTxs
+	if prev != nil && prev.count != count {
+		prev = nil
+	}
+
+	// Cap the walk so an empty signet/regtest chain doesn't run away.
 	const maxBlocks = 100
-	currentHash := blockHashRes.Msg.Hash
+	var txs []*pb.RecentTransaction
+	var tipHeight uint32
+	currentHash := tip
 walkBlocks:
 	for i := 0; i < maxBlocks && currentHash != ""; i++ {
+		// The old tip is an ancestor: its list holds the rest of the walk.
+		if prev != nil && currentHash == prev.tip {
+			lowest := int64(tipHeight) - (maxBlocks - 1)
+			for _, tx := range prev.txs {
+				if int64(len(txs)) >= count || int64(tx.GetConfirmedInBlock()) < lowest {
+					break
+				}
+				txs = append(txs, tx)
+			}
+			break
+		}
+
 		blockRes, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 			Hash:      currentHash,
 			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
@@ -1007,12 +1053,16 @@ walkBlocks:
 		if err != nil {
 			return nil, fmt.Errorf("bitcoind: get block: %w", err)
 		}
+		if i == 0 {
+			tipHeight = blockRes.Msg.Height
+		}
 		for idx, txid := range blockRes.Msg.Txids {
 			// Skip coinbase before we pay for GetRawTransaction.
 			if idx == 0 {
 				continue
 			}
 
+			// btc-buf drops the prevout amounts of getblock, so only this call has the fee.
 			txRes, err := bitcoind.GetRawTransaction(ctx, connectv1.NewRequest(&corepb.GetRawTransactionRequest{
 				Txid:      txid,
 				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
@@ -1026,36 +1076,22 @@ walkBlocks:
 				return nil, err
 			}
 
-			transactions = append(transactions, &pb.RecentTransaction{
+			txs = append(txs, &pb.RecentTransaction{
 				VirtualSize:      uint32(txRes.Msg.Vsize),
 				Time:             blockRes.Msg.Time,
 				Txid:             txid,
 				FeeSats:          uint64(fee),
 				ConfirmedInBlock: &blockRes.Msg.Height,
 			})
-
-			if int64(len(transactions)) >= count {
+			if int64(len(txs)) >= count {
 				break walkBlocks
 			}
 		}
-
 		currentHash = blockRes.Msg.PreviousBlockHash
 	}
 
-	// Sort by time, newest first
-	slices.SortFunc(transactions, func(a, b *pb.RecentTransaction) int {
-		return cmp.Compare(b.Time.AsTime().Unix(), a.Time.AsTime().Unix())
-	})
-
-	// Limit to requested count
-	if count > int64(len(transactions)) {
-		count = int64(len(transactions))
-	}
-	transactions = transactions[:count]
-
-	return &pb.ListRecentTransactionsResponse{
-		Transactions: transactions,
-	}, nil
+	s.recentTxs = &recentTxsEntry{tip: tip, count: count, txs: txs}
+	return txs, nil
 }
 
 func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.GetNetworkStatsResponse, error) {
