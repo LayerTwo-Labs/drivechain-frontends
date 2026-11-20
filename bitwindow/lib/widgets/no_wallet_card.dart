@@ -43,6 +43,9 @@ class NoWalletCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return const _PhoneNoWalletCard();
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(SailStyleValues.padding32),
       child: Center(
@@ -79,6 +82,82 @@ class NoWalletCard extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhoneNoWalletCard extends StatelessWidget {
+  const _PhoneNoWalletCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: SailCard(
+        padding: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            SailStyleValues.padding16,
+            SailStyleValues.padding16,
+            SailStyleValues.padding16,
+            SailStyleValues.padding08,
+          ),
+          child: SailColumn(
+            spacing: SailStyleValues.padding04,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary15('You need a wallet to send and receive', bold: true),
+              SailText.secondary13('Make a new wallet, or restore one from its seed phrase or a descriptor.'),
+              const SizedBox(height: SailStyleValues.padding04),
+              SailStatList(
+                panel: false,
+                children: [
+                  _ActionRow(
+                    icon: SailSVGAsset.plus,
+                    label: 'Generate wallet',
+                    onTap: () async => openGenerateWallet(context),
+                  ),
+                  _ActionRow(
+                    icon: SailSVGAsset.clipboardPaste,
+                    label: 'Paste seed phrase',
+                    onTap: () async => openPasteSeed(context),
+                  ),
+                  _ActionRow(
+                    icon: SailSVGAsset.upload,
+                    label: 'Import descriptor',
+                    onTap: () async => showImportDescriptorDialog(context),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  final SailSVGAsset icon;
+  final String label;
+  final Future<void> Function() onTap;
+
+  const _ActionRow({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    return SailTappable(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding12),
+        child: SailRow(
+          spacing: SailStyleValues.padding10,
+          children: [
+            SailSVG.icon(icon, width: 14, height: 14, color: theme.colors.textTertiary),
+            Expanded(child: SailText.primary13(label)),
+          ],
         ),
       ),
     );

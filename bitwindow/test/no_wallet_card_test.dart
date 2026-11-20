@@ -109,7 +109,10 @@ void main() {
     GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator(rpc));
   });
 
-  tearDown(() async => GetIt.I.reset());
+  tearDown(() async {
+    SailStyleValues.phoneLayoutOverride = null;
+    await GetIt.I.reset();
+  });
 
   Future<void> pumpLarge(WidgetTester tester, Widget child) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
@@ -149,6 +152,44 @@ void main() {
     final page = tester.widget<WalletBackupPage>(find.byType(WalletBackupPage));
     expect(page.mode, SeedEntryMode.importExisting);
     expect(page.onCreate, isNotNull);
+  });
+
+  Future<void> pumpPhone(WidgetTester tester, Widget child) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host(child));
+    await tester.pump();
+  }
+
+  testWidgets('on a phone the card sits at the top with left text and action rows', (tester) async {
+    reader.applyWatchFrame(_frame(hasWallet: false));
+    await pumpPhone(tester, const NoWalletGate(child: Text('Send form')));
+
+    expect(find.byType(SetupActionButton), findsNothing);
+    final title = tester.getRect(find.text('You need a wallet to send and receive'));
+    final subtitle = tester.getRect(
+      find.text('Make a new wallet, or restore one from its seed phrase or a descriptor.'),
+    );
+    expect(subtitle.left, title.left);
+    expect(title.top, lessThan(40));
+    expect(tester.widget<Text>(find.text('You need a wallet to send and receive')).style!.fontSize, 15);
+    final rows = ['Generate wallet', 'Paste seed phrase', 'Import descriptor'].map((l) => tester.getRect(find.text(l)));
+    for (final row in rows) {
+      expect(row.left, greaterThan(title.left));
+      expect(row.left, lessThan(title.left + 40));
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('on a phone Paste seed phrase opens the seed entry page', (tester) async {
+    reader.applyWatchFrame(_frame(hasWallet: false));
+    await pumpPhone(tester, const NoWalletGate(child: Text('Send form')));
+
+    await tester.tap(find.text('Paste seed phrase'));
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<WalletBackupPage>(find.byType(WalletBackupPage)).mode, SeedEntryMode.importExisting);
   });
 
   testWidgets('an unread wallet state shows the tab, not the card', (tester) async {
