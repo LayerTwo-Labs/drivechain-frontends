@@ -1,4 +1,5 @@
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
+import 'package:bitwindow/pages/explorer/load_transaction_dialog.dart';
 import 'package:connectrpc/connect.dart' as connect;
 import 'package:connectrpc/test.dart';
 import 'package:flutter/material.dart';
@@ -12,13 +13,14 @@ import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'test_utils.dart';
 
 final _next = 'cd' * 32;
+final _txid = 'ef' * 32;
 
 class _Orchestrator implements OrchestratorRPC {
   @override
   final BitcoinServiceClient bitcoind = BitcoinServiceClient(
     FakeTransportBuilder().unary(BitcoinService.getBlock, (req, _) {
       return switch (req.height) {
-        7 => GetBlockResponse(height: 7, hash: 'ab' * 32, nextBlockHash: _next, difficulty: 2.5),
+        7 => GetBlockResponse(height: 7, hash: 'ab' * 32, nextBlockHash: _next, difficulty: 2.5, txids: [_txid]),
         8 => GetBlockResponse(height: 8, hash: _next, difficulty: 2.5),
         _ => throw connect.ConnectException(connect.Code.unknown, 'Block height out of range'),
       };
@@ -64,5 +66,17 @@ void main() {
     await openDetails(tester, '8');
 
     expect(rowValue(tester, 'Next Block Hash'), 'None');
+  });
+
+  testWidgets('a block txid opens the chain transaction, not the wallet one', (tester) async {
+    await openDetails(tester, '7');
+
+    tester.widget<TXIDTransactionTable>(find.byType(TXIDTransactionTable)).onTransactionSelected!(_txid);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(LoadTransactionDialog), findsOneWidget);
+    expect(tester.widget<LoadTransactionDialog>(find.byType(LoadTransactionDialog)).txid, _txid);
+    expect(find.byType(TransactionDetailsDialog), findsNothing);
   });
 }
