@@ -11,7 +11,7 @@ import 'test_utils.dart';
 class _ForkStatusOrchestrator implements OrchestratorRPC {
   _ForkStatusOrchestrator(this.status);
 
-  final GetForkStatusResponse status;
+  GetForkStatusResponse status;
 
   @override
   Future<GetForkStatusResponse> getForkStatus() async => status;
@@ -352,6 +352,26 @@ void _replayLockTimeTests() {
   group('replay locktime', () {
     tearDown(() async {
       await GetIt.I.reset();
+    });
+
+    test('a poll with the same status does not notify', () async {
+      await GetIt.I.reset();
+      await registerTestDependencies();
+      final orchestrator = _ForkStatusOrchestrator(GetForkStatusResponse(forkHeight: 973728, currentHeaders: 5));
+      GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+      GetIt.I.registerSingleton<BitcoinConfProvider>(_ECashConf());
+
+      final provider = ForkProvider();
+      var notifies = 0;
+      provider.addListener(() => notifies++);
+      await provider.fetch();
+      await provider.fetch();
+      expect(notifies, 1);
+
+      orchestrator.status = GetForkStatusResponse(forkHeight: 973728, currentHeaders: 6);
+      await provider.fetch();
+      expect(notifies, 2);
+      expect(provider.currentHeaders, 6);
     });
 
     for (final lockTime in [499999998, 499999999]) {
