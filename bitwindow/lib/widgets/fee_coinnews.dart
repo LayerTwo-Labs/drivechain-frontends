@@ -195,16 +195,20 @@ class FeeCoinNewsLargeView extends ViewModelWidget<FeeCoinNewsLargeViewModel> {
                 height: 36,
                 child: SailRow(
                   children: [
-                    SailDropdownButton<String>(
-                      items: viewModel.topicItems,
-                      onChanged: (value) {
-                        if (value != null) {
-                          viewModel.setRightTopic(value);
-                        }
-                      },
-                      value: viewModel.rightTopic,
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: SailDropdownButton<String>(
+                          items: viewModel.topicItems,
+                          onChanged: (value) {
+                            if (value != null) {
+                              viewModel.setRightTopic(value);
+                            }
+                          },
+                          value: viewModel.rightTopic,
+                        ),
+                      ),
                     ),
-                    Expanded(child: Container()),
                     SailButton(
                       label: 'Broadcast News',
                       variant: ButtonVariant.primary,

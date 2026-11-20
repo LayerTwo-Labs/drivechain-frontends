@@ -5,6 +5,8 @@ import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:bitwindow/widgets/mempool_widget.dart';
 import 'package:bitwindow/widgets/peers_table_widget.dart';
 import 'package:bitwindow/providers/mempool_provider.dart';
+import 'package:bitwindow/providers/news_provider.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show Peer;
 import 'package:bitwindow/widgets/network_stats_widget.dart';
 import 'package:fixnum/fixnum.dart';
@@ -76,6 +78,30 @@ void main() {
       expect(find.text('Fees'), findsOneWidget);
       expect(find.text('412 sat'), findsNothing);
     });
+  });
+
+  testWidgets('on a phone the Broadcast News header fits 390 px', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
+    await registerTestDependencies();
+    await GetIt.I.unregister<NewsProvider>();
+    GetIt.I.registerSingleton<NewsProvider>(_TopicsOnly());
+    await tester.pumpSailPage(
+      SingleChildScrollView(
+        child: SizedBox(
+          width: 390,
+          child: ViewModelBuilder<FeeCoinNewsLargeViewModel>.reactive(
+            viewModelBuilder: () => FeeCoinNewsLargeViewModel(),
+            builder: (context, model, child) => const FeeCoinNewsLargeView(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Japan Weekly (pending)'), findsOneWidget);
+    expect(tester.getRect(find.text('Broadcast News')).right, lessThanOrEqualTo(390));
   });
 
   group('Dashboard Stats', () {
@@ -313,4 +339,9 @@ void main() {
       });
     }
   });
+}
+
+class _TopicsOnly extends NewsProvider {
+  @override
+  Future<void> fetch() async {}
 }
