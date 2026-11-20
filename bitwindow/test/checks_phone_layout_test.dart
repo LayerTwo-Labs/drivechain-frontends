@@ -83,6 +83,18 @@ void main() {
     expect(find.text('View Details'), findsOneWidget);
   });
 
+  testWidgets('on a phone the check buttons sit on their own line under the title', (tester) async {
+    await _pump(tester, phone: true);
+
+    final title = tester.getRect(find.text('Your Checks'));
+    final cash = tester.getRect(find.widgetWithText(SailButton, 'Cash Check'));
+    final create = tester.getRect(find.widgetWithText(SailButton, 'Create New Check'));
+    expect(cash.top, greaterThan(title.bottom));
+    expect(cash.left, title.left);
+    expect(create.left, greaterThan(cash.right));
+    expect(create.center.dy, closeTo(cash.center.dy, 1));
+  });
+
   testWidgets('the desktop keeps the checks table', (tester) async {
     await _pump(tester, phone: false);
 

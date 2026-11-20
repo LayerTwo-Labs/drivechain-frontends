@@ -67,6 +67,21 @@ class ChecksTab extends StatelessWidget {
       viewModelBuilder: () => ChecksTabViewModel(),
       onViewModelReady: (model) => model.refresh(),
       builder: (context, model, child) {
+        final phone = SailStyleValues.phoneLayout(context);
+        final actions = SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            SailButton(
+              label: 'Cash Check',
+              variant: ButtonVariant.secondary,
+              onPressed: () async => model.cashCheck(context),
+            ),
+            SailButton(
+              label: 'Create New Check',
+              onPressed: () async => model.createNewCheck(context),
+            ),
+          ],
+        );
         return SailCard(
           title: model.checks.isEmpty ? 'Send ${activeTicker.name} Without an Internet Connection' : 'Your Checks',
           subtitle: model.checks.isEmpty
@@ -74,26 +89,20 @@ class ChecksTab extends StatelessWidget {
               : null,
           error: model.modelError,
           bottomPadding: false,
-          widgetHeaderEnd: model.checks.isNotEmpty
-              ? SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailButton(
-                      label: 'Cash Check',
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async => model.cashCheck(context),
-                    ),
-                    SailButton(
-                      label: 'Create New Check',
-                      onPressed: () async => model.createNewCheck(context),
-                    ),
-                  ],
-                )
-              : null,
+          widgetHeaderEnd: model.checks.isNotEmpty && !phone ? actions : null,
           child: model.checks.isEmpty
               ? ChecksEmptyState(
                   onCreateCheck: () => model.createNewCheck(context),
                   onCashCheck: () => model.cashCheck(context),
+                )
+              : phone
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    actions,
+                    const SailSpacing(SailStyleValues.padding08),
+                    Expanded(child: ChecksTable(checks: model.checks)),
+                  ],
                 )
               : ChecksTable(checks: model.checks),
         );
