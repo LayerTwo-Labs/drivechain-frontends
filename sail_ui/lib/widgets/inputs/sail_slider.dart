@@ -20,6 +20,9 @@ class SailSlider extends StatefulWidget {
   /// Caption below the track, e.g. "Require 2 signatures to move funds".
   final String? label;
 
+  /// The color of the empty track. Null uses the secondary background.
+  final Color? trackColor;
+
   const SailSlider({
     super.key,
     required this.value,
@@ -31,6 +34,7 @@ class SailSlider extends StatefulWidget {
     this.height = 20,
     this.showSteps = true,
     this.label,
+    this.trackColor,
   }) : assert(max > min),
        isRange = false,
        rangeStart = 0,
@@ -49,6 +53,7 @@ class SailSlider extends StatefulWidget {
     this.height = 20,
     this.showSteps = true,
     this.label,
+    this.trackColor,
   }) : assert(max > min),
        isRange = true,
        value = 0,
@@ -156,7 +161,7 @@ class _SailSliderState extends State<SailSlider> {
                       child: Container(
                         height: trackHeight,
                         decoration: BoxDecoration(
-                          color: theme.colors.backgroundSecondary,
+                          color: widget.trackColor ?? theme.colors.backgroundSecondary,
                           borderRadius: terminal ? BorderRadius.circular(2) : BorderRadius.circular(trackHeight),
                         ),
                       ),
