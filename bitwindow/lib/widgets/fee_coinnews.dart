@@ -334,6 +334,15 @@ class FeeCoinNewsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
 
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailSkeletonizer(
+        description: 'Waiting for backend to boot and for it to load coin news..',
+        enabled: loading,
+        duration: const Duration(seconds: 3),
+        child: _FeeStoryList(entries: entries, shrinkWrap: shrinkWrap, onArticleSelected: onArticleSelected),
+      );
+    }
+
     return SailSkeletonizer(
       description: 'Waiting for backend to boot and for it to load coin news..',
       enabled: loading,
@@ -382,6 +391,77 @@ class FeeCoinNewsTable extends StatelessWidget {
               ),
             ];
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// The phone form of [FeeCoinNewsTable]: one row per story, with the headline and time at the left and the fee at the right.
+class _FeeStoryList extends StatelessWidget {
+  final List<CoinNews> entries;
+  final bool shrinkWrap;
+  final void Function(CoinNews news)? onArticleSelected;
+
+  const _FeeStoryList({required this.entries, required this.shrinkWrap, required this.onArticleSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding16),
+        child: Center(child: SailText.secondary13('No news articles yet')),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+      padding: EdgeInsets.zero,
+      itemCount: entries.length,
+      itemBuilder: (context, i) => _FeeStoryRow(
+        entry: entries[i],
+        last: i == entries.length - 1,
+        onTap: onArticleSelected == null ? null : () => onArticleSelected!(entries[i]),
+      ),
+    );
+  }
+}
+
+class _FeeStoryRow extends StatelessWidget {
+  final CoinNews entry;
+  final bool last;
+  final VoidCallback? onTap;
+
+  const _FeeStoryRow({required this.entry, required this.last, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: last ? null : Border(bottom: BorderSide(color: theme.colors.divider)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding10),
+          child: SailRow(
+            spacing: SailStyleValues.padding12,
+            children: [
+              Expanded(
+                child: SailColumn(
+                  spacing: SailStyleValues.padding04,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailText.primary13(_truncateHeadline(entry.headline), bold: true),
+                    SailText.secondary12(formatDate(entry.createTime.toDateTime(), long: false)),
+                  ],
+                ),
+              ),
+              SailText.primary13('${entry.feeSats} sat', bold: true),
+            ],
+          ),
         ),
       ),
     );
