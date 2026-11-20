@@ -46,15 +46,21 @@ class BinaryProvider extends ChangeNotifier {
   ProcessManager? _ownedProcessManager;
   ProcessManager get _processManager => _ownedProcessManager!;
 
+  /// Runs the daemon binaries inside the app on a phone, which cannot start a child process.
+  InProcessBackend? _inProcess;
+
   BinaryProvider._({
     required this.appDir,
     required this.binaries,
     required ProcessManager processManager,
     required this.isSidechainApp,
     required this.shutdownEnabled,
+    InProcessBackend? inProcess,
   }) {
     _ownedProcessManager = processManager;
+    _inProcess = inProcess;
     _processManager.addListener(notifyListeners);
+    _inProcess?.addListener(notifyListeners);
     _startMetadataRefreshTimer();
   }
 
@@ -92,6 +98,7 @@ class BinaryProvider extends ChangeNotifier {
     _disposed = true;
     _metadataRefreshTimer?.cancel();
     _ownedProcessManager?.dispose();
+    _inProcess?.dispose();
     if (_settingsListener != null && GetIt.I.isRegistered<SettingsProvider>()) {
       GetIt.I.get<SettingsProvider>().removeListener(_settingsListener!);
     }
@@ -120,10 +127,13 @@ class BinaryProvider extends ChangeNotifier {
       processManager: processManager,
       isSidechainApp: isSidechainApp,
       shutdownEnabled: shutdownEnabled,
+      inProcess: isMobile ? InProcessBackend.open() : null,
     );
 
     // Adopt any processes from a previous session via PID files.
-    await provider._adoptOrphanedProcesses();
+    if (provider._inProcess == null) {
+      await provider._adoptOrphanedProcesses();
+    }
 
     // Release-date check hits the network; refresh it off the load path.
     unawaited(provider._refreshMetadata());
@@ -136,10 +146,13 @@ class BinaryProvider extends ChangeNotifier {
     required this.appDir,
     required this.binaries,
     ProcessManager? processManager,
+    InProcessBackend? inProcess,
     this.isSidechainApp = false,
     this.shutdownEnabled = true,
   }) {
     _ownedProcessManager = processManager;
+    _inProcess = inProcess;
+    _inProcess?.addListener(notifyListeners);
   }
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
@@ -434,7 +447,7 @@ class BinaryProvider extends ChangeNotifier {
   /// Watches for exit and auto-restarts unless we're shutting down.
   Future<void> _startDaemonBinary(Binary binary) async {
     _expectedStops.remove(binary.name);
-    if (_processManager.isRunning(binary)) {
+    if (_daemonRunning(binary)) {
       log.i('BinaryProvider: ${binary.name} already running');
       // An adopted daemon drains its own stack and then exits. Watch it, or
       // nothing starts a new one and the app keeps a dead backend.
@@ -476,7 +489,9 @@ class BinaryProvider extends ChangeNotifier {
       rethrow;
     }
 
-    await _processManager.pidFileManager.writeOwnerFile(binary, pid);
+    if (_inProcess == null) {
+      await _processManager.pidFileManager.writeOwnerFile(binary, pid);
+    }
 
     // Sync RPCConnection state — daemon is running.
     _syncDaemonConnectionState(binary, running: true);
@@ -486,6 +501,10 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> _startProcess(Binary binary, List<String> args) {
+    final inProcess = _inProcess;
+    if (inProcess != null) {
+      return inProcess.start(binary, args, instanceEnvironment());
+    }
     return _processManager.start(binary, args, () async {
       final process = _processManager.runningProcesses[binary.name];
       if (process == null) {
@@ -509,8 +528,7 @@ class BinaryProvider extends ChangeNotifier {
 
   /// Watch for daemon exit and auto-restart unless shutting down.
   void _watchDaemonExit(Binary binary) {
-    final process = _processManager.runningProcesses[binary.name];
-    if (process == null) {
+    if (!_daemonRunning(binary)) {
       return;
     }
     // The listener re-arms itself on every exit, so a second one only doubles
@@ -519,11 +537,11 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    _processManager.addListener(() {
+    (_inProcess ?? _processManager).addListener(() {
       if (_shuttingDown || _expectedStops.contains(binary.name)) {
         return;
       }
-      if (!_processManager.isRunning(binary)) {
+      if (!_daemonRunning(binary)) {
         _syncDaemonConnectionState(binary, running: false);
         log.w('${binary.name} exited unexpectedly, restarting in 2s');
         _scheduleDaemonRestart(binary);
@@ -538,7 +556,7 @@ class BinaryProvider extends ChangeNotifier {
     }
     Future.delayed(const Duration(seconds: 2), () async {
       _pendingRestarts.remove(binary.name);
-      if (_disposed || _shuttingDown || _expectedStops.contains(binary.name) || _processManager.isRunning(binary)) {
+      if (_disposed || _shuttingDown || _expectedStops.contains(binary.name) || _daemonRunning(binary)) {
         return;
       }
       try {
@@ -566,7 +584,12 @@ class BinaryProvider extends ChangeNotifier {
 
   /// Stop a daemon binary via ProcessManager.
   Future<void> _stopDaemonBinary(Binary binary) async {
-    await _processManager.kill(binary);
+    final inProcess = _inProcess;
+    if (inProcess != null) {
+      await inProcess.stop(binary);
+    } else {
+      await _processManager.kill(binary);
+    }
     // The exit watch ignores an expected stop, so the card reads the flag from here.
     _syncDaemonConnectionState(binary, running: false);
     notifyListeners();
@@ -578,10 +601,12 @@ class BinaryProvider extends ChangeNotifier {
 
   bool isConnected(Binary binary) {
     if (_isDaemonBinary(binary)) {
-      return _processManager.isRunning(binary);
+      return _daemonRunning(binary);
     }
     return _rpcFor(binary)?.connected ?? false;
   }
+
+  bool _daemonRunning(Binary binary) => _inProcess?.isRunning(binary) ?? _processManager.isRunning(binary);
 
   /// True when the daemon connects or the app window is open.
   bool isSidechainUp(Binary binary) {
@@ -596,10 +621,14 @@ class BinaryProvider extends ChangeNotifier {
       !isSidechainApp && binary.chainLayer == 2 && binary.metadata.hasAlternativeDownloadForThisOS;
 
   /// True when [binary] runs from a previous session of the app.
-  bool isAdopted(Binary binary) => _processManager.runningProcesses[binary.name]?.adopted ?? false;
+  bool isAdopted(Binary binary) =>
+      _inProcess == null && (_processManager.runningProcesses[binary.name]?.adopted ?? false);
 
   /// True when another app that spawned [binary] still runs.
   Future<bool> ownerAlive(Binary binary) async {
+    if (_inProcess != null) {
+      return false;
+    }
     final owner = await _processManager.pidFileManager.readOwnerFile(binary);
     return owner != null && owner != pid && await _processManager.isPidAlive(owner);
   }

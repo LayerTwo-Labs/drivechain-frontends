@@ -162,6 +162,7 @@ export 'providers/wallet_writer_provider.dart';
 export 'providers/window_provider.dart';
 export 'providers/parentchain/bmm_provider.dart';
 export 'providers/binaries/binary_provider.dart';
+export 'providers/binaries/managers/in_process_backend.dart';
 export 'providers/binaries/managers/pid_file_manager.dart';
 export 'providers/binaries/managers/process_manager.dart';
 export 'providers/sidechain/address_provider.dart';
