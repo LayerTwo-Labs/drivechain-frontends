@@ -36,6 +36,12 @@ class SailTextField extends StatelessWidget {
   final bool expands;
   final bool monospace;
 
+  /// A row of actions inside the field's box, under the text.
+  final Widget? bottomWidget;
+
+  /// Puts [suffixWidget] beside the first line of text, not at the vertical center.
+  final bool alignSuffixTop;
+
   const SailTextField({
     super.key,
     required this.controller,
@@ -64,6 +70,8 @@ class SailTextField extends StatelessWidget {
     this.obscureText = false,
     this.expands = false,
     this.monospace = false,
+    this.bottomWidget,
+    this.alignSuffixTop = false,
   });
 
   @override
@@ -77,6 +85,33 @@ class SailTextField extends StatelessWidget {
     final restingBorderColor = terminal ? theme.colors.outlineButtonBorder : theme.colors.border;
     final focusedBorderColor = terminal ? theme.colors.primary : theme.colors.text;
     final hintColor = terminal ? theme.colors.textHint : theme.colors.inactiveNavText;
+    final fillColor = theme.chrome.fieldsSunken ? theme.colors.formField : theme.colors.background;
+    // The box draws the border, the fill and the suffix, so the TextField draws none of them.
+    final boxed = bottomWidget != null || alignSuffixTop;
+
+    final Widget? trailing = loading != null && loading!.enabled
+        ? Tooltip(
+            message: loading!.description,
+            child: Padding(
+              padding: EdgeInsets.all(SailStyleValues.padding08),
+              child: LoadingIndicator(),
+            ),
+          )
+        : suffixWidget != null
+        ? Align(
+            alignment: Alignment.center,
+            widthFactor: 1.0,
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: 1,
+                bottom: 1,
+                left: 1,
+                right: 8,
+              ),
+              child: suffixWidget,
+            ),
+          )
+        : null;
 
     final field = Theme(
       data: Theme.of(context).copyWith(
@@ -112,46 +147,30 @@ class SailTextField extends StatelessWidget {
           isDense: true, // This helps reduce the minimum height
           errorBorder: InputBorder.none,
           disabledBorder: InputBorder.none,
-          enabledBorder: OutlineInputBorder(
-            borderRadius: borderRadius,
-            borderSide: BorderSide(color: restingBorderColor),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: borderRadius,
-            borderSide: BorderSide(color: focusedBorderColor),
-          ),
+          enabledBorder: boxed
+              ? InputBorder.none
+              : OutlineInputBorder(
+                  borderRadius: borderRadius,
+                  borderSide: BorderSide(color: restingBorderColor),
+                ),
+          focusedBorder: boxed
+              ? InputBorder.none
+              : OutlineInputBorder(
+                  borderRadius: borderRadius,
+                  borderSide: BorderSide(color: focusedBorderColor),
+                ),
           suffixStyle: TextStyle(
             color: SailTheme.of(context).colors.inactiveNavText,
             fontSize: textSize,
           ),
           suffixText: suffix,
-          border: OutlineInputBorder(
-            borderRadius: borderRadius,
-            borderSide: BorderSide(color: restingBorderColor),
-          ),
-          suffixIcon: loading != null && loading!.enabled
-              ? Tooltip(
-                  message: loading!.description,
-                  child: Padding(
-                    padding: EdgeInsets.all(SailStyleValues.padding08),
-                    child: LoadingIndicator(),
-                  ),
-                )
-              : suffixWidget != null
-              ? Align(
-                  alignment: Alignment.center,
-                  widthFactor: 1.0,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      top: 1,
-                      bottom: 1,
-                      left: 1,
-                      right: 8,
-                    ),
-                    child: suffixWidget,
-                  ),
-                )
-              : null,
+          border: boxed
+              ? InputBorder.none
+              : OutlineInputBorder(
+                  borderRadius: borderRadius,
+                  borderSide: BorderSide(color: restingBorderColor),
+                ),
+          suffixIcon: boxed ? null : trailing,
           prefixStyle: TextStyle(
             color: SailTheme.of(context).colors.inactiveNavText,
             fontSize: textSize,
@@ -160,8 +179,8 @@ class SailTextField extends StatelessWidget {
           prefix: prefixWidget,
           prefixIcon: prefixIcon,
           prefixIconConstraints: prefixIconConstraints,
-          fillColor: theme.chrome.fieldsSunken ? theme.colors.formField : theme.colors.background,
-          filled: true,
+          fillColor: fillColor,
+          filled: !boxed,
           contentPadding: padding,
           helperText: helperText,
           hintText: hintText,
@@ -177,11 +196,23 @@ class SailTextField extends StatelessWidget {
       ),
     );
 
+    final body = boxed
+        ? _FieldBox(
+            fillColor: fillColor,
+            borderRadius: borderRadius,
+            restingBorderColor: restingBorderColor,
+            focusedBorderColor: focusedBorderColor,
+            field: field,
+            trailing: trailing,
+            bottomWidget: bottomWidget,
+          )
+        : field;
+
     return SailColumn(
       spacing: SailStyleValues.padding08,
       children: [
         if (label != null) SailText.primary13(label!, bold: true),
-        if (expands) Expanded(child: field) else field,
+        if (expands) Expanded(child: body) else body,
       ],
     );
   }
@@ -204,4 +235,74 @@ class SailTextField extends StatelessWidget {
       textFieldType: textFieldType,
     );
   }
+}
+
+/// The border and fill of a [SailTextField] drawn around the text, a suffix beside its first line and an
+/// optional row under it.
+class _FieldBox extends StatefulWidget {
+  final Color fillColor;
+  final BorderRadius borderRadius;
+  final Color restingBorderColor;
+  final Color focusedBorderColor;
+  final Widget field;
+  final Widget? trailing;
+  final Widget? bottomWidget;
+
+  const _FieldBox({
+    required this.fillColor,
+    required this.borderRadius,
+    required this.restingBorderColor,
+    required this.focusedBorderColor,
+    required this.field,
+    required this.trailing,
+    required this.bottomWidget,
+  });
+
+  @override
+  State<_FieldBox> createState() => _FieldBoxState();
+}
+
+class _FieldBoxState extends State<_FieldBox> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) => setState(() => _focused = focused),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: widget.fillColor,
+          borderRadius: widget.borderRadius,
+          border: Border.all(color: _focused ? widget.focusedBorderColor : widget.restingBorderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: widget.field),
+                if (widget.trailing != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: _trailingTop),
+                    child: widget.trailing,
+                  ),
+              ],
+            ),
+            if (widget.bottomWidget != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 12, right: 8, bottom: 8),
+                child: Align(alignment: Alignment.centerLeft, child: widget.bottomWidget),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Centers a 32 px suffix on the first text line under the 11.5 px top content padding.
+  static const _trailingTop = 3.5;
 }
