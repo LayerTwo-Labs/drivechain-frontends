@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -163,6 +164,31 @@ void main() {
     expect(provider.hasWalletOnDisk, isTrue);
 
     provider.applyWatchFrame(unlocked);
+    expect(provider.wallets.map((w) => w.id), ['core-1']);
+  });
+
+  test('a repeated frame does not notify, a lock after it does', () {
+    final provider = WalletReaderProvider(Directory.systemTemp);
+    var notifies = 0;
+    provider.addListener(() => notifies++);
+    wmpb.WatchWalletDataResponse frame(int seq, {bool encrypted = false}) => wmpb.WatchWalletDataResponse(
+      seq: Int64(seq),
+      encrypted: encrypted,
+      state: wmpb.WalletState.WALLET_STATE_UNLOCKED,
+      activeWalletId: 'core-1',
+      wallets: [wmpb.WalletMetadata(id: 'core-1', name: 'Core', walletType: wmpb.WalletType.WALLET_TYPE_BITCOIN_CORE)],
+    );
+
+    provider.applyWatchFrame(frame(1));
+    provider.applyWatchFrame(frame(2));
+    expect(notifies, 1);
+
+    provider.applyWatchFrame(frame(3, encrypted: true));
+    expect(notifies, 2);
+
+    provider.clearState();
+    provider.applyWatchFrame(frame(4, encrypted: true));
+    expect(notifies, 4);
     expect(provider.wallets.map((w) => w.id), ['core-1']);
   });
 
