@@ -13,9 +13,8 @@ import 'package:sidechain_core/providers/sync_provider.dart';
 import 'package:sidechain_core/providers/wallet_reader_provider.dart';
 import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
-/// True when a failed fetch may run again: at most one time per [gap]. The
-/// sync poll fires every 100 ms, and a retry on each would hit the backend
-/// ten times a second.
+/// True when a failed fetch may run again: at most one time per [gap], not
+/// on each sync poll.
 bool retryIsDue({required DateTime? last, required DateTime now, required Duration gap}) {
   return last == null || now.difference(last) >= gap;
 }
@@ -39,6 +38,7 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
   List<SidechainProposal> sidechainProposals = [];
 
   bool _isFetching = false;
+  bool _fetchAgain = false;
 
   String? error;
 
@@ -46,6 +46,7 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
   /// synced gate below stays shut for the whole mainchain sync.
   static const _retryGap = Duration(seconds: 5);
   DateTime? _lastRetryAt;
+  final SyncedTipWatch _tip = SyncedTipWatch();
 
   /// Last wallet ID we fetched for. Used to detect an actual wallet switch
   /// (vs. the stream just delivering a periodic refresh of the same wallet).
@@ -71,7 +72,7 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
     final synced = NodeModeProvider.runsLocalBackends
         ? _syncProvider.isSynced
         : (_syncProvider.enforcerSyncInfo?.isSynced ?? false);
-    if (synced) {
+    if (_tip.moved(_syncProvider, synced: synced)) {
       fetch();
       return;
     }
@@ -110,10 +111,21 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
     if (_isFetching) {
+      _fetchAgain = true;
       return;
     }
     _isFetching = true;
+    try {
+      do {
+        _fetchAgain = false;
+        await _fetch();
+      } while (_fetchAgain);
+    } finally {
+      _isFetching = false;
+    }
+  }
 
+  Future<void> _fetch() async {
     try {
       if (_walletReader.activeWalletId == null) {
         throw Exception('No active wallet');
@@ -155,8 +167,6 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
         error = e.toString();
         notifyListeners();
       }
-    } finally {
-      _isFetching = false;
     }
   }
 
@@ -181,4 +191,14 @@ class SidechainOverview {
   final List<WithdrawalBundle> withdrawals;
 
   SidechainOverview(this.info, this.deposits, this.withdrawals);
+
+  @override
+  bool operator ==(Object other) =>
+      other is SidechainOverview &&
+      other.info == info &&
+      listEquals(other.deposits, deposits) &&
+      listEquals(other.withdrawals, withdrawals);
+
+  @override
+  int get hashCode => Object.hash(info, Object.hashAll(deposits), Object.hashAll(withdrawals));
 }
