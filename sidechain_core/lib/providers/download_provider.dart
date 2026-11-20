@@ -127,12 +127,19 @@ class DownloadProvider extends ChangeNotifier {
           message: s.message,
         );
       }
+      if (mapEquals(next, _downloads) && _lastError == null) {
+        return;
+      }
       _downloads = next;
       _lastError = null;
       notifyListeners();
     } catch (e) {
+      final error = e.toString();
+      if (error == _lastError) {
+        return;
+      }
       _log.e('DownloadProvider: getDownloadStatus failed: $e');
-      _lastError = e.toString();
+      _lastError = error;
       notifyListeners();
     }
   }
