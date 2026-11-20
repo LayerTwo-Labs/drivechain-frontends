@@ -24,6 +24,7 @@ void main() {
 
   testWidgets('on a phone Stop watching and Reset tracker are small outline buttons on one row', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
     await tester.pumpSailPage(const TransactionCensorshipPage());
     await tester.binding.setSurfaceSize(const Size(390, 800));
     await tester.pump();
