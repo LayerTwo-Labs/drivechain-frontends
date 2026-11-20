@@ -2,7 +2,6 @@ import 'package:sidechain_core/providers/network_scoped.dart';
 
 import 'dart:async';
 
-import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
@@ -99,7 +98,6 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
-  BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   String address = '';
@@ -128,7 +126,17 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
 
   bool _isFetching = false;
   bool _refetchQueued = false;
-  Timer? _fetchTimer; // Timer to periodically fetch transactions
+  Timer? _fetchTimer;
+
+  /// A failed read tries again on each tick.
+  static const _retryInterval = Duration(seconds: 5);
+
+  /// Ticks with no fetch before a wallet that read cleanly reads again. A new
+  /// block, a balance change, a wallet switch and each app action fetch at once.
+  static const _fallbackTicks = 12;
+  int _idleTicks = 0;
+  bool _listsRead = false;
+  bool _addressRead = false;
 
   // A recreated transport abandons in-flight requests without ever completing
   // their futures, which would latch _isFetching for the rest of the session.
@@ -138,7 +146,6 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
 
   TransactionProvider() {
     balanceProvider.addListener(fetch);
-    blockchainProvider.addListener(fetch);
     _walletReader.addListener(_onWalletChanged);
     _startFetchingTimer();
   }
@@ -153,8 +160,6 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
     fetch();
   }
 
-  // Fetch transactions every 5 seconds, just in case something happens
-  // automatically behind the scenes
   void _startFetchingTimer() {
     fetch();
 
@@ -162,9 +167,15 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
 
-    _fetchTimer = Timer.periodic(Duration(seconds: 5), (timer) {
-      fetch();
-    });
+    _fetchTimer = Timer.periodic(_retryInterval, (_) => tick());
+  }
+
+  @visibleForTesting
+  void tick() {
+    if (_listsRead && _addressRead && ++_idleTicks < _fallbackTicks) {
+      return;
+    }
+    unawaited(fetch());
   }
 
   Future<void> setAddressType(wmpb.AddressType type) async {
@@ -187,6 +198,8 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
     _pickedAddressType = wmpb.AddressType.ADDRESS_TYPE_UNSPECIFIED;
     initialized = false;
     error = null;
+    _listsRead = false;
+    _addressRead = false;
     notifyListeners();
   }
 
@@ -199,6 +212,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
     _isFetching = true;
+    _idleTicks = 0;
 
     try {
       // Prefer the streamed activeWalletId, but self-heal against a slow/broken
@@ -315,6 +329,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
         return;
       }
 
+      _listsRead = true;
       // If any update returned true, notify listeners
       if (results.any((changed) => changed) || error != null) {
         initialized = true;
@@ -322,6 +337,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
         notifyListeners();
       }
     } catch (e) {
+      _listsRead = false;
       if (e.toString() != error) {
         if (!isExpectedBootError(e)) {
           _log.w('TransactionProvider: fetch failed: $e');
@@ -358,10 +374,12 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
         },
       );
       _loggedAddressError = null;
+      _addressRead = true;
       if (changed) {
         notifyListeners();
       }
     } catch (e) {
+      _addressRead = false;
       final text = e.toString();
       if (!isExpectedBootError(e) && _loggedAddressError != text) {
         _log.w('TransactionProvider: address fetch failed: $e');
@@ -395,7 +413,6 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   @override
   void dispose() {
     balanceProvider.removeListener(fetch);
-    blockchainProvider.removeListener(fetch);
     _walletReader.removeListener(_onWalletChanged);
     _fetchTimer?.cancel();
     super.dispose();
