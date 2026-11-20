@@ -81,7 +81,7 @@ void main() {
     expect(wallet.rates, [null, 9]);
   });
 
-  testWidgets('a rate typed back to the one in flight asks again', (tester) async {
+  testWidgets('each typed rate asks for its own preview', (tester) async {
     final orchestrator = _FakeOrchestrator();
     final wallet = orchestrator.wallet as _FakeWallet;
     GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
@@ -96,9 +96,8 @@ void main() {
     await tester.enterText(field, '9');
     await tester.enterText(field, '8');
     await tester.enterText(field, '9');
-    wallet.replies[1].complete(_preview());
     await tester.pump();
 
-    expect(wallet.rates, [null, 9, 9]);
+    expect(wallet.rates, [null, 9, 8, 9]);
   });
 }

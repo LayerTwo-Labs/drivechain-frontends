@@ -27,8 +27,6 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   final TextEditingController _rateController = TextEditingController();
-  bool _rateRunning = false;
-  int _rateEdits = 0;
   DateTime _rateChangedAt = DateTime.now();
 
   wmpb.PreviewBumpFeeResponse? _preview;
@@ -120,7 +118,6 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
   }
 
   void _onRateChanged(String _) {
-    _rateEdits++;
     _rateChangedAt = DateTime.now();
     // The plan on screen belongs to the rate before this keystroke, and so does
     // any answer still in flight. Both go stale here, or a fast press
@@ -131,15 +128,7 @@ class _BumpFeeDialogState extends State<BumpFeeDialog> {
       _stale = false;
       _error = null;
     });
-    if (_rateRunning) {
-      return;
-    }
-    _rateRunning = true;
-    unawaited(
-      runNewest(() => mounted ? _rateEdits : null, (_) => _loadPreview(typed: true)).whenComplete(
-        () => _rateRunning = false,
-      ),
-    );
+    unawaited(_loadPreview(typed: true));
   }
 
   Future<void> _selectOutput(int vout) async {
