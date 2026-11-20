@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/core/cover_image.dart';
 
 /// What the user asked for in the edit dialog.
 class EditWalletResult {
@@ -200,7 +201,16 @@ class _EditWalletDialogState extends State<_EditWalletDialog> {
     final picture = _picture;
     if (picture != null) {
       return ClipOval(
-        child: Image.memory(picture, width: 48, height: 48, fit: BoxFit.cover),
+        child: Image(
+          image: CoverResizeImage(
+            MemoryImage(picture),
+            width: (48 * MediaQuery.devicePixelRatioOf(context)).ceil(),
+            height: (48 * MediaQuery.devicePixelRatioOf(context)).ceil(),
+          ),
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+        ),
       );
     }
     final gradient = _removePicture ? widget.gradient.withoutPicture() : widget.gradient;
