@@ -101,6 +101,8 @@ class ReceiveTab extends StatelessWidget {
                                           controller: TextEditingController(text: model.address),
                                           hintText: 'A Drivechain address',
                                           readOnly: true,
+                                          minLines: SailStyleValues.phoneLayout(context) ? 1 : null,
+                                          maxLines: SailStyleValues.phoneLayout(context) ? null : 1,
                                           suffixWidget: CopyButton(text: model.address),
                                         ),
                                         if (model.addressDerivationPath.isNotEmpty)

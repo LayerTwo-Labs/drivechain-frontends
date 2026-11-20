@@ -257,6 +257,18 @@ void main() {
     expect(tester.getTopLeft(_qr()).dx, greaterThanOrEqualTo(tester.getTopRight(_addressField()).dx));
   });
 
+  testWidgets('on a 390 px phone the address wraps beside the QR code', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+    await _pumpReceiveTab(tester);
+    await tester.usePhoneSize();
+    await tester.pump();
+
+    expect(_addressEditable().maxLines, isNull);
+    expect(tester.getTopLeft(_qr()).dx, greaterThanOrEqualTo(tester.getTopRight(_addressField()).dx));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the address type dropdown sits above the address field', (tester) async {
     await _pumpReceiveTab(
       tester,
