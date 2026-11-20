@@ -138,7 +138,11 @@ void main() {
     expect(tester.widget<SailSlider>(slider).trackColor, isNotNull);
     final value = tester.getRect(find.text(GetIt.I<FormatterProvider>().formatSats(100000)));
     expect(value.top, greaterThan(tester.getRect(slider).bottom), reason: 'the limit shows under the slider');
-    expect(find.widgetWithText(SailButton, 'Hide frozen (0)'), findsOneWidget);
+    final hide = tester.getRect(find.widgetWithText(SailButton, 'Hide frozen (0)'));
+    final clear = tester.getRect(find.widgetWithText(SailButton, 'Clear'));
+    final coinsCard = tester.getRect(find.ancestor(of: find.text('Hide frozen (0)'), matching: find.byType(SailCard)));
+    expect(hide.left, closeTo(coinsCard.left + 17, 1));
+    expect(clear.right, closeTo(coinsCard.right - 17, 1));
     expect(find.byType(SailCheckbox), findsNWidgets(3), reason: 'one per coin, none in the card head');
     final runs = tester.getRect(find.text('Consolidation runs'));
     expect(runs.top, greaterThan(coins.bottom));

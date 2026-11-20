@@ -306,6 +306,7 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
           spacing: SailStyleValues.padding08,
           children: [
             SailRow(
+              mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 SailButton(
