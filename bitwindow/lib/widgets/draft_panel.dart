@@ -765,6 +765,8 @@ class _DraftPanelState extends State<DraftPanel> {
   }
 
   static const _phoneKeyRowHeight = 40.0;
+  static const _phoneKeyFlex = 9;
+  static const _phoneStatusFlex = 5;
 
   Widget _phoneKeysHeader(BuildContext context) {
     final theme = context.sailTheme;
@@ -772,8 +774,14 @@ class _DraftPanelState extends State<DraftPanel> {
       padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
       child: Row(
         children: [
-          Expanded(child: SailText.secondary12('KEY', color: theme.colors.textTertiary)),
-          Expanded(child: SailText.secondary12('STATUS', color: theme.colors.textTertiary)),
+          Expanded(
+            flex: _phoneKeyFlex,
+            child: SailText.secondary12('KEY', color: theme.colors.textTertiary),
+          ),
+          Expanded(
+            flex: _phoneStatusFlex,
+            child: SailText.secondary12('STATUS', color: theme.colors.textTertiary),
+          ),
         ],
       ),
     );
@@ -793,8 +801,9 @@ class _DraftPanelState extends State<DraftPanel> {
       ),
       child: Row(
         children: [
-          Expanded(child: SailText.primary13('Key ${i + 1}', bold: true)),
+          Expanded(flex: _phoneKeyFlex, child: SailText.primary13('Key ${i + 1}', bold: true)),
           Expanded(
+            flex: _phoneStatusFlex,
             child: Row(
               children: [
                 Expanded(

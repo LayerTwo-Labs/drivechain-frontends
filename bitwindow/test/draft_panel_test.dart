@@ -470,9 +470,11 @@ void main() {
       final draftId = await setUpPanelDeps();
 
       await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.usePhoneSize();
       await tester.pumpAndSettle();
 
       expect(find.text('ACTION'), findsNothing);
+      expect(tester.getTopLeft(find.text('STATUS')).dx, greaterThan(tester.getCenter(find.byType(DraftPanel)).dx));
       expect(find.text('KEY'), findsOneWidget);
       expect(find.text('STATUS'), findsOneWidget);
       final first = tester.getCenter(find.text('Key 1')).dy;
@@ -485,6 +487,7 @@ void main() {
       final draftId = await setUpPanelDeps();
 
       await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.usePhoneSize();
       await tester.pumpAndSettle();
 
       expect(find.byType(FlowChip), findsNothing);
@@ -499,6 +502,7 @@ void main() {
       final draftId = await setUpPanelDeps();
 
       await tester.pumpSailPage(DraftPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.usePhoneSize();
       await tester.pumpAndSettle();
 
       final keys = tester.getRect(find.text('Key 3'));
