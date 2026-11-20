@@ -45,6 +45,7 @@ void main() {
 
   testWidgets('on a phone the buttons sit below the title and each address is a two-line row', (tester) async {
     SailStyleValues.phoneLayoutOverride = true;
+    await loadBundledFonts();
     await tester.pumpSailPage(const AddressBookTable());
     await tester.binding.setSurfaceSize(const Size(390, 800));
     await tester.pumpAndSettle();
@@ -63,6 +64,8 @@ void main() {
     expect(label.top, greaterThan(add.bottom));
     expect(address.top, greaterThanOrEqualTo(label.bottom));
     expect(address.left, closeTo(label.left, 1));
+    expect(address.height, lessThan(20));
+    expect(tester.widget<SailButton>(find.widgetWithText(SailButton, 'Add Address')).small, isFalse);
 
     final edit = find.byWidgetPredicate((w) => w is SailButton && w.icon == SailSVGAsset.iconPen).first;
     final delete = find.byWidgetPredicate((w) => w is SailButton && w.icon == SailSVGAsset.iconDelete).first;

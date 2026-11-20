@@ -306,19 +306,16 @@ class _AddressBookContentState extends State<AddressBookContent> {
         if (direction == Direction.DIRECTION_SEND)
           SailButton(
             label: 'Add Address',
-            small: phone,
             onPressed: () async => unawaited(_showCreateDialog(context)),
           ),
         SailButton(
           label: 'Import',
           variant: ButtonVariant.outline,
-          small: phone,
           onPressed: () async => widget.viewModel.importLabels(context),
         ),
         SailButton(
           label: 'Export',
           variant: ButtonVariant.outline,
-          small: phone,
           onPressed: () async => widget.viewModel.exportLabels(context),
         ),
       ],
@@ -527,7 +524,7 @@ class _PhoneAddressList extends StatelessWidget {
                       italic: entry.label == '',
                     ),
                     const SizedBox(height: 2),
-                    SailText.secondary12(entry.address, monospace: true),
+                    SailText.secondary12(entry.address, maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
