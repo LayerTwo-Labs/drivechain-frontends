@@ -78,6 +78,16 @@ func main() {
 				Usage:   "optional Thunder Esplora URL for wallet history; defaults to the local daemon",
 				EnvVars: []string{"ORCHESTRATOR_THUNDER_ESPLORA_URL"},
 			},
+			&cli.StringFlag{
+				Name:    "regtest-esplora-url",
+				Usage:   "Esplora URL of a self-hosted regtest chain, for light mode on regtest",
+				EnvVars: []string{"ORCHESTRATOR_REGTEST_ESPLORA_URL"},
+			},
+			&cli.StringFlag{
+				Name:    "regtest-enforcer-url",
+				Usage:   "gRPC URL of a self-hosted regtest enforcer, for light mode on regtest",
+				EnvVars: []string{"ORCHESTRATOR_REGTEST_ENFORCER_URL"},
+			},
 			&cli.StringSliceFlag{
 				Name:    "binary",
 				Usage:   "sidechain binary to start with deps on boot (can be repeated, e.g. --binary=thunder --binary=bitnames)",
@@ -150,11 +160,15 @@ func run(cctx *cli.Context) error {
 		AppHome:           cctx.String("app-home"),
 		LocalAuth:         cctx.Bool("local-auth"),
 		ThunderEsploraURL: cctx.String("thunder-esplora-url"),
-		Binaries:          cctx.StringSlice("binary"),
-		ForceBackend:      cctx.Bool("force-backend"),
-		OwnerPID:          cctx.Int("owner-pid"),
-		PprofAddr:         cctx.String("pprof-addr"),
-		Log:               log,
-		Exit:              os.Exit,
+		Regtest: config.RegtestEndpoints{
+			EsploraURL:  cctx.String("regtest-esplora-url"),
+			EnforcerURL: cctx.String("regtest-enforcer-url"),
+		},
+		Binaries:     cctx.StringSlice("binary"),
+		ForceBackend: cctx.Bool("force-backend"),
+		OwnerPID:     cctx.Int("owner-pid"),
+		PprofAddr:    cctx.String("pprof-addr"),
+		Log:          log,
+		Exit:         os.Exit,
 	})
 }

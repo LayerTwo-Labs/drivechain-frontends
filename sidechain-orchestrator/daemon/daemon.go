@@ -78,6 +78,8 @@ type Config struct {
 	AppHome           string
 	LocalAuth         bool
 	ThunderEsploraURL string
+	// Regtest names the self-hosted servers that regtest reads in light mode.
+	Regtest config.RegtestEndpoints
 	// Binaries are the sidechains to start with their dependencies on boot.
 	Binaries     []string
 	ForceBackend bool
@@ -107,6 +109,10 @@ func Run(ctx context.Context, cfg Config) error {
 	listenAddr := cfg.ListenAddr
 	bitwindowDir := cfg.BitwindowDir
 	localAuth := cfg.LocalAuth
+
+	if err := config.SetRegtestEndpoints(cfg.Regtest); err != nil {
+		return err
+	}
 
 	if appHome := cfg.AppHome; appHome != "" {
 		config.SetHomeDir(appHome)

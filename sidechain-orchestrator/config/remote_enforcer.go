@@ -6,6 +6,9 @@ import (
 
 // RemoteEnforcerURLForNetwork returns the published validator URL, or an empty string.
 func RemoteEnforcerURLForNetwork(network Network) string {
+	if network == NetworkRegtest {
+		return CurrentRegtestEndpoints().EnforcerURL
+	}
 	entry := PublishedEndpoints(network)
 	if url := entry.Services.Enforcer.URL(); url != "" {
 		return url
