@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:connectrpc/connect.dart' as rpc;
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -55,6 +57,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   /// Explorer host the catalog publishes for the live eCash network.
   String ecashExplorerHost = '';
   BitcoinConfig? currentConfig;
+  String _configContent = '';
   late final RootStackRouter router;
 
   /// The datadir for the currently active network — same as
@@ -110,6 +113,13 @@ class BitcoinConfProvider extends ChangeNotifier {
     return instance;
   }
 
+  @visibleForTesting
+  static Future<BitcoinConfProvider> withTransport(RootStackRouter router, rpc.Transport transport) async {
+    final instance = BitcoinConfProvider._create(router).._client = BitcoinConfServiceClient(transport);
+    await instance.loadConfig(isFirst: true);
+    return instance;
+  }
+
   void _initClient() {
     final transport = connect.Transport(
       baseUrl: OrchestratorEndpoint.url,
@@ -138,24 +148,45 @@ class BitcoinConfProvider extends ChangeNotifier {
   Future<void> loadConfig({bool isFirst = false, bool userInitiated = false}) async {
     try {
       final resp = await _client.getBitcoinConfig(GetBitcoinConfigRequest());
+      final newNetworks = (await _client.listNetworks(ListNetworksRequest())).networks;
       final oldNetwork = network;
       final oldECashNetworkId = ecashNetworkId;
+      final newNetwork = _parseNetwork(resp.network);
+      final newConfigPath = resp.configPath.isEmpty ? null : resp.configPath;
+      final newDefaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
+      final newECashDatadir = resp.ecashDatadir.isEmpty ? null : resp.ecashDatadir;
+      final newConfigContent = resp.configContent.isEmpty ? _configContent : resp.configContent;
+
+      final changed =
+          isFirst ||
+          hasPrivateBitcoinConf != resp.hasPrivateConf ||
+          configPath != newConfigPath ||
+          defaultDatadir != newDefaultDatadir ||
+          ecashDatadir != newECashDatadir ||
+          ecashNetworkId != resp.ecashNetworkId ||
+          ecashEsploraUrl != resp.ecashEsploraUrl ||
+          ecashExplorerHost != resp.ecashExplorerHost ||
+          !listEquals(networks, newNetworks) ||
+          rpcPort != resp.rpcPort ||
+          mustSelectDatadir != resp.mustSelectDatadir ||
+          network != newNetwork ||
+          _configContent != newConfigContent;
 
       hasPrivateBitcoinConf = resp.hasPrivateConf;
-      configPath = resp.configPath.isEmpty ? null : resp.configPath;
-      defaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
-      ecashDatadir = resp.ecashDatadir.isEmpty ? null : resp.ecashDatadir;
+      configPath = newConfigPath;
+      defaultDatadir = newDefaultDatadir;
+      ecashDatadir = newECashDatadir;
       ecashNetworkId = resp.ecashNetworkId;
       ecashEsploraUrl = resp.ecashEsploraUrl;
       ecashExplorerHost = resp.ecashExplorerHost;
-      networks = (await _client.listNetworks(ListNetworksRequest())).networks;
+      networks = newNetworks;
       rpcPort = resp.rpcPort;
       mustSelectDatadir = resp.mustSelectDatadir;
+      network = newNetwork;
 
-      network = _parseNetwork(resp.network);
-
-      if (resp.configContent.isNotEmpty) {
-        currentConfig = BitcoinConfig.parse(resp.configContent);
+      if (_configContent != newConfigContent) {
+        _configContent = newConfigContent;
+        currentConfig = BitcoinConfig.parse(newConfigContent);
       }
 
       // Only a real user switch refreshes per-network state; the 5s poll must
@@ -174,7 +205,9 @@ class BitcoinConfProvider extends ChangeNotifier {
         _onNetworkChanged();
       }
 
-      notifyListeners();
+      if (changed) {
+        notifyListeners();
+      }
     } catch (e) {
       if (!isExpectedBootError(e)) {
         log.e('BitcoinConfProvider: failed to load config: $e');
