@@ -94,8 +94,23 @@ func TestOrchestratorConfigMatchesTheChildProcessFlags(t *testing.T) {
 	require.True(t, cfg.LocalAuth)
 	require.Nil(t, cfg.Exit, "an exit would end the app")
 
+	require.Equal(t, orchconfig.RegtestEndpoints{}, cfg.Regtest)
+
 	env["ORCHESTRATOR_LOCAL_AUTH"] = "0"
 	require.False(t, orchestratorConfig(p, &bytes.Buffer{}, func(k string) string { return env[k] }).LocalAuth)
+}
+
+func TestOrchestratorConfigReadsTheRegtestServers(t *testing.T) {
+	env := map[string]string{
+		"ORCHESTRATOR_REGTEST_ESPLORA_URL":  "http://10.0.2.2:19460",
+		"ORCHESTRATOR_REGTEST_ENFORCER_URL": "http://10.0.2.2:19450",
+	}
+	cfg := orchestratorConfig(daemon.OrchestratorParams{}, &bytes.Buffer{}, func(k string) string { return env[k] })
+
+	require.Equal(t, orchconfig.RegtestEndpoints{
+		EsploraURL:  "http://10.0.2.2:19460",
+		EnforcerURL: "http://10.0.2.2:19450",
+	}, cfg.Regtest)
 }
 
 func freePortOffset(t *testing.T) int {

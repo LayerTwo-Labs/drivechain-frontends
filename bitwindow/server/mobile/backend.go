@@ -156,8 +156,12 @@ func orchestratorConfig(p daemon.OrchestratorParams, out io.Writer, getenv func(
 		ListenAddr:   p.ListenAddr,
 		BitwindowDir: p.BitwindowDir,
 		LocalAuth:    localAuth(getenv("ORCHESTRATOR_LOCAL_AUTH")),
-		OwnerPID:     p.OwnerPID,
-		Log:          zerolog.New(out).Level(zerolog.InfoLevel).With().Timestamp().Logger(),
+		Regtest: orchconfig.RegtestEndpoints{
+			EsploraURL:  getenv("ORCHESTRATOR_REGTEST_ESPLORA_URL"),
+			EnforcerURL: getenv("ORCHESTRATOR_REGTEST_ENFORCER_URL"),
+		},
+		OwnerPID: p.OwnerPID,
+		Log:      zerolog.New(out).Level(zerolog.InfoLevel).With().Timestamp().Logger(),
 	}
 }
 
