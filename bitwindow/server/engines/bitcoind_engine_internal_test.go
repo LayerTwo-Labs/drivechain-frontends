@@ -26,7 +26,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
@@ -92,16 +91,7 @@ func TestOpReturnHandling(t *testing.T) {
 		},
 	}
 
-	core.EXPECT().
-		GetRawTransaction(gomock.Any(), tests.Connect(&corepb.GetRawTransactionRequest{
-			Txid:      tx.TxHash().String(),
-			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-		})).
-		Return(connect.NewResponse(&corepb.GetRawTransactionResponse{
-			Fee: 0.001,
-		}), nil)
-
-	require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil))
+	require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil, fixedFee(100_000)))
 	require.NoError(t, parser.indexCoinNewsForBlock(ctx, 100, &wire.MsgBlock{
 		Header:       wire.BlockHeader{Timestamp: time.Now()},
 		Transactions: []*wire.MsgTx{tx},
@@ -343,7 +333,7 @@ func TestOpReturnForTXID_TimestampErrorFailsTheBlock(t *testing.T) {
 	core.EXPECT().GetRawTransaction(gomock.Any(), gomock.Any()).Return(nil, errors.New("connection refused"))
 
 	height := uint32(101)
-	err := parser.opReturnForTXID(ctx, tx, &height, nil)
+	err := parser.opReturnForTXID(ctx, tx, &height, nil, fixedFee(0))
 	require.ErrorContains(t, err, "handle timestamp")
 	require.ErrorContains(t, err, "connection refused")
 
@@ -432,15 +422,7 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 				}},
 			}
 
-			core.EXPECT().
-				GetRawTransaction(gomock.Any(), tests.Connect(&corepb.GetRawTransactionRequest{
-					Txid:      tx.TxHash().String(),
-					Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-				})).
-				Return(connect.NewResponse(&corepb.GetRawTransactionResponse{Fee: 0.001}), nil).
-				Times(1)
-
-			require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil))
+			require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil, fixedFee(100_000)))
 			require.NoError(t, parser.indexCoinNewsForBlock(ctx, uint32(200+i), &wire.MsgBlock{
 				Header:       wire.BlockHeader{Timestamp: time.Now()},
 				Transactions: []*wire.MsgTx{tx},
@@ -499,14 +481,8 @@ func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 			PkScript: pkScript(t, story),
 		}},
 	}
-	core.EXPECT().
-		GetRawTransaction(gomock.Any(), tests.Connect(&corepb.GetRawTransactionRequest{
-			Txid:      tx.TxHash().String(),
-			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-		})).
-		Return(connect.NewResponse(&corepb.GetRawTransactionResponse{Fee: 0.001}), nil)
 
-	require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil))
+	require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil, fixedFee(100_000)))
 	require.NoError(t, parser.indexCoinNewsForBlock(ctx, 300, &wire.MsgBlock{
 		Header:       wire.BlockHeader{Timestamp: time.Now()},
 		Transactions: []*wire.MsgTx{tx},

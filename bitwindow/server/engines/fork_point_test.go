@@ -247,15 +247,18 @@ func tickParser(t *testing.T, chain servedChain, tip uint32) *Parser {
 		}).
 		AnyTimes()
 	core.EXPECT().
-		GetRawTransaction(gomock.Any(), gomock.Any()).
-		Return(connect.NewResponse(&corepb.GetRawTransactionResponse{Fee: 0.0001}), nil).
-		AnyTimes()
-	core.EXPECT().
 		GetBlock(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
 			block, ok := byHash[req.Msg.Hash]
 			if !ok {
 				return nil, errors.New("Block not found")
+			}
+			if req.Msg.Verbosity == corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO {
+				var txs []*corepb.GetBlockResponse_Transaction
+				for _, tx := range block.Transactions {
+					txs = append(txs, &corepb.GetBlockResponse_Transaction{Txid: tx.TxID(), Fee: 0.0001})
+				}
+				return connect.NewResponse(&corepb.GetBlockResponse{Transactions: txs}), nil
 			}
 			var buf bytes.Buffer
 			if err := block.Serialize(&buf); err != nil {
