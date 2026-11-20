@@ -21,39 +21,59 @@ class PoolsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<PoolsViewModel>.reactive(
       viewModelBuilder: () => PoolsViewModel(),
-      builder: (context, model, child) {
-        final provider = model.provider;
-        return SailCard(
-          title: 'Pools on the network',
-          subtitle: model.subtitle,
-          error: model.actionError ?? provider.error,
-          bottomPadding: false,
-          widgetHeaderEnd: model.isLight
-              ? null
-              : SailToggleGroup<MiningPoolWindow>(
-                  items: [
-                    for (final window in _windows)
-                      SailToggleGroupItem(value: window, label: miningPoolWindowLabel(window)),
-                  ],
-                  values: [provider.window],
-                  singleChoice: true,
-                  onChanged: (values) => provider.setWindow(values.first),
-                ),
-          child: model.isLight
-              ? SailText.secondary13('Pools needs a full node.')
-              : SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  children: [
-                    if (!provider.registryAvailable)
-                      SailText.secondary13(
-                        'This network publishes no pool registry, so every block shows as Unknown.',
-                      ),
-                    if (provider.blockCount > 0) _ShareChart(provider: provider),
-                    Expanded(child: _PoolsTable(model: model)),
-                  ],
-                ),
-        );
-      },
+      builder: (context, model, child) => _PoolsCard(model: model),
+    );
+  }
+}
+
+class _PoolsCard extends StatefulWidget {
+  final PoolsViewModel model;
+
+  const _PoolsCard({required this.model});
+
+  @override
+  State<_PoolsCard> createState() => _PoolsCardState();
+}
+
+class _PoolsCardState extends State<_PoolsCard> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.model.listen(TickerMode.valuesOf(context).enabled);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final model = widget.model;
+    final provider = model.provider;
+    return SailCard(
+      title: 'Pools on the network',
+      subtitle: model.subtitle,
+      error: model.actionError ?? provider.error,
+      bottomPadding: false,
+      widgetHeaderEnd: model.isLight
+          ? null
+          : SailToggleGroup<MiningPoolWindow>(
+              items: [
+                for (final window in _windows) SailToggleGroupItem(value: window, label: miningPoolWindowLabel(window)),
+              ],
+              values: [provider.window],
+              singleChoice: true,
+              onChanged: (values) => provider.setWindow(values.first),
+            ),
+      child: model.isLight
+          ? SailText.secondary13('Pools needs a full node.')
+          : SailColumn(
+              spacing: SailStyleValues.padding16,
+              children: [
+                if (!provider.registryAvailable)
+                  SailText.secondary13(
+                    'This network publishes no pool registry, so every block shows as Unknown.',
+                  ),
+                if (provider.blockCount > 0) _ShareChart(provider: provider),
+                Expanded(child: _PoolsTable(model: model)),
+              ],
+            ),
     );
   }
 }
@@ -221,9 +241,21 @@ class PoolsViewModel extends BaseViewModel {
 
   String? actionError;
 
-  PoolsViewModel() {
-    provider.addListener(notifyListeners);
-    stratum.addListener(notifyListeners);
+  bool _listening = false;
+
+  /// A hidden tab drops its listeners, so the providers stop their full polls.
+  void listen(bool shown) {
+    if (shown == _listening) {
+      return;
+    }
+    _listening = shown;
+    if (shown) {
+      provider.addListener(notifyListeners);
+      stratum.addListener(notifyListeners);
+      return;
+    }
+    provider.removeListener(notifyListeners);
+    stratum.removeListener(notifyListeners);
   }
 
   bool get isLight => GetIt.I.isRegistered<NodeModeProvider>() && GetIt.I<NodeModeProvider>().isLight;
@@ -268,8 +300,7 @@ class PoolsViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    provider.removeListener(notifyListeners);
-    stratum.removeListener(notifyListeners);
+    listen(false);
     super.dispose();
   }
 }

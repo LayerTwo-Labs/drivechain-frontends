@@ -3,6 +3,7 @@ import 'package:bitwindow/pages/mining/mining_page.dart';
 import 'package:bitwindow/pages/mining/mining_tab.dart';
 import 'package:bitwindow/providers/mining_pools_provider.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -28,8 +29,13 @@ class _FakeStratum implements OrchestratorStratumRPC {
   @override
   Future<GetStratumStatusResponse> status() async => next;
 
+  int poolReads = 0;
+
   @override
-  Future<List<CatalogPool>> listPools() async => pools;
+  Future<List<CatalogPool>> listPools() async {
+    poolReads++;
+    return pools;
+  }
 
   @override
   Future<GetHashrateHistoryResponse> hashrateHistory(HashrateRange range) async => history;
@@ -80,6 +86,7 @@ Future<_FakeStratum> _pump(
   WidgetTester tester,
   void Function(_FakeStratum) setUp, {
   List<MiningPoolShare> shares = const [],
+  Widget child = const MiningTab(),
 }) async {
   await GetIt.I.reset();
   final stratum = _FakeStratum();
@@ -89,7 +96,7 @@ Future<_FakeStratum> _pump(
   final provider = StratumProvider();
   GetIt.I.registerSingleton<StratumProvider>(provider);
   await provider.refresh();
-  await tester.pumpSailPage(const MiningTab());
+  await tester.pumpSailPage(child);
   await tester.pump();
   return stratum;
 }
@@ -100,6 +107,40 @@ void main() {
   tearDown(() async {
     MiningPage.requestedPoolUrl.value = null;
     await GetIt.I.reset();
+  });
+
+  testWidgets('a hidden MiningTab drops its provider listeners', (tester) async {
+    final shown = ValueNotifier(true);
+    final rpc = await _pump(
+      tester,
+      (_) {},
+      child: ValueListenableBuilder<bool>(
+        valueListenable: shown,
+        builder: (context, on, _) => TickerMode(enabled: on, child: const MiningTab()),
+      ),
+    );
+    final stratum = GetIt.I.get<StratumProvider>();
+    final shares = GetIt.I.get<MiningPoolsProvider>() as FakeMiningPools;
+
+    Future<int> fullReads() async {
+      rpc.poolReads = 0;
+      stratum.tick();
+      await tester.pump();
+      return rpc.poolReads;
+    }
+
+    expect(await fullReads(), 1);
+    expect(shares.listened, isTrue);
+
+    shown.value = false;
+    await tester.pump();
+    expect(await fullReads(), 0);
+    expect(shares.listened, isFalse);
+
+    shown.value = true;
+    await tester.pump();
+    expect(await fullReads(), 1);
+    expect(shares.listened, isTrue);
   });
 
   testWidgets('a stopped solo server', (tester) async {
