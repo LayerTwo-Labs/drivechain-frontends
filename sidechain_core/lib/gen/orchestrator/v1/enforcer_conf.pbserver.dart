@@ -23,6 +23,8 @@ export 'enforcer_conf.pb.dart';
 abstract class EnforcerConfServiceBase extends $pb.GeneratedService {
   $async.Future<$0.GetEnforcerConfigResponse> getEnforcerConfig(
       $pb.ServerContext ctx, $0.GetEnforcerConfigRequest request);
+  $async.Future<$0.WatchEnforcerConfigResponse> watchEnforcerConfig(
+      $pb.ServerContext ctx, $0.WatchEnforcerConfigRequest request);
   $async.Future<$0.WriteEnforcerConfigResponse> writeEnforcerConfig(
       $pb.ServerContext ctx, $0.WriteEnforcerConfigRequest request);
   $async.Future<$0.SyncNodeRpcFromBitcoinConfResponse> syncNodeRpcFromBitcoinConf(
@@ -32,6 +34,8 @@ abstract class EnforcerConfServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetEnforcerConfig':
         return $0.GetEnforcerConfigRequest();
+      case 'WatchEnforcerConfig':
+        return $0.WatchEnforcerConfigRequest();
       case 'WriteEnforcerConfig':
         return $0.WriteEnforcerConfigRequest();
       case 'SyncNodeRpcFromBitcoinConf':
@@ -46,6 +50,8 @@ abstract class EnforcerConfServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetEnforcerConfig':
         return getEnforcerConfig(ctx, request as $0.GetEnforcerConfigRequest);
+      case 'WatchEnforcerConfig':
+        return watchEnforcerConfig(ctx, request as $0.WatchEnforcerConfigRequest);
       case 'WriteEnforcerConfig':
         return writeEnforcerConfig(ctx, request as $0.WriteEnforcerConfigRequest);
       case 'SyncNodeRpcFromBitcoinConf':

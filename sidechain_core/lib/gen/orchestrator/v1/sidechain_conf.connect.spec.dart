@@ -18,6 +18,15 @@ abstract final class SidechainConfService {
     orchestratorv1sidechain_conf.GetSidechainConfigResponse.new,
   );
 
+  /// Stream GetSidechainConfig. The first frame holds the config, later frames
+  /// only a changed config or a heartbeat.
+  static const watchSidechainConfig = connect.Spec(
+    '/$name/WatchSidechainConfig',
+    connect.StreamType.server,
+    orchestratorv1sidechain_conf.GetSidechainConfigRequest.new,
+    orchestratorv1sidechain_conf.WatchSidechainConfigResponse.new,
+  );
+
   /// Write sidechain configuration content.
   static const writeSidechainConfig = connect.Spec(
     '/$name/WriteSidechainConfig',

@@ -167,6 +167,77 @@ class GetSidechainConfigResponse extends $pb.GeneratedMessage {
   void clearNetwork() => $_clearField(5);
 }
 
+class WatchSidechainConfigResponse extends $pb.GeneratedMessage {
+  factory WatchSidechainConfigResponse({
+    GetSidechainConfigResponse? config,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchSidechainConfigResponse._();
+    if (config != null) result.config = config;
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchSidechainConfigResponse._();
+
+  factory WatchSidechainConfigResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchSidechainConfigResponse()..mergeFromBuffer(data, registry);
+  factory WatchSidechainConfigResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchSidechainConfigResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchSidechainConfigResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchSidechainConfigResponse.$_createMessage)
+    ..aOM<GetSidechainConfigResponse>(1, _omitFieldNames ? '' : 'config',
+        subBuilder: GetSidechainConfigResponse.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchSidechainConfigResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchSidechainConfigResponse copyWith(void Function(WatchSidechainConfigResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchSidechainConfigResponse)) as WatchSidechainConfigResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchSidechainConfigResponse() / WatchSidechainConfigResponse.new instead')
+  static WatchSidechainConfigResponse create() => WatchSidechainConfigResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchSidechainConfigResponse._();
+  @$core.override
+  WatchSidechainConfigResponse createEmptyInstance() => WatchSidechainConfigResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchSidechainConfigResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchSidechainConfigResponse>(WatchSidechainConfigResponse.$_createMessage);
+  static WatchSidechainConfigResponse? _defaultInstance;
+
+  /// Unset in a heartbeat frame.
+  @$pb.TagNumber(1)
+  GetSidechainConfigResponse get config => $_getN(0);
+  @$pb.TagNumber(1)
+  set config(GetSidechainConfigResponse value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConfig() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfig() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GetSidechainConfigResponse ensureConfig() => $_ensure(0);
+
+  /// True for an idle keepalive frame that carries no config.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 class WriteSidechainConfigRequest extends $pb.GeneratedMessage {
   factory WriteSidechainConfigRequest({
     $core.String? sidechainName,
@@ -383,6 +454,13 @@ class SidechainConfServiceApi {
           $pb.ClientContext? ctx, GetSidechainConfigRequest request) =>
       _client.invoke<GetSidechainConfigResponse>(
           ctx, 'SidechainConfService', 'GetSidechainConfig', request, GetSidechainConfigResponse());
+
+  /// Stream GetSidechainConfig. The first frame holds the config, later frames
+  /// only a changed config or a heartbeat.
+  $async.Future<WatchSidechainConfigResponse> watchSidechainConfig(
+          $pb.ClientContext? ctx, GetSidechainConfigRequest request) =>
+      _client.invoke<WatchSidechainConfigResponse>(
+          ctx, 'SidechainConfService', 'WatchSidechainConfig', request, WatchSidechainConfigResponse());
 
   /// Write sidechain configuration content.
   $async.Future<WriteSidechainConfigResponse> writeSidechainConfig(

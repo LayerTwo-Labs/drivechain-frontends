@@ -26,6 +26,25 @@ extension type EnforcerConfServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Stream GetEnforcerConfig. The first frame holds the config, later frames
+  /// only a changed config or a heartbeat.
+  Stream<orchestratorv1enforcer_conf.WatchEnforcerConfigResponse> watchEnforcerConfig(
+    orchestratorv1enforcer_conf.WatchEnforcerConfigRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.EnforcerConfService.watchEnforcerConfig,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Write Enforcer configuration content.
   Future<orchestratorv1enforcer_conf.WriteEnforcerConfigResponse> writeEnforcerConfig(
     orchestratorv1enforcer_conf.WriteEnforcerConfigRequest input, {

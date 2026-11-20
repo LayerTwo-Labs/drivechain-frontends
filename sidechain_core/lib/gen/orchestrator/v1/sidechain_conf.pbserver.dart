@@ -23,6 +23,8 @@ export 'sidechain_conf.pb.dart';
 abstract class SidechainConfServiceBase extends $pb.GeneratedService {
   $async.Future<$0.GetSidechainConfigResponse> getSidechainConfig(
       $pb.ServerContext ctx, $0.GetSidechainConfigRequest request);
+  $async.Future<$0.WatchSidechainConfigResponse> watchSidechainConfig(
+      $pb.ServerContext ctx, $0.GetSidechainConfigRequest request);
   $async.Future<$0.WriteSidechainConfigResponse> writeSidechainConfig(
       $pb.ServerContext ctx, $0.WriteSidechainConfigRequest request);
   $async.Future<$0.SyncSidechainNetworkFromBitcoinConfResponse> syncSidechainNetworkFromBitcoinConf(
@@ -31,6 +33,8 @@ abstract class SidechainConfServiceBase extends $pb.GeneratedService {
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'GetSidechainConfig':
+        return $0.GetSidechainConfigRequest();
+      case 'WatchSidechainConfig':
         return $0.GetSidechainConfigRequest();
       case 'WriteSidechainConfig':
         return $0.WriteSidechainConfigRequest();
@@ -46,6 +50,8 @@ abstract class SidechainConfServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetSidechainConfig':
         return getSidechainConfig(ctx, request as $0.GetSidechainConfigRequest);
+      case 'WatchSidechainConfig':
+        return watchSidechainConfig(ctx, request as $0.GetSidechainConfigRequest);
       case 'WriteSidechainConfig':
         return writeSidechainConfig(ctx, request as $0.WriteSidechainConfigRequest);
       case 'SyncSidechainNetworkFromBitcoinConf':

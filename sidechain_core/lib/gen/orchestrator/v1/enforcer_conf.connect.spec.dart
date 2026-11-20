@@ -18,6 +18,15 @@ abstract final class EnforcerConfService {
     orchestratorv1enforcer_conf.GetEnforcerConfigResponse.new,
   );
 
+  /// Stream GetEnforcerConfig. The first frame holds the config, later frames
+  /// only a changed config or a heartbeat.
+  static const watchEnforcerConfig = connect.Spec(
+    '/$name/WatchEnforcerConfig',
+    connect.StreamType.server,
+    orchestratorv1enforcer_conf.WatchEnforcerConfigRequest.new,
+    orchestratorv1enforcer_conf.WatchEnforcerConfigResponse.new,
+  );
+
   /// Write Enforcer configuration content.
   static const writeEnforcerConfig = connect.Spec(
     '/$name/WriteEnforcerConfig',

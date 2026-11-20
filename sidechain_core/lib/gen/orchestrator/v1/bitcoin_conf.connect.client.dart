@@ -26,6 +26,25 @@ extension type BitcoinConfServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Stream GetBitcoinConfig and ListNetworks. The first frame holds both,
+  /// later frames only a changed state or a heartbeat.
+  Stream<orchestratorv1bitcoin_conf.WatchBitcoinConfigResponse> watchBitcoinConfig(
+    orchestratorv1bitcoin_conf.WatchBitcoinConfigRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.BitcoinConfService.watchBitcoinConfig,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Report what the user must resolve before a network and/or wallet-backend
   /// change can be applied. Side-effect free.
   Future<orchestratorv1bitcoin_conf.NetworkChangePlan> prepareNetworkChange(

@@ -26,6 +26,25 @@ extension type SidechainConfServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Stream GetSidechainConfig. The first frame holds the config, later frames
+  /// only a changed config or a heartbeat.
+  Stream<orchestratorv1sidechain_conf.WatchSidechainConfigResponse> watchSidechainConfig(
+    orchestratorv1sidechain_conf.GetSidechainConfigRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.SidechainConfService.watchSidechainConfig,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Write sidechain configuration content.
   Future<orchestratorv1sidechain_conf.WriteSidechainConfigResponse> writeSidechainConfig(
     orchestratorv1sidechain_conf.WriteSidechainConfigRequest input, {
