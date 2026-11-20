@@ -74,6 +74,9 @@ type WalletHandler struct {
 	orch            *orchestrator.Orchestrator // nil until set; used for Core variant RPCs
 	bip47State      *bip47state.Store          // nil until SetBip47StateStore is called
 	ecxBurnWarnings sync.Map
+
+	receivedAtMu sync.Mutex
+	receivedAt   map[string]map[string]int64 // wallet ID -> txid -> time_received
 }
 
 func NewWalletHandler(svc *wallet.Service) *WalletHandler {
@@ -1317,10 +1320,16 @@ func receivedAt(u wallet.UTXO, txTimes map[string]*timestamppb.Timestamp) *times
 
 // fetchCoreTxTimes returns, for each unique txid in utxos lacking a
 // provider-supplied ReceivedAt, the wallet's time_received falling back to
-// blocktime then time. Best-effort: failures omit the txid.
+// blocktime then time. Best-effort: failures omit the txid. A time_received
+// never changes, so it is read once per txid while the wallet holds a coin of it.
 func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletID string, utxos []wallet.UTXO) map[string]*timestamppb.Timestamp {
+	h.receivedAtMu.Lock()
+	known := h.receivedAt[walletID]
+	h.receivedAtMu.Unlock()
+
 	seen := make(map[string]struct{}, len(utxos))
 	out := make(map[string]*timestamppb.Timestamp, len(utxos))
+	next := make(map[string]int64, len(known))
 	for _, u := range utxos {
 		if u.ReceivedAt > 0 {
 			continue
@@ -1330,12 +1339,19 @@ func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletID string, u
 		}
 		seen[u.TxID] = struct{}{}
 
+		if at, ok := known[u.TxID]; ok {
+			next[u.TxID] = at
+			out[u.TxID] = timestamppb.New(time.Unix(at, 0))
+			continue
+		}
+
 		tx, err := h.engine.Backend().GetWalletTransaction(ctx, walletID, u.TxID)
 		if err != nil {
 			continue
 		}
 		switch {
 		case tx.TimeReceived > 0:
+			next[u.TxID] = tx.TimeReceived
 			out[u.TxID] = timestamppb.New(time.Unix(tx.TimeReceived, 0))
 		case tx.BlockTime > 0:
 			out[u.TxID] = timestamppb.New(time.Unix(tx.BlockTime, 0))
@@ -1343,6 +1359,13 @@ func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletID string, u
 			out[u.TxID] = timestamppb.New(time.Unix(tx.Time, 0))
 		}
 	}
+
+	h.receivedAtMu.Lock()
+	if h.receivedAt == nil {
+		h.receivedAt = make(map[string]map[string]int64)
+	}
+	h.receivedAt[walletID] = next
+	h.receivedAtMu.Unlock()
 	return out
 }
 
