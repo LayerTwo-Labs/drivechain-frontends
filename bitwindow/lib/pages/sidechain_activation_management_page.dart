@@ -2,7 +2,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -185,63 +184,35 @@ class ActiveSidechainsTable extends StatefulWidget {
 }
 
 class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
+  static const columns = ['slot', 'active', 'name', 'chaintipTxid'];
+
   String sortColumn = 'slot';
   bool sortAscending = true;
-  List<SidechainOverview?> blocks = [];
 
-  @override
-  void initState() {
-    super.initState();
-    blocks = widget.blocks;
-    sortBlocks();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!listEquals(blocks, widget.blocks)) {
-      blocks = widget.blocks;
-      sortBlocks();
-    }
+  Comparable<Object> sortValue(SidechainOverview? sidechain) {
+    return switch (sortColumn) {
+      'name' => sidechain?.info.title ?? '',
+      'chaintipTxid' => sidechain?.info.chaintipTxid ?? '',
+      _ => sidechain?.info.slot ?? -1,
+    } as Comparable<Object>;
   }
 
   void onSort(String column) {
-    if (column == sortColumn) {
-      sortAscending = !sortAscending;
-    } else {
-      sortColumn = column;
-      sortAscending = true;
-    }
-    sortBlocks();
-    setState(() {});
-  }
-
-  void sortBlocks() {
-    blocks.sort((a, b) {
-      dynamic aValue = '';
-      dynamic bValue = '';
-
-      switch (sortColumn) {
-        case 'slot':
-          aValue = a?.info.slot;
-          bValue = b?.info.slot;
-          break;
-        case 'name':
-          aValue = a?.info.title;
-          bValue = b?.info.title;
-          break;
-        case 'chaintipTxid':
-          aValue = a?.info.chaintipTxid;
-          bValue = b?.info.chaintipTxid;
-          break;
+    setState(() {
+      if (column == sortColumn) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
       }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final blocks = [...widget.blocks]
+      ..sort((a, b) => sortAscending ? sortValue(a).compareTo(sortValue(b)) : sortValue(b).compareTo(sortValue(a)));
+
     return SailTable(
       getRowId: (index) => blocks[index]?.info.chaintipTxid ?? '',
       headerBuilder: (context) => [
@@ -263,11 +234,9 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
       },
       rowCount: blocks.length,
       emptyPlaceholder: 'No active sidechains',
-      sortColumnIndex: ['slot', 'active', 'name', 'chaintipTxid'].indexOf(sortColumn),
+      sortColumnIndex: columns.indexOf(sortColumn),
       sortAscending: sortAscending,
-      onSort: (columnIndex, ascending) {
-        onSort(['slot', 'active', 'name', 'chaintipTxid'][columnIndex]);
-      },
+      onSort: (columnIndex, ascending) => onSort(columns[columnIndex]),
       onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
       contextMenuItems: (rowId) {
         return [
