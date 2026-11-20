@@ -23,6 +23,8 @@ export 'bitcoin_conf.pb.dart';
 abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
   $async.Future<$0.GetBitcoinConfigResponse> getBitcoinConfig(
       $pb.ServerContext ctx, $0.GetBitcoinConfigRequest request);
+  $async.Future<$0.WatchBitcoinConfigResponse> watchBitcoinConfig(
+      $pb.ServerContext ctx, $0.WatchBitcoinConfigRequest request);
   $async.Future<$0.NetworkChangePlan> prepareNetworkChange(
       $pb.ServerContext ctx, $0.PrepareNetworkChangeRequest request);
   $async.Future<$0.ListNetworksResponse> listNetworks($pb.ServerContext ctx, $0.ListNetworksRequest request);
@@ -39,6 +41,8 @@ abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetBitcoinConfig':
         return $0.GetBitcoinConfigRequest();
+      case 'WatchBitcoinConfig':
+        return $0.WatchBitcoinConfigRequest();
       case 'PrepareNetworkChange':
         return $0.PrepareNetworkChangeRequest();
       case 'ListNetworks':
@@ -63,6 +67,8 @@ abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetBitcoinConfig':
         return getBitcoinConfig(ctx, request as $0.GetBitcoinConfigRequest);
+      case 'WatchBitcoinConfig':
+        return watchBitcoinConfig(ctx, request as $0.WatchBitcoinConfigRequest);
       case 'PrepareNetworkChange':
         return prepareNetworkChange(ctx, request as $0.PrepareNetworkChangeRequest);
       case 'ListNetworks':

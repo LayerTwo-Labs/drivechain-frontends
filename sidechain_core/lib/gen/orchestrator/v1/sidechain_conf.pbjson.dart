@@ -47,6 +47,21 @@ final $typed_data.Uint8List getSidechainConfigResponseDescriptor =
         'X2NvbmZpZxgDIAEoCVINZGVmYXVsdENvbmZpZxIZCghjbGlfYXJncxgEIAMoCVIHY2xpQXJncx'
         'IYCgduZXR3b3JrGAUgASgJUgduZXR3b3Jr');
 
+@$core.Deprecated('Use watchSidechainConfigResponseDescriptor instead')
+const WatchSidechainConfigResponse$json = {
+  '1': 'WatchSidechainConfigResponse',
+  '2': [
+    {'1': 'config', '3': 1, '4': 1, '5': 11, '6': '.orchestrator.v1.GetSidechainConfigResponse', '10': 'config'},
+    {'1': 'heartbeat', '3': 2, '4': 1, '5': 8, '10': 'heartbeat'},
+  ],
+};
+
+/// Descriptor for `WatchSidechainConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchSidechainConfigResponseDescriptor =
+    $convert.base64Decode('ChxXYXRjaFNpZGVjaGFpbkNvbmZpZ1Jlc3BvbnNlEkMKBmNvbmZpZxgBIAEoCzIrLm9yY2hlc3'
+        'RyYXRvci52MS5HZXRTaWRlY2hhaW5Db25maWdSZXNwb25zZVIGY29uZmlnEhwKCWhlYXJ0YmVh'
+        'dBgCIAEoCFIJaGVhcnRiZWF0');
+
 @$core.Deprecated('Use writeSidechainConfigRequestDescriptor instead')
 const WriteSidechainConfigRequest$json = {
   '1': 'WriteSidechainConfigRequest',
@@ -101,6 +116,12 @@ const $core.Map<$core.String, $core.dynamic> SidechainConfServiceBase$json = {
       '3': '.orchestrator.v1.GetSidechainConfigResponse'
     },
     {
+      '1': 'WatchSidechainConfig',
+      '2': '.orchestrator.v1.GetSidechainConfigRequest',
+      '3': '.orchestrator.v1.WatchSidechainConfigResponse',
+      '6': true
+    },
+    {
       '1': 'WriteSidechainConfig',
       '2': '.orchestrator.v1.WriteSidechainConfigRequest',
       '3': '.orchestrator.v1.WriteSidechainConfigResponse'
@@ -117,6 +138,7 @@ const $core.Map<$core.String, $core.dynamic> SidechainConfServiceBase$json = {
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> SidechainConfServiceBase$messageJson = {
   '.orchestrator.v1.GetSidechainConfigRequest': GetSidechainConfigRequest$json,
   '.orchestrator.v1.GetSidechainConfigResponse': GetSidechainConfigResponse$json,
+  '.orchestrator.v1.WatchSidechainConfigResponse': WatchSidechainConfigResponse$json,
   '.orchestrator.v1.WriteSidechainConfigRequest': WriteSidechainConfigRequest$json,
   '.orchestrator.v1.WriteSidechainConfigResponse': WriteSidechainConfigResponse$json,
   '.orchestrator.v1.SyncSidechainNetworkFromBitcoinConfRequest': SyncSidechainNetworkFromBitcoinConfRequest$json,
@@ -127,9 +149,11 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> SidechainC
 final $typed_data.Uint8List sidechainConfServiceDescriptor =
     $convert.base64Decode('ChRTaWRlY2hhaW5Db25mU2VydmljZRJtChJHZXRTaWRlY2hhaW5Db25maWcSKi5vcmNoZXN0cm'
         'F0b3IudjEuR2V0U2lkZWNoYWluQ29uZmlnUmVxdWVzdBorLm9yY2hlc3RyYXRvci52MS5HZXRT'
-        'aWRlY2hhaW5Db25maWdSZXNwb25zZRJzChRXcml0ZVNpZGVjaGFpbkNvbmZpZxIsLm9yY2hlc3'
-        'RyYXRvci52MS5Xcml0ZVNpZGVjaGFpbkNvbmZpZ1JlcXVlc3QaLS5vcmNoZXN0cmF0b3IudjEu'
-        'V3JpdGVTaWRlY2hhaW5Db25maWdSZXNwb25zZRKgAQojU3luY1NpZGVjaGFpbk5ldHdvcmtGcm'
-        '9tQml0Y29pbkNvbmYSOy5vcmNoZXN0cmF0b3IudjEuU3luY1NpZGVjaGFpbk5ldHdvcmtGcm9t'
-        'Qml0Y29pbkNvbmZSZXF1ZXN0Gjwub3JjaGVzdHJhdG9yLnYxLlN5bmNTaWRlY2hhaW5OZXR3b3'
-        'JrRnJvbUJpdGNvaW5Db25mUmVzcG9uc2U=');
+        'aWRlY2hhaW5Db25maWdSZXNwb25zZRJzChRXYXRjaFNpZGVjaGFpbkNvbmZpZxIqLm9yY2hlc3'
+        'RyYXRvci52MS5HZXRTaWRlY2hhaW5Db25maWdSZXF1ZXN0Gi0ub3JjaGVzdHJhdG9yLnYxLldh'
+        'dGNoU2lkZWNoYWluQ29uZmlnUmVzcG9uc2UwARJzChRXcml0ZVNpZGVjaGFpbkNvbmZpZxIsLm'
+        '9yY2hlc3RyYXRvci52MS5Xcml0ZVNpZGVjaGFpbkNvbmZpZ1JlcXVlc3QaLS5vcmNoZXN0cmF0'
+        'b3IudjEuV3JpdGVTaWRlY2hhaW5Db25maWdSZXNwb25zZRKgAQojU3luY1NpZGVjaGFpbk5ldH'
+        'dvcmtGcm9tQml0Y29pbkNvbmYSOy5vcmNoZXN0cmF0b3IudjEuU3luY1NpZGVjaGFpbk5ldHdv'
+        'cmtGcm9tQml0Y29pbkNvbmZSZXF1ZXN0Gjwub3JjaGVzdHJhdG9yLnYxLlN5bmNTaWRlY2hhaW'
+        '5OZXR3b3JrRnJvbUJpdGNvaW5Db25mUmVzcG9uc2U=');

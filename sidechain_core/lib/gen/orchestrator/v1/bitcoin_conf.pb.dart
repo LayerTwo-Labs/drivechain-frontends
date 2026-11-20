@@ -486,6 +486,122 @@ class ListNetworksResponse extends $pb.GeneratedMessage {
   $pb.PbList<NetworkOption> get networks => $_getList(0);
 }
 
+class WatchBitcoinConfigRequest extends $pb.GeneratedMessage {
+  factory WatchBitcoinConfigRequest() => WatchBitcoinConfigRequest._();
+
+  WatchBitcoinConfigRequest._();
+
+  factory WatchBitcoinConfigRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBitcoinConfigRequest()..mergeFromBuffer(data, registry);
+  factory WatchBitcoinConfigRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBitcoinConfigRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchBitcoinConfigRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchBitcoinConfigRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBitcoinConfigRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBitcoinConfigRequest copyWith(void Function(WatchBitcoinConfigRequest) updates) =>
+      super.copyWith((message) => updates(message as WatchBitcoinConfigRequest)) as WatchBitcoinConfigRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchBitcoinConfigRequest() / WatchBitcoinConfigRequest.new instead')
+  static WatchBitcoinConfigRequest create() => WatchBitcoinConfigRequest._();
+  static $pb.GeneratedMessage $_createMessage() => WatchBitcoinConfigRequest._();
+  @$core.override
+  WatchBitcoinConfigRequest createEmptyInstance() => WatchBitcoinConfigRequest._();
+  @$core.pragma('dart2js:noInline')
+  static WatchBitcoinConfigRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchBitcoinConfigRequest>(WatchBitcoinConfigRequest.$_createMessage);
+  static WatchBitcoinConfigRequest? _defaultInstance;
+}
+
+class WatchBitcoinConfigResponse extends $pb.GeneratedMessage {
+  factory WatchBitcoinConfigResponse({
+    GetBitcoinConfigResponse? config,
+    $core.Iterable<NetworkOption>? networks,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchBitcoinConfigResponse._();
+    if (config != null) result.config = config;
+    if (networks != null) result.networks.addAll(networks);
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchBitcoinConfigResponse._();
+
+  factory WatchBitcoinConfigResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBitcoinConfigResponse()..mergeFromBuffer(data, registry);
+  factory WatchBitcoinConfigResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBitcoinConfigResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchBitcoinConfigResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchBitcoinConfigResponse.$_createMessage)
+    ..aOM<GetBitcoinConfigResponse>(1, _omitFieldNames ? '' : 'config',
+        subBuilder: GetBitcoinConfigResponse.$_createMessage)
+    ..pPM<NetworkOption>(2, _omitFieldNames ? '' : 'networks', subBuilder: NetworkOption.$_createMessage)
+    ..aOB(3, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBitcoinConfigResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBitcoinConfigResponse copyWith(void Function(WatchBitcoinConfigResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchBitcoinConfigResponse)) as WatchBitcoinConfigResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchBitcoinConfigResponse() / WatchBitcoinConfigResponse.new instead')
+  static WatchBitcoinConfigResponse create() => WatchBitcoinConfigResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchBitcoinConfigResponse._();
+  @$core.override
+  WatchBitcoinConfigResponse createEmptyInstance() => WatchBitcoinConfigResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchBitcoinConfigResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchBitcoinConfigResponse>(WatchBitcoinConfigResponse.$_createMessage);
+  static WatchBitcoinConfigResponse? _defaultInstance;
+
+  /// Unset in a heartbeat frame.
+  @$pb.TagNumber(1)
+  GetBitcoinConfigResponse get config => $_getN(0);
+  @$pb.TagNumber(1)
+  set config(GetBitcoinConfigResponse value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConfig() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfig() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GetBitcoinConfigResponse ensureConfig() => $_ensure(0);
+
+  /// The ListNetworks rows. Empty in a heartbeat frame.
+  @$pb.TagNumber(2)
+  $pb.PbList<NetworkOption> get networks => $_getList(1);
+
+  /// True for an idle keepalive frame that carries no state.
+  @$pb.TagNumber(3)
+  $core.bool get heartbeat => $_getBF(2);
+  @$pb.TagNumber(3)
+  set heartbeat($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasHeartbeat() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHeartbeat() => $_clearField(3);
+}
+
 class PlanECashSwitchRequest extends $pb.GeneratedMessage {
   factory PlanECashSwitchRequest({
     $core.String? networkId,
@@ -1325,6 +1441,13 @@ class BitcoinConfServiceApi {
   $async.Future<GetBitcoinConfigResponse> getBitcoinConfig($pb.ClientContext? ctx, GetBitcoinConfigRequest request) =>
       _client.invoke<GetBitcoinConfigResponse>(
           ctx, 'BitcoinConfService', 'GetBitcoinConfig', request, GetBitcoinConfigResponse());
+
+  /// Stream GetBitcoinConfig and ListNetworks. The first frame holds both,
+  /// later frames only a changed state or a heartbeat.
+  $async.Future<WatchBitcoinConfigResponse> watchBitcoinConfig(
+          $pb.ClientContext? ctx, WatchBitcoinConfigRequest request) =>
+      _client.invoke<WatchBitcoinConfigResponse>(
+          ctx, 'BitcoinConfService', 'WatchBitcoinConfig', request, WatchBitcoinConfigResponse());
 
   /// Report what the user must resolve before a network and/or wallet-backend
   /// change can be applied. Side-effect free.

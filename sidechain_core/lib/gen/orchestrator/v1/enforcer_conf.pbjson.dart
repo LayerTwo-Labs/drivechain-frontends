@@ -66,6 +66,30 @@ final $typed_data.Uint8List getEnforcerConfigResponseDescriptor =
         'Y1NldHRpbmdzGkoKHEV4cGVjdGVkTm9kZVJwY1NldHRpbmdzRW50cnkSEAoDa2V5GAEgASgJUg'
         'NrZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVlOgI4AQ==');
 
+@$core.Deprecated('Use watchEnforcerConfigRequestDescriptor instead')
+const WatchEnforcerConfigRequest$json = {
+  '1': 'WatchEnforcerConfigRequest',
+};
+
+/// Descriptor for `WatchEnforcerConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchEnforcerConfigRequestDescriptor =
+    $convert.base64Decode('ChpXYXRjaEVuZm9yY2VyQ29uZmlnUmVxdWVzdA==');
+
+@$core.Deprecated('Use watchEnforcerConfigResponseDescriptor instead')
+const WatchEnforcerConfigResponse$json = {
+  '1': 'WatchEnforcerConfigResponse',
+  '2': [
+    {'1': 'config', '3': 1, '4': 1, '5': 11, '6': '.orchestrator.v1.GetEnforcerConfigResponse', '10': 'config'},
+    {'1': 'heartbeat', '3': 2, '4': 1, '5': 8, '10': 'heartbeat'},
+  ],
+};
+
+/// Descriptor for `WatchEnforcerConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchEnforcerConfigResponseDescriptor =
+    $convert.base64Decode('ChtXYXRjaEVuZm9yY2VyQ29uZmlnUmVzcG9uc2USQgoGY29uZmlnGAEgASgLMioub3JjaGVzdH'
+        'JhdG9yLnYxLkdldEVuZm9yY2VyQ29uZmlnUmVzcG9uc2VSBmNvbmZpZxIcCgloZWFydGJlYXQY'
+        'AiABKAhSCWhlYXJ0YmVhdA==');
+
 @$core.Deprecated('Use writeEnforcerConfigRequestDescriptor instead')
 const WriteEnforcerConfigRequest$json = {
   '1': 'WriteEnforcerConfigRequest',
@@ -115,6 +139,12 @@ const $core.Map<$core.String, $core.dynamic> EnforcerConfServiceBase$json = {
       '3': '.orchestrator.v1.GetEnforcerConfigResponse'
     },
     {
+      '1': 'WatchEnforcerConfig',
+      '2': '.orchestrator.v1.WatchEnforcerConfigRequest',
+      '3': '.orchestrator.v1.WatchEnforcerConfigResponse',
+      '6': true
+    },
+    {
       '1': 'WriteEnforcerConfig',
       '2': '.orchestrator.v1.WriteEnforcerConfigRequest',
       '3': '.orchestrator.v1.WriteEnforcerConfigResponse'
@@ -133,6 +163,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> EnforcerCo
   '.orchestrator.v1.GetEnforcerConfigResponse': GetEnforcerConfigResponse$json,
   '.orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry':
       GetEnforcerConfigResponse_ExpectedNodeRpcSettingsEntry$json,
+  '.orchestrator.v1.WatchEnforcerConfigRequest': WatchEnforcerConfigRequest$json,
+  '.orchestrator.v1.WatchEnforcerConfigResponse': WatchEnforcerConfigResponse$json,
   '.orchestrator.v1.WriteEnforcerConfigRequest': WriteEnforcerConfigRequest$json,
   '.orchestrator.v1.WriteEnforcerConfigResponse': WriteEnforcerConfigResponse$json,
   '.orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest': SyncNodeRpcFromBitcoinConfRequest$json,
@@ -143,8 +175,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> EnforcerCo
 final $typed_data.Uint8List enforcerConfServiceDescriptor =
     $convert.base64Decode('ChNFbmZvcmNlckNvbmZTZXJ2aWNlEmoKEUdldEVuZm9yY2VyQ29uZmlnEikub3JjaGVzdHJhdG'
         '9yLnYxLkdldEVuZm9yY2VyQ29uZmlnUmVxdWVzdBoqLm9yY2hlc3RyYXRvci52MS5HZXRFbmZv'
-        'cmNlckNvbmZpZ1Jlc3BvbnNlEnAKE1dyaXRlRW5mb3JjZXJDb25maWcSKy5vcmNoZXN0cmF0b3'
-        'IudjEuV3JpdGVFbmZvcmNlckNvbmZpZ1JlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuV3JpdGVF'
-        'bmZvcmNlckNvbmZpZ1Jlc3BvbnNlEoUBChpTeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZhIyLm'
-        '9yY2hlc3RyYXRvci52MS5TeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZlJlcXVlc3QaMy5vcmNo'
-        'ZXN0cmF0b3IudjEuU3luY05vZGVScGNGcm9tQml0Y29pbkNvbmZSZXNwb25zZQ==');
+        'cmNlckNvbmZpZ1Jlc3BvbnNlEnIKE1dhdGNoRW5mb3JjZXJDb25maWcSKy5vcmNoZXN0cmF0b3'
+        'IudjEuV2F0Y2hFbmZvcmNlckNvbmZpZ1JlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuV2F0Y2hF'
+        'bmZvcmNlckNvbmZpZ1Jlc3BvbnNlMAEScAoTV3JpdGVFbmZvcmNlckNvbmZpZxIrLm9yY2hlc3'
+        'RyYXRvci52MS5Xcml0ZUVuZm9yY2VyQ29uZmlnUmVxdWVzdBosLm9yY2hlc3RyYXRvci52MS5X'
+        'cml0ZUVuZm9yY2VyQ29uZmlnUmVzcG9uc2UShQEKGlN5bmNOb2RlUnBjRnJvbUJpdGNvaW5Db2'
+        '5mEjIub3JjaGVzdHJhdG9yLnYxLlN5bmNOb2RlUnBjRnJvbUJpdGNvaW5Db25mUmVxdWVzdBoz'
+        'Lm9yY2hlc3RyYXRvci52MS5TeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZlJlc3BvbnNl');

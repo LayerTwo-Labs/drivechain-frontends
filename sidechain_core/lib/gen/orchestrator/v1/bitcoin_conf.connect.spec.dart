@@ -18,6 +18,15 @@ abstract final class BitcoinConfService {
     orchestratorv1bitcoin_conf.GetBitcoinConfigResponse.new,
   );
 
+  /// Stream GetBitcoinConfig and ListNetworks. The first frame holds both,
+  /// later frames only a changed state or a heartbeat.
+  static const watchBitcoinConfig = connect.Spec(
+    '/$name/WatchBitcoinConfig',
+    connect.StreamType.server,
+    orchestratorv1bitcoin_conf.WatchBitcoinConfigRequest.new,
+    orchestratorv1bitcoin_conf.WatchBitcoinConfigResponse.new,
+  );
+
   /// Report what the user must resolve before a network and/or wallet-backend
   /// change can be applied. Side-effect free.
   static const prepareNetworkChange = connect.Spec(

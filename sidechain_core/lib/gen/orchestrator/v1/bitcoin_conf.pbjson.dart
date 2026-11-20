@@ -123,6 +123,32 @@ final $typed_data.Uint8List listNetworksResponseDescriptor =
     $convert.base64Decode('ChRMaXN0TmV0d29ya3NSZXNwb25zZRI6CghuZXR3b3JrcxgBIAMoCzIeLm9yY2hlc3RyYXRvci'
         '52MS5OZXR3b3JrT3B0aW9uUghuZXR3b3Jrcw==');
 
+@$core.Deprecated('Use watchBitcoinConfigRequestDescriptor instead')
+const WatchBitcoinConfigRequest$json = {
+  '1': 'WatchBitcoinConfigRequest',
+};
+
+/// Descriptor for `WatchBitcoinConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchBitcoinConfigRequestDescriptor =
+    $convert.base64Decode('ChlXYXRjaEJpdGNvaW5Db25maWdSZXF1ZXN0');
+
+@$core.Deprecated('Use watchBitcoinConfigResponseDescriptor instead')
+const WatchBitcoinConfigResponse$json = {
+  '1': 'WatchBitcoinConfigResponse',
+  '2': [
+    {'1': 'config', '3': 1, '4': 1, '5': 11, '6': '.orchestrator.v1.GetBitcoinConfigResponse', '10': 'config'},
+    {'1': 'networks', '3': 2, '4': 3, '5': 11, '6': '.orchestrator.v1.NetworkOption', '10': 'networks'},
+    {'1': 'heartbeat', '3': 3, '4': 1, '5': 8, '10': 'heartbeat'},
+  ],
+};
+
+/// Descriptor for `WatchBitcoinConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchBitcoinConfigResponseDescriptor =
+    $convert.base64Decode('ChpXYXRjaEJpdGNvaW5Db25maWdSZXNwb25zZRJBCgZjb25maWcYASABKAsyKS5vcmNoZXN0cm'
+        'F0b3IudjEuR2V0Qml0Y29pbkNvbmZpZ1Jlc3BvbnNlUgZjb25maWcSOgoIbmV0d29ya3MYAiAD'
+        'KAsyHi5vcmNoZXN0cmF0b3IudjEuTmV0d29ya09wdGlvblIIbmV0d29ya3MSHAoJaGVhcnRiZW'
+        'F0GAMgASgIUgloZWFydGJlYXQ=');
+
 @$core.Deprecated('Use planECashSwitchRequestDescriptor instead')
 const PlanECashSwitchRequest$json = {
   '1': 'PlanECashSwitchRequest',
@@ -306,6 +332,12 @@ const $core.Map<$core.String, $core.dynamic> BitcoinConfServiceBase$json = {
       '3': '.orchestrator.v1.GetBitcoinConfigResponse'
     },
     {
+      '1': 'WatchBitcoinConfig',
+      '2': '.orchestrator.v1.WatchBitcoinConfigRequest',
+      '3': '.orchestrator.v1.WatchBitcoinConfigResponse',
+      '6': true
+    },
+    {
       '1': 'PrepareNetworkChange',
       '2': '.orchestrator.v1.PrepareNetworkChangeRequest',
       '3': '.orchestrator.v1.NetworkChangePlan'
@@ -343,11 +375,13 @@ const $core.Map<$core.String, $core.dynamic> BitcoinConfServiceBase$json = {
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinConfServiceBase$messageJson = {
   '.orchestrator.v1.GetBitcoinConfigRequest': GetBitcoinConfigRequest$json,
   '.orchestrator.v1.GetBitcoinConfigResponse': GetBitcoinConfigResponse$json,
+  '.orchestrator.v1.WatchBitcoinConfigRequest': WatchBitcoinConfigRequest$json,
+  '.orchestrator.v1.WatchBitcoinConfigResponse': WatchBitcoinConfigResponse$json,
+  '.orchestrator.v1.NetworkOption': NetworkOption$json,
   '.orchestrator.v1.PrepareNetworkChangeRequest': PrepareNetworkChangeRequest$json,
   '.orchestrator.v1.NetworkChangePlan': NetworkChangePlan$json,
   '.orchestrator.v1.ListNetworksRequest': ListNetworksRequest$json,
   '.orchestrator.v1.ListNetworksResponse': ListNetworksResponse$json,
-  '.orchestrator.v1.NetworkOption': NetworkOption$json,
   '.orchestrator.v1.TakeNewNetworksRequest': TakeNewNetworksRequest$json,
   '.orchestrator.v1.TakeNewNetworksResponse': TakeNewNetworksResponse$json,
   '.orchestrator.v1.PlanECashSwitchRequest': PlanECashSwitchRequest$json,
@@ -364,18 +398,20 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinCon
 final $typed_data.Uint8List bitcoinConfServiceDescriptor =
     $convert.base64Decode('ChJCaXRjb2luQ29uZlNlcnZpY2USZwoQR2V0Qml0Y29pbkNvbmZpZxIoLm9yY2hlc3RyYXRvci'
         '52MS5HZXRCaXRjb2luQ29uZmlnUmVxdWVzdBopLm9yY2hlc3RyYXRvci52MS5HZXRCaXRjb2lu'
-        'Q29uZmlnUmVzcG9uc2USaAoUUHJlcGFyZU5ldHdvcmtDaGFuZ2USLC5vcmNoZXN0cmF0b3Iudj'
-        'EuUHJlcGFyZU5ldHdvcmtDaGFuZ2VSZXF1ZXN0GiIub3JjaGVzdHJhdG9yLnYxLk5ldHdvcmtD'
-        'aGFuZ2VQbGFuElsKDExpc3ROZXR3b3JrcxIkLm9yY2hlc3RyYXRvci52MS5MaXN0TmV0d29ya3'
-        'NSZXF1ZXN0GiUub3JjaGVzdHJhdG9yLnYxLkxpc3ROZXR3b3Jrc1Jlc3BvbnNlEmQKD1Rha2VO'
-        'ZXdOZXR3b3JrcxInLm9yY2hlc3RyYXRvci52MS5UYWtlTmV3TmV0d29ya3NSZXF1ZXN0Gigub3'
-        'JjaGVzdHJhdG9yLnYxLlRha2VOZXdOZXR3b3Jrc1Jlc3BvbnNlEmQKD1BsYW5FQ2FzaFN3aXRj'
-        'aBInLm9yY2hlc3RyYXRvci52MS5QbGFuRUNhc2hTd2l0Y2hSZXF1ZXN0Gigub3JjaGVzdHJhdG'
-        '9yLnYxLlBsYW5FQ2FzaFN3aXRjaFJlc3BvbnNlEnwKF1NldEJpdGNvaW5Db25maWdOZXR3b3Jr'
-        'Ei8ub3JjaGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdOZXR3b3JrUmVxdWVzdBowLm9yY2'
-        'hlc3RyYXRvci52MS5TZXRCaXRjb2luQ29uZmlnTmV0d29ya1Jlc3BvbnNlEnwKF1NldEJpdGNv'
-        'aW5Db25maWdEYXRhRGlyEi8ub3JjaGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdEYXRhRG'
-        'lyUmVxdWVzdBowLm9yY2hlc3RyYXRvci52MS5TZXRCaXRjb2luQ29uZmlnRGF0YURpclJlc3Bv'
-        'bnNlEm0KEldyaXRlQml0Y29pbkNvbmZpZxIqLm9yY2hlc3RyYXRvci52MS5Xcml0ZUJpdGNvaW'
-        '5Db25maWdSZXF1ZXN0Gisub3JjaGVzdHJhdG9yLnYxLldyaXRlQml0Y29pbkNvbmZpZ1Jlc3Bv'
-        'bnNl');
+        'Q29uZmlnUmVzcG9uc2USbwoSV2F0Y2hCaXRjb2luQ29uZmlnEioub3JjaGVzdHJhdG9yLnYxLl'
+        'dhdGNoQml0Y29pbkNvbmZpZ1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuV2F0Y2hCaXRjb2lu'
+        'Q29uZmlnUmVzcG9uc2UwARJoChRQcmVwYXJlTmV0d29ya0NoYW5nZRIsLm9yY2hlc3RyYXRvci'
+        '52MS5QcmVwYXJlTmV0d29ya0NoYW5nZVJlcXVlc3QaIi5vcmNoZXN0cmF0b3IudjEuTmV0d29y'
+        'a0NoYW5nZVBsYW4SWwoMTGlzdE5ldHdvcmtzEiQub3JjaGVzdHJhdG9yLnYxLkxpc3ROZXR3b3'
+        'Jrc1JlcXVlc3QaJS5vcmNoZXN0cmF0b3IudjEuTGlzdE5ldHdvcmtzUmVzcG9uc2USZAoPVGFr'
+        'ZU5ld05ldHdvcmtzEicub3JjaGVzdHJhdG9yLnYxLlRha2VOZXdOZXR3b3Jrc1JlcXVlc3QaKC'
+        '5vcmNoZXN0cmF0b3IudjEuVGFrZU5ld05ldHdvcmtzUmVzcG9uc2USZAoPUGxhbkVDYXNoU3dp'
+        'dGNoEicub3JjaGVzdHJhdG9yLnYxLlBsYW5FQ2FzaFN3aXRjaFJlcXVlc3QaKC5vcmNoZXN0cm'
+        'F0b3IudjEuUGxhbkVDYXNoU3dpdGNoUmVzcG9uc2USfAoXU2V0Qml0Y29pbkNvbmZpZ05ldHdv'
+        'cmsSLy5vcmNoZXN0cmF0b3IudjEuU2V0Qml0Y29pbkNvbmZpZ05ldHdvcmtSZXF1ZXN0GjAub3'
+        'JjaGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdOZXR3b3JrUmVzcG9uc2USfAoXU2V0Qml0'
+        'Y29pbkNvbmZpZ0RhdGFEaXISLy5vcmNoZXN0cmF0b3IudjEuU2V0Qml0Y29pbkNvbmZpZ0RhdG'
+        'FEaXJSZXF1ZXN0GjAub3JjaGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdEYXRhRGlyUmVz'
+        'cG9uc2USbQoSV3JpdGVCaXRjb2luQ29uZmlnEioub3JjaGVzdHJhdG9yLnYxLldyaXRlQml0Y2'
+        '9pbkNvbmZpZ1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuV3JpdGVCaXRjb2luQ29uZmlnUmVz'
+        'cG9uc2U=');

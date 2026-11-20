@@ -161,6 +161,115 @@ class GetEnforcerConfigResponse extends $pb.GeneratedMessage {
   $pb.PbMap<$core.String, $core.String> get expectedNodeRpcSettings => $_getMap(5);
 }
 
+class WatchEnforcerConfigRequest extends $pb.GeneratedMessage {
+  factory WatchEnforcerConfigRequest() => WatchEnforcerConfigRequest._();
+
+  WatchEnforcerConfigRequest._();
+
+  factory WatchEnforcerConfigRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchEnforcerConfigRequest()..mergeFromBuffer(data, registry);
+  factory WatchEnforcerConfigRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchEnforcerConfigRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchEnforcerConfigRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchEnforcerConfigRequest.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchEnforcerConfigRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchEnforcerConfigRequest copyWith(void Function(WatchEnforcerConfigRequest) updates) =>
+      super.copyWith((message) => updates(message as WatchEnforcerConfigRequest)) as WatchEnforcerConfigRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchEnforcerConfigRequest() / WatchEnforcerConfigRequest.new instead')
+  static WatchEnforcerConfigRequest create() => WatchEnforcerConfigRequest._();
+  static $pb.GeneratedMessage $_createMessage() => WatchEnforcerConfigRequest._();
+  @$core.override
+  WatchEnforcerConfigRequest createEmptyInstance() => WatchEnforcerConfigRequest._();
+  @$core.pragma('dart2js:noInline')
+  static WatchEnforcerConfigRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchEnforcerConfigRequest>(WatchEnforcerConfigRequest.$_createMessage);
+  static WatchEnforcerConfigRequest? _defaultInstance;
+}
+
+class WatchEnforcerConfigResponse extends $pb.GeneratedMessage {
+  factory WatchEnforcerConfigResponse({
+    GetEnforcerConfigResponse? config,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchEnforcerConfigResponse._();
+    if (config != null) result.config = config;
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchEnforcerConfigResponse._();
+
+  factory WatchEnforcerConfigResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchEnforcerConfigResponse()..mergeFromBuffer(data, registry);
+  factory WatchEnforcerConfigResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchEnforcerConfigResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchEnforcerConfigResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
+      createEmptyInstance: WatchEnforcerConfigResponse.$_createMessage)
+    ..aOM<GetEnforcerConfigResponse>(1, _omitFieldNames ? '' : 'config',
+        subBuilder: GetEnforcerConfigResponse.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchEnforcerConfigResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchEnforcerConfigResponse copyWith(void Function(WatchEnforcerConfigResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchEnforcerConfigResponse)) as WatchEnforcerConfigResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchEnforcerConfigResponse() / WatchEnforcerConfigResponse.new instead')
+  static WatchEnforcerConfigResponse create() => WatchEnforcerConfigResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchEnforcerConfigResponse._();
+  @$core.override
+  WatchEnforcerConfigResponse createEmptyInstance() => WatchEnforcerConfigResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchEnforcerConfigResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchEnforcerConfigResponse>(WatchEnforcerConfigResponse.$_createMessage);
+  static WatchEnforcerConfigResponse? _defaultInstance;
+
+  /// Unset in a heartbeat frame.
+  @$pb.TagNumber(1)
+  GetEnforcerConfigResponse get config => $_getN(0);
+  @$pb.TagNumber(1)
+  set config(GetEnforcerConfigResponse value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConfig() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfig() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GetEnforcerConfigResponse ensureConfig() => $_ensure(0);
+
+  /// True for an idle keepalive frame that carries no config.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 class WriteEnforcerConfigRequest extends $pb.GeneratedMessage {
   factory WriteEnforcerConfigRequest({
     $core.String? configContent,
@@ -343,6 +452,13 @@ class EnforcerConfServiceApi {
           $pb.ClientContext? ctx, GetEnforcerConfigRequest request) =>
       _client.invoke<GetEnforcerConfigResponse>(
           ctx, 'EnforcerConfService', 'GetEnforcerConfig', request, GetEnforcerConfigResponse());
+
+  /// Stream GetEnforcerConfig. The first frame holds the config, later frames
+  /// only a changed config or a heartbeat.
+  $async.Future<WatchEnforcerConfigResponse> watchEnforcerConfig(
+          $pb.ClientContext? ctx, WatchEnforcerConfigRequest request) =>
+      _client.invoke<WatchEnforcerConfigResponse>(
+          ctx, 'EnforcerConfService', 'WatchEnforcerConfig', request, WatchEnforcerConfigResponse());
 
   /// Write Enforcer configuration content.
   $async.Future<WriteEnforcerConfigResponse> writeEnforcerConfig(
