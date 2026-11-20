@@ -87,6 +87,13 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     fetch();
   }
 
+  BalanceProvider._mirror({required this.connections}) {
+    mainConnection = connections.first;
+    for (final rpc in connections) {
+      _balances[rpc] = (0.0, 0.0);
+    }
+  }
+
   void _onConnectionChange() {
     fetch();
   }
@@ -226,5 +233,38 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
 
 /// The balance of one sidechain wallet, for the pages of that chain.
 class SidechainBalanceProvider extends BalanceProvider {
-  SidechainBalanceProvider({required RPCConnection sidechain}) : super(connections: [sidechain]);
+  final BalanceProvider? _source;
+
+  SidechainBalanceProvider({required RPCConnection sidechain}) : _source = null, super(connections: [sidechain]);
+
+  /// Shows the balance that [source] reads for [sidechain], with no poll of its own.
+  SidechainBalanceProvider.mirror({required RPCConnection sidechain, required BalanceProvider source})
+    : assert(source.connections.contains(sidechain)),
+      _source = source,
+      super._mirror(connections: [sidechain]) {
+    source.addListener(_copy);
+    _copy();
+  }
+
+  void _copy() {
+    final source = _source!;
+    final rpc = mainConnection;
+    if (!source._reported.contains(rpc)) {
+      if (_reported.isNotEmpty) {
+        clear();
+      }
+      return;
+    }
+    final (confirmed, pending) = source.balanceFor(rpc);
+    setBalance(rpc, confirmed, pending);
+  }
+
+  @override
+  Future<void> fetch() => _source?.fetch() ?? super.fetch();
+
+  @override
+  void dispose() {
+    _source?.removeListener(_copy);
+    super.dispose();
+  }
 }
