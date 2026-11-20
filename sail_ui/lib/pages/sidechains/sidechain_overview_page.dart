@@ -445,7 +445,7 @@ class _TransactionTableState extends State<TransactionTable> {
                   getRowId: (index) => entries[index].txid,
                   headerBuilder: (context) => [
                     SailTableHeaderCell(
-                      name: 'Confirmations',
+                      name: SailStyleValues.phoneLayout(context) ? 'Conf.' : 'Confirmations',
                       onSort: () => onSort('confirmations'),
                     ),
                     SailTableHeaderCell(
@@ -642,6 +642,34 @@ class BalanceRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The phone form of a sidechain balance card: total, available and pending as rows.
+class SidechainBalanceRows extends StatelessWidget {
+  final String total;
+  final String available;
+  final String pending;
+  final LoadingDetails? loading;
+
+  const SidechainBalanceRows({
+    super.key,
+    required this.total,
+    required this.available,
+    required this.pending,
+    this.loading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailStatList(
+      framed: false,
+      children: [
+        SailStatRow(title: 'Total', subtitle: '', value: total, loading: loading),
+        SailStatRow(title: 'Available', subtitle: '', value: available, loading: loading),
+        SailStatRow(title: 'Pending', subtitle: '', value: pending, loading: loading),
+      ],
     );
   }
 }
