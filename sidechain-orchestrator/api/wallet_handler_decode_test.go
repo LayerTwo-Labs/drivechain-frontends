@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -231,4 +232,70 @@ func TestDecodeTransactionChecksOwnershipWithAnOfflineIndexer(t *testing.T) {
 			require.Positive(t, source.reads.Load())
 		})
 	}
+}
+
+// Core with no txindex reads a confirmed tx by txid only from its block.
+func TestDecodeTransactionReadsATxidWithNoTxindex(t *testing.T) {
+	txid := strings.Repeat("ab", 32)
+	confirmed := paymentWithChange()
+	confirmed.TxID = txid
+	confirmed.Blockhash = "block"
+	confirmed.Vin[0].Prevout = &wallet.RawTxOut{Value: 8.43, ScriptPubKey: wallet.ScriptPubKey{Address: "funding"}}
+	notInWallet := errors.New("Invalid or non-wallet transaction id")
+	mempool := paymentWithChange()
+	mempool.TxID = txid
+
+	for _, tc := range []struct {
+		name      string
+		fake      detailsProvider
+		blockHash string
+		wantFee   bool
+	}{
+		{
+			name: "wallet tx in a block",
+			fake: detailsProvider{
+				rawTxErr: wallet.ErrTxUnreadable,
+				walletTx: &wallet.WalletTx{TxID: txid, Confirmations: 3, Blockhash: "block", Hex: "00"},
+				blockTx:  confirmed,
+			},
+			wantFee: true,
+		},
+		{
+			name:      "block named by the caller",
+			fake:      detailsProvider{rawTxErr: wallet.ErrTxUnreadable, walletErr: notInWallet, blockTx: confirmed},
+			blockHash: "block",
+			wantFee:   true,
+		},
+		{
+			name: "mempool tx",
+			fake: detailsProvider{rawTx: mempool, walletErr: notInWallet},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h, walletID := newDecodeHandler(t, &decodeBackend{detailsProvider: tc.fake})
+			response, err := h.DecodeTransaction(context.Background(), &pb.DecodeTransactionRequest{
+				Input: txid, WalletId: walletID, BlockHash: tc.blockHash,
+			})
+			require.NoError(t, err)
+			require.Equal(t, pb.DecodedForm_DECODED_FORM_TXID, response.Form)
+			require.Equal(t, txid, response.Txid)
+			require.Len(t, response.Outputs, 3)
+			require.Equal(t, tc.wantFee, response.HasFee)
+			if tc.wantFee {
+				require.Equal(t, "funding", response.Inputs[0].Address)
+				require.Equal(t, int64(1_000_000), response.FeeSats)
+			}
+		})
+	}
+
+	t.Run("neither in the wallet nor in the mempool", func(t *testing.T) {
+		fake := &decodeBackend{detailsProvider: detailsProvider{rawTxErr: wallet.ErrTxUnreadable, walletErr: notInWallet}}
+		h, walletID := newDecodeHandler(t, fake)
+		response, err := h.DecodeTransaction(context.Background(), &pb.DecodeTransactionRequest{
+			Input: txid, WalletId: walletID,
+		})
+		require.Nil(t, response)
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+		require.ErrorContains(t, err, "not in the wallet or the mempool, and the node keeps no txindex")
+	})
 }
