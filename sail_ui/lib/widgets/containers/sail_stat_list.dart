@@ -15,6 +15,7 @@ class SailStatList extends StatelessWidget {
     final theme = SailTheme.of(context);
     final rows = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < children.length; i++) ...[
           if (i > 0) Container(height: 1, color: theme.colors.divider),
@@ -45,6 +46,7 @@ class SailStatRow extends StatelessWidget {
   final String subtitle;
   final String value;
   final LoadingDetails? loading;
+  final Color? valueColor;
 
   const SailStatRow({
     super.key,
@@ -52,6 +54,7 @@ class SailStatRow extends StatelessWidget {
     required this.subtitle,
     required this.value,
     this.loading,
+    this.valueColor,
   });
 
   @override
@@ -77,7 +80,7 @@ class SailStatRow extends StatelessWidget {
           SailSkeletonizer(
             description: loading?.description ?? '',
             enabled: loading?.enabled ?? false,
-            child: SailText.primary15(value, bold: true),
+            child: SailText.primary15(value, bold: true, color: valueColor),
           ),
         ],
       ),

@@ -99,4 +99,21 @@ void main() {
     expect(tester.getTopLeft(find.text('Peers')).dx, 0);
     expect(tester.getTopRight(find.text('10')).dx, closeTo(600, 1));
   });
+
+  testWidgets('a stat value takes the color it is given', (tester) async {
+    const green = Color(0xFF00AA00);
+    await tester.pumpWidget(
+      SailTheme(
+        data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+        child: const Directionality(
+          textDirection: TextDirection.ltr,
+          child: SailStatList(
+            children: [SailStatRow(title: 'Profit and loss', subtitle: '', value: '+12.4%', valueColor: green)],
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.widget<Text>(find.text('+12.4%')).style!.color, green);
+  });
 }
