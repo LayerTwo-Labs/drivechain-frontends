@@ -77,6 +77,9 @@ class CrossPlatformMenuBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return child;
+    }
     if (Platform.isMacOS) {
       return PlatformMenuBar(menus: _withEditMenu(menus), child: child);
     }
