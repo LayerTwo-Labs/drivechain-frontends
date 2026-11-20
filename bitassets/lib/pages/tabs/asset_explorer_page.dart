@@ -45,31 +45,11 @@ class AssetExplorerTabPage extends StatelessWidget {
                 ],
               ),
 
-              // Stats row
-              SailRow(
-                spacing: SailStyleValues.padding16,
-                children: [
-                  _StatCard(
-                    label: 'Total Assets',
-                    value: model.filteredAssets.length.toString(),
-                    icon: SailSVGAsset.iconCoins,
-                  ),
-                  _StatCard(
-                    label: 'Favorites',
-                    value: model.favoritesCount.toString(),
-                    icon: SailSVGAsset.iconInfo,
-                  ),
-                  _StatCard(
-                    label: 'With Encryption',
-                    value: model.assetsWithEncryption.toString(),
-                    icon: SailSVGAsset.iconShield,
-                  ),
-                  _StatCard(
-                    label: 'With Signing Key',
-                    value: model.assetsWithSigning.toString(),
-                    icon: SailSVGAsset.iconPen,
-                  ),
-                ],
+              AssetExplorerStats(
+                total: model.filteredAssets.length,
+                favorites: model.favoritesCount,
+                withEncryption: model.assetsWithEncryption,
+                withSigning: model.assetsWithSigning,
               ),
 
               // Filter tabs
@@ -201,6 +181,46 @@ class AssetExplorerTabPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// The asset counts: a row of cards on the desktop, one list panel on a phone.
+@visibleForTesting
+class AssetExplorerStats extends StatelessWidget {
+  final int total;
+  final int favorites;
+  final int withEncryption;
+  final int withSigning;
+
+  const AssetExplorerStats({
+    super.key,
+    required this.total,
+    required this.favorites,
+    required this.withEncryption,
+    required this.withSigning,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailStatList(
+        children: [
+          SailStatRow(title: 'Total Assets', subtitle: '', value: total.toString()),
+          SailStatRow(title: 'Favorites', subtitle: '', value: favorites.toString()),
+          SailStatRow(title: 'With Encryption', subtitle: '', value: withEncryption.toString()),
+          SailStatRow(title: 'With Signing Key', subtitle: '', value: withSigning.toString()),
+        ],
+      );
+    }
+    return SailRow(
+      spacing: SailStyleValues.padding16,
+      children: [
+        _StatCard(label: 'Total Assets', value: total.toString(), icon: SailSVGAsset.iconCoins),
+        _StatCard(label: 'Favorites', value: favorites.toString(), icon: SailSVGAsset.iconInfo),
+        _StatCard(label: 'With Encryption', value: withEncryption.toString(), icon: SailSVGAsset.iconShield),
+        _StatCard(label: 'With Signing Key', value: withSigning.toString(), icon: SailSVGAsset.iconPen),
+      ],
     );
   }
 }

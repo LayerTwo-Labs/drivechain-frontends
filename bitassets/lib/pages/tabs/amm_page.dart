@@ -206,53 +206,64 @@ class AmmTabPage extends StatelessWidget {
                     const Spacer(),
                     const SizedBox(height: 16),
 
-                    // Swap button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: model.canSwap
-                              ? context.sailTheme.colors.primary
-                              : context.sailTheme.colors.primary.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: model.canSwap
-                              ? [
-                                  BoxShadow(
-                                    color: context.sailTheme.colors.shadow,
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : null,
+                    if (SailStyleValues.phoneLayout(context))
+                      SizedBox(
+                        width: double.infinity,
+                        child: SailButton(
+                          label: 'Swap',
+                          loading: model.swapLoading,
+                          loadingLabel: 'Swapping...',
+                          disabled: !model.canSwap,
+                          onPressed: () async => model.executeSwap(context),
                         ),
-                        child: SailTappable(
-                          onTap: model.canSwap && !model.swapLoading ? () async => model.executeSwap(context) : null,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (model.swapLoading)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 12),
-                                  child: SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: LoadingIndicator(
-                                      color: context.sailTheme.colors.primaryButtonText,
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: model.canSwap
+                                ? context.sailTheme.colors.primary
+                                : context.sailTheme.colors.primary.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: model.canSwap
+                                ? [
+                                    BoxShadow(
+                                      color: context.sailTheme.colors.shadow,
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: SailTappable(
+                            onTap: model.canSwap && !model.swapLoading ? () async => model.executeSwap(context) : null,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (model.swapLoading)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: LoadingIndicator(
+                                        color: context.sailTheme.colors.primaryButtonText,
+                                      ),
                                     ),
                                   ),
+                                SailText.primary15(
+                                  model.swapLoading ? 'Swapping...' : 'Swap',
+                                  color: context.sailTheme.colors.primaryButtonText,
+                                  bold: true,
                                 ),
-                              SailText.primary15(
-                                model.swapLoading ? 'Swapping...' : 'Swap',
-                                color: context.sailTheme.colors.primaryButtonText,
-                                bold: true,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
