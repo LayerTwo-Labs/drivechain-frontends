@@ -1094,6 +1094,26 @@ class SendPageViewModel extends BaseViewModel {
     final initialRecipient = RecipientModel();
     initialRecipient.addListener(_onFormChanged);
     recipients = [initialRecipient];
+    unawaited(warmCoinSelection(_orchestratorWallet, _walletReader.activeWalletId, availableUtxos));
+  }
+
+  /// Core's first coin selection after a boot is slow. This preview, which the
+  /// page drops, makes the first preview of the user fast. It signs nothing,
+  /// keeps no coin lock and takes no receive address.
+  static Future<void> warmCoinSelection(
+    OrchestratorWalletRPC wallet,
+    String? walletId,
+    List<UnspentOutput> coins,
+  ) async {
+    final coin = coins.firstOrNull;
+    if (walletId == null || coin == null) {
+      return;
+    }
+    try {
+      await wallet.previewSend(walletId: walletId, destinations: {coin.address: dustSats}, feeRateSatPerVbyte: 1);
+    } catch (_) {
+      // The preview of the user shows its own error.
+    }
   }
 
   Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy) async {
