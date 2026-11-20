@@ -115,6 +115,20 @@ void main() {
     expect(provider.upvotes, {9: 'aa'});
   });
 
+  test('a queued refresh does not run over an upvote', () async {
+    rpc.m4.readDelays = [const Duration(milliseconds: 50), const Duration(milliseconds: 100), Duration.zero];
+    rpc.m4.writeDelays = [const Duration(milliseconds: 60)];
+    final provider = M4Provider();
+
+    final first = provider.fetchAll();
+    final queued = provider.fetchAll();
+    await provider.setBundleUpvote(sidechainSlot: 9, m6id: 'aa');
+    await Future.wait([first, queued]);
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+
+    expect(provider.upvotes, {9: 'aa'});
+  });
+
   test('a cleared upvote leaves the sidechain to the default vote', () async {
     rpc.m4.upvotes[9] = 'aa';
     final provider = M4Provider();
