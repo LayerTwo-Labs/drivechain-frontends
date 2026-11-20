@@ -91,4 +91,13 @@ void main() {
       }
     });
   });
+
+  test('a home set by the app fills an empty environment and reaches a child process', () {
+    setBitwindowHome('/app/Library/Application Support/BitWindowHome');
+
+    expect(bitwindowHome(), '/app/Library/Application Support/BitWindowHome');
+    expect(instanceEnvironment()[bitwindowHomeKey], '/app/Library/Application Support/BitWindowHome');
+    expect(bitwindowHome({}), '/app/Library/Application Support/BitWindowHome');
+    expect(bitwindowHome({bitwindowHomeKey: '/env'}), '/env', reason: 'the environment wins');
+  });
 }

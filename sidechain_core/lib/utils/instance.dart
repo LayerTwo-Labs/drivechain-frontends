@@ -20,10 +20,18 @@ String _setting(Map<String, String>? env, String key) {
   return value.isNotEmpty ? value : _defines[key]!;
 }
 
+String? _phoneHome;
+
+/// Sets BITWINDOW_HOME for this process when the environment has none. Dart cannot read the process environment on iOS.
+void setBitwindowHome(String home) => _phoneHome = home;
+
 /// BITWINDOW_HOME, or null when it is not set.
 String? bitwindowHome([Map<String, String>? env]) {
   final home = _setting(env, bitwindowHomeKey);
-  return home.isEmpty ? null : home;
+  if (home.isEmpty) {
+    return _phoneHome;
+  }
+  return home;
 }
 
 /// BITWINDOW_PORT_OFFSET, or 0 when it is not set.
