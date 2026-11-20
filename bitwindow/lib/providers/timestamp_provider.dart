@@ -29,6 +29,7 @@ class TimestampProvider extends ChangeNotifier {
   String? modelError;
 
   Timer? _pollTimer;
+  final SyncedTipWatch _tip = SyncedTipWatch();
 
   TimestampProvider() {
     _bitwindowRPC.addListener(_onBitwindowConnectionChanged);
@@ -49,15 +50,14 @@ class TimestampProvider extends ChangeNotifier {
   }
 
   void _onNewBlock() {
-    if (_syncProvider.isSynced) {
+    if (_tip.moved(_syncProvider, synced: _syncProvider.isSynced)) {
       fetch();
     }
   }
 
   Future<void> fetch() async {
+    final (shownTimestamps, shownError) = (timestamps, modelError);
     isLoading = true;
-    modelError = null;
-    notifyListeners();
 
     try {
       timestamps = await _bitwindowRPC.misc.listTimestamps();
@@ -69,7 +69,9 @@ class TimestampProvider extends ChangeNotifier {
       modelError = e.toString();
     } finally {
       isLoading = false;
-      notifyListeners();
+      if (shownError != modelError || !listEquals(shownTimestamps, timestamps)) {
+        notifyListeners();
+      }
     }
   }
 
