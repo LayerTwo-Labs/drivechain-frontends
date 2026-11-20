@@ -96,6 +96,15 @@ type Server struct {
 
 	recentTxsMu sync.Mutex
 	recentTxs   *recentTxsEntry
+
+	tipStatsMu    sync.Mutex
+	tipStatsCache *tipStatsEntry
+}
+
+type tipStatsEntry struct {
+	tip          string
+	difficulty   float64
+	avgBlockTime float64
 }
 
 type recentTxsEntry struct {
@@ -1113,29 +1122,9 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.G
 		return nil, fmt.Errorf("get blockchain info: %w", err)
 	}
 
-	// Calculate average block time from last 144 blocks
-	avgBlockTime, err := s.calculateAverageBlockTime(ctx, int64(blockchainInfo.Msg.Blocks))
+	tipStats, err := s.tipStats(ctx, bitcoind, blockchainInfo.Msg.Blocks, blockchainInfo.Msg.BestBlockHash)
 	if err != nil {
-		return nil, fmt.Errorf("calculate average block time: %w", err)
-	}
-
-	// Get difficulty from latest block
-	difficulty := 0.0
-	if blockchainInfo.Msg.Blocks > 0 {
-		hash, err := bitcoind.GetBlockHash(ctx, connectv1.NewRequest(&corepb.GetBlockHashRequest{
-			Height: blockchainInfo.Msg.Blocks,
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("get latest block hash: %w", err)
-		}
-		block, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
-			Hash:      hash.Msg.Hash,
-			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("get latest block: %w", err)
-		}
-		difficulty = block.Msg.Difficulty
+		return nil, err
 	}
 
 	networkInfo, err := bitcoind.GetNetworkInfo(ctx, connectv1.NewRequest(&corepb.GetNetworkInfoRequest{}))
@@ -1176,12 +1165,12 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.G
 
 	return &pb.GetNetworkStatsResponse{
 		NetworkHashrate:    0, // Requires getmininginfo (mining-specific)
-		Difficulty:         difficulty,
+		Difficulty:         tipStats.difficulty,
 		PeerCount:          int32(len(peerInfo.Msg.Peers)),
 		TotalBytesReceived: netTotals.Msg.TotalBytesRecv,
 		TotalBytesSent:     netTotals.Msg.TotalBytesSent,
 		BlockHeight:        int64(blockchainInfo.Msg.Blocks),
-		AvgBlockTime:       avgBlockTime,
+		AvgBlockTime:       tipStats.avgBlockTime,
 		NetworkVersion:     networkInfo.Msg.Version,
 		Subversion:         networkInfo.Msg.Subversion,
 		ConnectionsIn:      connectionsIn,
@@ -1228,61 +1217,59 @@ func (s *Server) processBandwidth(ctx context.Context, name string) (*pb.Process
 	}, nil
 }
 
-func (s *Server) calculateAverageBlockTime(ctx context.Context, currentHeight int64) (float64, error) {
-	// Get blocks from last 144 blocks or from genesis if we don't have that many
-	lookback := min(int64(144), currentHeight)
-	if lookback <= 1 {
-		return 600.0, nil // Default to 10 minutes if not enough blocks
+// tipStats returns the difficulty of the tip and the average block time of
+// the last 144 blocks, read one time per tip.
+func (s *Server) tipStats(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, height uint32, hash string) (*tipStatsEntry, error) {
+	s.tipStatsMu.Lock()
+	defer s.tipStatsMu.Unlock()
+	if s.tipStatsCache != nil && s.tipStatsCache.tip == hash {
+		return s.tipStatsCache, nil
 	}
 
-	// Get the first block in range
-	firstHeight := currentHeight - lookback
-	firstBlock, err := s.getBlockAtHeight(ctx, firstHeight)
-	if err != nil {
-		return 0, fmt.Errorf("get first block: %w", err)
+	stats := &tipStatsEntry{tip: hash, avgBlockTime: 600.0}
+	if height == 0 {
+		s.tipStatsCache = stats
+		return stats, nil
 	}
 
-	// Get the last block (current tip)
-	lastBlock, err := s.getBlockAtHeight(ctx, currentHeight)
-	if err != nil {
-		return 0, fmt.Errorf("get last block: %w", err)
-	}
-
-	// Calculate average
-	timeDiff := lastBlock - firstBlock
-	if timeDiff <= 0 {
-		return 600.0, nil
-	}
-
-	return float64(timeDiff) / float64(lookback), nil
-}
-
-func (s *Server) getBlockAtHeight(ctx context.Context, height int64) (int64, error) {
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("bitcoind: %w", err)
-	}
-
-	hash, err := bitcoind.GetBlockHash(ctx, connectv1.NewRequest(&corepb.GetBlockHashRequest{
-		Height: uint32(height),
-	}))
-	if err != nil {
-		return 0, fmt.Errorf("get block hash: %w", err)
-	}
-
-	block, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
-		Hash:      hash.Msg.Hash,
+	tip, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
+		Hash:      hash,
 		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
 	if err != nil {
-		return 0, fmt.Errorf("get block: %w", err)
+		return nil, fmt.Errorf("get latest block: %w", err)
+	}
+	stats.difficulty = tip.Msg.Difficulty
+
+	// Default to 10 minutes if there are not enough blocks.
+	lookback := min(uint32(144), height)
+	if lookback > 1 {
+		if tip.Msg.Time == nil {
+			return nil, fmt.Errorf("block time is nil for height %d", height)
+		}
+		firstHash, err := bitcoind.GetBlockHash(ctx, connectv1.NewRequest(&corepb.GetBlockHashRequest{
+			Height: height - lookback,
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("calculate average block time: get first block hash: %w", err)
+		}
+		first, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
+			Hash:      firstHash.Msg.Hash,
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("calculate average block time: get first block: %w", err)
+		}
+		if first.Msg.Time == nil {
+			return nil, fmt.Errorf("block time is nil for height %d", height-lookback)
+		}
+		if timeDiff := tip.Msg.Time.Seconds - first.Msg.Time.Seconds; timeDiff > 0 {
+			stats.avgBlockTime = float64(timeDiff) / float64(lookback)
+		}
 	}
 
-	if block.Msg.Time == nil {
-		return 0, fmt.Errorf("block time is nil for height %d", height)
-	}
-
-	return block.Msg.Time.Seconds, nil
+	s.tipStatsCache = stats
+	return stats, nil
 }
 
 func (s *Server) checkElectrumUTXO(ctx context.Context, walletID string, txid string, vout uint32) (bool, error) {
