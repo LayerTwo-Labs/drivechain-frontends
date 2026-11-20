@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"os"
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2141,6 +2143,19 @@ func TestService_ListRecentTransactions(t *testing.T) {
 	})
 }
 
+// binaryPids answers GetBinaryStatus with a running process for each named binary.
+type binaryPids struct {
+	orchrpc.UnimplementedOrchestratorServiceHandler
+	pids map[string]int32
+}
+
+func (b binaryPids) GetBinaryStatus(_ context.Context, req *orchpb.GetBinaryStatusRequest) (*orchpb.GetBinaryStatusResponse, error) {
+	pid, ok := b.pids[req.Name]
+	return &orchpb.GetBinaryStatusResponse{
+		Status: &orchpb.BinaryStatusMsg{Name: req.Name, Running: ok, Pid: pid},
+	}, nil
+}
+
 func TestService_GetNetworkStats(t *testing.T) {
 	t.Parallel()
 
@@ -2230,7 +2245,11 @@ func TestService_GetNetworkStats(t *testing.T) {
 				},
 			}, nil).Times(2)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
+		ownPid := int32(os.Getpid())
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db,
+			apitests.WithBitcoind(mockBitcoind),
+			apitests.WithOrchestratorControl(binaryPids{pids: map[string]int32{"bitcoind": ownPid}}),
+		))
 
 		_, err := cli.GetNetworkStats(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
@@ -2246,6 +2265,11 @@ func TestService_GetNetworkStats(t *testing.T) {
 		assert.Equal(t, int32(250000), resp.NetworkVersion)
 		assert.Equal(t, "/Satoshi:25.0.0/", resp.Subversion)
 		assert.Equal(t, 12345.67, resp.Difficulty)
+		if runtime.GOOS != "windows" {
+			require.NotNil(t, resp.BitcoindBandwidth)
+			assert.Equal(t, ownPid, resp.BitcoindBandwidth.Pid)
+		}
+		assert.Nil(t, resp.EnforcerBandwidth)
 	})
 
 	for _, tc := range []struct {
