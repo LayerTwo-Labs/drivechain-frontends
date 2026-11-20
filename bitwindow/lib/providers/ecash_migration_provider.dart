@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/rpcs/stream_or_poll.dart';
 
 /// The bottom nav label a saved migration asks for, empty when no swap runs.
 String migrationNavLabel(ECashMigrationStatus? status) {
@@ -13,14 +15,15 @@ String migrationNavLabel(ECashMigrationStatus? status) {
   return 'Swapping to ${id[0].toUpperCase()}${id.substring(1)}';
 }
 
-/// Polls the saved ECX migration so the bottom nav can reopen its dialog.
+/// Watches the saved ECX migration so the bottom nav can reopen its dialog.
+/// It polls each [interval] while the stream is down.
 class ECashMigrationProvider extends ChangeNotifier {
   ECashMigrationProvider({this.interval = const Duration(seconds: 3)});
 
   final Duration interval;
   OrchestratorRPC get _rpc => GetIt.I.get<OrchestratorRPC>();
 
-  Timer? _timer;
+  StreamOrPoll<WatchECashMigrationStatusResponse, GetECashMigrationStatusResponse>? _watch;
   ECashMigrationStatus? _status;
   String? modelError;
 
@@ -29,32 +32,59 @@ class ECashMigrationProvider extends ChangeNotifier {
   bool get swapping => navLabel.isNotEmpty;
 
   void start() {
-    if (_timer != null) {
+    if (_watch != null) {
       return;
     }
-    _timer = Timer.periodic(interval, (_) => unawaited(refresh()));
-    unawaited(refresh());
+    final rpc = _rpc;
+    _watch = StreamOrPoll<WatchECashMigrationStatusResponse, GetECashMigrationStatusResponse>(
+      subscribe: rpc.watchECashMigrationStatus,
+      onFrame: applyWatchFrame,
+      isHeartbeat: (frame) => frame.heartbeat,
+      fetch: rpc.getECashMigrationStatus,
+      onPoll: (resp) => _apply(resp.status),
+      onPollError: (error) => modelError = error.toString(),
+      pollInterval: interval,
+      onTransportDeath: rpc.recreateConnection,
+      logger: GetIt.I.get<Logger>(),
+      tag: 'ECashMigrationProvider',
+    )..start();
+  }
+
+  /// Applies one WatchECashMigrationStatus frame.
+  @visibleForTesting
+  void applyWatchFrame(WatchECashMigrationStatusResponse frame) {
+    if (frame.heartbeat) {
+      return;
+    }
+    _apply(frame.status);
   }
 
   Future<void> refresh() async {
+    // The stream holds the newest status, and an older reply would win.
+    if (_watch?.streaming ?? false) {
+      return;
+    }
     try {
-      final next = (await _rpc.getECashMigrationStatus()).status;
-      modelError = null;
-      if (migrationNavLabel(next) == navLabel && next.phase == _status?.phase) {
-        _status = next;
-        return;
-      }
-      _status = next;
-      notifyListeners();
+      _apply((await _rpc.getECashMigrationStatus()).status);
     } catch (error) {
       modelError = error.toString();
     }
   }
 
+  void _apply(ECashMigrationStatus next) {
+    modelError = null;
+    if (migrationNavLabel(next) == navLabel && next.phase == _status?.phase) {
+      _status = next;
+      return;
+    }
+    _status = next;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
-    _timer?.cancel();
-    _timer = null;
+    unawaited(_watch?.dispose());
+    _watch = null;
     super.dispose();
   }
 }
