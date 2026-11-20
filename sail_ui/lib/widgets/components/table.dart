@@ -511,7 +511,9 @@ class _SailTableState extends State<SailTable> {
         textScaler: MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 2),
       );
       textPainter.layout();
-      return textPainter.width + padding + 1;
+      final width = textPainter.width;
+      textPainter.dispose();
+      return width + padding + 1;
     }
 
     return defaultMinColumnWidth;
