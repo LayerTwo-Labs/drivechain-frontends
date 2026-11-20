@@ -382,6 +382,19 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         (i) => _reentered[i].text.trim().toLowerCase() == _words[i].toLowerCase(),
       );
 
+  /// The 1-based number of the first wrong word once every box holds a word, else null.
+  int? get _firstWrongWord {
+    if (_reentered.length != _words.length || _enteredCount != _words.length) {
+      return null;
+    }
+    for (var i = 0; i < _words.length; i++) {
+      if (_reentered[i].text.trim().toLowerCase() != _words[i].toLowerCase()) {
+        return i + 1;
+      }
+    }
+    return null;
+  }
+
   Future<void> _finish() => _complete(SeedBackup(_words.join(' '), ''));
 
   void _back() {
@@ -848,10 +861,16 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 onChanged: _spreadReentered,
               ),
               const SizedBox(height: 12),
-              SailText.secondary12(
-                '$_enteredCount of ${_words.length} entered',
-                color: _reenterMatches ? theme.colors.success : theme.colors.textSecondary,
-              ),
+              switch (_firstWrongWord) {
+                final wrong? => SailText.secondary12(
+                  'Word $wrong does not match your backup',
+                  color: theme.colors.error,
+                ),
+                null => SailText.secondary12(
+                  '$_enteredCount of ${_words.length} entered',
+                  color: _reenterMatches ? theme.colors.success : theme.colors.textSecondary,
+                ),
+              },
             ],
           ),
         ),
@@ -867,7 +886,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     final theme = SailTheme.of(context);
     final ready = switch (_stage) {
       _Stage.entropy => _wordsCurrent,
-      _Stage.reenter => true,
+      _Stage.reenter => _enteredCount == 0 || _reenterMatches,
       _Stage.import => _importValid,
     };
     final label = switch (_stage) {
@@ -903,9 +922,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                     case _Stage.reenter when _enteredCount == 0:
                       await _skipBackup(context);
                     case _Stage.reenter:
-                      if (_reenterMatches) {
-                        await _finish();
-                      }
+                      await _finish();
                     case _Stage.import:
                       await _finishImport();
                   }
