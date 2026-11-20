@@ -134,6 +134,8 @@ class SailTextField extends StatelessWidget {
           color: SailTheme.of(context).colors.text,
           fontSize: textSize,
           fontFamily: theme.chrome.fontFamily ?? (monospace ? SailFonts.mono : null),
+          // Inter draws the x in "9x8" as a times sign, which corrupts addresses and hex.
+          fontFeatures: const [FontFeature.disable('calt')],
         ),
         inputFormatters: [
           if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),

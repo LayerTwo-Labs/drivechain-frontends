@@ -85,4 +85,11 @@ void main() {
 
     expect(border(), isNot(resting));
   });
+
+  testWidgets('the text shows the letters as typed, with no contextual glyphs', (tester) async {
+    await tester.pumpWidget(_field());
+
+    final style = tester.widget<EditableText>(find.byType(EditableText)).style;
+    expect(style.fontFeatures, contains(const FontFeature.disable('calt')));
+  });
 }
