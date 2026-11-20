@@ -765,7 +765,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
     int successCount = 0;
     int failCount = 0;
 
-    // Sign and write each UTXO with progress updates and rate limiting
+    // Sign and write each UTXO with progress updates
     for (int i = 0; i < utxos.length; i++) {
       final utxo = utxos[i];
       final progress = 0.3 + (0.6 * (i / utxos.length));
@@ -788,11 +788,6 @@ class ProofOfFundsViewModel extends BaseViewModel {
           // Write line without signature
           final csvLine = 'BTC,${utxo.txid},${utxo.address},$message,,${utxo.amount},';
           buffer.writeln(csvLine);
-        }
-
-        // Rate limiting: small delay between UTXOs to prevent wallet lockup
-        if (i < utxos.length - 1) {
-          await Future.delayed(Duration(milliseconds: 100));
         }
       } catch (e) {
         log.e('Error signing for address ${utxo.address}: $e');
