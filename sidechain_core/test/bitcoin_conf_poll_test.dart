@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:connectrpc/connect.dart' as connect;
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +12,27 @@ class _Router extends Fake implements RootStackRouter {}
 
 class _Transport implements connect.Transport {
   GetBitcoinConfigResponse config = GetBitcoinConfigResponse(network: 'regtest', rpcPort: 18443, configContent: 'a=1');
+  // ignore: close_sinks
+  final frames = StreamController<WatchBitcoinConfigResponse>();
+  int unaryReads = 0;
+
+  /// Runs before a SetBitcoinConfigNetwork call answers.
+  void Function()? onSwitch;
+
+  /// Runs before a GetBitcoinConfig call answers.
+  void Function()? onRead;
+
+  @override
+  Future<connect.StreamResponse<I, O>> stream<I extends Object, O extends Object>(
+    connect.Spec<I, O> spec,
+    Stream<I> input, [
+    connect.CallOptions? options,
+  ]) async {
+    if (spec.procedure != specs.BitcoinConfService.watchBitcoinConfig.procedure) {
+      throw UnimplementedError(spec.procedure);
+    }
+    return connect.StreamResponse(spec, connect.Headers(), frames.stream as Stream<O>, connect.Headers());
+  }
 
   @override
   Future<connect.UnaryResponse<I, O>> unary<I extends Object, O extends Object>(
@@ -19,7 +42,12 @@ class _Transport implements connect.Transport {
   ]) async {
     final Object message;
     if (spec.procedure == specs.BitcoinConfService.getBitcoinConfig.procedure) {
+      unaryReads++;
       message = config.deepCopy();
+      onRead?.call();
+    } else if (spec.procedure == specs.BitcoinConfService.setBitcoinConfigNetwork.procedure) {
+      onSwitch?.call();
+      message = SetBitcoinConfigNetworkResponse();
     } else if (spec.procedure == specs.BitcoinConfService.listNetworks.procedure) {
       message = ListNetworksResponse(
         networks: [NetworkOption(id: 'regtest', network: 'regtest', isCurrent: true)],
@@ -36,7 +64,10 @@ class _Transport implements connect.Transport {
 
 void main() {
   setUp(() => GetIt.I.registerSingleton<Logger>(Logger(level: Level.off)));
-  tearDown(() => GetIt.I.reset());
+  tearDown(() {
+    NetworkScopedRegistry.clearRegistrations();
+    return GetIt.I.reset();
+  });
 
   test('a poll with the same config does not notify', () async {
     final transport = _Transport();
@@ -58,4 +89,84 @@ void main() {
     expect(notifies, 2);
     expect(conf.network, BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
   });
+
+  test('a watch frame applies the config and a heartbeat does not notify', () async {
+    final transport = _Transport();
+    final conf = await BitcoinConfProvider.withTransport(_Router(), transport);
+    conf.startWatch();
+    var notifies = 0;
+    conf.addListener(() => notifies++);
+
+    transport.frames.add(WatchBitcoinConfigResponse(heartbeat: true));
+    transport.frames.add(
+      WatchBitcoinConfigResponse(
+        config: transport.config.deepCopy()..configContent = 'a=3',
+        networks: [NetworkOption(id: 'regtest', network: 'regtest', isCurrent: true)],
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(notifies, 1);
+    expect(conf.getCurrentConfigContent(), contains('a=3'));
+    conf.dispose();
+  });
+
+  test('a network switch clears network state also when a frame lands first', () async {
+    final transport = _Transport();
+    final conf = await BitcoinConfProvider.withTransport(_Router(), transport);
+    conf.startWatch();
+    final signet = transport.config.deepCopy()..network = 'signet';
+    transport.frames.add(WatchBitcoinConfigResponse(config: transport.config.deepCopy()));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    var cleared = 0;
+    NetworkScopedRegistry.enrol(_Scoped(() => cleared++));
+    transport.onSwitch = () {
+      transport.config = signet;
+      transport.frames.add(WatchBitcoinConfigResponse(config: signet));
+    };
+    await conf.updateNetwork(BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(conf.network, BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
+    expect(cleared, 1);
+    conf.dispose();
+  });
+
+  test('an old-network frame during the switch read does not drop the reset', () async {
+    final transport = _Transport();
+    final conf = await BitcoinConfProvider.withTransport(_Router(), transport);
+    conf.startWatch();
+    final regtest = transport.config.deepCopy();
+    final signet = transport.config.deepCopy()..network = 'signet';
+    transport.frames.add(WatchBitcoinConfigResponse(config: regtest));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    var cleared = 0;
+    NetworkScopedRegistry.enrol(_Scoped(() => cleared++));
+    transport.onSwitch = () => transport.config = signet;
+    transport.onRead = () {
+      transport.onRead = null;
+      transport.frames.add(WatchBitcoinConfigResponse(config: regtest.deepCopy()..configContent = 'a=9'));
+    };
+    await conf.updateNetwork(BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(conf.network, BitcoinNetwork.BITCOIN_NETWORK_REGTEST);
+    expect(cleared, 0);
+
+    transport.frames.add(WatchBitcoinConfigResponse(config: signet));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(conf.network, BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
+    expect(cleared, 1);
+    conf.dispose();
+  });
+}
+
+class _Scoped implements NetworkScoped {
+  _Scoped(this.onChange);
+
+  final void Function() onChange;
+
+  @override
+  Future<void> onNetworkChanged() async => onChange();
 }

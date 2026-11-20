@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
+import 'package:sidechain_core/rpcs/stream_or_poll.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// Thrown when the user declines a requirement the backend reported, so the
@@ -36,7 +37,12 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   final Logger log = GetIt.I.get<Logger>();
   late BitcoinConfServiceClient _client;
-  Timer? _pollTimer;
+  StreamOrPoll<WatchBitcoinConfigResponse, WatchBitcoinConfigResponse>? _watch;
+
+  static const _pollInterval = Duration(seconds: 5);
+
+  /// A user network switch that no read showed yet.
+  ({BitcoinNetwork fromNetwork, String fromECashId, BitcoinNetwork toNetwork, String toECashId})? _pendingSwitch;
 
   bool hasPrivateBitcoinConf = false;
   String? configPath;
@@ -109,7 +115,9 @@ class BitcoinConfProvider extends ChangeNotifier {
     final instance = BitcoinConfProvider._create(router);
     instance._initClient();
     await instance.loadConfig(isFirst: true);
-    instance._startPolling();
+    if (!Environment.isInTest) {
+      instance.startWatch();
+    }
     return instance;
   }
 
@@ -130,11 +138,27 @@ class BitcoinConfProvider extends ChangeNotifier {
     _client = BitcoinConfServiceClient(transport);
   }
 
-  void _startPolling() {
-    if (Environment.isInTest) {
-      return;
-    }
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => loadConfig());
+  /// Starts the WatchBitcoinConfig stream. It polls each 5 s while the
+  /// stream is down.
+  @visibleForTesting
+  void startWatch() {
+    _watch ??= StreamOrPoll<WatchBitcoinConfigResponse, WatchBitcoinConfigResponse>(
+      // A recreated client replaces _client, so resolve it per call.
+      subscribe: () => _client.watchBitcoinConfig(WatchBitcoinConfigRequest()),
+      onFrame: (frame) {
+        if (!frame.heartbeat) {
+          _apply(frame.config, frame.networks);
+        }
+      },
+      isHeartbeat: (frame) => frame.heartbeat,
+      fetch: _read,
+      onPoll: (resp) => _apply(resp.config, resp.networks),
+      onPollError: _onLoadError,
+      pollInterval: _pollInterval,
+      onTransportDeath: _initClient,
+      logger: log,
+      tag: 'BitcoinConfProvider',
+    )..start();
   }
 
   bool _isConnectionError(Object e) {
@@ -145,78 +169,111 @@ class BitcoinConfProvider extends ChangeNotifier {
         msg.contains('Connection terminated');
   }
 
-  Future<void> loadConfig({bool isFirst = false, bool userInitiated = false}) async {
+  Future<WatchBitcoinConfigResponse> _read() async {
+    final resp = await _client.getBitcoinConfig(GetBitcoinConfigRequest());
+    final networks = (await _client.listNetworks(ListNetworksRequest())).networks;
+    return WatchBitcoinConfigResponse(config: resp, networks: networks);
+  }
+
+  Future<void> loadConfig({bool isFirst = false}) async {
     try {
-      final resp = await _client.getBitcoinConfig(GetBitcoinConfigRequest());
-      final newNetworks = (await _client.listNetworks(ListNetworksRequest())).networks;
-      final oldNetwork = network;
-      final oldECashNetworkId = ecashNetworkId;
-      final newNetwork = _parseNetwork(resp.network);
-      final newConfigPath = resp.configPath.isEmpty ? null : resp.configPath;
-      final newDefaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
-      final newECashDatadir = resp.ecashDatadir.isEmpty ? null : resp.ecashDatadir;
-      final newConfigContent = resp.configContent.isEmpty ? _configContent : resp.configContent;
-
-      final changed =
-          isFirst ||
-          hasPrivateBitcoinConf != resp.hasPrivateConf ||
-          configPath != newConfigPath ||
-          defaultDatadir != newDefaultDatadir ||
-          ecashDatadir != newECashDatadir ||
-          ecashNetworkId != resp.ecashNetworkId ||
-          ecashEsploraUrl != resp.ecashEsploraUrl ||
-          ecashExplorerHost != resp.ecashExplorerHost ||
-          !listEquals(networks, newNetworks) ||
-          rpcPort != resp.rpcPort ||
-          mustSelectDatadir != resp.mustSelectDatadir ||
-          network != newNetwork ||
-          _configContent != newConfigContent;
-
-      hasPrivateBitcoinConf = resp.hasPrivateConf;
-      configPath = newConfigPath;
-      defaultDatadir = newDefaultDatadir;
-      ecashDatadir = newECashDatadir;
-      ecashNetworkId = resp.ecashNetworkId;
-      ecashEsploraUrl = resp.ecashEsploraUrl;
-      ecashExplorerHost = resp.ecashExplorerHost;
-      networks = newNetworks;
-      rpcPort = resp.rpcPort;
-      mustSelectDatadir = resp.mustSelectDatadir;
-      network = newNetwork;
-
-      if (_configContent != newConfigContent) {
-        _configContent = newConfigContent;
-        currentConfig = BitcoinConfig.parse(newConfigContent);
-      }
-
-      // Only a real user switch refreshes per-network state; the 5s poll must
-      // not, or the boot network reconciliation flashes balances.
-      //
-      // The eCash rows share one BitcoinNetwork, so the id has to count as a
-      // change too. Without it the outgoing fork's blocks and balances stay on
-      // screen, and BlockchainProvider only fills an empty list — so they never
-      // go away.
-      final movedChain =
-          oldNetwork != network ||
-          (network == BitcoinNetwork.BITCOIN_NETWORK_ECASH &&
-              oldECashNetworkId.isNotEmpty &&
-              oldECashNetworkId != ecashNetworkId);
-      if (!isFirst && userInitiated && movedChain) {
-        _onNetworkChanged();
-      }
-
-      if (changed) {
-        notifyListeners();
-      }
+      final resp = await _read();
+      _apply(resp.config, resp.networks, isFirst: isFirst);
     } catch (e) {
-      if (!isExpectedBootError(e)) {
-        log.e('BitcoinConfProvider: failed to load config: $e');
-      }
-      if (_isConnectionError(e)) {
-        _initClient();
-      }
+      _onLoadError(e);
     }
   }
+
+  /// Reads the config after a write. The stream sends the same change, and a
+  /// frame that arrives first wins.
+  Future<void> _reload() => _watch?.refresh() ?? loadConfig();
+
+  void _apply(GetBitcoinConfigResponse resp, List<NetworkOption> newNetworks, {bool isFirst = false}) {
+    final newNetwork = _parseNetwork(resp.network);
+    final newConfigPath = resp.configPath.isEmpty ? null : resp.configPath;
+    final newDefaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
+    final newECashDatadir = resp.ecashDatadir.isEmpty ? null : resp.ecashDatadir;
+    final newConfigContent = resp.configContent.isEmpty ? _configContent : resp.configContent;
+
+    final changed =
+        isFirst ||
+        hasPrivateBitcoinConf != resp.hasPrivateConf ||
+        configPath != newConfigPath ||
+        defaultDatadir != newDefaultDatadir ||
+        ecashDatadir != newECashDatadir ||
+        ecashNetworkId != resp.ecashNetworkId ||
+        ecashEsploraUrl != resp.ecashEsploraUrl ||
+        ecashExplorerHost != resp.ecashExplorerHost ||
+        !listEquals(networks, newNetworks) ||
+        rpcPort != resp.rpcPort ||
+        mustSelectDatadir != resp.mustSelectDatadir ||
+        network != newNetwork ||
+        _configContent != newConfigContent;
+
+    hasPrivateBitcoinConf = resp.hasPrivateConf;
+    configPath = newConfigPath;
+    defaultDatadir = newDefaultDatadir;
+    ecashDatadir = newECashDatadir;
+    ecashNetworkId = resp.ecashNetworkId;
+    ecashEsploraUrl = resp.ecashEsploraUrl;
+    ecashExplorerHost = resp.ecashExplorerHost;
+    networks = newNetworks;
+    rpcPort = resp.rpcPort;
+    mustSelectDatadir = resp.mustSelectDatadir;
+    network = newNetwork;
+
+    if (_configContent != newConfigContent) {
+      _configContent = newConfigContent;
+      currentConfig = BitcoinConfig.parse(newConfigContent);
+    }
+
+    _settlePendingSwitch();
+
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  /// Only a real user switch refreshes per-network state; a config read must
+  /// not, or the boot network reconciliation flashes balances. The switch
+  /// settles on the first state that shows its target, from any source.
+  void _settlePendingSwitch() {
+    final pending = _pendingSwitch;
+    if (pending == null) {
+      return;
+    }
+    final reached =
+        network == pending.toNetwork &&
+        (network != BitcoinNetwork.BITCOIN_NETWORK_ECASH ||
+            pending.toECashId.isEmpty ||
+            ecashNetworkId == pending.toECashId);
+    if (!reached) {
+      return;
+    }
+    _pendingSwitch = null;
+    if (_movedChainFrom(pending.fromNetwork, pending.fromECashId)) {
+      _onNetworkChanged();
+    }
+  }
+
+  void _onLoadError(Object e) {
+    if (!isExpectedBootError(e)) {
+      log.e('BitcoinConfProvider: failed to load config: $e');
+    }
+    if (_isConnectionError(e)) {
+      _initClient();
+    }
+  }
+
+  // The eCash rows share one BitcoinNetwork, so the id has to count as a
+  // change too. Without it the outgoing fork's blocks and balances stay on
+  // screen, and BlockchainProvider only fills an empty list — so they never
+  // go away.
+  bool _movedChainFrom(BitcoinNetwork oldNetwork, String oldECashNetworkId) =>
+      oldNetwork != network ||
+      (network == BitcoinNetwork.BITCOIN_NETWORK_ECASH &&
+          oldECashNetworkId.isNotEmpty &&
+          oldECashNetworkId != ecashNetworkId);
 
   void _onNetworkChanged() {
     unawaited(NetworkScopedRegistry.clearAll());
@@ -244,6 +301,12 @@ class BitcoinConfProvider extends ChangeNotifier {
   /// [networkId] is the catalog id the user picked. The eCash entries share one
   /// [BitcoinNetwork] slot, so the id is the only thing that names the fork.
   Future<void> updateNetwork(BitcoinNetwork newNetwork, {String dataDir = '', String networkId = ''}) async {
+    _pendingSwitch = (
+      fromNetwork: network,
+      fromECashId: ecashNetworkId,
+      toNetwork: newNetwork,
+      toECashId: networkId,
+    );
     try {
       if (networkSwapper != null) {
         // bitwindowd keys its own runtime on the network, and forwards the id
@@ -255,8 +318,9 @@ class BitcoinConfProvider extends ChangeNotifier {
           SetBitcoinConfigNetworkRequest(network: target, dataDir: dataDir),
         );
       }
-      await loadConfig(userInitiated: true);
+      await _reload();
     } catch (e) {
+      _pendingSwitch = null;
       log.e('BitcoinConfProvider: failed to update network: $e');
       rethrow;
     }
@@ -402,7 +466,7 @@ class BitcoinConfProvider extends ChangeNotifier {
           network: _networkToString(forNetwork),
         ),
       );
-      await loadConfig();
+      await _reload();
     } catch (e) {
       log.e('BitcoinConfProvider: failed to update datadir: $e');
       rethrow;
@@ -430,7 +494,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   Future<void> writeConfig(String content) async {
     try {
       await _client.writeBitcoinConfig(WriteBitcoinConfigRequest(configContent: content));
-      await loadConfig();
+      await _reload();
     } catch (e) {
       log.e('BitcoinConfProvider: failed to write config: $e');
       rethrow;
@@ -439,7 +503,8 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
+    unawaited(_watch?.dispose());
+    _watch = null;
     super.dispose();
   }
 
