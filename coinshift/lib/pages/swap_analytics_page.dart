@@ -58,6 +58,49 @@ class _AnalyticsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rangePicker = SailDropdownButton<AnalyticsTimeRange>(
+      value: model.selectedTimeRange,
+      items: AnalyticsTimeRange.values
+          .map(
+            (range) => SailDropdownItem<AnalyticsTimeRange>(
+              value: range,
+              label: range.displayName,
+            ),
+          )
+          .toList(),
+      onChanged: (range) {
+        if (range != null) {
+          model.setTimeRange(range);
+        }
+      },
+    );
+    final refresh = SailButton(
+      label: 'Refresh',
+      small: true,
+      variant: ButtonVariant.secondary,
+      loading: model.isLoading,
+      onPressed: () async => await model.refresh(),
+    );
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailCard(
+        child: Wrap(
+          spacing: SailStyleValues.padding08,
+          runSpacing: SailStyleValues.padding08,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: SailStyleValues.padding08),
+              child: SailText.primary16('Swap Analytics', bold: true),
+            ),
+            SailText.secondary13('Time Range:'),
+            rangePicker,
+            refresh,
+          ],
+        ),
+      );
+    }
+
     return SailCard(
       child: SailRow(
         spacing: SailStyleValues.padding16,
@@ -68,29 +111,8 @@ class _AnalyticsHeader extends StatelessWidget {
             spacing: SailStyleValues.padding08,
             children: [
               SailText.secondary13('Time Range:'),
-              SailDropdownButton<AnalyticsTimeRange>(
-                value: model.selectedTimeRange,
-                items: AnalyticsTimeRange.values
-                    .map(
-                      (range) => SailDropdownItem<AnalyticsTimeRange>(
-                        value: range,
-                        label: range.displayName,
-                      ),
-                    )
-                    .toList(),
-                onChanged: (range) {
-                  if (range != null) {
-                    model.setTimeRange(range);
-                  }
-                },
-              ),
-              SailButton(
-                label: 'Refresh',
-                small: true,
-                variant: ButtonVariant.secondary,
-                loading: model.isLoading,
-                onPressed: () async => await model.refresh(),
-              ),
+              rangePicker,
+              refresh,
             ],
           ),
         ],
@@ -109,6 +131,25 @@ class _StatsCardsRow extends StatelessWidget {
     final theme = SailTheme.of(context);
     final formatter = GetIt.I<FormatterProvider>();
     final stats = model.statistics;
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return ListenableBuilder(
+        listenable: formatter,
+        builder: (context, child) => SailStatList(
+          children: [
+            SailStatRow(title: 'Total Swaps', subtitle: '', value: stats.totalSwaps.toString()),
+            SailStatRow(
+              title: 'Completed',
+              subtitle: '${(stats.successRate * 100).toStringAsFixed(1)}% success',
+              value: stats.completedSwaps.toString(),
+            ),
+            SailStatRow(title: 'Pending', subtitle: '', value: stats.pendingSwaps.toString()),
+            SailStatRow(title: 'Volume (L2)', subtitle: '', value: formatter.formatSats(stats.l2AmountTotal)),
+            SailStatRow(title: 'Volume (L1)', subtitle: '', value: formatter.formatSats(stats.l1AmountTotal)),
+          ],
+        ),
+      );
+    }
 
     return ListenableBuilder(
       listenable: formatter,

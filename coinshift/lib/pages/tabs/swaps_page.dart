@@ -20,7 +20,7 @@ class SwapsTabPage extends StatelessWidget {
             spacing: SailStyleValues.padding16,
             children: [
               // Header with stats
-              _SwapStats(model: model),
+              SwapStats(model: model),
 
               // Main content
               Expanded(
@@ -49,41 +49,46 @@ class SwapsTabPage extends StatelessWidget {
   }
 }
 
-class _SwapStats extends StatelessWidget {
+@visibleForTesting
+class SwapStats extends StatelessWidget {
   final SwapsPageViewModel model;
 
-  const _SwapStats({required this.model});
+  const SwapStats({super.key, required this.model});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final items = [
+      _StatItem(
+        label: 'Total Swaps',
+        value: model.totalSwaps.toString(),
+        color: theme.colors.text,
+      ),
+      _StatItem(
+        label: 'Active',
+        value: model.activeSwaps.toString(),
+        color: theme.colors.info,
+      ),
+      _StatItem(
+        label: 'Ready to Claim',
+        value: model.claimableSwaps.toString(),
+        color: theme.colors.success,
+      ),
+      _StatItem(
+        label: 'Completed',
+        value: model.completedSwaps.toString(),
+        color: theme.colors.textSecondary,
+      ),
+    ];
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailCard(
+        child: Wrap(spacing: SailStyleValues.padding16, runSpacing: SailStyleValues.padding08, children: items),
+      );
+    }
 
     return SailCard(
-      child: SailRow(
-        spacing: SailStyleValues.padding32,
-        children: [
-          _StatItem(
-            label: 'Total Swaps',
-            value: model.totalSwaps.toString(),
-            color: theme.colors.text,
-          ),
-          _StatItem(
-            label: 'Active',
-            value: model.activeSwaps.toString(),
-            color: theme.colors.info,
-          ),
-          _StatItem(
-            label: 'Ready to Claim',
-            value: model.claimableSwaps.toString(),
-            color: theme.colors.success,
-          ),
-          _StatItem(
-            label: 'Completed',
-            value: model.completedSwaps.toString(),
-            color: theme.colors.textSecondary,
-          ),
-        ],
-      ),
+      child: SailRow(spacing: SailStyleValues.padding32, children: items),
     );
   }
 }
@@ -106,7 +111,10 @@ class _StatItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.secondary12(label),
-        SailText.primary24(value, bold: true, color: color),
+        if (SailStyleValues.phoneLayout(context))
+          SailText.primary15(value, bold: true)
+        else
+          SailText.primary24(value, bold: true, color: color),
       ],
     );
   }
