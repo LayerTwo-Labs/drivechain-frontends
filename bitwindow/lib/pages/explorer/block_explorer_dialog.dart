@@ -35,6 +35,10 @@ String humanizeTransactionLoadError(Object e) {
   return 'Could not load this transaction. Try again, or check the daemon logs if the problem persists.';
 }
 
+/// Keeps [keep] characters at each end of a long value, with an ellipsis between.
+String middleEllipsis(String value, {int keep = 20}) =>
+    value.length <= keep * 2 + 1 ? value : '${value.substring(0, keep)}…${value.substring(value.length - keep)}';
+
 /// The next block hash, or "None" for the chain tip.
 String nextBlockHashText(Block block) => block.nextBlockHash.isEmpty ? 'None' : block.nextBlockHash;
 
@@ -121,14 +125,18 @@ class BlockExplorerDialog extends StatelessWidget {
                       }
                       final adjustedIndex = model.isLoadingMoreBlocks ? index - 1 : index;
                       final block = model.blocks[adjustedIndex];
-                      return Row(
-                        children: [
-                          _BlockColumn(
-                            block: block,
-                            onDoubleTap: () => _showBlockDetails(context, block),
-                          ),
-                          if (adjustedIndex < model.blocks.length - 1) const _BlockConnector(),
-                        ],
+                      return Align(
+                        alignment: Alignment.topCenter,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _BlockColumn(
+                              block: block,
+                              onDoubleTap: () => _showBlockDetails(context, block),
+                            ),
+                            if (adjustedIndex > 0) const _BlockConnector(),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -851,43 +859,68 @@ class _BlockColumn extends StatelessWidget {
             width: 1,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Block height as header
-            Container(
-              padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
-              margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: context.sailTheme.colors.divider,
-                    width: 1,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Block height as header
+              Container(
+                padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+                margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: context.sailTheme.colors.divider,
+                      width: 1,
+                    ),
                   ),
                 ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SailText.primary13(
+                      '${block.height}',
+                      monospace: true,
+                      color: context.sailTheme.colors.info,
+                    ),
+                    Flexible(
+                      child: SailText.secondary13(
+                        block.blockTime.toDateTime().toLocal().format(),
+                        monospace: true,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SailText.primary13(
-                    '${block.height}',
-                    monospace: true,
-                    color: context.sailTheme.colors.info,
-                  ),
-                  SailText.secondary13(
-                    block.blockTime.toDateTime().toLocal().format(),
-                    monospace: true,
-                  ),
-                ],
-              ),
-            ),
-            // Block details
-            BlockValue(label: 'Hash', value: block.hash),
-            BlockValue(label: 'Prev Hash', value: block.previousBlockHash),
-            BlockValue(label: 'Merkle Root', value: block.merkleRoot),
-            BlockValue(label: 'Bits', value: '0x${block.bits}'),
-          ],
+              _BlockValueLine(label: 'Hash', value: block.hash),
+              _BlockValueLine(label: 'Prev Hash', value: block.previousBlockHash),
+              _BlockValueLine(label: 'Merkle Root', value: block.merkleRoot),
+              _BlockValueLine(label: 'Bits', value: '0x${block.bits}'),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _BlockValueLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _BlockValueLine({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: SailStyleValues.padding04),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.primary13(label, monospace: true, color: context.sailTheme.colors.textTertiary),
+          SailText.secondary13(middleEllipsis(value), monospace: true),
+        ],
       ),
     );
   }
