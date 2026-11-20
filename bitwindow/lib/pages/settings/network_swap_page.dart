@@ -100,6 +100,74 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
     final theme = SailTheme.of(context);
     final fromName = widget.fromNetwork.toDisplayName();
     final toName = widget.toNetwork.toDisplayName();
+    final phone = SailStyleValues.phoneLayout(context);
+    final Widget icon;
+    if (_swapComplete) {
+      icon = SailSVG.fromAsset(SailSVGAsset.circleCheck, width: phone ? 20 : 32, color: theme.colors.success);
+    } else if (_error != null) {
+      icon = SailSVG.fromAsset(SailSVGAsset.circleAlert, width: phone ? 20 : 32, color: theme.colors.error);
+    } else {
+      icon = SailSVG.fromAsset(
+        SailSVGAsset.iconRestart,
+        color: theme.colors.primary,
+        width: phone ? 20 : 32,
+        height: phone ? 20 : 32,
+      );
+    }
+    final title = _swapComplete
+        ? 'Network Switch Complete'
+        : _error != null
+        ? 'Network Switch Failed'
+        : 'Switch Bitcoin Network';
+    final subtitle = _swapComplete
+        ? 'Switched from $fromName to $toName.'
+        : _error != null
+        ? _error!
+        : _isSwapping
+        ? 'Switching from $fromName to $toName...'
+        : 'BitWindow will swap bitcoind to $toName and reload its data — the app stays open.';
+    final progress = _isSwapping || _swapComplete || _error != null
+        ? DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colors.backgroundSecondary,
+              borderRadius: context.sailTheme.chrome.radiusSmall,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(SailStyleValues.padding12),
+              child: ProgressStepTile(
+                name: _rewindHeight == null ? _step.name : 'Rewinding to block $_rewindHeight, then switching network',
+                isCompleted: _step.isCompleted,
+                duration: _step.duration,
+                isActive: _isSwapping && !_step.isCompleted,
+              ),
+            ),
+          )
+        : null;
+    final buttons = <Widget>[
+      if (!_isSwapping) ...[
+        SailButton(
+          label: 'Cancel',
+          onPressed: () async => Navigator.of(context).pop(false),
+        ),
+        const SizedBox(width: SailStyleValues.padding12),
+        SailButton(
+          label: 'Switch to $toName',
+          variant: ButtonVariant.primary,
+          onPressed: () async => await _startSwap(),
+        ),
+      ] else if (_swapComplete)
+        SailButton(
+          label: 'Continue',
+          variant: ButtonVariant.primary,
+          onPressed: () async => _handleBack(),
+        )
+      else if (_error != null)
+        SailButton(
+          label: 'Close',
+          variant: ButtonVariant.secondary,
+          onPressed: () async => _handleBack(),
+        ),
+    ];
 
     return PopScope(
       canPop: !_isSwapping || _swapComplete || _error != null,
@@ -117,109 +185,48 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
           ),
         ),
         body: SafeArea(
-          child: Stack(
-            children: [
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: SizedBox(
-                    width: 800,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 100),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 30),
-                          SailRow(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            spacing: SailStyleValues.padding12,
-                            children: [
-                              if (_swapComplete)
-                                SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 32, color: theme.colors.success)
-                              else if (_error != null)
-                                SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 32, color: theme.colors.error)
-                              else
-                                SailSVG.fromAsset(
-                                  SailSVGAsset.iconRestart,
-                                  color: theme.colors.primary,
-                                  width: 32,
-                                  height: 32,
+          child: phone
+              ? SailPanelPage(
+                  title: title,
+                  leading: SizedBox(width: 20, height: 20, child: icon),
+                  subtitle: subtitle,
+                  actions: buttons.isEmpty ? null : Row(mainAxisAlignment: MainAxisAlignment.end, children: buttons),
+                  children: [?progress],
+                )
+              : Stack(
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                        child: SizedBox(
+                          width: 800,
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.only(bottom: 100),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 30),
+                                SailRow(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  spacing: SailStyleValues.padding12,
+                                  children: [
+                                    icon,
+                                    SailText.primary24(title, bold: true),
+                                  ],
                                 ),
-                              SailText.primary24(
-                                _swapComplete
-                                    ? 'Network Switch Complete'
-                                    : _error != null
-                                    ? 'Network Switch Failed'
-                                    : 'Switch Bitcoin Network',
-                                bold: true,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          SailText.secondary13(
-                            _swapComplete
-                                ? 'Switched from $fromName to $toName.'
-                                : _error != null
-                                ? _error!
-                                : _isSwapping
-                                ? 'Switching from $fromName to $toName...'
-                                : 'BitWindow will swap bitcoind to $toName and reload its data — the app stays open.',
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          if (_isSwapping || _swapComplete || _error != null)
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: theme.colors.backgroundSecondary,
-                                borderRadius: context.sailTheme.chrome.radiusSmall,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(SailStyleValues.padding12),
-                                child: ProgressStepTile(
-                                  name: _rewindHeight == null
-                                      ? _step.name
-                                      : 'Rewinding to block $_rewindHeight, then switching network',
-                                  isCompleted: _step.isCompleted,
-                                  duration: _step.duration,
-                                  isActive: _isSwapping && !_step.isCompleted,
-                                ),
-                              ),
+                                const SizedBox(height: 16),
+                                SailText.secondary13(subtitle, textAlign: TextAlign.center),
+                                const SizedBox(height: 24),
+                                ?progress,
+                              ],
                             ),
-                        ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    BottomActionBar(children: buttons),
+                  ],
                 ),
-              ),
-              BottomActionBar(
-                children: [
-                  if (!_isSwapping) ...[
-                    SailButton(
-                      label: 'Cancel',
-                      onPressed: () async => Navigator.of(context).pop(false),
-                    ),
-                    const SizedBox(width: SailStyleValues.padding12),
-                    SailButton(
-                      label: 'Switch to $toName',
-                      variant: ButtonVariant.primary,
-                      onPressed: () async => await _startSwap(),
-                    ),
-                  ] else if (_swapComplete)
-                    SailButton(
-                      label: 'Continue',
-                      variant: ButtonVariant.primary,
-                      onPressed: () async => _handleBack(),
-                    )
-                  else if (_error != null)
-                    SailButton(
-                      label: 'Close',
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async => _handleBack(),
-                    ),
-                ],
-              ),
-            ],
-          ),
         ),
       ),
     );
