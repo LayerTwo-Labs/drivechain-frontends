@@ -46,6 +46,8 @@ service BitwindowdService {
 
   // Lists the most recent transactions, both confirmed and unconfirmed.
   rpc ListRecentTransactions(ListRecentTransactionsRequest) returns (ListRecentTransactionsResponse);
+  // Sends the ListRecentTransactions list, then the list again on each change.
+  rpc WatchRecentTransactions(ListRecentTransactionsRequest) returns (stream WatchRecentTransactionsResponse);
 
   // Lists blocks with pagination support
   rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse);
@@ -368,6 +370,12 @@ message ListRecentTransactionsRequest {
 
 message ListRecentTransactionsResponse {
   repeated RecentTransaction transactions = 1;
+}
+
+message WatchRecentTransactionsResponse {
+  repeated RecentTransaction transactions = 1;
+  // True for an idle keepalive frame that carries no list.
+  bool heartbeat = 2;
 }
 
 message RecentTransaction {

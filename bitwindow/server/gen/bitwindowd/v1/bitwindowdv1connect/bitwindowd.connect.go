@@ -75,6 +75,9 @@ const (
 	// BitwindowdServiceListRecentTransactionsProcedure is the procedure name of the BitwindowdService's
 	// ListRecentTransactions RPC.
 	BitwindowdServiceListRecentTransactionsProcedure = "/bitwindowd.v1.BitwindowdService/ListRecentTransactions"
+	// BitwindowdServiceWatchRecentTransactionsProcedure is the procedure name of the
+	// BitwindowdService's WatchRecentTransactions RPC.
+	BitwindowdServiceWatchRecentTransactionsProcedure = "/bitwindowd.v1.BitwindowdService/WatchRecentTransactions"
 	// BitwindowdServiceListBlocksProcedure is the procedure name of the BitwindowdService's ListBlocks
 	// RPC.
 	BitwindowdServiceListBlocksProcedure = "/bitwindowd.v1.BitwindowdService/ListBlocks"
@@ -224,6 +227,13 @@ var (
 			Procedure:  BitwindowdServiceListRecentTransactionsProcedure,
 		}
 	})
+	bitwindowdServiceWatchRecentTransactionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_bitwindowd_v1_bitwindowd_proto.Services().ByName("BitwindowdService").Methods().ByName("WatchRecentTransactions"),
+			Procedure:  BitwindowdServiceWatchRecentTransactionsProcedure,
+		}
+	})
 	bitwindowdServiceListBlocksSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -322,6 +332,8 @@ type BitwindowdServiceClient interface {
 	GetFireplaceStats(context.Context, *emptypb.Empty) (*v1.GetFireplaceStatsResponse, error)
 	// Lists the most recent transactions, both confirmed and unconfirmed.
 	ListRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error)
+	// Sends the ListRecentTransactions list, then the list again on each change.
+	WatchRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (BitwindowdServiceWatchRecentTransactionsClientStream, error)
 	// Lists blocks with pagination support
 	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
 	// Get network statistics
@@ -372,6 +384,27 @@ func (s BitwindowdServiceWatchSyncInfoClientStream) Close() error {
 	return s.stream.Close()
 }
 
+// BitwindowdServiceWatchRecentTransactionsClientStream is the client stream for the
+// BitwindowdService's WatchRecentTransactions RPC.
+type BitwindowdServiceWatchRecentTransactionsClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s BitwindowdServiceWatchRecentTransactionsClientStream) Receive() (*v1.WatchRecentTransactionsResponse, error) {
+	var res v1.WatchRecentTransactionsResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s BitwindowdServiceWatchRecentTransactionsClientStream) Close() error {
+	return s.stream.Close()
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
@@ -405,6 +438,8 @@ type BitwindowdServiceHandler interface {
 	GetFireplaceStats(context.Context, *emptypb.Empty) (*v1.GetFireplaceStatsResponse, error)
 	// Lists the most recent transactions, both confirmed and unconfirmed.
 	ListRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error)
+	// Sends the ListRecentTransactions list, then the list again on each change.
+	WatchRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest, BitwindowdServiceWatchRecentTransactionsServerStream) error
 	// Lists blocks with pagination support
 	ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error)
 	// Get network statistics
@@ -450,6 +485,7 @@ func RegisterBitwindowdServiceHandler(server *connect.Server, svc BitwindowdServ
 		connect.Method{Spec: bitwindowdServiceImportLabelsSpec(), Handler: adapter.importLabels},
 		connect.Method{Spec: bitwindowdServiceGetFireplaceStatsSpec(), Handler: adapter.getFireplaceStats},
 		connect.Method{Spec: bitwindowdServiceListRecentTransactionsSpec(), Handler: adapter.listRecentTransactions},
+		connect.Method{Spec: bitwindowdServiceWatchRecentTransactionsSpec(), Handler: adapter.watchRecentTransactions},
 		connect.Method{Spec: bitwindowdServiceListBlocksSpec(), Handler: adapter.listBlocks},
 		connect.Method{Spec: bitwindowdServiceGetNetworkStatsSpec(), Handler: adapter.getNetworkStats},
 		connect.Method{Spec: bitwindowdServiceSetMempoolWatchSpec(), Handler: adapter.setMempoolWatch},
@@ -475,6 +511,22 @@ func (s BitwindowdServiceWatchSyncInfoServerStream) SendHeaders() error {
 
 // Send sends a response message to the client.
 func (s BitwindowdServiceWatchSyncInfoServerStream) Send(res *v1.WatchSyncInfoResponse) error {
+	return s.stream.Send(res)
+}
+
+// BitwindowdServiceWatchRecentTransactionsServerStream is the server stream for the
+// BitwindowdService's WatchRecentTransactions RPC.
+type BitwindowdServiceWatchRecentTransactionsServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s BitwindowdServiceWatchRecentTransactionsServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s BitwindowdServiceWatchRecentTransactionsServerStream) Send(res *v1.WatchRecentTransactionsResponse) error {
 	return s.stream.Send(res)
 }
 
@@ -547,6 +599,10 @@ func (UnimplementedBitwindowdServiceHandler) GetFireplaceStats(context.Context, 
 
 func (UnimplementedBitwindowdServiceHandler) ListRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest) (*v1.ListRecentTransactionsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.ListRecentTransactions is not implemented")
+}
+
+func (UnimplementedBitwindowdServiceHandler) WatchRecentTransactions(context.Context, *v1.ListRecentTransactionsRequest, BitwindowdServiceWatchRecentTransactionsServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "bitwindowd.v1.BitwindowdService.WatchRecentTransactions is not implemented")
 }
 
 func (UnimplementedBitwindowdServiceHandler) ListBlocks(context.Context, *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error) {
@@ -723,6 +779,14 @@ func (c *bitwindowdServiceClient) ListRecentTransactions(ctx context.Context, re
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *bitwindowdServiceClient) WatchRecentTransactions(ctx context.Context, req *v1.ListRecentTransactionsRequest) (BitwindowdServiceWatchRecentTransactionsClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, bitwindowdServiceWatchRecentTransactionsSpec(), req)
+	if err != nil {
+		return BitwindowdServiceWatchRecentTransactionsClientStream{}, err
+	}
+	return BitwindowdServiceWatchRecentTransactionsClientStream{stream: stream}, nil
 }
 
 func (c *bitwindowdServiceClient) ListBlocks(ctx context.Context, req *v1.ListBlocksRequest) (*v1.ListBlocksResponse, error) {
@@ -997,6 +1061,14 @@ func (h bitwindowdServiceHandler) listRecentTransactions(ctx context.Context, _ 
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h bitwindowdServiceHandler) watchRecentTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListRecentTransactionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchRecentTransactions(ctx, &req, BitwindowdServiceWatchRecentTransactionsServerStream{stream: stream})
 }
 
 func (h bitwindowdServiceHandler) listBlocks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
