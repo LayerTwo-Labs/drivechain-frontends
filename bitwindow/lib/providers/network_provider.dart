@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:bitwindow/models/bandwidth_data.dart';
 import 'package:flutter/foundation.dart';
@@ -18,14 +19,37 @@ class NetworkProvider extends ChangeNotifier {
   /// Bandwidth history for graphing (last 60 data points = 5 minutes at 5s intervals)
   List<BandwidthDataPoint> bandwidthHistory = [];
   static const int maxDataPoints = 60;
+  static const sampleInterval = Duration(seconds: 5);
 
   String? error;
   bool _isFetching = false;
   Timer? _fetchTimer;
 
   NetworkProvider() {
-    _startFetchTimer();
     bitwindowd.addListener(fetch);
+  }
+
+  /// Polls only while a widget listens.
+  @override
+  void addListener(VoidCallback listener) {
+    super.addListener(listener);
+    if (_fetchTimer != null) {
+      return;
+    }
+    unawaited(fetch());
+    if (Environment.isInTest) {
+      return;
+    }
+    _fetchTimer = Timer.periodic(sampleInterval, (_) => fetch());
+  }
+
+  @override
+  void removeListener(VoidCallback listener) {
+    super.removeListener(listener);
+    if (!hasListeners) {
+      _fetchTimer?.cancel();
+      _fetchTimer = null;
+    }
   }
 
   Future<void> fetch() async {
@@ -41,7 +65,7 @@ class NetworkProvider extends ChangeNotifier {
       }
       return;
     }
-    if (!bitwindowd.connected || _isFetching) {
+    if (!hasListeners || !bitwindowd.connected || _isFetching) {
       return;
     }
     _isFetching = true;
@@ -69,31 +93,48 @@ class NetworkProvider extends ChangeNotifier {
   }
 
   void _addDataPoint(GetNetworkStatsResponse response) {
-    final previous = bandwidthHistory.isNotEmpty ? bandwidthHistory.last : null;
-
-    final dataPoint = BandwidthDataPoint.withRates(
-      time: DateTime.now(),
-      totalRxBytes: response.totalBytesReceived.toDouble(),
-      totalTxBytes: response.totalBytesSent.toDouble(),
-      previous: previous,
+    addSample(
+      DateTime.now(),
+      response.totalBytesReceived.toDouble(),
+      response.totalBytesSent.toDouble(),
     );
+  }
 
-    bandwidthHistory.add(dataPoint);
+  /// Adds a sample of the byte totals. After a pause of the poll, it first
+  /// adds one point for each missed interval, at the mean rate of the pause.
+  @visibleForTesting
+  void addSample(DateTime time, double totalRx, double totalTx) {
+    final previous = bandwidthHistory.isNotEmpty ? bandwidthHistory.last : null;
+    final missed = previous == null
+        ? 0
+        : min(
+            (time.difference(previous.time).inMilliseconds / sampleInterval.inMilliseconds).round() - 1,
+            maxDataPoints,
+          );
+    for (var i = missed; i >= 1; i--) {
+      final at = time.subtract(sampleInterval * i);
+      final f = at.difference(previous!.time).inMilliseconds / time.difference(previous.time).inMilliseconds;
+      _append(
+        at,
+        previous.totalRxBytes + (totalRx - previous.totalRxBytes) * f,
+        previous.totalTxBytes + (totalTx - previous.totalTxBytes) * f,
+      );
+    }
+    _append(time, totalRx, totalTx);
+  }
 
-    // Keep only last maxDataPoints
+  void _append(DateTime time, double totalRx, double totalTx) {
+    bandwidthHistory.add(
+      BandwidthDataPoint.withRates(
+        time: time,
+        totalRxBytes: totalRx,
+        totalTxBytes: totalTx,
+        previous: bandwidthHistory.isNotEmpty ? bandwidthHistory.last : null,
+      ),
+    );
     if (bandwidthHistory.length > maxDataPoints) {
       bandwidthHistory.removeAt(0);
     }
-  }
-
-  void _startFetchTimer() {
-    fetch();
-
-    if (Environment.isInTest) {
-      return;
-    }
-
-    _fetchTimer = Timer.periodic(const Duration(seconds: 5), (_) => fetch());
   }
 
   /// Get bandwidth history filtered to last N seconds

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/root_page.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/peers_provider.dart';
 import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
@@ -136,6 +137,14 @@ class _Transactions extends ChangeNotifier implements TransactionProvider {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _Peers extends ChangeNotifier implements PeersProvider {
+  @override
+  List<Peer> peers = [];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _Blockchain extends ChangeNotifier implements BlockchainProvider {
   @override
   SyncProvider get syncProvider => GetIt.I.get<SyncProvider>();
@@ -147,7 +156,7 @@ class _Blockchain extends ChangeNotifier implements BlockchainProvider {
   List<Block> blocks = [];
 
   @override
-  List<Peer> peers = [];
+  int peerCount = 0;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -195,6 +204,7 @@ void main() {
     sync.bitwindowdSyncInfo = SyncInfo(progressCurrent: 41000, progressGoal: 997070, lastBlockAt: null);
     GetIt.I.registerSingleton<SyncProvider>(sync);
     GetIt.I.registerSingleton<BlockchainProvider>(_Blockchain());
+    GetIt.I.registerSingleton<PeersProvider>(_Peers());
   });
 
   tearDown(() async {

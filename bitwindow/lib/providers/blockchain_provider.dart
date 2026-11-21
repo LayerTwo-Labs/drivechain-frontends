@@ -23,7 +23,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   SyncProvider get syncProvider => GetIt.I.get<SyncProvider>();
 
   // raw data go here
-  List<Peer> peers = [];
+  int peerCount = 0;
   List<Block> blocks = [];
   List<RecentTransaction> recentTransactions = [];
 
@@ -65,7 +65,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   Future<void> fetch() async {
     // Light mode runs no local Bitcoin Core, and blocks, transactions and peers read it.
     if (!NodeModeProvider.runsLocalBackends) {
-      if (blocks.isNotEmpty || recentTransactions.isNotEmpty || peers.isNotEmpty || errors.isNotEmpty) {
+      if (blocks.isNotEmpty || recentTransactions.isNotEmpty || peerCount != 0 || errors.isNotEmpty) {
         clear();
       }
       return;
@@ -77,7 +77,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     // and each one still costs Core an RPC under cs_main. A node that re-enters
     // IBD holds rows from the chain it left, so drop them.
     if (syncProvider.bitwindowdSyncInfo?.waitsForCore ?? false) {
-      if (blocks.isNotEmpty || recentTransactions.isNotEmpty || peers.isNotEmpty || errors.isNotEmpty) {
+      if (blocks.isNotEmpty || recentTransactions.isNotEmpty || peerCount != 0 || errors.isNotEmpty) {
         clear();
       }
       return;
@@ -88,12 +88,12 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       errors = [];
       final tReq = bitwindowd.bitwindowd.listRecentTransactions().onError(_return(recentTransactions));
       final bReq = bitwindowd.bitwindowd.listBlocks().onError(_return((blocks, false)));
-      final pReq = _orchestrator.bitcoind
-          .getPeerInfo(GetPeerInfoRequest())
-          .onError(_return(GetPeerInfoResponse(peers: peers)));
+      final nReq = _orchestrator.bitcoind
+          .getNetworkInfo(GetNetworkInfoRequest())
+          .onError(_return(GetNetworkInfoResponse(connections: peerCount)));
 
       final newTXs = await tReq;
-      final newPeers = (await pReq).peers;
+      final newPeerCount = (await nReq).connections;
       final (newBlocks, hasMore) = await bReq;
       final connects = hasMore && newBlocks.isNotEmpty && blocks.any((b) => b.hash == newBlocks.last.previousBlockHash);
       final olderBlocks = [
@@ -106,7 +106,10 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       final mergedBlocks = [...newBlocks, ...olderBlocks];
 
       var hasChanges = recentTransactions.updateWith(newTXs);
-      hasChanges = hasChanges | peers.updateWith(newPeers);
+      if (newPeerCount != peerCount) {
+        peerCount = newPeerCount;
+        hasChanges = true;
+      }
       hasChanges =
           hasChanges |
           blocks.updateWith(
@@ -171,7 +174,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   /// Wipe cached state on network swap so the UI stops showing the previous
   /// network's data while the next fetch repopulates from new bitwindowd.
   void clear() {
-    peers = [];
+    peerCount = 0;
     blocks = [];
     recentTransactions = [];
     loadedBlockHeights = {};

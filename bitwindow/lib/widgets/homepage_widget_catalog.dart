@@ -2,7 +2,6 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
-import 'package:bitwindow/providers/network_provider.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:bitwindow/widgets/fee_coinnews.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
@@ -135,20 +134,14 @@ class HomepageWidgetCatalog {
       name: 'Network Traffic',
       sizes: [WidgetSize.half, WidgetSize.full],
       group: 'Network',
-      builder: (_) => ListenableBuilder(
-        listenable: GetIt.I.get<NetworkProvider>(),
-        builder: (context, child) => const TrafficGraphWidget(),
-      ),
+      builder: (_) => const TrafficGraphWidget(),
     ),
     'network_stats': HomepageWidgetInfo(
       id: 'network_stats',
       name: 'Network Stats',
       sizes: [WidgetSize.half, WidgetSize.full],
       group: 'Network',
-      builder: (_) => ListenableBuilder(
-        listenable: GetIt.I.get<NetworkProvider>(),
-        builder: (context, child) => const NetworkStatsWidget(),
-      ),
+      builder: (_) => const NetworkStatsWidget(),
     ),
     'peers_table': HomepageWidgetInfo(
       id: 'peers_table',
