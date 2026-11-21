@@ -144,6 +144,35 @@ void main() {
     expect(provider.getL1Mnemonic(), isNull);
   });
 
+  test('restored wallets show and pass the password guard until the backend reports', () {
+    final provider = WalletReaderProvider(Directory.systemTemp);
+    final saved = WalletMetadata(
+      id: 'core-1',
+      name: 'Saved',
+      gradient: WalletGradient.fromWalletId('core-1'),
+      createdAt: DateTime.utc(2026, 1, 1),
+      lastUsed: DateTime.utc(2026, 1, 1),
+    );
+    provider.restore(wallets: [saved], activeWalletId: 'core-1');
+
+    expect(provider.availableWallets.single.name, 'Saved');
+    expect(provider.activeWalletId, 'core-1');
+    expect(provider.restoredOpenWallet, isTrue);
+    expect(provider.isWalletUnlocked, isFalse);
+    expect(provider.getL1Mnemonic(), isNull);
+
+    provider.applyWatchFrame(
+      wmpb.WatchWalletDataResponse(
+        state: wmpb.WalletState.WALLET_STATE_LOCKED,
+        encrypted: true,
+        activeWalletId: 'core-1',
+      ),
+    );
+    expect(provider.restoredOpenWallet, isFalse);
+    expect(provider.availableWallets, isEmpty);
+    expect(provider.encrypted, isTrue);
+  });
+
   test('a locked frame clears the wallets and an unlocked frame fills them', () {
     final provider = WalletReaderProvider(Directory.systemTemp);
     final unlocked = wmpb.WatchWalletDataResponse(

@@ -42,6 +42,21 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   /// True when the backend reports no wallet on disk.
   bool get hasNoWallet => walletStateKnown && !hasWalletOnDisk;
 
+  /// True when the backend reports a wallet with a password.
+  bool encrypted = false;
+
+  List<WalletMetadata> _restoredWallets = const [];
+
+  /// Shows the wallets of the last session until the backend reports the
+  /// wallet state. Use it only for a wallet with no password.
+  void restore({required List<WalletMetadata> wallets, required String? activeWalletId}) {
+    _restoredWallets = List.unmodifiable(wallets);
+    this.activeWalletId = activeWalletId;
+  }
+
+  /// True until the backend reports, when [restore] gave a wallet.
+  bool get restoredOpenWallet => !walletStateKnown && _restoredWallets.isNotEmpty;
+
   WalletData? get activeWallet => wallets.where((w) => w.id == activeWalletId).firstOrNull;
 
   /// The wallet whose seed derives the L1 and sidechain starters. Each wallet
@@ -49,17 +64,19 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   /// 0 would disagree with the backend the moment the order changes.
   WalletData? get primaryWallet => wallets.where((w) => w.isStarter).firstOrNull ?? wallets.firstOrNull;
 
-  List<WalletMetadata> get availableWallets => wallets
-      .map(
-        (w) => WalletMetadata(
-          id: w.id,
-          name: w.name,
-          gradient: w.gradient,
-          createdAt: w.createdAt,
-          lastUsed: w.id == activeWalletId ? DateTime.now() : w.createdAt,
-        ),
-      )
-      .toList();
+  List<WalletMetadata> get availableWallets => !walletStateKnown && _restoredWallets.isNotEmpty
+      ? _restoredWallets
+      : wallets
+            .map(
+              (w) => WalletMetadata(
+                id: w.id,
+                name: w.name,
+                gradient: w.gradient,
+                createdAt: w.createdAt,
+                lastUsed: w.id == activeWalletId ? DateTime.now() : w.createdAt,
+              ),
+            )
+            .toList();
 
   /// Wallets that can fund a transaction: no watch-only, no multisig.
   List<WalletData> fundingWallets() => wallets.where((w) => !w.isWatchOnly && !w.isMultisig).toList();
@@ -110,6 +127,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
       protoWallets: resp.wallets,
       newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId,
       state: resp.state,
+      encrypted: resp.encrypted,
     );
     _lastFrame = frame;
     _lastFrameWallets = wallets;
@@ -125,7 +143,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     required Iterable<dynamic> protoWallets,
     required String? newActiveId,
     required wmpb.WalletState state,
+    required bool encrypted,
   }) {
+    this.encrypted = encrypted;
     final previousActiveId = activeWalletId;
     // A transient stream frame can arrive with an empty active id while wallets
     // still exist; keep the known-good selection instead of blanking it.
@@ -290,6 +310,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
       protoWallets: list.wallets,
       newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
       state: status.state as wmpb.WalletState,
+      encrypted: status.encrypted as bool,
     );
     return wallets.isNotEmpty;
   }
