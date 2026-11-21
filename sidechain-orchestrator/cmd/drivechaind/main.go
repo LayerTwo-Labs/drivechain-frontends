@@ -38,6 +38,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	explorerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1/explorerv1connect"
+	mempoolrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1/mempoolv1connect"
 	multisigloungerpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1/multisigloungev1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
@@ -614,6 +615,7 @@ func run(cctx *cli.Context) error {
 	explorerHandler := api.NewExplorerHandler(orch)
 	explorerHandler.SetCoreCaller(handler.RawCoreCall)
 	explorerrpc.RegisterExplorerServiceHandler(rpcServer, explorerHandler)
+	mempoolrpc.RegisterMempoolServiceHandler(rpcServer, api.NewMempoolHandler(orch.ChainData().Mempool()))
 
 	walletrpc.RegisterWalletManagerServiceHandler(rpcServer, walletHandler)
 
