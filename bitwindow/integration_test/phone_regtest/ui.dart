@@ -1,6 +1,8 @@
 import 'dart:io';
 
+// ignore: drivechain_lints/avoid_material_import
 import 'package:flutter/material.dart' show TextField;
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -126,9 +128,21 @@ class PhoneUi {
       await binding.convertFlutterSurfaceToImage();
       _surfaceReady = true;
     }
-    await tester.pump();
     _shots++;
-    await binding.takeScreenshot('${_shots.toString().padLeft(2, '0')}-$step');
+    final name = '${_shots.toString().padLeft(2, '0')}-$step';
+    // Android's PixelCopy fails now and then while a frame is in flight.
+    for (var attempt = 1; ; attempt++) {
+      await tester.pump();
+      try {
+        await binding.takeScreenshot(name);
+        return;
+      } on PlatformException {
+        if (attempt == 3) {
+          rethrow;
+        }
+        await settle();
+      }
+    }
   }
 
   /// The first text field whose text matches [pattern].

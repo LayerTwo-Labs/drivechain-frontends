@@ -84,6 +84,8 @@ Future<void> _hotPaths(WidgetTester tester, PhoneUi ui, RegtestControl regtest) 
   await ui.tap(find.text('Create Transaction').last);
   await ui.waitFor(find.text('Broadcast'), reason: 'the transaction summary');
   await ui.shot('send-summary');
+  await ui.waitFor(find.text('Broadcast'), reason: 'the transaction summary');
+  await ui.settle(const Duration(seconds: 3));
   await ui.tapText('Broadcast');
   await ui.waitUntilAsync(() async => (await regtest.mempool()).length == 1, 'the broadcast in the mempool');
   await ui.shot('send-broadcast');
@@ -122,6 +124,8 @@ Future<void> _hotPaths(WidgetTester tester, PhoneUi ui, RegtestControl regtest) 
   await ui.enter(find.text('0.00'), '0.1');
   await ui.settle(const Duration(seconds: 3));
   await ui.tap(find.text('Create Transaction').last);
+  await ui.waitFor(find.text('Broadcast'), reason: 'the transaction summary');
+  await ui.settle(const Duration(seconds: 3));
   await ui.tapText('Broadcast');
   await ui.waitUntilAsync(() async => (await regtest.mempool()).length == 1, 'the second broadcast in the mempool');
   final sent = await regtest.mempool();
