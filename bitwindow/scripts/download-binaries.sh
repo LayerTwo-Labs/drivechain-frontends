@@ -52,11 +52,11 @@ build_orch_tool() {
         # Bake the default network into every tool. The daemon and the control
         # CLI read one value, so a wipe cannot target a network the daemon
         # never ran.
+        local ldflags="-s -w"
         if [[ -n "${BITWINDOW_DEFAULT_NETWORK:-}" ]]; then
-            go build -ldflags "-X github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config.DefaultNetwork=${BITWINDOW_DEFAULT_NETWORK}" -o "$out" "./cmd/$cmd"
-        else
-            go build -o "$out" "./cmd/$cmd"
+            ldflags+=" -X github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config.DefaultNetwork=${BITWINDOW_DEFAULT_NETWORK}"
         fi
+        go build -ldflags "$ldflags" -o "$out" "./cmd/$cmd"
     )
 }
 
