@@ -322,7 +322,8 @@ func TestWaitForConnectedOrExit_ReturnsProcessExit(t *testing.T) {
 	proc := pm.Get("late-exit")
 	require.NotNil(t, proc)
 
-	err = waitForConnectedOrExit(ctx, mon, proc)
+	o := &Orchestrator{process: pm}
+	err = o.waitForConnectedOrExit(ctx, mon, proc)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "late-exit exited with code 1")
 
