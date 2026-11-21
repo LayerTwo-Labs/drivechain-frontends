@@ -1575,6 +1575,9 @@ message WatchBalanceResponse {
   GetBalanceResponse balance = 2;
   // Idle keepalive frames carry no other field.
   bool heartbeat = 3;
+  // The transactions of the wallet that a send made since the last frame, as
+  // ListTransactions gives them. Unset with no local Bitcoin Core.
+  repeated TransactionEntry transactions = 4;
 }
 
 message CreateDepositRequest {
