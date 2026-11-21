@@ -414,6 +414,7 @@ func run(cctx *cli.Context) error {
 	// slot in behind the same wallet.Backend interface.
 	var chainBackend wallet.Backend
 	var localChain wallet.ChainSource
+	var coreBackend *wallet.CoreBackend
 	if orch.BitcoinConf != nil {
 		orch.ChainData().Start(ctx)
 
@@ -442,7 +443,7 @@ func run(cctx *cli.Context) error {
 		}
 		coreRPC := wallet.NewCoreRPCClient(coreEndpoint)
 		coreRPC.Cache = orch.ChainData()
-		coreBackend := wallet.NewCoreBackend(walletSvc, coreRPC, netParams, log)
+		coreBackend = wallet.NewCoreBackend(walletSvc, coreRPC, netParams, log)
 		chainBackend = coreBackend
 		localChain = coreBackend.Chain()
 		log.Info().Int("rpc_port", coreEndpoint().Port).Msg("core wallet provider initialized")
@@ -662,6 +663,14 @@ func run(cctx *cli.Context) error {
 			log.Info().Str("reason", reason).Msg("bitcoin core proxy ready")
 		}
 		rebuildCoreProxy("startup")
+		// The proxy keeps a failed cookie read for 30 s, and the wallets keep a
+		// startup error for 5 s, so a Core that comes up clears both.
+		go onCoreUp(ctx, orch.SubscribeBinaries(ctx), func() bool { return orch.Connected("bitcoind") }, func() {
+			rebuildCoreProxy("bitcoind up")
+			if coreBackend != nil {
+				coreBackend.CoreUp()
+			}
+		})
 		// The path is constant; register once.
 		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, coreProxyHandlerOptions(authIC, meterIC, orch.ChainData().Interceptor()))
 		mux.Handle(corePath, swappable)

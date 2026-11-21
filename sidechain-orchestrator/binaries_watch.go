@@ -49,6 +49,12 @@ func (o *Orchestrator) SubscribeBinaries(ctx context.Context) <-chan struct{} {
 	return o.binariesChanged.subscribe(ctx)
 }
 
+// Connected reports whether the monitor of name holds a connection.
+func (o *Orchestrator) Connected(name string) bool {
+	mon := o.monitor(name)
+	return mon != nil && mon.Connected()
+}
+
 // BinaryConnection is the connection state that the monitor of a binary holds.
 type BinaryConnection struct {
 	Name      string
