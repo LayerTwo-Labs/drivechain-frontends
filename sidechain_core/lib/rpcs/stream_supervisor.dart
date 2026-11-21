@@ -163,12 +163,20 @@ class StreamSupervisor<T> {
 
   void _startWatchdog() {
     _watchdog?.cancel();
+    var lastCheck = _now();
     _watchdog = Timer.periodic(_heartbeatCheckInterval, (_) {
+      final now = _now();
+      final sinceCheck = now.difference(lastCheck);
+      lastCheck = now;
       final last = _lastFrameAt;
       if (last == null) {
         return;
       }
-      if (_now().difference(last) > _heartbeatTimeout) {
+      // A late tick means the isolate did not run, so the frames of that time can still wait in the socket.
+      if (sinceCheck > _heartbeatCheckInterval * 2) {
+        return;
+      }
+      if (now.difference(last) > _heartbeatTimeout) {
         _logger.w(
           '$_tag: no frame in ${_heartbeatTimeout.inSeconds}s, declaring dead',
         );

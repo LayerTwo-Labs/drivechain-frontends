@@ -153,6 +153,49 @@ void main() {
     await supervisor.dispose();
   });
 
+  test('a late watchdog tick after an isolate stall keeps the stream', () async {
+    final source = _FakeStreamSource<int>();
+    var transportDeaths = 0;
+    var offset = Duration.zero;
+    var resumed = false;
+
+    final supervisor = StreamSupervisor<int>(
+      subscribe: source.subscribe,
+      onEvent: (_) {},
+      onTransportDeath: () => transportDeaths++,
+      logger: _SilentLogger(),
+      tag: 'test',
+      heartbeatTimeout: ms(200),
+      heartbeatCheckInterval: ms(20),
+      serverHeartbeatInterval: ms(20),
+      now: () {
+        if (offset > Duration.zero && !resumed) {
+          // The first read after the stall comes from the watchdog. The frame
+          // that waited in the socket lands right after it.
+          resumed = true;
+          scheduleMicrotask(() => source.last.add(1));
+        }
+        return DateTime.now().add(offset);
+      },
+    )..start();
+
+    source.last.add(0);
+    await Future<void>.delayed(ms(30));
+    offset = const Duration(seconds: 15);
+    await Future<void>.delayed(ms(25));
+    for (var i = 2; i < 12; i++) {
+      source.last.add(i);
+      await Future<void>.delayed(ms(10));
+    }
+
+    expect(resumed, isTrue);
+    expect(transportDeaths, 0);
+    expect(source.subscribeCount, 1);
+    expect(supervisor.isHealthy, isTrue);
+
+    await supervisor.dispose();
+  });
+
   test('healthStream emits transitions', () async {
     final source = _FakeStreamSource<int>();
     final transitions = <bool>[];
