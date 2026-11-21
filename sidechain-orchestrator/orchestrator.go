@@ -1035,6 +1035,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 
 	go func() {
 		defer close(ch)
+		o.bootStep(config.Name, "boot requested")
 
 		skipLocalL1 := o.NodeMode() == NodeModeLight
 		if skipLocalL1 && config.ChainLayer != 2 {
@@ -1132,6 +1133,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 					failBoot(enforcerMon, ch, "wait for enforcer", err)
 					return
 				}
+				o.bootStep("enforcer", "answered")
 			}
 		}
 
@@ -1679,17 +1681,21 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 		return true
 	}
 
+	o.bootStep("bitcoind", "on disk")
 	if err := o.startOrAdoptCore(ctx, opts.CoreArgs); err != nil {
 		failBoot(coreMon, ch, "start bitcoind", err)
 		return false
 	}
 	coreProc := o.process.Get("bitcoind")
+	o.bootStep("bitcoind", "spawned")
+	o.stampFirstLogLine("bitcoind", coreProc)
 
 	ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
 	if err := waitForConnectedOrExit(ctx, coreMon, coreProc); err != nil {
 		failBoot(coreMon, ch, "wait for bitcoind", err)
 		return false
 	}
+	o.bootStep("bitcoind", "answered")
 	return true
 }
 
@@ -1924,6 +1930,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	if err := o.waitForWallet(ctx); err != nil {
 		return err
 	}
+	o.bootStep("enforcer", "wallet unlocked")
 
 	// 2. Wait for HEADER sync to complete — enforcer starts once Core has
 	// the header chain and validates blocks in parallel as Core downloads
@@ -1967,6 +1974,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		}
 		o.log.Info().Msg("header sync complete, proceeding with enforcer")
 	}
+	o.bootStep("enforcer", "headers synced")
 
 	enforcerCfg := o.Configs()["enforcer"]
 	enforcerChecker := NewHealthChecker(enforcerCfg)
@@ -2027,6 +2035,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			return err
 		}
 	}
+	o.bootStep("enforcer", "zmq reachable")
 
 	enfOpts := opts
 	enforcerMon.StartRestartTimer(context.WithoutCancel(ctx),
@@ -2079,12 +2088,15 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	// (#1712), where the question is whether --node-rpc-user reaches the binary.
 	o.log.Info().Strs("argv", redactArgs(opts.EnforcerArgs)).Msg("starting enforcer with final argv")
 
+	o.bootStep("enforcer", "on disk")
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); errors.Is(err, ErrAlreadyRunning) {
 		return nil
 	} else if err != nil {
 		enforcerMon.SetInitializing(false)
 		return fmt.Errorf("start enforcer: %w", err)
 	}
+	o.bootStep("enforcer", "spawned")
+	o.stampFirstLogLine("enforcer", o.process.Get("enforcer"))
 
 	o.log.Info().Msg("enforcer started")
 	return nil
@@ -2180,6 +2192,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		failBoot(targetMon, ch, "download "+config.Name, err)
 		return
 	}
+	o.bootStep(config.Name, "on disk")
 
 	if opensFrontend {
 		o.openSidechainWindow(ctx, config, targetMon, ch)
@@ -2210,6 +2223,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		failBoot(targetMon, ch, "configure "+config.Name, err)
 		return
 	}
+	o.bootStep(config.Name, "args ready")
 
 	ch <- StartupProgress{Stage: "starting-" + config.Name, Message: fmt.Sprintf("starting %s...", config.DisplayName)}
 	o.log.Info().Str("binary", config.Name).Strs("args", redactArgs(opts.TargetArgs)).Msg("starting target binary")
@@ -2244,12 +2258,17 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		stage := "start " + config.Name
 		// Another caller that starts the same binary owns the start, so this one waits for it.
 		_, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, procOpts)
+		if err == nil {
+			o.bootStep(config.Name, "spawned")
+			o.stampFirstLogLine(config.Name, o.process.Get(config.Name))
+		}
 		if err == nil || errors.Is(err, ErrAlreadyRunning) {
 			ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s to accept connections...", config.DisplayName)}
 			stage = "wait for " + config.Name
 			err = waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name))
 		}
 		if err == nil {
+			o.bootStep(config.Name, "answered")
 			break
 		}
 		parked, parkErr := o.parkRefusedDB(config, err, parkedDBs)
@@ -2267,6 +2286,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		failBoot(targetMon, ch, "wallet for "+config.Name, err)
 		return
 	}
+	o.bootStep(config.Name, "done")
 
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 }
