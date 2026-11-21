@@ -35,5 +35,8 @@ bump fee and cancel. The phone runs light mode against a regtest stack on the Ma
      $(scripts/phone-regtest.sh defines android)
    ```
 
-The test fails on a layout overflow, and writes one screenshot per step to
+`integration_test/phone_menus_test.dart` opens and closes every side nav item.
+Run it the same way, with `--target integration_test/phone_menus_test.dart`.
+
+The tests fail on a layout overflow that is not in their list of known faults, and write one screenshot per step to
 `PHONE_QA_SHOTS`. Run one device at a time: the test counts the regtest mempool.
