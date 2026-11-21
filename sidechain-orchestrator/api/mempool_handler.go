@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect/v2"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/chaindata"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1/mempoolv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/watch"
 )
 
 // snapshotPart is the most transactions in one snapshot message.
@@ -38,6 +40,19 @@ func (h *MempoolHandler) ListTransactions(ctx context.Context, req *pb.ListTrans
 		out.Transactions[i] = txToProto(tx)
 	}
 	return out, nil
+}
+
+// statsRecheckInterval matches the old app poll of GetStats. It finds a
+// change while the tracker holds no copy and reads go to Core.
+var statsRecheckInterval = 10 * time.Second
+
+func (h *MempoolHandler) WatchStats(ctx context.Context, req *pb.GetStatsRequest, stream rpc.MempoolServiceWatchStatsServerStream) error {
+	return watch.Changes(ctx, h.mempool.Changes(ctx), statsRecheckInterval, h.heartbeat,
+		func() (*pb.GetStatsResponse, error) { return h.GetStats(ctx, req) },
+		func(a, b *pb.GetStatsResponse) bool { return proto.Equal(a, b) },
+		func(stats *pb.GetStatsResponse) error { return stream.Send(&pb.WatchStatsResponse{Stats: stats}) },
+		func() error { return stream.Send(&pb.WatchStatsResponse{Heartbeat: true}) },
+	)
 }
 
 func (h *MempoolHandler) GetStats(ctx context.Context, req *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {

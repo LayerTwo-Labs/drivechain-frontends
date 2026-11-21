@@ -408,6 +408,60 @@ func (x *GetStatsResponse) GetBuckets() []*FeeBucket {
 	return nil
 }
 
+type WatchStatsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unset in a heartbeat frame.
+	Stats *GetStatsResponse `protobuf:"bytes,1,opt,name=stats,proto3" json:"stats,omitempty"`
+	// True for an idle keepalive frame that carries no stats.
+	Heartbeat     bool `protobuf:"varint,2,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchStatsResponse) Reset() {
+	*x = WatchStatsResponse{}
+	mi := &file_mempool_v1_mempool_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchStatsResponse) ProtoMessage() {}
+
+func (x *WatchStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_mempool_v1_mempool_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchStatsResponse.ProtoReflect.Descriptor instead.
+func (*WatchStatsResponse) Descriptor() ([]byte, []int) {
+	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *WatchStatsResponse) GetStats() *GetStatsResponse {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
+func (x *WatchStatsResponse) GetHeartbeat() bool {
+	if x != nil {
+		return x.Heartbeat
+	}
+	return false
+}
+
 type WatchTransactionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -416,7 +470,7 @@ type WatchTransactionsRequest struct {
 
 func (x *WatchTransactionsRequest) Reset() {
 	*x = WatchTransactionsRequest{}
-	mi := &file_mempool_v1_mempool_proto_msgTypes[6]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -428,7 +482,7 @@ func (x *WatchTransactionsRequest) String() string {
 func (*WatchTransactionsRequest) ProtoMessage() {}
 
 func (x *WatchTransactionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mempool_v1_mempool_proto_msgTypes[6]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,7 +495,7 @@ func (x *WatchTransactionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchTransactionsRequest.ProtoReflect.Descriptor instead.
 func (*WatchTransactionsRequest) Descriptor() ([]byte, []int) {
-	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{6}
+	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{7}
 }
 
 type WatchTransactionsResponse struct {
@@ -459,7 +513,7 @@ type WatchTransactionsResponse struct {
 
 func (x *WatchTransactionsResponse) Reset() {
 	*x = WatchTransactionsResponse{}
-	mi := &file_mempool_v1_mempool_proto_msgTypes[7]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -471,7 +525,7 @@ func (x *WatchTransactionsResponse) String() string {
 func (*WatchTransactionsResponse) ProtoMessage() {}
 
 func (x *WatchTransactionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mempool_v1_mempool_proto_msgTypes[7]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -484,7 +538,7 @@ func (x *WatchTransactionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchTransactionsResponse.ProtoReflect.Descriptor instead.
 func (*WatchTransactionsResponse) Descriptor() ([]byte, []int) {
-	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{7}
+	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *WatchTransactionsResponse) GetSnapshot() *Snapshot {
@@ -520,7 +574,7 @@ type Snapshot struct {
 
 func (x *Snapshot) Reset() {
 	*x = Snapshot{}
-	mi := &file_mempool_v1_mempool_proto_msgTypes[8]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -532,7 +586,7 @@ func (x *Snapshot) String() string {
 func (*Snapshot) ProtoMessage() {}
 
 func (x *Snapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_mempool_v1_mempool_proto_msgTypes[8]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -545,7 +599,7 @@ func (x *Snapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Snapshot.ProtoReflect.Descriptor instead.
 func (*Snapshot) Descriptor() ([]byte, []int) {
-	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{8}
+	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Snapshot) GetHeight() uint32 {
@@ -583,7 +637,7 @@ type Change struct {
 
 func (x *Change) Reset() {
 	*x = Change{}
-	mi := &file_mempool_v1_mempool_proto_msgTypes[9]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -595,7 +649,7 @@ func (x *Change) String() string {
 func (*Change) ProtoMessage() {}
 
 func (x *Change) ProtoReflect() protoreflect.Message {
-	mi := &file_mempool_v1_mempool_proto_msgTypes[9]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -608,7 +662,7 @@ func (x *Change) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Change.ProtoReflect.Descriptor instead.
 func (*Change) Descriptor() ([]byte, []int) {
-	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{9}
+	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Change) GetChange() isChange_Change {
@@ -682,7 +736,7 @@ type Block struct {
 
 func (x *Block) Reset() {
 	*x = Block{}
-	mi := &file_mempool_v1_mempool_proto_msgTypes[10]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -694,7 +748,7 @@ func (x *Block) String() string {
 func (*Block) ProtoMessage() {}
 
 func (x *Block) ProtoReflect() protoreflect.Message {
-	mi := &file_mempool_v1_mempool_proto_msgTypes[10]
+	mi := &file_mempool_v1_mempool_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -707,7 +761,7 @@ func (x *Block) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Block.ProtoReflect.Descriptor instead.
 func (*Block) Descriptor() ([]byte, []int) {
-	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{10}
+	return file_mempool_v1_mempool_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Block) GetHash() string {
@@ -770,7 +824,10 @@ const file_mempool_v1_mempool_proto_rawDesc = "" +
 	"\x05vsize\x18\x02 \x01(\x04R\x05vsize\x12\x19\n" +
 	"\bfee_sats\x18\x03 \x01(\x04R\afeeSats\x12&\n" +
 	"\x0fmedian_fee_rate\x18\x04 \x01(\x01R\rmedianFeeRate\x12/\n" +
-	"\abuckets\x18\x05 \x03(\v2\x15.mempool.v1.FeeBucketR\abuckets\"\x1a\n" +
+	"\abuckets\x18\x05 \x03(\v2\x15.mempool.v1.FeeBucketR\abuckets\"f\n" +
+	"\x12WatchStatsResponse\x122\n" +
+	"\x05stats\x18\x01 \x01(\v2\x1c.mempool.v1.GetStatsResponseR\x05stats\x12\x1c\n" +
+	"\theartbeat\x18\x02 \x01(\bR\theartbeat\"\x1a\n" +
 	"\x18WatchTransactionsRequest\"\x99\x01\n" +
 	"\x19WatchTransactionsResponse\x120\n" +
 	"\bsnapshot\x18\x01 \x01(\v2\x14.mempool.v1.SnapshotR\bsnapshot\x12,\n" +
@@ -789,10 +846,12 @@ const file_mempool_v1_mempool_proto_rawDesc = "" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\rR\x06height\x12\x1c\n" +
 	"\tconnected\x18\x03 \x01(\bR\tconnected\x12\x14\n" +
-	"\x05txids\x18\x04 \x03(\tR\x05txids2\x9a\x02\n" +
+	"\x05txids\x18\x04 \x03(\tR\x05txids2\xe7\x02\n" +
 	"\x0eMempoolService\x12]\n" +
 	"\x10ListTransactions\x12#.mempool.v1.ListTransactionsRequest\x1a$.mempool.v1.ListTransactionsResponse\x12E\n" +
-	"\bGetStats\x12\x1b.mempool.v1.GetStatsRequest\x1a\x1c.mempool.v1.GetStatsResponse\x12b\n" +
+	"\bGetStats\x12\x1b.mempool.v1.GetStatsRequest\x1a\x1c.mempool.v1.GetStatsResponse\x12K\n" +
+	"\n" +
+	"WatchStats\x12\x1b.mempool.v1.GetStatsRequest\x1a\x1e.mempool.v1.WatchStatsResponse0\x01\x12b\n" +
 	"\x11WatchTransactions\x12$.mempool.v1.WatchTransactionsRequest\x1a%.mempool.v1.WatchTransactionsResponse0\x01B\xba\x01\n" +
 	"\x0ecom.mempool.v1B\fMempoolProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1;mempoolv1\xa2\x02\x03MXX\xaa\x02\n" +
 	"Mempool.V1\xca\x02\n" +
@@ -810,7 +869,7 @@ func file_mempool_v1_mempool_proto_rawDescGZIP() []byte {
 	return file_mempool_v1_mempool_proto_rawDescData
 }
 
-var file_mempool_v1_mempool_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_mempool_v1_mempool_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_mempool_v1_mempool_proto_goTypes = []any{
 	(*Transaction)(nil),               // 0: mempool.v1.Transaction
 	(*ListTransactionsRequest)(nil),   // 1: mempool.v1.ListTransactionsRequest
@@ -818,33 +877,37 @@ var file_mempool_v1_mempool_proto_goTypes = []any{
 	(*GetStatsRequest)(nil),           // 3: mempool.v1.GetStatsRequest
 	(*FeeBucket)(nil),                 // 4: mempool.v1.FeeBucket
 	(*GetStatsResponse)(nil),          // 5: mempool.v1.GetStatsResponse
-	(*WatchTransactionsRequest)(nil),  // 6: mempool.v1.WatchTransactionsRequest
-	(*WatchTransactionsResponse)(nil), // 7: mempool.v1.WatchTransactionsResponse
-	(*Snapshot)(nil),                  // 8: mempool.v1.Snapshot
-	(*Change)(nil),                    // 9: mempool.v1.Change
-	(*Block)(nil),                     // 10: mempool.v1.Block
-	(*timestamppb.Timestamp)(nil),     // 11: google.protobuf.Timestamp
+	(*WatchStatsResponse)(nil),        // 6: mempool.v1.WatchStatsResponse
+	(*WatchTransactionsRequest)(nil),  // 7: mempool.v1.WatchTransactionsRequest
+	(*WatchTransactionsResponse)(nil), // 8: mempool.v1.WatchTransactionsResponse
+	(*Snapshot)(nil),                  // 9: mempool.v1.Snapshot
+	(*Change)(nil),                    // 10: mempool.v1.Change
+	(*Block)(nil),                     // 11: mempool.v1.Block
+	(*timestamppb.Timestamp)(nil),     // 12: google.protobuf.Timestamp
 }
 var file_mempool_v1_mempool_proto_depIdxs = []int32{
-	11, // 0: mempool.v1.Transaction.time:type_name -> google.protobuf.Timestamp
+	12, // 0: mempool.v1.Transaction.time:type_name -> google.protobuf.Timestamp
 	0,  // 1: mempool.v1.ListTransactionsResponse.transactions:type_name -> mempool.v1.Transaction
 	4,  // 2: mempool.v1.GetStatsResponse.buckets:type_name -> mempool.v1.FeeBucket
-	8,  // 3: mempool.v1.WatchTransactionsResponse.snapshot:type_name -> mempool.v1.Snapshot
-	9,  // 4: mempool.v1.WatchTransactionsResponse.changes:type_name -> mempool.v1.Change
-	0,  // 5: mempool.v1.Snapshot.transactions:type_name -> mempool.v1.Transaction
-	0,  // 6: mempool.v1.Change.added:type_name -> mempool.v1.Transaction
-	10, // 7: mempool.v1.Change.block:type_name -> mempool.v1.Block
-	1,  // 8: mempool.v1.MempoolService.ListTransactions:input_type -> mempool.v1.ListTransactionsRequest
-	3,  // 9: mempool.v1.MempoolService.GetStats:input_type -> mempool.v1.GetStatsRequest
-	6,  // 10: mempool.v1.MempoolService.WatchTransactions:input_type -> mempool.v1.WatchTransactionsRequest
-	2,  // 11: mempool.v1.MempoolService.ListTransactions:output_type -> mempool.v1.ListTransactionsResponse
-	5,  // 12: mempool.v1.MempoolService.GetStats:output_type -> mempool.v1.GetStatsResponse
-	7,  // 13: mempool.v1.MempoolService.WatchTransactions:output_type -> mempool.v1.WatchTransactionsResponse
-	11, // [11:14] is the sub-list for method output_type
-	8,  // [8:11] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	5,  // 3: mempool.v1.WatchStatsResponse.stats:type_name -> mempool.v1.GetStatsResponse
+	9,  // 4: mempool.v1.WatchTransactionsResponse.snapshot:type_name -> mempool.v1.Snapshot
+	10, // 5: mempool.v1.WatchTransactionsResponse.changes:type_name -> mempool.v1.Change
+	0,  // 6: mempool.v1.Snapshot.transactions:type_name -> mempool.v1.Transaction
+	0,  // 7: mempool.v1.Change.added:type_name -> mempool.v1.Transaction
+	11, // 8: mempool.v1.Change.block:type_name -> mempool.v1.Block
+	1,  // 9: mempool.v1.MempoolService.ListTransactions:input_type -> mempool.v1.ListTransactionsRequest
+	3,  // 10: mempool.v1.MempoolService.GetStats:input_type -> mempool.v1.GetStatsRequest
+	3,  // 11: mempool.v1.MempoolService.WatchStats:input_type -> mempool.v1.GetStatsRequest
+	7,  // 12: mempool.v1.MempoolService.WatchTransactions:input_type -> mempool.v1.WatchTransactionsRequest
+	2,  // 13: mempool.v1.MempoolService.ListTransactions:output_type -> mempool.v1.ListTransactionsResponse
+	5,  // 14: mempool.v1.MempoolService.GetStats:output_type -> mempool.v1.GetStatsResponse
+	6,  // 15: mempool.v1.MempoolService.WatchStats:output_type -> mempool.v1.WatchStatsResponse
+	8,  // 16: mempool.v1.MempoolService.WatchTransactions:output_type -> mempool.v1.WatchTransactionsResponse
+	13, // [13:17] is the sub-list for method output_type
+	9,  // [9:13] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_mempool_v1_mempool_proto_init() }
@@ -852,7 +915,7 @@ func file_mempool_v1_mempool_proto_init() {
 	if File_mempool_v1_mempool_proto != nil {
 		return
 	}
-	file_mempool_v1_mempool_proto_msgTypes[9].OneofWrappers = []any{
+	file_mempool_v1_mempool_proto_msgTypes[10].OneofWrappers = []any{
 		(*Change_Added)(nil),
 		(*Change_Removed)(nil),
 		(*Change_Block)(nil),
@@ -863,7 +926,7 @@ func file_mempool_v1_mempool_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mempool_v1_mempool_proto_rawDesc), len(file_mempool_v1_mempool_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

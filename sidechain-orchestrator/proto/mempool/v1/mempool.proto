@@ -13,6 +13,9 @@ service MempoolService {
   // GetStats gives the size of the mempool and its fee rate buckets.
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
 
+  // WatchStats sends the GetStats result, then the result again on each change.
+  rpc WatchStats(GetStatsRequest) returns (stream WatchStatsResponse);
+
   // WatchTransactions sends the full mempool, then each change. A new full
   // mempool replaces the old one.
   rpc WatchTransactions(WatchTransactionsRequest) returns (stream WatchTransactionsResponse);
@@ -64,6 +67,13 @@ message GetStatsResponse {
   double median_fee_rate = 4;
   // One bucket per edge of the request, in the same order.
   repeated FeeBucket buckets = 5;
+}
+
+message WatchStatsResponse {
+  // Unset in a heartbeat frame.
+  GetStatsResponse stats = 1;
+  // True for an idle keepalive frame that carries no stats.
+  bool heartbeat = 2;
 }
 
 message WatchTransactionsRequest {}

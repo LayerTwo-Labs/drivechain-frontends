@@ -4,13 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"sync"
 	"testing"
+	"time"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/chaindata"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1/mempoolv1connect"
 )
 
 func TestMempoolHandlerAnswersInSats(t *testing.T) {
@@ -48,4 +55,53 @@ func TestMempoolHandlerAnswersInSats(t *testing.T) {
 
 	_, err = h.GetStats(t.Context(), &pb.GetStatsRequest{BucketEdges: []float64{5, 1}})
 	require.Error(t, err)
+}
+
+func TestMempoolHandlerWatchStatsSendsEachChange(t *testing.T) {
+	recheck := statsRecheckInterval
+	statsRecheckInterval = 20 * time.Millisecond
+	t.Cleanup(func() { statsRecheckInterval = recheck })
+
+	var mu sync.Mutex
+	txs := 1
+	core := func(_ context.Context, method string, _ ...any) (json.RawMessage, error) {
+		if method != "getrawmempool" {
+			return nil, fmt.Errorf("no %s", method)
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		entries := map[string]json.RawMessage{}
+		for n := 1; n <= txs; n++ {
+			entries[fmt.Sprintf("%064x", n)] = json.RawMessage(`{"vsize": 100, "ancestorsize": 100, "time": 10, "height": 7, "fees": {"base": 0.00000300, "ancestor": 0.00000300}}`)
+		}
+		return json.Marshal(entries)
+	}
+	h := NewMempoolHandler(chaindata.New(chaindata.Config{Call: core, Log: zerolog.Nop()}).Mempool())
+
+	mux := http.NewServeMux()
+	srv := connect.NewServer()
+	rpc.RegisterMempoolServiceHandler(srv, h)
+	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	client := rpc.NewMempoolServiceClient(connect.NewClient(connecthttp.NewTransport(server.Client(), server.URL, connecthttp.WithReadMaxBytes(0))))
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	stream, err := client.WatchStats(ctx, &pb.GetStatsRequest{BucketEdges: []float64{0}})
+	require.NoError(t, err)
+	defer stream.Close() //nolint:errcheck // the test is done
+
+	first, err := stream.Receive()
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), first.GetStats().GetTxCount())
+
+	mu.Lock()
+	txs = 2
+	mu.Unlock()
+	next, err := stream.Receive()
+	require.NoError(t, err)
+	require.False(t, next.Heartbeat, "an equal read sends nothing, so the next frame is the change")
+	require.Equal(t, uint64(2), next.GetStats().GetTxCount())
+	require.Equal(t, uint64(2), next.GetStats().GetBuckets()[0].GetTxCount())
 }

@@ -367,6 +367,24 @@ func TestMempoolFeedSendsASnapshotThenChanges(t *testing.T) {
 	require.Equal(t, &MempoolBlock{Hash: txid(100), Height: 1, Connected: true, Txids: []string{txid(1)}}, got[1].Block)
 }
 
+func TestMempoolChangesWakesOnEachMessage(t *testing.T) {
+	core := newFakeMempoolCore()
+	m := startMempool(t, core)
+	changes := m.Changes(t.Context())
+
+	for n := 1; n <= 3; n++ {
+		m.push(core.add(n, mpEntry(100, 100, int64(n))))
+		select {
+		case <-changes:
+		case <-time.After(time.Second):
+			t.Fatalf("no wake for tx %d", n)
+		}
+		txs, _, err := m.Newest(t.Context(), 1)
+		require.NoError(t, err)
+		require.Equal(t, []string{fmt.Sprint(n)}, txids(txs), "a read after the wake holds the tx")
+	}
+}
+
 func TestParseTxKeyRoundTrips(t *testing.T) {
 	k, err := parseTxKey(txid(7))
 	require.NoError(t, err)
