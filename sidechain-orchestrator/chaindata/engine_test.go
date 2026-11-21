@@ -238,9 +238,65 @@ func TestWalletReadsRefreshAfterCoreSyncsItsWallets(t *testing.T) {
 	require.NoError(t, err)
 
 	syncs := core.count("syncwithvalidationinterfacequeue")
-	e.Fire(EventMempool)
+	core.mine()
 	require.Eventually(t, func() bool { return fetches.Load() == 2 }, time.Second, time.Millisecond)
 	require.Greater(t, core.count("syncwithvalidationinterfacequeue"), syncs, "the refresh waits for Core's wallets")
+}
+
+func TestMempoolChurnCostsOneReadPerCaller(t *testing.T) {
+	core := newFakeCore()
+	e := startEngine(t, core)
+	e.zmqUp.Store(true)
+	var fetches atomic.Int32
+	fetch := func(context.Context) (json.RawMessage, error) {
+		fetches.Add(1)
+		return json.RawMessage(`{}`), nil
+	}
+	for _, method := range []string{"getbalances", "getrawmempool"} {
+		fetches.Store(0)
+		_, err := e.Call(t.Context(), "w", method, nil, fetch)
+		require.NoError(t, err)
+
+		for range 100 {
+			e.Fire(EventMempool)
+		}
+		require.Eventually(t, func() bool {
+			e.mu.Lock()
+			defer e.mu.Unlock()
+			return !e.settling
+		}, time.Second, time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+		require.Equal(t, int32(1), fetches.Load(), "%s: no read before a caller asks", method)
+
+		_, err = e.Call(t.Context(), "w", method, nil, fetch)
+		require.NoError(t, err)
+		require.Equal(t, int32(2), fetches.Load(), "%s: the caller reads Core", method)
+	}
+}
+
+func TestStaleCallerDoesNotWaitForAnOlderRead(t *testing.T) {
+	core := newFakeCore()
+	e := startEngine(t, core)
+	e.zmqUp.Store(true)
+	release := make(chan struct{})
+	defer close(release)
+	var fetches atomic.Int32
+	slow := func(context.Context) (json.RawMessage, error) {
+		fetches.Add(1)
+		<-release
+		return json.RawMessage(`["old"]`), nil
+	}
+	go func() { _, _ = e.Call(context.Background(), "", "getrawmempool", nil, slow) }()
+	require.Eventually(t, func() bool { return fetches.Load() == 1 }, time.Second, time.Millisecond)
+
+	e.Fire(EventMempool)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	raw, err := e.Call(ctx, "", "getrawmempool", nil, func(context.Context) (json.RawMessage, error) {
+		return json.RawMessage(`["new"]`), nil
+	})
+	require.NoError(t, err)
+	require.JSONEq(t, `["new"]`, string(raw))
 }
 
 func TestWroteMarksWalletReadsStaleOnlyForAWrite(t *testing.T) {
@@ -347,7 +403,7 @@ func TestEventsDuringARefreshStartOneMoreRead(t *testing.T) {
 	require.NoError(t, err)
 
 	for range 100 {
-		e.Fire(EventMempool)
+		e.Fire(EventBlock)
 	}
 	close(release)
 	require.Eventually(t, func() bool { return inFlight.Load() == 0 && fetches.Load() >= 2 }, time.Second, time.Millisecond)
