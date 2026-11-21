@@ -826,6 +826,11 @@ class OrchestratorWalletRPC {
     return _streamClient.watchWalletData(emptypb.Empty());
   }
 
+  /// Streams the balance of the active wallet, also after a switch.
+  Stream<wmpb.WatchBalanceResponse> watchBalance() {
+    return _streamClient.watchBalance(wmpb.WatchBalanceRequest());
+  }
+
   Future<wmpb.ListCoreVariantsResponse> listCoreVariants() {
     return _unaryClient.listCoreVariants(wmpb.ListCoreVariantsRequest());
   }

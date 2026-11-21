@@ -5,13 +5,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/bitcoin.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/env.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/providers/wallet_reader_provider.dart';
+import 'package:sidechain_core/rpcs/stream_supervisor.dart';
 
 class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   @override
   Future<void> onNetworkChanged() async {
+    // A wallet ID can hold another balance on the new network.
+    _frames.clear();
     clear();
   }
 
@@ -44,6 +49,14 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   // their futures, which would latch _isFetching for the rest of the session.
   static const _fetchTimeout = Duration(seconds: 30);
 
+  final Map<RPCConnection, StreamSupervisor<wmpb.WatchBalanceResponse>> _watches = {};
+
+  /// The last balance frame of each streamed connection, for any wallet.
+  final Map<RPCConnection, wmpb.WatchBalanceResponse> _frames = {};
+
+  /// True while [rpc] gets its balance from a stream and not from the poll.
+  bool streams(RPCConnection rpc) => (_watches[rpc]?.isHealthy ?? false) && _frames.containsKey(rpc);
+
   final WalletReaderProvider? _walletReader = GetIt.I.isRegistered<WalletReaderProvider>()
       ? GetIt.I.get<WalletReaderProvider>()
       : null;
@@ -72,6 +85,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     }
     _walletReader?.addListener(_onWalletChanged);
     _lastWalletId = _walletReader?.activeWalletId;
+    _startWatches();
     _startFetchTimer();
     fetch();
   }
@@ -81,6 +95,66 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     for (final rpc in connections) {
       _balances[rpc] = (0.0, 0.0);
     }
+  }
+
+  void _startWatches() {
+    for (final rpc in connections) {
+      final stream = rpc.balanceStream;
+      if (stream == null) {
+        continue;
+      }
+      _watches[rpc] = StreamSupervisor<wmpb.WatchBalanceResponse>(
+        subscribe: stream.subscribe,
+        onEvent: (frame) => _onFrame(rpc, frame),
+        onTransportDeath: stream.onTransportDeath,
+        logger: log,
+        tag: 'BalanceProvider(${rpc.binaryType.name})',
+      )..start();
+    }
+  }
+
+  void _onFrame(RPCConnection rpc, wmpb.WatchBalanceResponse frame) {
+    if (frame.heartbeat) {
+      return;
+    }
+    // No wallet is active, so the poll reports the error as before.
+    if (frame.walletId.isEmpty) {
+      _frames.remove(rpc);
+      return;
+    }
+    _frames[rpc] = frame;
+    if (_applyFrame(rpc)) {
+      error = null;
+      notifyListeners();
+    }
+  }
+
+  /// Shows the last frame of [rpc] if it holds the balance of the active
+  /// wallet. Returns true if the balance changed.
+  bool _applyFrame(RPCConnection rpc) {
+    final frame = _frames[rpc];
+    final activeId = _walletReader?.activeWalletId;
+    if (frame == null || (activeId != null && frame.walletId != activeId)) {
+      return false;
+    }
+    _loggedError.remove(rpc);
+    return _store(
+      rpc,
+      satoshiToBTC(frame.balance.confirmedSats.round()),
+      satoshiToBTC(frame.balance.unconfirmedSats.round()),
+      satoshiToBTC(frame.balance.immatureSats.round()),
+    );
+  }
+
+  /// Returns true if the balance of [rpc] changed or was not read before.
+  bool _store(RPCConnection rpc, double confirmed, double pending, double maturing) {
+    var changed = _reported.add(rpc);
+    if (_balances[rpc] != (confirmed, pending) || _maturing[rpc] != maturing) {
+      _balances[rpc] = (confirmed, pending);
+      _maturing[rpc] = maturing;
+      changed = true;
+    }
+    return changed;
   }
 
   void _onConnectionChange() {
@@ -139,6 +213,12 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
 
       // Fetch balances from all connections
       for (final rpc in connections) {
+        if (streams(rpc)) {
+          if (_applyFrame(rpc)) {
+            changed = true;
+          }
+          continue;
+        }
         if (!rpc.connected) {
           // dont bother fetching balance if connection is down
           continue;
@@ -156,16 +236,13 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
           error = text;
           continue;
         }
+        // A frame that came during the read is newer.
+        if (streams(rpc)) {
+          continue;
+        }
         _loggedError.remove(rpc);
         final (confirmed, pending, maturing) = balances;
-        if (_reported.add(rpc)) {
-          // wen't from not initialized to initialized, make sure to notify
-          changed = true;
-        }
-
-        if (_balances[rpc] != (confirmed, pending) || _maturing[rpc] != maturing) {
-          _balances[rpc] = (confirmed, pending);
-          _maturing[rpc] = maturing;
+        if (_store(rpc, confirmed, pending, maturing)) {
           changed = true;
         }
       }
@@ -194,6 +271,9 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   @override
   void dispose() {
     _fetchTimer?.cancel();
+    for (final watch in _watches.values) {
+      unawaited(watch.dispose());
+    }
     _walletReader?.removeListener(_onWalletChanged);
     for (final rpc in connections) {
       rpc.removeListener(_onConnectionChange);
