@@ -80,8 +80,12 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     this.mainConnection = mainConnection ?? connections.first;
     // Add listeners for connection changes
     for (final rpc in connections) {
-      rpc.addListener(_onConnectionChange);
+      final listener = _connectionListeners[rpc] = () => _onConnectionChange(rpc);
+      rpc.addListener(listener);
       _balances[rpc] = (0.0, 0.0);
+      if (rpc.connected) {
+        _wasConnected.add(rpc);
+      }
     }
     _walletReader?.addListener(_onWalletChanged);
     _lastWalletId = _walletReader?.activeWalletId;
@@ -99,18 +103,43 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
 
   void _startWatches() {
     for (final rpc in connections) {
-      final stream = rpc.balanceStream;
-      if (stream == null) {
-        continue;
-      }
-      _watches[rpc] = StreamSupervisor<wmpb.WatchBalanceResponse>(
-        subscribe: stream.subscribe,
-        onEvent: (frame) => _onFrame(rpc, frame),
-        onTransportDeath: stream.onTransportDeath,
-        logger: log,
-        tag: 'BalanceProvider(${rpc.binaryType.name})',
-      )..start();
+      _startWatch(rpc);
     }
+  }
+
+  void _startWatch(RPCConnection rpc) {
+    final stream = rpc.balanceStream;
+    if (stream == null) {
+      return;
+    }
+    _watches[rpc] = StreamSupervisor<wmpb.WatchBalanceResponse>(
+      subscribe: stream.subscribe,
+      onEvent: (frame) => _onFrame(rpc, frame),
+      onTransportDeath: stream.onTransportDeath,
+      logger: log,
+      tag: 'BalanceProvider(${rpc.binaryType.name})',
+    )..start();
+  }
+
+  final Map<RPCConnection, VoidCallback> _connectionListeners = {};
+  final Set<RPCConnection> _wasConnected = {};
+
+  /// Subscribes again at once to the stream of a chain that came up. The
+  /// attempts before it met no server, and their backoff can wait 5 s.
+  void _resubscribeOnConnect(RPCConnection rpc) {
+    if (!rpc.connected) {
+      _wasConnected.remove(rpc);
+      return;
+    }
+    if (!_wasConnected.add(rpc)) {
+      return;
+    }
+    final watch = _watches[rpc];
+    if (watch == null || watch.isHealthy) {
+      return;
+    }
+    unawaited(watch.dispose());
+    _startWatch(rpc);
   }
 
   void _onFrame(RPCConnection rpc, wmpb.WatchBalanceResponse frame) {
@@ -157,7 +186,8 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     return changed;
   }
 
-  void _onConnectionChange() {
+  void _onConnectionChange(RPCConnection rpc) {
+    _resubscribeOnConnect(rpc);
     fetch();
   }
 
@@ -275,9 +305,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
       unawaited(watch.dispose());
     }
     _walletReader?.removeListener(_onWalletChanged);
-    for (final rpc in connections) {
-      rpc.removeListener(_onConnectionChange);
-    }
+    _connectionListeners.forEach((rpc, listener) => rpc.removeListener(listener));
     super.dispose();
   }
 }
