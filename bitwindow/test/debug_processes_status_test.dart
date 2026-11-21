@@ -36,6 +36,9 @@ class _Backend extends ChangeNotifier implements BackendStateProvider {
   bool orchestratorAnswered = true;
 
   @override
+  bool starting = false;
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

@@ -41,6 +41,9 @@ class BackendStateProvider extends ChangeNotifier {
   /// watch starts leaves this false, so nothing reads as healthy on no answer.
   bool orchestratorAnswered = false;
 
+  /// True while the app starts the orchestrator and no poll answered or gave up yet.
+  bool starting = false;
+
   StreamOrPoll<WatchBinariesResponse, ListBinariesResponse>? _watch;
   bool _polling = false;
   int _consecutiveFailures = 0;
@@ -101,6 +104,7 @@ class BackendStateProvider extends ChangeNotifier {
     final recovered = !orchestratorReachable || !orchestratorAnswered;
     orchestratorReachable = true;
     orchestratorAnswered = true;
+    starting = false;
     _apply(statuses, recovered: recovered);
   }
 
@@ -111,6 +115,7 @@ class BackendStateProvider extends ChangeNotifier {
     if (_consecutiveFailures == _failuresBeforeDisconnected) {
       _log.w('BackendStateProvider: orchestrator unreachable, marking binaries disconnected: $e');
       orchestratorReachable = false;
+      starting = false;
       _markAllDisconnected();
     }
     _log.d('BackendStateProvider: listBinaries failed: $e');
