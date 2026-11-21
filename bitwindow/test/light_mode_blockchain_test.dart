@@ -268,6 +268,29 @@ void main() {
     expect(provider.blocks.every((b) => b.hash.startsWith('b')), isTrue);
   });
 
+  test('a poll at the same tip reads no blocks', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
+    await pumpEventQueue();
+    final sync = GetIt.I.get<SyncProvider>();
+    sync.mainchainSyncInfo = SyncInfo(progressCurrent: 7, progressGoal: 7, lastBlockAt: null);
+    rpc.api.blockError = connect.ConnectException(connect.Code.internal, 'down');
+    await provider.fetch();
+    rpc.api.blockError = null;
+    await provider.fetch();
+    final calls = rpc.api.blockCalls;
+    expect(provider.blocks.map((b) => b.height), [7], reason: 'a failed read is read again');
+
+    await provider.fetch();
+    await provider.fetch();
+    expect(rpc.api.blockCalls, calls);
+
+    rpc.api.tip = 8;
+    sync.mainchainSyncInfo = SyncInfo(progressCurrent: 8, progressGoal: 8, lastBlockAt: null);
+    await provider.fetch();
+    expect(rpc.api.blockCalls, calls + 1);
+    expect(provider.blocks.map((b) => b.height), [8]);
+  });
+
   test('blocks poll in full mode', () async {
     final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
 
