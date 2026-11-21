@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:sidechain_core/gen/mempool/v1/mempool.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Statistics about a fee bucket
@@ -180,55 +181,29 @@ class MempoolProvider extends ChangeNotifier {
     isFetching = true;
 
     try {
-      final mempoolResponse = await _orchestrator.bitcoind.getRawMempool(GetRawMempoolRequest());
-      final transactions = mempoolResponse.transactions;
-
-      final bucketTxCount = List.filled(_bucketRanges.length, 0);
-      final bucketVsize = List.filled(_bucketRanges.length, 0);
-      final bucketFees = List.filled(_bucketRanges.length, 0.0);
-      final List<double> feeRates = [];
-      double totalFees = 0;
-      int totalVsize = 0;
-
-      for (final tx in transactions.values) {
-        final vsize = tx.virtualSize;
-        final fees = tx.fees.base.toDouble();
-        final feeRate = vsize > 0 ? fees / vsize : 0.0;
-        feeRates.add(feeRate);
-        totalFees += fees;
-        totalVsize += vsize;
-        for (var i = 0; i < _bucketRanges.length; i++) {
-          final (minFee, maxFee) = _bucketRanges[i];
-          if (feeRate >= minFee && feeRate < maxFee) {
-            bucketTxCount[i]++;
-            bucketVsize[i] += vsize;
-            bucketFees[i] += fees;
-          }
-        }
-      }
-
-      feeRates.sort();
-      final medianFeeRate = feeRates.isEmpty ? 0.0 : feeRates[feeRates.length ~/ 2];
-
+      final estimatesReq = Future.wait(_confTargets.map(_estimate));
+      final res = await _orchestrator.mempool.getStats(
+        GetStatsRequest(bucketEdges: [for (final (minFee, _) in _bucketRanges) minFee]),
+      );
       final feeBuckets = [
-        for (var i = 0; i < _bucketRanges.length; i++)
-          if (bucketTxCount[i] > 0)
+        for (var i = 0; i < _bucketRanges.length && i < res.buckets.length; i++)
+          if (res.buckets[i].txCount > 0)
             FeeBucket(
               minFeeRate: _bucketRanges[i].$1,
               maxFeeRate: _bucketRanges[i].$2,
-              txCount: bucketTxCount[i],
-              totalVsize: bucketVsize[i],
-              totalFees: bucketFees[i],
+              txCount: res.buckets[i].txCount.toInt(),
+              totalVsize: res.buckets[i].vsize.toInt(),
+              totalFees: res.buckets[i].feeSats.toDouble(),
             ),
       ];
 
-      final estimates = await Future.wait(_confTargets.map(_estimate));
+      final estimates = await estimatesReq;
 
       final next = MempoolStats(
-        txCount: transactions.length,
-        totalVsize: totalVsize,
-        totalFees: totalFees,
-        medianFeeRate: medianFeeRate,
+        txCount: res.txCount.toInt(),
+        totalVsize: res.vsize.toInt(),
+        totalFees: res.feeSats.toDouble(),
+        medianFeeRate: res.medianFeeRate,
         feeBuckets: feeBuckets,
         feeEstimates: estimates.nonNulls.toList(),
       );
