@@ -203,6 +203,8 @@ func TestIsSpam(t *testing.T) {
 	assert.True(t, isSpam("rpc: fetch completed in 50ms"))
 	assert.False(t, isSpam("Starting up bip300301_enforcer"))
 	assert.False(t, isSpam("Connected to mainchain"))
+	assert.True(t, isSpam(`INFO bip300301_enforcer: app/main.rs:261: connect_rpc procedure="/cusf.mainchain.v1.ValidatorService/GetChainTip" code="ok" duration_ms=0 request_id="req_a9"`))
+	assert.False(t, isSpam(`WARN bip300301_enforcer: app/main.rs:261: connect_rpc procedure="/cusf.mainchain.v1.ValidatorService/GetChainTip" code="unavailable" duration_ms=0 request_id="req_a9"`))
 }
 
 func TestStripANSI(t *testing.T) {

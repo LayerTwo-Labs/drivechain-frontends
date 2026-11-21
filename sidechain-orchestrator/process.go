@@ -926,6 +926,7 @@ var spamPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`tower_http`),
 	regexp.MustCompile(`Ripemd160`),
 	regexp.MustCompile(`rpc: fetch completed in`),
+	regexp.MustCompile(`connect_rpc procedure="[^"]*" code="ok"`),
 }
 
 // isSpam returns true if a log line should be filtered out.
