@@ -76,7 +76,7 @@ class LocalAuth {
   static const tokenRejectedMessage = 'token invalid';
 
   /// True only for the specific "your token is stale, refetch" rejection.
-  static bool _isTokenRejected(Object e) {
+  static bool isTokenRejected(Object e) {
     if (e is! ConnectException || e.code != Code.unauthenticated) {
       return false;
     }
@@ -157,7 +157,7 @@ class LocalAuth {
         try {
           return await next(req);
         } catch (e) {
-          if (!_isTokenRejected(e)) {
+          if (!isTokenRejected(e)) {
             rethrow;
           }
           // Cookie was rotated (orchestrator restarted). Refetch and, for unary
