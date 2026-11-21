@@ -95,16 +95,16 @@ void main(List<String> args) async {
         try {
           WidgetsFlutterBinding.ensureInitialized();
 
-          // Get the current window controller to check if this is a sub-window
-          final windowController = await WindowController.fromCurrentEngine();
+          // The main window gets no entrypoint arguments, so it needs no window controller.
+          final windowController = args.isEmpty ? null : await WindowController.fromCurrentEngine();
 
-          final (applicationDir, logFile, log) = await init(windowController.arguments);
+          final (applicationDir, logFile, log) = await init(windowController?.arguments ?? '');
           if (subWindowTimers != null) {
-            return await runPooledSubWindow(windowController, subWindowTimers, log, logFile);
+            return await runPooledSubWindow(windowController!, subWindowTimers, log, logFile);
           }
 
           // If arguments are not empty, this is a sub-window
-          if (windowController.arguments.isNotEmpty) {
+          if (windowController != null && windowController.arguments.isNotEmpty) {
             return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
           }
 
