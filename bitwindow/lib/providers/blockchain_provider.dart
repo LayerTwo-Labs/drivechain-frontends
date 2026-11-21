@@ -155,9 +155,14 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       var blocksFailed = false;
       final streamed = _streamedRecent;
       final frames = _recentFrames;
-      final tReq = _streamsRecent && streamed != null
-          ? Future.value(streamed)
-          : bitwindowd.bitwindowd.listRecentTransactions().onError(_return(recentTransactions));
+      final polled = !_streamsRecent || streamed == null;
+      var recentFailed = false;
+      final tReq = polled
+          ? bitwindowd.bitwindowd.listRecentTransactions().onError((e, st) {
+              recentFailed = true;
+              return _return(recentTransactions)(e, st);
+            })
+          : Future.value(streamed);
       final bReq = readBlocks
           ? bitwindowd.bitwindowd.listBlocks().onError((e, st) {
               blocksFailed = true;
@@ -174,6 +179,10 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
                 .onError(_return(peerCount));
 
       final newTXs = await tReq;
+      // bitwindowd answers, so a stream that waits out its backoff can subscribe now.
+      if (polled && !recentFailed) {
+        _recentWatch?.retryNow();
+      }
       final newPeerCount = await nReq;
 
       // A frame that came during the read is newer.
