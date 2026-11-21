@@ -76,6 +76,8 @@ type WalletHandler struct {
 	chainData       *chaindata.Engine          // nil until SetOrchestrator
 	bip47State      *bip47state.Store          // nil until SetBip47StateStore is called
 	ecxBurnWarnings sync.Map
+	// bidScripts holds the first output script per txid for the bid labels.
+	bidScripts sync.Map
 
 	receivedAtMu sync.Mutex
 	receivedAt   map[string]map[string]int64 // wallet ID -> txid -> time_received
@@ -1240,7 +1242,7 @@ func (h *WalletHandler) bidLabels(
 	core := NewHandler(h.orch)
 	return BidLabels(ctx, func(ctx context.Context, method, paramsJSON string) (json.RawMessage, error) {
 		return core.RawCoreCall(ctx, method, paramsJSON, "")
-	}, lo.Uniq(pending))
+	}, &h.bidScripts, lo.Uniq(pending))
 }
 
 // walletBidLabels reads the bids of a light install from the wallet's chain
@@ -1251,7 +1253,7 @@ func (h *WalletHandler) walletBidLabels(ctx context.Context, walletID string, tx
 		return nil
 	}
 	chain := h.engine.ChainForWallet(walletID)
-	return labelBids(tip, txids, func(txid string) (string, error) {
+	return labelBids(tip, txids, cachedScript(&h.bidScripts, func(txid string) (string, error) {
 		tx, err := chain.GetRawTransaction(ctx, txid)
 		if err != nil {
 			return "", err
@@ -1260,7 +1262,7 @@ func (h *WalletHandler) walletBidLabels(ctx context.Context, walletID string, tx
 			return "", fmt.Errorf("transaction %s has no outputs", txid)
 		}
 		return tx.Vout[0].ScriptPubKey.Hex, nil
-	}, func(string) bool { return true })
+	}), func(string) bool { return true })
 }
 
 func (h *WalletHandler) ListUnspent(ctx context.Context, req *pb.ListUnspentRequest) (*pb.ListUnspentResponse, error) {

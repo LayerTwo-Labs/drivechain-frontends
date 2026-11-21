@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -120,7 +121,7 @@ func TestBidLabelsNamesOnlyTheBids(t *testing.T) {
 		},
 	}
 
-	bids := BidLabels(context.Background(), core.call, []string{"live", "lost", "payment", "missing"})
+	bids := BidLabels(context.Background(), core.call, &sync.Map{}, []string{"live", "lost", "payment", "missing"})
 
 	require.Len(t, bids, 2)
 	require.False(t, bids["live"].Lost)
@@ -130,10 +131,25 @@ func TestBidLabelsNamesOnlyTheBids(t *testing.T) {
 func TestBidLabelsReadsEachTxidOneTime(t *testing.T) {
 	core := &fakeCore{tip: labelTip, scripts: map[string]string{"live": bidScriptHex(t, 9, labelTip)}}
 
-	bids := BidLabels(context.Background(), core.call, []string{"live", "live", "live"})
+	bids := BidLabels(context.Background(), core.call, &sync.Map{}, []string{"live", "live", "live"})
 
 	require.Len(t, bids, 1)
 	require.Equal(t, 3, core.calls, "one tip read, one transaction read and one mempool read")
+}
+
+func TestBidLabelsReadsAScriptOneTimeAcrossCalls(t *testing.T) {
+	core := &fakeCore{tip: labelTip, scripts: map[string]string{
+		"live":    bidScriptHex(t, 9, labelTip),
+		"payment": "0014c0ffee0000000000000000000000000000000000",
+	}}
+	scripts := &sync.Map{}
+
+	BidLabels(context.Background(), core.call, scripts, []string{"live", "payment"})
+	before := core.calls
+	bids := BidLabels(context.Background(), core.call, scripts, []string{"live", "payment"})
+
+	require.Len(t, bids, 1)
+	require.Equal(t, 2, core.calls-before, "one tip read and one mempool read, no transaction read")
 }
 
 // An RBF raise leaves the replaced bid in the wallet with no confirmations. A
@@ -148,7 +164,7 @@ func TestBidLabelsSkipsAReplacedBid(t *testing.T) {
 		dropped: map[string]bool{"replaced": true},
 	}
 
-	bids := BidLabels(context.Background(), core.call, []string{"replaced", "live"})
+	bids := BidLabels(context.Background(), core.call, &sync.Map{}, []string{"replaced", "live"})
 
 	require.Len(t, bids, 1)
 	require.Contains(t, bids, "live")
@@ -157,7 +173,7 @@ func TestBidLabelsSkipsAReplacedBid(t *testing.T) {
 func TestBidLabelsCallsNothingWithoutATxid(t *testing.T) {
 	core := &fakeCore{tip: labelTip}
 
-	require.Nil(t, BidLabels(context.Background(), core.call, nil))
+	require.Nil(t, BidLabels(context.Background(), core.call, &sync.Map{}, nil))
 	require.Zero(t, core.calls)
 }
 
@@ -165,5 +181,5 @@ func TestBidLabelsCallsNothingWithoutATxid(t *testing.T) {
 func TestBidLabelsStopsWhenTheTipReadFails(t *testing.T) {
 	core := &fakeCore{tipErr: fmt.Errorf("no node")}
 
-	require.Nil(t, BidLabels(context.Background(), core.call, []string{"live"}))
+	require.Nil(t, BidLabels(context.Background(), core.call, &sync.Map{}, []string{"live"}))
 }

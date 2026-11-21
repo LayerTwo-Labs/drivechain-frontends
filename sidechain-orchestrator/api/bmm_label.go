@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -37,7 +38,8 @@ func BidLabel(scriptHex, tipHash string) *wpb.BmmBid {
 
 // BidLabels names the BMM request each mempool transaction carries. A
 // transaction the node cannot read, or the mempool does not hold, gets no label.
-func BidLabels(ctx context.Context, call coreReader, txids []string) map[string]*wpb.BmmBid {
+// scripts holds the first output script of each txid read before.
+func BidLabels(ctx context.Context, call coreReader, scripts *sync.Map, txids []string) map[string]*wpb.BmmBid {
 	if len(txids) == 0 {
 		return nil
 	}
@@ -46,7 +48,7 @@ func BidLabels(ctx context.Context, call coreReader, txids []string) map[string]
 		return nil
 	}
 	return labelBids(tip, txids,
-		func(txid string) (string, error) { return firstOutputScript(ctx, call, txid) },
+		cachedScript(scripts, func(txid string) (string, error) { return firstOutputScript(ctx, call, txid) }),
 		func(txid string) bool { return inMempool(ctx, call, txid) })
 }
 
@@ -69,6 +71,22 @@ func labelBids(
 		}
 	}
 	return out
+}
+
+// cachedScript reads the script of a txid one time. A txid names one
+// transaction, so its script never changes.
+func cachedScript(scripts *sync.Map, read func(txid string) (string, error)) func(txid string) (string, error) {
+	return func(txid string) (string, error) {
+		if script, ok := scripts.Load(txid); ok {
+			return script.(string), nil
+		}
+		script, err := read(txid)
+		if err != nil {
+			return "", err
+		}
+		scripts.Store(txid, script)
+		return script, nil
+	}
 }
 
 // inMempool says whether the mempool holds txid. A replaced bid stays in the
