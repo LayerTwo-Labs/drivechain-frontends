@@ -7,6 +7,7 @@ import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:sidechain_core/rpcs/stream_supervisor.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -41,7 +42,19 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   String? _loggedError;
   Timer? _fetchTimer;
 
-  BlockchainProvider() {
+  StreamSupervisor<WatchRecentTransactionsResponse>? _recentWatch;
+
+  /// The newest streamed list. A clear drops it, so the poll reads until the
+  /// next frame.
+  List<RecentTransaction>? _streamedRecent;
+  int _recentFrames = 0;
+
+  /// True while the stream, and not the poll, gives [recentTransactions].
+  bool get _streamsRecent => (_recentWatch?.isHealthy ?? false) && _streamedRecent != null;
+
+  final bool _streamRecent;
+
+  BlockchainProvider({bool? streamRecent}) : _streamRecent = streamRecent ?? !Environment.isInTest {
     _startFetchTimer();
     mainchain.addListener(fetch);
     bitwindowd.addListener(fetch);
@@ -60,6 +73,40 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     return info == null ? null : (info.progressCurrent, info.lastBlockAt);
   }
 
+  /// Runs the stream only while the poll would read the list.
+  void _syncRecentWatch(bool want) {
+    if (want) {
+      _recentWatch ??= StreamSupervisor<WatchRecentTransactionsResponse>(
+        // A recreated connection replaces bitwindowd.bitwindowd, so resolve it per call.
+        subscribe: () => bitwindowd.bitwindowd.watchRecentTransactions(),
+        onEvent: applyRecentFrame,
+        onTransportDeath: () {},
+        logger: log,
+        tag: 'BlockchainProvider.recent',
+      )..start();
+      return;
+    }
+    unawaited(_recentWatch?.dispose());
+    _recentWatch = null;
+    _streamedRecent = null;
+  }
+
+  /// Applies one WatchRecentTransactions frame.
+  @visibleForTesting
+  void applyRecentFrame(WatchRecentTransactionsResponse frame) {
+    if (frame.heartbeat) {
+      return;
+    }
+    _recentFrames++;
+    _streamedRecent = frame.transactions;
+    if (!NodeModeProvider.runsLocalBackends || (syncProvider.bitwindowdSyncInfo?.waitsForCore ?? false)) {
+      return;
+    }
+    if (recentTransactions.updateWith(frame.transactions)) {
+      notifyListeners();
+    }
+  }
+
   void _onSyncChanged() {
     final info = syncProvider.mainchainSyncInfo;
     final next = (info?.isSynced, info?.progressCurrent, info?.lastBlockAt);
@@ -74,6 +121,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   Future<void> fetch() async {
     // Light mode runs no local Bitcoin Core, and blocks, transactions and peers read it.
     if (!NodeModeProvider.runsLocalBackends) {
+      _syncRecentWatch(false);
       if (blocks.isNotEmpty || recentTransactions.isNotEmpty || peerCount != 0 || errors.isNotEmpty) {
         clear();
       }
@@ -86,11 +134,13 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     // and each one still costs Core an RPC under cs_main. A node that re-enters
     // IBD holds rows from the chain it left, so drop them.
     if (syncProvider.bitwindowdSyncInfo?.waitsForCore ?? false) {
+      _syncRecentWatch(false);
       if (blocks.isNotEmpty || recentTransactions.isNotEmpty || peerCount != 0 || errors.isNotEmpty) {
         clear();
       }
       return;
     }
+    _syncRecentWatch(_streamRecent);
     _isFetching = true;
 
     try {
@@ -98,7 +148,11 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       final tip = _mainchainTip;
       final readBlocks = blocks.isEmpty || tip == null || tip != _blocksTip;
       var blocksFailed = false;
-      final tReq = bitwindowd.bitwindowd.listRecentTransactions().onError(_return(recentTransactions));
+      final streamed = _streamedRecent;
+      final frames = _recentFrames;
+      final tReq = _streamsRecent && streamed != null
+          ? Future.value(streamed)
+          : bitwindowd.bitwindowd.listRecentTransactions().onError(_return(recentTransactions));
       final bReq = readBlocks
           ? bitwindowd.bitwindowd.listBlocks().onError((e, st) {
               blocksFailed = true;
@@ -117,7 +171,8 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       final newTXs = await tReq;
       final newPeerCount = await nReq;
 
-      var hasChanges = recentTransactions.updateWith(newTXs);
+      // A frame that came during the read is newer.
+      var hasChanges = _recentFrames == frames && recentTransactions.updateWith(newTXs);
       if (newPeerCount != peerCount) {
         peerCount = newPeerCount;
         hasChanges = true;
@@ -203,6 +258,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   /// network's data while the next fetch repopulates from new bitwindowd.
   void clear() {
     _blocksTip = null;
+    _streamedRecent = null;
     peerCount = 0;
     blocks = [];
     recentTransactions = [];
@@ -249,6 +305,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   void dispose() {
     _fetchTimer?.cancel();
     _fetchTimer = null;
+    _syncRecentWatch(false);
     mainchain.removeListener(fetch);
     syncProvider.removeListener(_onSyncChanged);
     super.dispose();
