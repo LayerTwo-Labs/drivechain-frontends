@@ -97,6 +97,11 @@ func remoteEnforcerCheckError(network string, err error) error {
 	return fmt.Errorf("check the remote validator service: %w", err)
 }
 
+// Remote reports whether the check reaches the remote enforcer.
+func (h *enforcerHealthCheck) Remote() bool {
+	return h.orch.NodeMode() == NodeModeLight
+}
+
 func (h *enforcerHealthCheck) Check(ctx context.Context) error {
 	if h.orch.NodeMode() != NodeModeLight {
 		return h.local.Check(ctx)

@@ -55,7 +55,7 @@ func TestConnectionMonitorSeesARestartFast(t *testing.T) {
 	require.Less(t, time.Since(start), 200*time.Millisecond)
 }
 
-func TestConnectionMonitorProbesAStoppedBinarySlowly(t *testing.T) {
+func TestConnectionMonitorSeesAnExternalStartFast(t *testing.T) {
 	checker := &probeCounter{}
 	mon := newTestMonitor(t, checker, nil)
 	t.Cleanup(mon.StopAllTimers)
@@ -64,11 +64,13 @@ func TestConnectionMonitorProbesAStoppedBinarySlowly(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 	before := checker.calls.Load()
-	time.Sleep(2050 * time.Millisecond)
-	require.InDelta(t, 2, checker.calls.Load()-before, 1)
+	time.Sleep(time.Second)
+	require.InDelta(t, 20, checker.calls.Load()-before, 6)
 
 	checker.healthy.Store(true)
-	require.Eventually(t, mon.Connected, 1500*time.Millisecond, time.Millisecond, "an external start was not seen")
+	start := time.Now()
+	require.Eventually(t, mon.Connected, time.Second, time.Millisecond, "an external start was not seen")
+	require.Less(t, time.Since(start), 100*time.Millisecond)
 }
 
 func TestCleanExitMarksTheBinaryDown(t *testing.T) {
@@ -118,5 +120,29 @@ func TestStopExitDoesNotKick(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	before := checker.calls.Load()
 	time.Sleep(500 * time.Millisecond)
-	require.LessOrEqual(t, checker.calls.Load()-before, int32(1))
+	require.LessOrEqual(t, checker.calls.Load()-before, int32(13), "the stop exit kicked the fast probe")
+}
+
+type remoteProbe struct {
+	probeCounter
+	remote bool
+}
+
+func (r *remoteProbe) Remote() bool { return r.remote }
+
+func TestALongDownBinaryKeepsTheFastProbe(t *testing.T) {
+	local := newTestMonitor(t, &probeCounter{}, nil)
+	local.kickedAt = time.Now().Add(-2 * remoteProbeWindow)
+	require.Equal(t, downProbeInterval, local.nextProbe())
+
+	far := &remoteProbe{remote: true}
+	remote := newTestMonitor(t, far, nil)
+	remote.kickedAt = time.Now().Add(-2 * remoteProbeWindow)
+	require.Equal(t, probeInterval, remote.nextProbe())
+	far.remote = false
+	require.Equal(t, downProbeInterval, remote.nextProbe())
+
+	remote.kickedAt = time.Now()
+	far.remote = true
+	require.Equal(t, fastProbeInterval, remote.nextProbe())
 }
