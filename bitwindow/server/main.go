@@ -787,6 +787,16 @@ func retireRunningOrchestrator(ownerPID int) bool {
 // enforcer and every sidechain first.
 const retireDrainWait = 2 * time.Minute
 
+// retirePollWait is the time between two port probes. A daemon that knows
+// keep_l1 frees the port at once, so the first probes come fast. Each probe of
+// a held port leaves a TIME_WAIT socket, so a long drain gets slow probes.
+func retirePollWait(waited time.Duration) time.Duration {
+	if waited < 2*time.Second {
+		return 25 * time.Millisecond
+	}
+	return 500 * time.Millisecond
+}
+
 // retireOrchestrator stops the running drivechaind and returns once it lets
 // the port go. A fresh daemon then binds it. bitcoind, the enforcer and the
 // sidechains keep running, and the fresh daemon adopts them.
@@ -804,7 +814,8 @@ func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zer
 		log.Info().Err(err).Msg("asked the old drivechaind to exit, waiting for the port")
 	}
 
-	deadline := time.Now().Add(retireDrainWait)
+	start := time.Now()
+	deadline := start.Add(retireDrainWait)
 	for time.Now().Before(deadline) {
 		conn, err := net.DialTimeout("tcp", hostPort, 200*time.Millisecond)
 		if err != nil {
@@ -815,7 +826,7 @@ func retireOrchestrator(ctx context.Context, addr, bitwindowDir string, log *zer
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(retirePollWait(time.Since(start))):
 		}
 	}
 	return fmt.Errorf("drivechaind still holds %s after %s", hostPort, retireDrainWait)

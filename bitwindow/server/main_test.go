@@ -332,3 +332,8 @@ func TestRetireRunningOrchestratorFollowsTheOwner(t *testing.T) {
 	assert.False(t, retireRunningOrchestrator(0), "a daemon under no owner stays")
 	assert.False(t, retireRunningOrchestrator(-1), "an unset pid stays")
 }
+
+func TestRetirePollIsFastFirst(t *testing.T) {
+	require.Equal(t, 25*time.Millisecond, retirePollWait(0))
+	require.Equal(t, 500*time.Millisecond, retirePollWait(3*time.Second))
+}
