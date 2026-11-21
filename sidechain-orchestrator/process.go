@@ -361,14 +361,18 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 	if opts.PidName != "" {
 		pidName = opts.PidName
 	}
-	if _, err := os.Stat(binPath); err != nil {
+	info, err := os.Stat(binPath)
+	if err != nil {
 		return 0, fmt.Errorf("binary not found at %s: %w", binPath, err)
 	}
 	if err := verifyArtifactPin(config, binPath, false); err != nil {
 		return 0, err
 	}
-	if err := chmod(binPath); err != nil {
-		pm.log.Warn().Err(err).Str("binary", processName).Msg("chmod")
+	// A chmod changes the file, and macOS then checks the binary again before it runs.
+	if info.Mode().Perm()&0o111 != 0o111 {
+		if err := chmod(binPath); err != nil {
+			pm.log.Warn().Err(err).Str("binary", processName).Msg("chmod")
+		}
 	}
 
 	// Raise file descriptor limit for child processes (bitcoind needs many)
