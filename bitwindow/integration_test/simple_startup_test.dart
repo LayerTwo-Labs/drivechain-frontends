@@ -22,17 +22,27 @@ void main() {
       addTearDown(binaries.onShutdown);
       await app.runMainWindow(log, dir, logFile);
 
+      Future<bool> backendAnswers() async {
+        try {
+          await GetIt.I.get<BitwindowRPC>().bitwindowd.listAddressBook();
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
       for (var step = 0; step < 30; step++) {
         await tester.pump(const Duration(seconds: 2));
         final finder = find.byType(app.BitwindowApp);
-        if (tester.any(finder) && tester.widget<app.BitwindowApp>(finder).backendReady.value) {
+        // A saved boot state shows the root page before the backend answers.
+        if (tester.any(finder) && tester.widget<app.BitwindowApp>(finder).showRoot.value && await backendAnswers()) {
           break;
         }
       }
 
       final finder = find.byType(app.BitwindowApp);
       expect(finder, findsOneWidget);
-      expect(tester.widget<app.BitwindowApp>(finder).backendReady.value, isTrue);
+      expect(tester.widget<app.BitwindowApp>(finder).showRoot.value, isTrue);
       expect(find.textContaining('Initialization failed'), findsNothing);
       expect((await GetIt.I.get<OrchestratorRPC>().listBinaries()).binaries, isNotEmpty);
       expect(await GetIt.I.get<BitwindowRPC>().bitwindowd.listAddressBook(), isA<List<AddressBookEntry>>());
