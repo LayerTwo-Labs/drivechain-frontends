@@ -418,7 +418,7 @@ func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error
 		}
 		adopted, err := adoptOrchestrator(ctx, conf.OrchestratorAddr, bitwindowDir, orchPath, conf.OwnerPID)
 		if err != nil {
-			return nil, err
+			log.Warn().Err(err).Msg("could not keep the running drivechaind, retiring it")
 		}
 		if adopted {
 			log.Info().Str("addr", conf.OrchestratorAddr).Msg("the running drivechaind is this build, keeping it")

@@ -15,6 +15,8 @@ import (
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	wmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	wmrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/selfbuild"
 )
@@ -24,6 +26,24 @@ type fakeDrivechaind struct {
 	runs      string
 	exiting   bool
 	ownerPIDs []int32
+	wallet    fakeWallets
+}
+
+type fakeWallets struct {
+	wmrpc.UnimplementedWalletManagerServiceHandler
+	encrypted bool
+	state     wmpb.WalletState
+	locks     int
+}
+
+func (f *fakeWallets) GetWalletStatus(context.Context, *wmpb.GetWalletStatusRequest) (*wmpb.GetWalletStatusResponse, error) {
+	return &wmpb.GetWalletStatusResponse{Encrypted: f.encrypted, State: f.state}, nil
+}
+
+func (f *fakeWallets) LockWallet(context.Context, *wmpb.LockWalletRequest) (*wmpb.LockWalletResponse, error) {
+	f.locks++
+	f.state = wmpb.WalletState_WALLET_STATE_LOCKED
+	return &wmpb.LockWalletResponse{}, nil
 }
 
 func (f *fakeDrivechaind) AdoptOwner(_ context.Context, req *orchpb.AdoptOwnerRequest) (*orchpb.AdoptOwnerResponse, error) {
@@ -46,6 +66,7 @@ func (f *fakeDrivechaind) serve(t *testing.T) string {
 	})
 	rpcServer := connect.NewServer()
 	orchrpc.RegisterOrchestratorServiceHandler(rpcServer, f)
+	wmrpc.RegisterWalletManagerServiceHandler(rpcServer, &f.wallet)
 	connecthttp.Mount(mux, rpcServer)
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
@@ -133,4 +154,21 @@ func TestAdoptOrchestratorLeavesADrivechaindThatExits(t *testing.T) {
 	adopted, err := adoptOrchestrator(t.Context(), orch.serve(t), "", "/app/drivechaind", 7)
 	require.NoError(t, err)
 	require.False(t, adopted)
+}
+
+// A relaunched app asks for the password, as it did when it replaced the daemon.
+func TestAdoptOrchestratorLocksAnUnlockedWalletWithAPassword(t *testing.T) {
+	orch := &fakeDrivechaind{runs: "/app/drivechaind"}
+	orch.wallet = fakeWallets{encrypted: true, state: wmpb.WalletState_WALLET_STATE_UNLOCKED}
+
+	adopted, err := adoptOrchestrator(t.Context(), orch.serve(t), "", "/app/drivechaind", 7)
+	require.NoError(t, err)
+	require.True(t, adopted)
+	require.Equal(t, 1, orch.wallet.locks)
+
+	orch.wallet = fakeWallets{state: wmpb.WalletState_WALLET_STATE_UNLOCKED}
+	adopted, err = adoptOrchestrator(t.Context(), orch.serve(t), "", "/app/drivechaind", 7)
+	require.NoError(t, err)
+	require.True(t, adopted)
+	require.Zero(t, orch.wallet.locks)
 }
