@@ -355,3 +355,48 @@ func TestEventsDuringARefreshStartOneMoreRead(t *testing.T) {
 	require.LessOrEqual(t, fetches.Load(), int32(3))
 	require.Equal(t, int32(1), maxInFlight.Load(), "one read per key at a time")
 }
+
+func TestWalletReadAfterABlockReadsCoreBeforeTheSettle(t *testing.T) {
+	core := newFakeCore()
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+	call := func(ctx context.Context, method string, params ...any) (json.RawMessage, error) {
+		if method == "syncwithvalidationinterfacequeue" {
+			select {
+			case <-release:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+		return core.call(ctx, method, params...)
+	}
+	e := New(Config{Call: call, Log: zerolog.Nop()})
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go e.Run(ctx)
+	require.Eventually(t, func() bool { return e.Health() == nil }, 2*time.Second, 5*time.Millisecond)
+	e.zmqUp.Store(true)
+
+	var fetches atomic.Int32
+	var balance atomic.Value
+	balance.Store(`{"mine":{"trusted":1}}`)
+	fetch := func(context.Context) (json.RawMessage, error) {
+		fetches.Add(1)
+		return json.RawMessage(balance.Load().(string)), nil
+	}
+	_, err := e.Call(t.Context(), "w", "getbalances", nil, fetch)
+	require.NoError(t, err)
+
+	balance.Store(`{"mine":{"trusted":2}}`)
+	core.mine()
+	require.Eventually(t, func() bool {
+		raw, err := e.Get(KindBlockchainInfo)
+		return err == nil && strings.Contains(string(raw), `"blocks":1`)
+	}, time.Second, time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
+	require.Equal(t, int32(1), fetches.Load(), "a block alone starts no wallet read")
+
+	raw, err := e.Call(t.Context(), "w", "getbalances", nil, fetch)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"mine":{"trusted":2}}`, string(raw), "a read after a block shows the block")
+}

@@ -247,7 +247,7 @@ func (e *Engine) Fire(mask Event) {
 		KindMempool: mask&EventMempool != 0,
 		KindWallet:  mask&(EventWrite|EventSettle) != 0,
 	}
-	if mask&(EventBlock|EventMempool) != 0 {
+	if mask&settleFollows != 0 {
 		if e.settling {
 			e.settlePending = true
 		} else {

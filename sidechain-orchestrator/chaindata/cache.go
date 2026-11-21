@@ -15,9 +15,13 @@ type policy struct {
 	ttl    time.Duration
 }
 
-// Core's wallets process a block or a mempool change after EventBlock and
-// EventMempool, so wallet reads go stale on EventSettle.
-const walletEvents = EventWrite | EventSettle
+// Core's wallet reads wait until the wallet has the newest block, so wallet
+// reads go stale on EventBlock. Core's wallets process a mempool change after
+// EventMempool, so wallet reads also go stale on EventSettle.
+const walletEvents = EventBlock | EventWrite | EventSettle
+
+// settleFollows holds the events after which Fire starts a settle.
+const settleFollows = EventBlock | EventMempool
 
 var policies = map[string]policy{
 	"getblockchaininfo": {events: EventBlock},
@@ -185,6 +189,11 @@ func (c *Cache[V]) invalidate(mask Event) {
 	defer c.mu.Unlock()
 	for key, en := range c.m {
 		if en.p.events&mask == 0 {
+			continue
+		}
+		// The settle after mask reads the value again, so a read now would
+		// double the Core calls. A caller before the settle reads Core.
+		if en.p.events&EventSettle != 0 && mask&^settleFollows == 0 {
 			continue
 		}
 		if !en.read {
