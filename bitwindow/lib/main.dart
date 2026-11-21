@@ -509,9 +509,11 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
     written: snapshot?.encode(),
   ).start();
 
+  final firstFrame = Completer<void>();
+  WidgetsBinding.instance.addPostFrameCallback((_) => firstFrame.complete());
   final boot = () async {
     try {
-      await bootBitwindowBackend(log, rootShown: snapshot != null);
+      await bootBitwindowBackend(log, rootShown: snapshot != null, firstFrame: firstFrame.future);
     } catch (e) {
       log.e('bootBitwindowBackend failed: $e');
       if (backendState.starting) {
@@ -930,7 +932,8 @@ Future<bool> waitForDrivechaind(
 }
 
 /// [rootShown] is true when the root page showed before the backend answered.
-Future<void> bootBitwindowBackend(Logger log, {bool rootShown = false}) async {
+/// The readiness reads wait for [firstFrame], so their replies do not hold it back.
+Future<void> bootBitwindowBackend(Logger log, {bool rootShown = false, Future<void>? firstFrame}) async {
   log.i('STARTUP: Booting BitWindow backend');
 
   final binaryProvider = GetIt.I.get<BinaryProvider>();
@@ -954,6 +957,7 @@ Future<void> bootBitwindowBackend(Logger log, {bool rootShown = false}) async {
   final localAuth = localAuthFlag != 'false' && localAuthFlag != '0';
   log.i('STARTUP: starting bitwindowd');
   await startBitwindowd(binaryProvider, swap: GetIt.I.get<BackendSwapProvider>());
+  await firstFrame;
 
   // 1b. Local auth is on by default; the kill switch is ORCHESTRATOR_LOCAL_AUTH
   //     =false/0 on our env, which we pass down to the backend. When on, the
