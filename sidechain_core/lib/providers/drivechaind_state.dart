@@ -36,7 +36,7 @@ class DrivechaindState extends ChangeNotifier implements DaemonState {
   bool get connected => _backend.orchestratorAnswered && _backend.orchestratorReachable;
 
   @override
-  bool get initializingBinary => !connected && _binaries.isInitializing(binary);
+  bool get initializingBinary => !connected && (_backend.starting || _binaries.isInitializing(binary));
 
   @override
   bool get stoppingBinary => _binaries.isStopping(binary);

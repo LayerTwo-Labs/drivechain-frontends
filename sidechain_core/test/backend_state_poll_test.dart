@@ -1,4 +1,5 @@
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -10,6 +11,20 @@ class _Orchestrator implements OrchestratorRPC {
   @override
   Future<ListBinariesResponse> listBinaries({bool forceBackend = false}) async =>
       ListBinariesResponse(binaries: statuses);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Binaries extends ChangeNotifier implements BinaryProvider {
+  @override
+  List<Binary> binaries = [Drivechaind()];
+
+  @override
+  bool isInitializing(Binary binary) => false;
+
+  @override
+  bool isStopping(Binary binary) => false;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -74,4 +89,37 @@ void main() {
     backend.applyWatchFrame(WatchBinariesResponse(binaries: [BinaryStatusMsg(name: 'enforcer')]));
     expect(notifies, 2);
   });
+
+  test('a starting orchestrator reads as initializing until a poll answers', () async {
+    final orchestrator = _Orchestrator();
+    final backend = BackendStateProvider(orchestrator)..starting = true;
+    final drivechaind = DrivechaindState(binaries: _Binaries(), backend: backend);
+
+    expect(drivechaind.connected, isFalse);
+    expect(drivechaind.initializingBinary, isTrue);
+    expect(drivechaind.connectionError, isNull);
+
+    await backend.poll();
+    expect(backend.starting, isFalse);
+    expect(drivechaind.connected, isTrue);
+  });
+
+  test('an orchestrator that never answers ends the start', () async {
+    final backend = BackendStateProvider(_DownOrchestrator())..starting = true;
+    final drivechaind = DrivechaindState(binaries: _Binaries(), backend: backend);
+
+    for (var i = 0; i < 5; i++) {
+      await backend.poll();
+    }
+    expect(backend.starting, isFalse);
+    expect(drivechaind.connectionError, isNotNull);
+  });
+}
+
+class _DownOrchestrator implements OrchestratorRPC {
+  @override
+  Future<ListBinariesResponse> listBinaries({bool forceBackend = false}) async => throw StateError('down');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
