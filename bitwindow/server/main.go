@@ -55,6 +55,8 @@ func main() {
 	// SIGTERM too, so `systemctl stop` / `docker stop` drain the server and
 	// relay Shutdown to drivechaind instead of orphaning it.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// The app that reads stdout can quit while a relaunched app keeps this daemon.
+	signal.Ignore(syscall.SIGPIPE)
 
 	if err := realMain(ctx, cancel); err != nil {
 
