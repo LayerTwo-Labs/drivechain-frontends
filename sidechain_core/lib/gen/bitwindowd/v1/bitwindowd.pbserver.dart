@@ -42,6 +42,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$2.GetFireplaceStatsResponse> getFireplaceStats($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$2.ListRecentTransactionsResponse> listRecentTransactions(
       $pb.ServerContext ctx, $2.ListRecentTransactionsRequest request);
+  $async.Future<$2.WatchRecentTransactionsResponse> watchRecentTransactions(
+      $pb.ServerContext ctx, $2.ListRecentTransactionsRequest request);
   $async.Future<$2.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $2.ListBlocksRequest request);
   $async.Future<$2.GetNetworkStatsResponse> getNetworkStats($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> setMempoolWatch($pb.ServerContext ctx, $2.SetMempoolWatchRequest request);
@@ -88,6 +90,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'GetFireplaceStats':
         return $1.Empty();
       case 'ListRecentTransactions':
+        return $2.ListRecentTransactionsRequest();
+      case 'WatchRecentTransactions':
         return $2.ListRecentTransactionsRequest();
       case 'ListBlocks':
         return $2.ListBlocksRequest();
@@ -149,6 +153,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
         return getFireplaceStats(ctx, request as $1.Empty);
       case 'ListRecentTransactions':
         return listRecentTransactions(ctx, request as $2.ListRecentTransactionsRequest);
+      case 'WatchRecentTransactions':
+        return watchRecentTransactions(ctx, request as $2.ListRecentTransactionsRequest);
       case 'ListBlocks':
         return listBlocks(ctx, request as $2.ListBlocksRequest);
       case 'GetNetworkStats':

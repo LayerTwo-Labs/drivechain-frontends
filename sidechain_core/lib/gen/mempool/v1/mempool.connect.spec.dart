@@ -29,6 +29,14 @@ abstract final class MempoolService {
     mempoolv1mempool.GetStatsResponse.new,
   );
 
+  /// WatchStats sends the GetStats result, then the result again on each change.
+  static const watchStats = connect.Spec(
+    '/$name/WatchStats',
+    connect.StreamType.server,
+    mempoolv1mempool.GetStatsRequest.new,
+    mempoolv1mempool.WatchStatsResponse.new,
+  );
+
   /// WatchTransactions sends the full mempool, then each change. A new full
   /// mempool replaces the old one.
   static const watchTransactions = connect.Spec(

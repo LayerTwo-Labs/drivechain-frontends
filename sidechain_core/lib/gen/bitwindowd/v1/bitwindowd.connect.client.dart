@@ -313,6 +313,24 @@ extension type BitwindowdServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// Sends the ListRecentTransactions list, then the list again on each change.
+  Stream<bitwindowdv1bitwindowd.WatchRecentTransactionsResponse> watchRecentTransactions(
+    bitwindowdv1bitwindowd.ListRecentTransactionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.BitwindowdService.watchRecentTransactions,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Lists blocks with pagination support
   Future<bitwindowdv1bitwindowd.ListBlocksResponse> listBlocks(
     bitwindowdv1bitwindowd.ListBlocksRequest input, {

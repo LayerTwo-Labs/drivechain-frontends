@@ -49,6 +49,9 @@ class OrchestratorRPC {
 
   /// The mainchain mempool, read from the memory of drivechaind.
   late final MempoolServiceClient mempool;
+
+  /// [mempool] on the stream transport, for the Watch RPCs.
+  late final MempoolServiceClient mempoolStream;
   final String _host;
   final int _port;
 
@@ -80,6 +83,7 @@ class OrchestratorRPC {
     stratum = OrchestratorStratumRPC.fromTransport(unaryTransport);
     bitcoind = BitcoinServiceClient(unaryTransport);
     mempool = MempoolServiceClient(unaryTransport);
+    mempoolStream = MempoolServiceClient(streamTransport);
   }
 
   String get _baseUrl => 'http://$_host:$_port';
