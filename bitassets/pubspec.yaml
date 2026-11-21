@@ -50,6 +50,8 @@ flutter:
 
   assets:
     - assets/bin/
+    - assets/bin/macos-arm64/
+    - assets/bin/macos-x86_64/
     # Source files for code search
     - lib/
     - packages/sail_ui/shell/messaging_view.dart
