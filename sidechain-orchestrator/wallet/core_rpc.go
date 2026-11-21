@@ -683,6 +683,23 @@ func (c *CoreRPCClient) ListReceivedByAddress(ctx context.Context, walletName st
 	return addrs, nil
 }
 
+// ReceivedByOneAddress returns what one wallet address received. It is nil
+// when the address received nothing.
+func (c *CoreRPCClient) ReceivedByOneAddress(ctx context.Context, walletName, address string) (*ReceivedByAddress, error) {
+	result, err := c.call(ctx, walletName, "listreceivedbyaddress", 0, false, true, address)
+	if err != nil {
+		return nil, err
+	}
+	var addrs []ReceivedByAddress
+	if err := json.Unmarshal(result, &addrs); err != nil {
+		return nil, fmt.Errorf("decode listreceivedbyaddress: %w", err)
+	}
+	if len(addrs) == 0 {
+		return nil, nil
+	}
+	return &addrs[0], nil
+}
+
 // GetTransaction returns details about a specific transaction.
 func (c *CoreRPCClient) GetTransaction(ctx context.Context, walletName, txid string) (json.RawMessage, error) {
 	return c.call(ctx, walletName, "gettransaction", txid, true)

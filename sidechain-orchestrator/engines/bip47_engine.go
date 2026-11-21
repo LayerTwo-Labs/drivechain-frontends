@@ -124,7 +124,7 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 		if err := e.ensureNotificationWatched(ctx, backend, w, net); err != nil {
 			e.log.Warn().Err(err).Str("wallet", w.ID).Msg("ensure notification watched failed")
 		}
-		if err := e.scanWallet(ctx, w.ID, seedHex, net); err != nil {
+		if err := e.scanWallet(ctx, backend, w.ID, seedHex, net); err != nil {
 			e.log.Warn().Err(err).Str("wallet", w.ID).Msg("scan failed")
 		}
 		if err := e.extendImports(ctx, w.ID, seedHex, net); err != nil {
@@ -163,11 +163,12 @@ func (e *BIP47Engine) ensureNotificationWatched(ctx context.Context, backend wal
 	return nil
 }
 
-// scanWallet walks the wallet's whole listtransactions history looking for
-// receives at this wallet's BIP47 notification address. For each one, it
-// fetches the full tx, extracts the OP_RETURN payload + first input's pubkey,
-// decodes the sender's payment code, and records the inbound notification.
-func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, net *chaincfg.Params) error {
+// scanWallet looks for receives at this wallet's BIP47 notification address.
+// For each one, it fetches the full tx, extracts the OP_RETURN payload + first
+// input's pubkey, decodes the sender's payment code, and records the inbound
+// notification. A backend that lists one address's receives skips the walk of
+// the whole history.
+func (e *BIP47Engine) scanWallet(ctx context.Context, backend wallet.Bip47Backend, walletID, seedHex string, net *chaincfg.Params) error {
 	notifPriv, notifAddr, err := bip47.DeriveOwnNotificationKey(seedHex, net)
 	if err != nil {
 		return fmt.Errorf("derive own notification key: %w", err)
@@ -183,6 +184,19 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 	recorded := e.seenTxIDs(walletID)
 	for _, n := range known {
 		recorded[n.FirstNotificationTxID] = true
+	}
+
+	if receiver, ok := backend.(wallet.AddressReceiver); ok {
+		txids, err := receiver.ReceivedTxIDs(ctx, walletID, wantAddr)
+		if err != nil {
+			return fmt.Errorf("received txids: %w", err)
+		}
+		for _, txid := range txids {
+			if !recorded[txid] {
+				e.recordNotification(ctx, walletID, txid, notifPriv, recorded)
+			}
+		}
+		return nil
 	}
 
 	// skip counts from the newest entry, so it is a within-pass pagination
@@ -205,38 +219,7 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 			if tx.Category != "receive" || tx.Address != wantAddr || recorded[tx.TxID] {
 				continue
 			}
-			senderCode, blockTime, err := e.decodeNotificationTx(ctx, walletID, tx.TxID, notifPriv)
-			if err != nil {
-				// A backend error here is transient, so leave the transaction
-				// unmarked and let the next pass retry it.
-				if errors.Is(err, errNotNotification) {
-					e.markScanned(walletID, tx.TxID)
-					recorded[tx.TxID] = true
-				}
-				e.log.Debug().Err(err).Str("txid", tx.TxID).Msg("skip non-bip47 receive at notification address")
-				continue
-			}
-			height := int32(0)
-			if tx.Confirmations > 0 {
-				// listtransactions doesn't include height directly; leave as 0.
-				// Block time below is enough to time-bound the per-payment
-				// descriptor rescan; height is only used as a "confirmed" marker.
-				height = 1
-			}
-			if err := e.inbound.RecordInbound(walletID, senderCode, tx.TxID, height, blockTime); err != nil {
-				e.log.Warn().Err(err).Str("txid", tx.TxID).Msg("record inbound failed")
-				continue
-			}
-			// Recorded, so no later pass has to decode it again. The store keys
-			// a sender's first txid only, so a second notification from a known
-			// sender needs this marker of its own.
-			e.markScanned(walletID, tx.TxID)
-			recorded[tx.TxID] = true
-			e.log.Info().
-				Str("wallet", walletID).
-				Str("sender", senderCode).
-				Str("txid", tx.TxID).
-				Msg("recorded inbound bip47 notification")
+			e.recordNotification(ctx, walletID, tx.TxID, notifPriv, recorded)
 		}
 		skip += len(batch)
 		if len(batch) < bip47ListTxBatchSize {
@@ -244,6 +227,40 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 		}
 	}
 	return nil
+}
+
+// recordNotification decodes one receive at the notification address and
+// records its sender. A transient backend error leaves it for the next pass.
+func (e *BIP47Engine) recordNotification(ctx context.Context, walletID, txid string, notifPriv *btcec.PrivateKey, recorded map[string]bool) {
+	senderCode, blockTime, err := e.decodeNotificationTx(ctx, walletID, txid, notifPriv)
+	if err != nil {
+		if errors.Is(err, errNotNotification) {
+			e.markScanned(walletID, txid)
+			recorded[txid] = true
+		}
+		e.log.Debug().Err(err).Str("txid", txid).Msg("skip non-bip47 receive at notification address")
+		return
+	}
+	// Height is only a "confirmed" marker; the block time bounds the
+	// per-payment descriptor rescan.
+	height := int32(0)
+	if blockTime > 0 {
+		height = 1
+	}
+	if err := e.inbound.RecordInbound(walletID, senderCode, txid, height, blockTime); err != nil {
+		e.log.Warn().Err(err).Str("txid", txid).Msg("record inbound failed")
+		return
+	}
+	// Recorded, so no later pass has to decode it again. The store keys
+	// a sender's first txid only, so a second notification from a known
+	// sender needs this marker of its own.
+	e.markScanned(walletID, txid)
+	recorded[txid] = true
+	e.log.Info().
+		Str("wallet", walletID).
+		Str("sender", senderCode).
+		Str("txid", txid).
+		Msg("recorded inbound bip47 notification")
 }
 
 // errNotNotification marks a transaction that is not a BIP47 notification, so

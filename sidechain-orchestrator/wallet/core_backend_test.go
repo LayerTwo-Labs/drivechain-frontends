@@ -3195,3 +3195,22 @@ func TestCoreBackendEnsureAllReturnsEachFailure(t *testing.T) {
 	require.ErrorContains(t, err, "ensure core wallet "+badID)
 	assert.Len(t, fake.callsFor("createwallet"), 2)
 }
+
+func TestCoreBackendReceivedTxIDsAsksForOneAddress(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("listreceivedbyaddress", func(c bitcoindCall) (any, string) {
+		var params []any
+		for _, p := range c.Params {
+			var v any
+			require.NoError(t, json.Unmarshal(p, &v))
+			params = append(params, v)
+		}
+		require.Equal(t, []any{0.0, false, true, "bcrt1qnotif"}, params)
+		return []map[string]any{{"address": "bcrt1qnotif", "txids": []string{"a", "b"}}}, ""
+	})
+
+	txids, err := backend.ReceivedTxIDs(context.Background(), coreID, "bcrt1qnotif")
+	require.NoError(t, err)
+	require.Equal(t, []string{"a", "b"}, txids)
+}

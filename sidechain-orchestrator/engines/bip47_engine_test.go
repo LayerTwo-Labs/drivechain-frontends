@@ -169,11 +169,11 @@ func TestScanWalletFindsNotificationAfterCompletedPass(t *testing.T) {
 	store := bip47state.NewInboundStore(t.TempDir())
 	e := NewBIP47Engine(zerolog.Nop(), nil, wallet.NewWalletEngine(nil, backend, func() *chaincfg.Params { return net }, zerolog.Nop()), store)
 
-	require.NoError(t, e.scanWallet(context.Background(), walletID, bobSeedHex, net))
+	require.NoError(t, e.scanWallet(context.Background(), nil, walletID, bobSeedHex, net))
 
 	// Notification arrives after that pass completed — newest first.
 	backend.txs = append([]wallet.WalletTransaction{row}, history...)
-	require.NoError(t, e.scanWallet(context.Background(), walletID, bobSeedHex, net))
+	require.NoError(t, e.scanWallet(context.Background(), nil, walletID, bobSeedHex, net))
 
 	alice, err := bip47.PaymentCodeFromSeed(aliceSeedHex, net)
 	require.NoError(t, err)
@@ -188,7 +188,7 @@ func TestScanWalletFindsNotificationAfterCompletedPass(t *testing.T) {
 
 	// A further pass leaves the recorded notification alone — no second
 	// getrawtransaction for it.
-	require.NoError(t, e.scanWallet(context.Background(), walletID, bobSeedHex, net))
+	require.NoError(t, e.scanWallet(context.Background(), nil, walletID, bobSeedHex, net))
 	require.Equal(t, 1, chain.fetch)
 }
 
@@ -206,8 +206,8 @@ func TestScanWalletFetchesANonNotificationOnce(t *testing.T) {
 	backend := &stubBackend{chain: chain, txs: []wallet.WalletTransaction{row, missing}}
 	e := NewBIP47Engine(zerolog.Nop(), nil, wallet.NewWalletEngine(nil, backend, func() *chaincfg.Params { return net }, zerolog.Nop()), bip47state.NewInboundStore(t.TempDir()))
 
-	require.NoError(t, e.scanWallet(context.Background(), walletID, bobSeedHex, net))
-	require.NoError(t, e.scanWallet(context.Background(), walletID, bobSeedHex, net))
+	require.NoError(t, e.scanWallet(context.Background(), nil, walletID, bobSeedHex, net))
+	require.NoError(t, e.scanWallet(context.Background(), nil, walletID, bobSeedHex, net))
 
 	require.Equal(t, 3, chain.fetch, "the dust receive is fetched once, the failed fetch is tried again")
 }
@@ -424,4 +424,45 @@ func TestExtractInputPubKey_P2PKH(t *testing.T) {
 	pk, err := extractInputPubKey(nil, scriptSig)
 	require.NoError(t, err)
 	require.Equal(t, pubHex, hex.EncodeToString(pk.SerializeCompressed()))
+}
+
+// receiverBackend lists the receives of one address.
+type receiverBackend struct {
+	wallet.Bip47Backend
+	byAddress map[string][]string
+	asked     []string
+}
+
+func (r *receiverBackend) ReceivedTxIDs(_ context.Context, _, address string) ([]string, error) {
+	r.asked = append(r.asked, address)
+	return r.byAddress[address], nil
+}
+
+func TestScanWalletReadsOnlyTheNotificationAddress(t *testing.T) {
+	net := &chaincfg.MainNetParams
+	const walletID = "W1"
+
+	_, notifAddr, err := bip47.DeriveOwnNotificationKey(bobSeedHex, net)
+	require.NoError(t, err)
+	_, raw := buildNotificationTx(t, bobSeedHex, notifAddr.EncodeAddress())
+
+	chain := &stubChain{txs: map[string]*wallet.RawTransaction{raw.TxID: raw}}
+	history := &stubBackend{chain: chain}
+	store := bip47state.NewInboundStore(t.TempDir())
+	e := NewBIP47Engine(zerolog.Nop(), nil, wallet.NewWalletEngine(nil, history, func() *chaincfg.Params { return net }, zerolog.Nop()), store)
+	receiver := &receiverBackend{byAddress: map[string][]string{notifAddr.EncodeAddress(): {raw.TxID}}}
+
+	for range 2 {
+		require.NoError(t, e.scanWallet(context.Background(), receiver, walletID, bobSeedHex, net))
+	}
+
+	alice, err := bip47.PaymentCodeFromSeed(aliceSeedHex, net)
+	require.NoError(t, err)
+	got, err := store.Get(walletID, alice.Base58())
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	require.Equal(t, raw.TxID, got.FirstNotificationTxID)
+	require.Equal(t, []string{notifAddr.EncodeAddress(), notifAddr.EncodeAddress()}, receiver.asked)
+	require.Empty(t, history.skips, "no page of the history is read")
+	require.Equal(t, 1, chain.fetch)
 }

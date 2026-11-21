@@ -94,6 +94,13 @@ type Bip47Backend interface {
 	RestoreWatchKeys(ctx context.Context, walletID string, keys []WatchKey) error
 }
 
+// AddressReceiver is a Backend that lists the txs paying one address without
+// a walk of the whole wallet history.
+type AddressReceiver interface {
+	// ReceivedTxIDs gives the wallet txs that pay address, unconfirmed ones too.
+	ReceivedTxIDs(ctx context.Context, walletID, address string) ([]string, error)
+}
+
 // SendFeeTarget is the confirmation target, in blocks, a send prices at when
 // the caller names no rate.
 const SendFeeTarget = 6
