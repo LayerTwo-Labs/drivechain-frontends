@@ -2,6 +2,7 @@ package chaindata
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -231,6 +232,9 @@ func (e *Engine) Wrote(method string) {
 func (e *Engine) Call(ctx context.Context, wallet, method string, params []any, fetch func(context.Context) (json.RawMessage, error)) (json.RawMessage, error) {
 	if !readOnly(method) {
 		raw, err := fetch(ctx)
+		if err == nil {
+			e.wroteTx(raw)
+		}
 		e.Fire(EventWrite)
 		return raw, err
 	}
@@ -239,4 +243,62 @@ func (e *Engine) Call(ctx context.Context, wallet, method string, params []any, 
 		return fetch(ctx)
 	}
 	return e.json.Get(ctx, method, wallet+"\x00"+method+"\x00"+string(key), fetch)
+}
+
+// SubscribeWrites gives the txid of each transaction that a write call made,
+// before the write event fires, until ctx ends.
+func (e *Engine) SubscribeWrites(ctx context.Context) <-chan string {
+	ch := make(chan string, 16)
+	e.writeMu.Lock()
+	if e.writeSubs == nil {
+		e.writeSubs = map[chan string]struct{}{}
+	}
+	e.writeSubs[ch] = struct{}{}
+	e.writeMu.Unlock()
+	go func() {
+		<-ctx.Done()
+		e.writeMu.Lock()
+		delete(e.writeSubs, ch)
+		e.writeMu.Unlock()
+	}()
+	return ch
+}
+
+// wroteTx passes the txid of a write result to the write subscribers. A
+// result that holds no txid passes nothing.
+func (e *Engine) wroteTx(raw json.RawMessage) {
+	txid := writtenTxid(raw)
+	if txid == "" {
+		return
+	}
+	e.writeMu.Lock()
+	defer e.writeMu.Unlock()
+	for ch := range e.writeSubs {
+		select {
+		case ch <- txid:
+		default:
+		}
+	}
+}
+
+// writtenTxid reads the txid that sendrawtransaction, sendtoaddress or send
+// gives.
+func writtenTxid(raw json.RawMessage) string {
+	var txid string
+	if json.Unmarshal(raw, &txid) != nil {
+		var res struct {
+			Txid string `json:"txid"`
+		}
+		if json.Unmarshal(raw, &res) != nil {
+			return ""
+		}
+		txid = res.Txid
+	}
+	if len(txid) != 64 {
+		return ""
+	}
+	if _, err := hex.DecodeString(txid); err != nil {
+		return ""
+	}
+	return txid
 }

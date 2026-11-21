@@ -478,3 +478,33 @@ func TestBlockWakesWalletWatchersBeforeTheSettle(t *testing.T) {
 		t.Fatal("a block did not wake the wallet watchers")
 	}
 }
+
+func TestEngineGivesTheTxidOfAWriteBeforeItsEvent(t *testing.T) {
+	e := New(Config{Log: zerolog.Nop()})
+	writes := e.SubscribeWrites(t.Context())
+	wallet := e.Subscribe(t.Context(), KindWallet)
+	txid := fmt.Sprintf("%064x", 7)
+
+	_, err := e.Call(t.Context(), "w", "sendrawtransaction", []any{"00"}, func(context.Context) (json.RawMessage, error) {
+		return json.Marshal(txid)
+	})
+	require.NoError(t, err)
+	require.Equal(t, txid, <-writes)
+	<-wallet
+
+	_, err = e.Call(t.Context(), "w", "send", nil, func(context.Context) (json.RawMessage, error) {
+		return json.Marshal(map[string]any{"txid": txid, "complete": true})
+	})
+	require.NoError(t, err)
+	require.Equal(t, txid, <-writes)
+
+	_, err = e.Call(t.Context(), "w", "lockunspent", nil, func(context.Context) (json.RawMessage, error) {
+		return json.Marshal(true)
+	})
+	require.NoError(t, err)
+	select {
+	case got := <-writes:
+		t.Fatalf("a write with no txid gave %s", got)
+	default:
+	}
+}

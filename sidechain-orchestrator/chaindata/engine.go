@@ -131,6 +131,9 @@ type Engine struct {
 	json      *Cache[json.RawMessage]
 	responses *Cache[any]
 	mempool   *Mempool
+
+	writeMu   sync.Mutex
+	writeSubs map[chan string]struct{}
 }
 
 // New builds an Engine. Call Run to start it.
