@@ -22,6 +22,9 @@ class _Transport implements connect.Transport {
   /// Runs before a GetBitcoinConfig call answers.
   void Function()? onRead;
 
+  /// True while the backend does not answer.
+  bool down = false;
+
   @override
   Future<connect.StreamResponse<I, O>> stream<I extends Object, O extends Object>(
     connect.Spec<I, O> spec,
@@ -40,6 +43,9 @@ class _Transport implements connect.Transport {
     I input, [
     connect.CallOptions? options,
   ]) async {
+    if (down) {
+      throw connect.ConnectException(connect.Code.unavailable, 'down');
+    }
     final Object message;
     if (spec.procedure == specs.BitcoinConfService.getBitcoinConfig.procedure) {
       unaryReads++;
@@ -111,6 +117,42 @@ void main() {
     conf.dispose();
   });
 
+  test('a restored config shows until the backend answers', () async {
+    final (conf, _) = await _restored('signet');
+
+    expect(conf.network, BitcoinNetwork.BITCOIN_NETWORK_SIGNET);
+    expect(conf.networkOptions.single.displayName, 'Saved signet');
+    expect(conf.backendConfig, isNull);
+
+    await conf.loadConfig();
+    expect(conf.network, BitcoinNetwork.BITCOIN_NETWORK_REGTEST);
+    expect(conf.backendConfig?.network, 'regtest');
+    conf.dispose();
+  });
+
+  test('a backend network other than the restored one clears network state', () async {
+    final (conf, _) = await _restored('signet');
+    var cleared = 0;
+    NetworkScopedRegistry.enrol(_Scoped(() => cleared++));
+
+    await conf.loadConfig();
+    expect(cleared, 1);
+
+    await conf.loadConfig();
+    expect(cleared, 1);
+    conf.dispose();
+  });
+
+  test('a backend network equal to the restored one clears nothing', () async {
+    final (conf, _) = await _restored('regtest');
+    var cleared = 0;
+    NetworkScopedRegistry.enrol(_Scoped(() => cleared++));
+
+    await conf.loadConfig();
+    expect(cleared, 0);
+    conf.dispose();
+  });
+
   test('a network switch clears network state also when a frame lands first', () async {
     final transport = _Transport();
     final conf = await BitcoinConfProvider.withTransport(_Router(), transport);
@@ -160,6 +202,20 @@ void main() {
     expect(cleared, 1);
     conf.dispose();
   });
+}
+
+Future<(BitcoinConfProvider, _Transport)> _restored(String network) async {
+  final transport = _Transport()..down = true;
+  final conf = await BitcoinConfProvider.withTransport(
+    _Router(),
+    transport,
+    restored: (
+      config: GetBitcoinConfigResponse(network: network, rpcPort: 18443),
+      networks: [NetworkOption(id: network, network: network, displayName: 'Saved $network', isCurrent: true)],
+    ),
+  );
+  transport.down = false;
+  return (conf, transport);
 }
 
 class _Scoped implements NetworkScoped {
