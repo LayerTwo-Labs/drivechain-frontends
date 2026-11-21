@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/config/binaries.dart';
 import 'package:sidechain_core/providers/binaries/managers/pid_file_manager.dart';
 import 'package:sidechain_core/providers/log_provider.dart';
+import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
 import 'package:sidechain_core/utils/log_file.dart';
 
 /// How long a start watches a new process for an early exit.
@@ -42,8 +43,11 @@ class ProcessManager extends ChangeNotifier {
     required this.appDir,
     required this.pidFileManager,
     this.adoptedPollInterval = const Duration(seconds: 5),
-    this.upChecks = const {},
-  });
+    Map<BinaryType, Future<bool> Function()> upChecks = const {},
+  }) : upChecks = {
+         BinaryType.BINARY_TYPE_DRIVECHAIND: tcpUpCheck(OrchestratorEndpoint.host, OrchestratorEndpoint.port),
+         ...upChecks,
+       };
 
   Logger get log => GetIt.I.get<Logger>();
   LogProvider get logProvider => GetIt.I.get<LogProvider>();
