@@ -102,6 +102,15 @@ class StreamSupervisor<T> {
     _connect();
   }
 
+  /// Subscribes at once if a reconnect waits out its backoff. A caller that
+  /// saw the daemon answer calls it, so the stream does not wait up to 10s.
+  void retryNow() {
+    if (_disposed || !(_reconnectTimer?.isActive ?? false)) {
+      return;
+    }
+    _connect();
+  }
+
   void _connect() {
     if (_disposed) {
       return;
