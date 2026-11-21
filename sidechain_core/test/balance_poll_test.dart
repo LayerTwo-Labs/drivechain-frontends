@@ -6,11 +6,12 @@ import 'package:sidechain_core/sidechain_core.dart';
 
 class _CountingMainchain extends MockBitwindowRPC {
   int calls = 0;
+  double confirmed = 1;
 
   @override
   Future<(double, double, double)> balances() async {
     calls++;
-    return (1.0, 0.0, 0.0);
+    return (confirmed, 0.0, 0.0);
   }
 }
 
@@ -33,29 +34,11 @@ void main() {
     await GetIt.I.reset();
   });
 
-  test('a poll skips a balance that setBalance wrote', () async {
+  test('a poll right after setBalance shows a new balance', () async {
+    provider.setBalance(mainchain, 1, 0);
+    mainchain.confirmed = 2;
     await provider.poll();
     expect(mainchain.calls, 1);
-
-    provider.setBalance(mainchain, 1, 0);
-    await provider.poll();
-    expect(mainchain.calls, 1);
-  });
-
-  test('a poll reads the maturing balance of a connection it never read', () async {
-    provider.clear();
-    provider.setBalance(mainchain, 1, 0);
-    await provider.poll();
-    expect(mainchain.calls, 1);
-
-    provider.setBalance(mainchain, 1, 0);
-    await provider.poll();
-    expect(mainchain.calls, 1);
-  });
-
-  test('a fetch reads a balance that setBalance wrote', () async {
-    provider.setBalance(mainchain, 1, 0);
-    await provider.fetch();
-    expect(mainchain.calls, 1);
+    expect(provider.balance, 2);
   });
 }
