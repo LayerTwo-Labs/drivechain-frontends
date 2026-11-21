@@ -134,6 +134,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$3.GetTorConfigResponse> getTorConfig($pb.ServerContext ctx, $3.GetTorConfigRequest request);
   $async.Future<$3.SetTorConfigResponse> setTorConfig($pb.ServerContext ctx, $3.SetTorConfigRequest request);
   $async.Future<$3.WatchWalletDataResponse> watchWalletData($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$3.WatchBalanceResponse> watchBalance($pb.ServerContext ctx, $3.WatchBalanceRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -291,6 +292,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
         return $3.SetTorConfigRequest();
       case 'WatchWalletData':
         return $1.Empty();
+      case 'WatchBalance':
+        return $3.WatchBalanceRequest();
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -453,6 +456,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
         return setTorConfig(ctx, request as $3.SetTorConfigRequest);
       case 'WatchWalletData':
         return watchWalletData(ctx, request as $1.Empty);
+      case 'WatchBalance':
+        return watchBalance(ctx, request as $3.WatchBalanceRequest);
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }

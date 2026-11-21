@@ -1379,4 +1379,22 @@ extension type WalletManagerServiceClient(connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Stream the balance of one wallet. Sends it at once, then on each change.
+  Stream<walletmanagerv1walletmanager.WatchBalanceResponse> watchBalance(
+    walletmanagerv1walletmanager.WatchBalanceRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.WalletManagerService.watchBalance,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

@@ -3039,6 +3039,34 @@ final $typed_data.Uint8List watchWalletDataResponseDescriptor =
         'YmVhdBgJIAEoCFIJaGVhcnRiZWF0EjMKBXN0YXRlGAogASgOMh0ud2FsbGV0bWFuYWdlci52MS'
         '5XYWxsZXRTdGF0ZVIFc3RhdGU=');
 
+@$core.Deprecated('Use watchBalanceRequestDescriptor instead')
+const WatchBalanceRequest$json = {
+  '1': 'WatchBalanceRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `WatchBalanceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchBalanceRequestDescriptor =
+    $convert.base64Decode('ChNXYXRjaEJhbGFuY2VSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQ=');
+
+@$core.Deprecated('Use watchBalanceResponseDescriptor instead')
+const WatchBalanceResponse$json = {
+  '1': 'WatchBalanceResponse',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'balance', '3': 2, '4': 1, '5': 11, '6': '.walletmanager.v1.GetBalanceResponse', '10': 'balance'},
+    {'1': 'heartbeat', '3': 3, '4': 1, '5': 8, '10': 'heartbeat'},
+  ],
+};
+
+/// Descriptor for `WatchBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchBalanceResponseDescriptor =
+    $convert.base64Decode('ChRXYXRjaEJhbGFuY2VSZXNwb25zZRIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEj4KB2'
+        'JhbGFuY2UYAiABKAsyJC53YWxsZXRtYW5hZ2VyLnYxLkdldEJhbGFuY2VSZXNwb25zZVIHYmFs'
+        'YW5jZRIcCgloZWFydGJlYXQYAyABKAhSCWhlYXJ0YmVhdA==');
+
 @$core.Deprecated('Use createDepositRequestDescriptor instead')
 const CreateDepositRequest$json = {
   '1': 'CreateDepositRequest',
@@ -3364,6 +3392,12 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
       '3': '.walletmanager.v1.WatchWalletDataResponse',
       '6': true
     },
+    {
+      '1': 'WatchBalance',
+      '2': '.walletmanager.v1.WatchBalanceRequest',
+      '3': '.walletmanager.v1.WatchBalanceResponse',
+      '6': true
+    },
   ],
 };
 
@@ -3555,6 +3589,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.SetTorConfigRequest': SetTorConfigRequest$json,
   '.walletmanager.v1.SetTorConfigResponse': SetTorConfigResponse$json,
   '.walletmanager.v1.WatchWalletDataResponse': WatchWalletDataResponse$json,
+  '.walletmanager.v1.WatchBalanceRequest': WatchBalanceRequest$json,
+  '.walletmanager.v1.WatchBalanceResponse': WatchBalanceResponse$json,
 };
 
 /// Descriptor for `WalletManagerService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -3705,4 +3741,5 @@ final $typed_data.Uint8List walletManagerServiceDescriptor =
         'lnEiUud2FsbGV0bWFuYWdlci52MS5TZXRUb3JDb25maWdSZXF1ZXN0GiYud2FsbGV0bWFuYWdl'
         'ci52MS5TZXRUb3JDb25maWdSZXNwb25zZRJWCg9XYXRjaFdhbGxldERhdGESFi5nb29nbGUucH'
         'JvdG9idWYuRW1wdHkaKS53YWxsZXRtYW5hZ2VyLnYxLldhdGNoV2FsbGV0RGF0YVJlc3BvbnNl'
-        'MAE=');
+        'MAESXwoMV2F0Y2hCYWxhbmNlEiUud2FsbGV0bWFuYWdlci52MS5XYXRjaEJhbGFuY2VSZXF1ZX'
+        'N0GiYud2FsbGV0bWFuYWdlci52MS5XYXRjaEJhbGFuY2VSZXNwb25zZTAB');

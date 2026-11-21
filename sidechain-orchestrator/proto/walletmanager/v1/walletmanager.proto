@@ -162,6 +162,9 @@ service WalletManagerService {
   // Stream wallet state changes. Sends the full wallet state immediately,
   // then again whenever wallets or balance change.
   rpc WatchWalletData(google.protobuf.Empty) returns (stream WatchWalletDataResponse);
+
+  // Stream the balance of one wallet. Sends it at once, then on each change.
+  rpc WatchBalance(WatchBalanceRequest) returns (stream WatchBalanceResponse);
 }
 
 // ============================================================================
@@ -1562,6 +1565,18 @@ message WatchWalletDataResponse {
   WalletState state = 10;
 }
 
+message WatchBalanceRequest {
+  string wallet_id = 1;  // empty = active wallet, also after a switch
+}
+
+message WatchBalanceResponse {
+  // The wallet that holds the balance. Empty while no wallet is active.
+  string wallet_id = 1;
+  GetBalanceResponse balance = 2;
+  // Idle keepalive frames carry no other field.
+  bool heartbeat = 3;
+}
+
 message CreateDepositRequest {
   // Sidechain slot to credit, 0-255.
   int32 slot = 1;
@@ -1580,3 +1595,4 @@ message CreateDepositResponse {
   reserved "treasury_sats";
   string txid = 1;
 }
+

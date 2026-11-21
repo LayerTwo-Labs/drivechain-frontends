@@ -1183,6 +1183,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ValidateMnemonic(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateMnemonic", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).ValidateMnemonic), arg0, arg1)
 }
 
+// WatchBalance mocks base method.
+func (m *MockWalletManagerServiceClient) WatchBalance(arg0 context.Context, arg1 *walletmanagerv1.WatchBalanceRequest) (walletmanagerv1connect.WalletManagerServiceWatchBalanceClientStream, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WatchBalance", arg0, arg1)
+	ret0, _ := ret[0].(walletmanagerv1connect.WalletManagerServiceWatchBalanceClientStream)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WatchBalance indicates an expected call of WatchBalance.
+func (mr *MockWalletManagerServiceClientMockRecorder) WatchBalance(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WatchBalance", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).WatchBalance), arg0, arg1)
+}
+
 // WatchWalletData mocks base method.
 func (m *MockWalletManagerServiceClient) WatchWalletData(arg0 context.Context, arg1 *emptypb.Empty) (walletmanagerv1connect.WalletManagerServiceWatchWalletDataClientStream, error) {
 	m.ctrl.T.Helper()
@@ -2359,6 +2374,20 @@ func (m *MockWalletManagerServiceHandler) ValidateMnemonic(arg0 context.Context,
 func (mr *MockWalletManagerServiceHandlerMockRecorder) ValidateMnemonic(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateMnemonic", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).ValidateMnemonic), arg0, arg1)
+}
+
+// WatchBalance mocks base method.
+func (m *MockWalletManagerServiceHandler) WatchBalance(arg0 context.Context, arg1 *walletmanagerv1.WatchBalanceRequest, arg2 walletmanagerv1connect.WalletManagerServiceWatchBalanceServerStream) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WatchBalance", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WatchBalance indicates an expected call of WatchBalance.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) WatchBalance(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WatchBalance", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).WatchBalance), arg0, arg1, arg2)
 }
 
 // WatchWalletData mocks base method.

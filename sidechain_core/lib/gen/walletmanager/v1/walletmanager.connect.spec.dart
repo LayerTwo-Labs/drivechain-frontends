@@ -611,4 +611,12 @@ abstract final class WalletManagerService {
     googleprotobufempty.Empty.new,
     walletmanagerv1walletmanager.WatchWalletDataResponse.new,
   );
+
+  /// Stream the balance of one wallet. Sends it at once, then on each change.
+  static const watchBalance = connect.Spec(
+    '/$name/WatchBalance',
+    connect.StreamType.server,
+    walletmanagerv1walletmanager.WatchBalanceRequest.new,
+    walletmanagerv1walletmanager.WatchBalanceResponse.new,
+  );
 }

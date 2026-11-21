@@ -13852,6 +13852,142 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
   void clearState() => $_clearField(10);
 }
 
+class WatchBalanceRequest extends $pb.GeneratedMessage {
+  factory WatchBalanceRequest({
+    $core.String? walletId,
+  }) {
+    final result = WatchBalanceRequest._();
+    if (walletId != null) result.walletId = walletId;
+    return result;
+  }
+
+  WatchBalanceRequest._();
+
+  factory WatchBalanceRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBalanceRequest()..mergeFromBuffer(data, registry);
+  factory WatchBalanceRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBalanceRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchBalanceRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'),
+      createEmptyInstance: WatchBalanceRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBalanceRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBalanceRequest copyWith(void Function(WatchBalanceRequest) updates) =>
+      super.copyWith((message) => updates(message as WatchBalanceRequest)) as WatchBalanceRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchBalanceRequest() / WatchBalanceRequest.new instead')
+  static WatchBalanceRequest create() => WatchBalanceRequest._();
+  static $pb.GeneratedMessage $_createMessage() => WatchBalanceRequest._();
+  @$core.override
+  WatchBalanceRequest createEmptyInstance() => WatchBalanceRequest._();
+  @$core.pragma('dart2js:noInline')
+  static WatchBalanceRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchBalanceRequest>(WatchBalanceRequest.$_createMessage);
+  static WatchBalanceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => $_clearField(1);
+}
+
+class WatchBalanceResponse extends $pb.GeneratedMessage {
+  factory WatchBalanceResponse({
+    $core.String? walletId,
+    GetBalanceResponse? balance,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchBalanceResponse._();
+    if (walletId != null) result.walletId = walletId;
+    if (balance != null) result.balance = balance;
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchBalanceResponse._();
+
+  factory WatchBalanceResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBalanceResponse()..mergeFromBuffer(data, registry);
+  factory WatchBalanceResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchBalanceResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchBalanceResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'),
+      createEmptyInstance: WatchBalanceResponse.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOM<GetBalanceResponse>(2, _omitFieldNames ? '' : 'balance', subBuilder: GetBalanceResponse.$_createMessage)
+    ..aOB(3, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBalanceResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchBalanceResponse copyWith(void Function(WatchBalanceResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchBalanceResponse)) as WatchBalanceResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchBalanceResponse() / WatchBalanceResponse.new instead')
+  static WatchBalanceResponse create() => WatchBalanceResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchBalanceResponse._();
+  @$core.override
+  WatchBalanceResponse createEmptyInstance() => WatchBalanceResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchBalanceResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WatchBalanceResponse>(WatchBalanceResponse.$_createMessage);
+  static WatchBalanceResponse? _defaultInstance;
+
+  /// The wallet that holds the balance. Empty while no wallet is active.
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  GetBalanceResponse get balance => $_getN(1);
+  @$pb.TagNumber(2)
+  set balance(GetBalanceResponse value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBalance() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBalance() => $_clearField(2);
+  @$pb.TagNumber(2)
+  GetBalanceResponse ensureBalance() => $_ensure(1);
+
+  /// Idle keepalive frames carry no other field.
+  @$pb.TagNumber(3)
+  $core.bool get heartbeat => $_getBF(2);
+  @$pb.TagNumber(3)
+  set heartbeat($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasHeartbeat() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHeartbeat() => $_clearField(3);
+}
+
 class CreateDepositRequest extends $pb.GeneratedMessage {
   factory CreateDepositRequest({
     $core.int? slot,
@@ -14336,6 +14472,10 @@ class WalletManagerServiceApi {
   $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $1.Empty request) =>
       _client.invoke<WatchWalletDataResponse>(
           ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse());
+
+  /// Stream the balance of one wallet. Sends it at once, then on each change.
+  $async.Future<WatchBalanceResponse> watchBalance($pb.ClientContext? ctx, WatchBalanceRequest request) => _client
+      .invoke<WatchBalanceResponse>(ctx, 'WalletManagerService', 'WatchBalance', request, WatchBalanceResponse());
 }
 
 const $core.bool _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');

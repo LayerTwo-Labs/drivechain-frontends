@@ -256,6 +256,9 @@ const (
 	// WalletManagerServiceWatchWalletDataProcedure is the procedure name of the WalletManagerService's
 	// WatchWalletData RPC.
 	WalletManagerServiceWatchWalletDataProcedure = "/walletmanager.v1.WalletManagerService/WatchWalletData"
+	// WalletManagerServiceWatchBalanceProcedure is the procedure name of the WalletManagerService's
+	// WatchBalance RPC.
+	WalletManagerServiceWatchBalanceProcedure = "/walletmanager.v1.WalletManagerService/WatchBalance"
 )
 
 var (
@@ -798,6 +801,13 @@ var (
 			Procedure:  WalletManagerServiceWatchWalletDataProcedure,
 		}
 	})
+	walletManagerServiceWatchBalanceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_walletmanager_v1_walletmanager_proto.Services().ByName("WalletManagerService").Methods().ByName("WatchBalance"),
+			Procedure:  WalletManagerServiceWatchBalanceProcedure,
+		}
+	})
 )
 
 // WalletManagerServiceClient is a client for the walletmanager.v1.WalletManagerService service.
@@ -939,6 +949,8 @@ type WalletManagerServiceClient interface {
 	// Stream wallet state changes. Sends the full wallet state immediately,
 	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *emptypb.Empty) (WalletManagerServiceWatchWalletDataClientStream, error)
+	// Stream the balance of one wallet. Sends it at once, then on each change.
+	WatchBalance(context.Context, *v1.WatchBalanceRequest) (WalletManagerServiceWatchBalanceClientStream, error)
 }
 
 // NewWalletManagerServiceClient constructs a client for the walletmanager.v1.WalletManagerService
@@ -986,6 +998,27 @@ func (s WalletManagerServiceWatchWalletDataClientStream) Receive() (*v1.WatchWal
 // Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
 // stream abandoned before io.EOF.
 func (s WalletManagerServiceWatchWalletDataClientStream) Close() error {
+	return s.stream.Close()
+}
+
+// WalletManagerServiceWatchBalanceClientStream is the client stream for the WalletManagerService's
+// WatchBalance RPC.
+type WalletManagerServiceWatchBalanceClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s WalletManagerServiceWatchBalanceClientStream) Receive() (*v1.WatchBalanceResponse, error) {
+	var res v1.WatchBalanceResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s WalletManagerServiceWatchBalanceClientStream) Close() error {
 	return s.stream.Close()
 }
 
@@ -1129,6 +1162,8 @@ type WalletManagerServiceHandler interface {
 	// Stream wallet state changes. Sends the full wallet state immediately,
 	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *emptypb.Empty, WalletManagerServiceWatchWalletDataServerStream) error
+	// Stream the balance of one wallet. Sends it at once, then on each change.
+	WatchBalance(context.Context, *v1.WatchBalanceRequest, WalletManagerServiceWatchBalanceServerStream) error
 }
 
 // RegisterWalletManagerServiceHandler registers svc as the walletmanager.v1.WalletManagerService
@@ -1213,6 +1248,7 @@ func RegisterWalletManagerServiceHandler(server *connect.Server, svc WalletManag
 		connect.Method{Spec: walletManagerServiceGetTorConfigSpec(), Handler: adapter.getTorConfig},
 		connect.Method{Spec: walletManagerServiceSetTorConfigSpec(), Handler: adapter.setTorConfig},
 		connect.Method{Spec: walletManagerServiceWatchWalletDataSpec(), Handler: adapter.watchWalletData},
+		connect.Method{Spec: walletManagerServiceWatchBalanceSpec(), Handler: adapter.watchBalance},
 	)
 }
 
@@ -1245,6 +1281,22 @@ func (s WalletManagerServiceWatchWalletDataServerStream) SendHeaders() error {
 
 // Send sends a response message to the client.
 func (s WalletManagerServiceWatchWalletDataServerStream) Send(res *v1.WatchWalletDataResponse) error {
+	return s.stream.Send(res)
+}
+
+// WalletManagerServiceWatchBalanceServerStream is the server stream for the WalletManagerService's
+// WatchBalance RPC.
+type WalletManagerServiceWatchBalanceServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s WalletManagerServiceWatchBalanceServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s WalletManagerServiceWatchBalanceServerStream) Send(res *v1.WatchBalanceResponse) error {
 	return s.stream.Send(res)
 }
 
@@ -1557,6 +1609,10 @@ func (UnimplementedWalletManagerServiceHandler) SetTorConfig(context.Context, *v
 
 func (UnimplementedWalletManagerServiceHandler) WatchWalletData(context.Context, *emptypb.Empty, WalletManagerServiceWatchWalletDataServerStream) error {
 	return connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.WatchWalletData is not implemented")
+}
+
+func (UnimplementedWalletManagerServiceHandler) WatchBalance(context.Context, *v1.WatchBalanceRequest, WalletManagerServiceWatchBalanceServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "walletmanager.v1.WalletManagerService.WatchBalance is not implemented")
 }
 
 type walletManagerServiceClient struct {
@@ -2177,6 +2233,14 @@ func (c *walletManagerServiceClient) WatchWalletData(ctx context.Context, req *e
 		return WalletManagerServiceWatchWalletDataClientStream{}, err
 	}
 	return WalletManagerServiceWatchWalletDataClientStream{stream: stream}, nil
+}
+
+func (c *walletManagerServiceClient) WatchBalance(ctx context.Context, req *v1.WatchBalanceRequest) (WalletManagerServiceWatchBalanceClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, walletManagerServiceWatchBalanceSpec(), req)
+	if err != nil {
+		return WalletManagerServiceWatchBalanceClientStream{}, err
+	}
+	return WalletManagerServiceWatchBalanceClientStream{stream: stream}, nil
 }
 
 type walletManagerServiceHandler struct{ svc WalletManagerServiceHandler }
@@ -3095,4 +3159,12 @@ func (h walletManagerServiceHandler) watchWalletData(ctx context.Context, _ conn
 		return err
 	}
 	return h.svc.WatchWalletData(ctx, &req, WalletManagerServiceWatchWalletDataServerStream{stream: stream})
+}
+
+func (h walletManagerServiceHandler) watchBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchBalanceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchBalance(ctx, &req, WalletManagerServiceWatchBalanceServerStream{stream: stream})
 }

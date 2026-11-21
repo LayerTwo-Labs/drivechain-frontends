@@ -21,6 +21,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/chaindata"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -72,6 +73,7 @@ type WalletHandler struct {
 	svc             *wallet.Service
 	engine          *wallet.WalletEngine       // nil until Core RPC is configured
 	orch            *orchestrator.Orchestrator // nil until set; used for Core variant RPCs
+	chainData       *chaindata.Engine          // nil until SetOrchestrator
 	bip47State      *bip47state.Store          // nil until SetBip47StateStore is called
 	ecxBurnWarnings sync.Map
 
@@ -99,6 +101,7 @@ func (h *WalletHandler) SetEngine(engine *wallet.WalletEngine) {
 // download/restart flows without each handler call rebuilding context.
 func (h *WalletHandler) SetOrchestrator(orch *orchestrator.Orchestrator) {
 	h.orch = orch
+	h.chainData = orch.ChainData()
 }
 
 // walletSeedHex returns the master seed hex for a wallet, or "" if not found.
@@ -810,22 +813,33 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *pb.GetBalanceReques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
+	balance, err := h.readBalance(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.saveBalance(walletID, balance); err != nil {
+		return nil, err
+	}
+	return balance, nil
+}
+
+func (h *WalletHandler) readBalance(ctx context.Context, walletID string) (*pb.GetBalanceResponse, error) {
 	confirmed, unconfirmed, immature, err := h.engine.Backend().Balance(ctx, walletID)
 	if err != nil {
 		return nil, rpcError(err)
 	}
-
-	confirmedSats := btcToSats(confirmed)
-	unconfirmedSats := btcToSats(unconfirmed)
-	if err := h.svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, walletID, uint64(math.Round(confirmedSats)), uint64(math.Round(unconfirmedSats)), "Bitcoin"); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the balance snapshot: %w", err).Error())
-	}
-
 	return &pb.GetBalanceResponse{
-		ConfirmedSats:   confirmedSats,
-		UnconfirmedSats: unconfirmedSats,
+		ConfirmedSats:   btcToSats(confirmed),
+		UnconfirmedSats: btcToSats(unconfirmed),
 		ImmatureSats:    btcToSats(immature),
 	}, nil
+}
+
+func (h *WalletHandler) saveBalance(walletID string, b *pb.GetBalanceResponse) error {
+	if err := h.svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, walletID, uint64(math.Round(b.ConfirmedSats)), uint64(math.Round(b.UnconfirmedSats)), "Bitcoin"); err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("save the balance snapshot: %w", err).Error())
+	}
+	return nil
 }
 
 func (h *WalletHandler) GetNewAddress(ctx context.Context, req *pb.GetNewAddressRequest) (*pb.GetNewAddressResponse, error) {
