@@ -52,6 +52,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpcmeter"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/selfbuild"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	bbcsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
@@ -370,6 +371,9 @@ func run(cctx *cli.Context) error {
 			_, _ = io.WriteString(w, localauth.ChallengeResponse(token, nonce))
 		})
 	}
+
+	// A relaunched bitwindowd keeps this daemon only when it runs the same file.
+	mux.Handle(selfbuild.RunsPath, selfbuild.Handler())
 
 	rpc.RegisterOrchestratorServiceHandler(rpcServer, handler)
 
