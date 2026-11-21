@@ -11,6 +11,13 @@ void main() {
   late List<String> calls;
   late BackendSwapProvider swap;
   late List<BackendSwapStep?> reports;
+  late bool sameBuild;
+  late int asks;
+
+  Future<bool> keep(BinaryProvider provider, Binary bitwindow) async {
+    asks++;
+    return sameBuild;
+  }
 
   _FakeBinaries binaries({required bool adopted, bool liveOwner = false}) => _FakeBinaries(
     adopted: adopted,
@@ -23,6 +30,8 @@ void main() {
   setUp(() {
     calls = [];
     reports = [];
+    sameBuild = false;
+    asks = 0;
     swap = BackendSwapProvider(tick: const Duration(minutes: 1));
     swap.addListener(() => reports.add(swap.step));
   });
@@ -30,26 +39,37 @@ void main() {
   tearDown(() => swap.dispose());
 
   test('starts a new bitwindowd when none runs', () async {
-    await startBitwindowd(binaries(adopted: false), swap: swap);
+    await startBitwindowd(binaries(adopted: false), swap: swap, keep: keep);
 
     expect(calls, ['start']);
     expect(reports, isEmpty);
+    expect(asks, 0);
+  });
+
+  test('keeps a bitwindowd of the last session that runs this build', () async {
+    sameBuild = true;
+
+    await startBitwindowd(binaries(adopted: true), swap: swap, keep: keep);
+
+    expect(calls, ['start']);
+    expect(reports, isEmpty);
+    expect(asks, 1);
   });
 
   test('replaces a bitwindowd from the last session', () async {
-    await startBitwindowd(binaries(adopted: true), swap: swap);
+    await startBitwindowd(binaries(adopted: true), swap: swap, keep: keep);
 
     expect(calls, ['stop', 'start']);
   });
 
   test('replaces a bitwindowd that another live app owns', () async {
-    await startBitwindowd(binaries(adopted: true, liveOwner: true), swap: swap);
+    await startBitwindowd(binaries(adopted: true, liveOwner: true), swap: swap, keep: keep);
 
     expect(calls, ['stop', 'start']);
   });
 
   test('reports the swap to the screen, then ends the report', () async {
-    await startBitwindowd(binaries(adopted: true), swap: swap);
+    await startBitwindowd(binaries(adopted: true), swap: swap, keep: keep);
 
     expect(reports, [BackendSwapStep.stop, BackendSwapStep.start, null]);
     expect(swap.swapping, isFalse);
@@ -65,7 +85,7 @@ void main() {
       stopError: StateError('no bitwindowd binary'),
     );
 
-    await expectLater(startBitwindowd(provider, swap: swap), throwsStateError);
+    await expectLater(startBitwindowd(provider, swap: swap, keep: keep), throwsStateError);
     expect(swap.swapping, isFalse);
     expect(swap.failedStep, BackendSwapStep.stop);
     expect(swap.error, 'Bad state: no bitwindowd binary');
