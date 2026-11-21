@@ -23,6 +23,7 @@ class _WalletRPC implements OrchestratorWalletRPC {
   String warningMessage = '';
   List<wmpb.TransactionEntry> transactions = [];
   final decodedBlockHashes = <String>[];
+  Exception? decodeError;
 
   walletpb.GetTransactionDetailsResponse get details => walletpb.GetTransactionDetailsResponse(
     txid: 'ab' * 32,
@@ -42,6 +43,10 @@ class _WalletRPC implements OrchestratorWalletRPC {
     String blockHash = '',
   }) async {
     decodedBlockHashes.add(blockHash);
+    final error = decodeError;
+    if (error != null) {
+      throw error;
+    }
     return DecodedTransaction(
       form: wmpb.DecodedForm.DECODED_FORM_PSBT,
       isPsbt: true,
@@ -219,6 +224,33 @@ void main() {
         await mouse.removePointer();
         await tester.pumpAndSettle();
       }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  final notFound = {
+    'with no txindex':
+        'This node keeps no transaction index, so it finds only wallet and mempool txids. '
+        'Paste the raw transaction hex instead.',
+    'with a txindex': 'That txid was not found in the active wallet or on chain.',
+  };
+  final notFoundErrors = {
+    'with no txindex':
+        '[not_found] transaction ${'ab' * 32} not found: not in the wallet or the mempool, '
+        'and the node keeps no txindex: this chain source cannot look up an arbitrary transaction',
+    'with a txindex': '[not_found] transaction ${'ab' * 32} not found',
+  };
+  for (final entry in notFound.entries) {
+    testWidgets('a txid that does not load says why: ${entry.key}', (tester) async {
+      orchestrator.wallet.decodeError = Exception(notFoundErrors[entry.key]);
+      await tester.pumpSailPage(
+        const Center(child: SizedBox(width: 900, height: 650, child: LoadTransactionDialog())),
+      );
+      await tester.enterText(find.byType(EditableText), 'ab' * 32);
+      await tester.tap(find.byWidgetPredicate((widget) => widget is SailButton && widget.label == 'Decode'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(entry.value), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

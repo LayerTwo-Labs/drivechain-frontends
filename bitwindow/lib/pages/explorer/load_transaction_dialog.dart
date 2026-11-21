@@ -95,6 +95,10 @@ class _LoadTransactionDialogState extends State<LoadTransactionDialog> {
     if (raw.contains('not a valid')) {
       return 'Not a valid txid, transaction hex, or PSBT.';
     }
+    if (raw.contains('no txindex')) {
+      return 'This node keeps no transaction index, so it finds only wallet and mempool txids. '
+          'Paste the raw transaction hex instead.';
+    }
     if (raw.contains('not found')) {
       return 'That txid was not found in the active wallet or on chain.';
     }
