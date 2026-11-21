@@ -239,10 +239,7 @@ abstract class Binary {
 
     // For L1 binaries, also check BitWindow's assets directory
     // This allows sidechains to reuse already-downloaded binaries
-    final isCurrentlyBitwindow = appDir.path.toLowerCase().contains(
-      'bitwindow',
-    );
-    if (chainLayer == 1 && !isCurrentlyBitwindow) {
+    if (chainLayer == 1 && isSidechainApp) {
       final bitwindowDir = path.join(appDir.parent.path, 'bitwindow');
       final binaryPath = path.join(
         binDir(bitwindowDir).path,
