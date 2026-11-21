@@ -13,7 +13,7 @@ gen-version:
     cd ../ && bash scripts/generate-version.sh thunder
 
 clean:
-    rm assets/bin/*
+    find assets/bin -type f ! -name .gitkeep -delete
 
 download:
     bash scripts/download-binaries.sh
