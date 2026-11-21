@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:sidechain_core/gen/mempool/v1/mempool.pb.dart';
+import 'package:sidechain_core/rpcs/stream_supervisor.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Statistics about a fee bucket
@@ -138,6 +139,13 @@ class MempoolProvider extends ChangeNotifier {
   bool isFetching = false;
 
   Timer? _fetchTimer;
+  StreamSupervisor<WatchStatsResponse>? _watch;
+
+  /// The newest streamed stats, or null until the stream sends one.
+  GetStatsResponse? _streamed;
+  List<FeeEstimate> _estimates = [];
+
+  bool get _streams => (_watch?.isHealthy ?? false) && _streamed != null;
 
   static const _bucketRanges = [
     (0.0, 1.0),
@@ -163,6 +171,26 @@ class MempoolProvider extends ChangeNotifier {
       return;
     }
     _fetchTimer = Timer.periodic(const Duration(seconds: 10), (_) => fetch());
+    _watch = StreamSupervisor<WatchStatsResponse>(
+      subscribe: () => _orchestrator.mempoolStream.watchStats(_statsRequest),
+      onEvent: applyFrame,
+      onTransportDeath: _orchestrator.recreateConnection,
+      logger: log,
+      tag: 'MempoolProvider',
+    )..start();
+  }
+
+  static GetStatsRequest get _statsRequest =>
+      GetStatsRequest(bucketEdges: [for (final (minFee, _) in _bucketRanges) minFee]);
+
+  /// Applies one WatchStats frame.
+  @visibleForTesting
+  void applyFrame(WatchStatsResponse frame) {
+    if (frame.heartbeat) {
+      return;
+    }
+    _streamed = frame.stats;
+    _show(frame.stats);
   }
 
   @override
@@ -171,6 +199,9 @@ class MempoolProvider extends ChangeNotifier {
     if (!hasListeners) {
       _fetchTimer?.cancel();
       _fetchTimer = null;
+      unawaited(_watch?.dispose());
+      _watch = null;
+      _streamed = null;
     }
   }
 
@@ -182,41 +213,44 @@ class MempoolProvider extends ChangeNotifier {
 
     try {
       final estimatesReq = Future.wait(_confTargets.map(_estimate));
-      final res = await _orchestrator.mempool.getStats(
-        GetStatsRequest(bucketEdges: [for (final (minFee, _) in _bucketRanges) minFee]),
-      );
-      final feeBuckets = [
-        for (var i = 0; i < _bucketRanges.length && i < res.buckets.length; i++)
-          if (res.buckets[i].txCount > 0)
-            FeeBucket(
-              minFeeRate: _bucketRanges[i].$1,
-              maxFeeRate: _bucketRanges[i].$2,
-              txCount: res.buckets[i].txCount.toInt(),
-              totalVsize: res.buckets[i].vsize.toInt(),
-              totalFees: res.buckets[i].feeSats.toDouble(),
-            ),
-      ];
-
-      final estimates = await estimatesReq;
-
-      final next = MempoolStats(
-        txCount: res.txCount.toInt(),
-        totalVsize: res.vsize.toInt(),
-        totalFees: res.feeSats.toDouble(),
-        medianFeeRate: res.medianFeeRate,
-        feeBuckets: feeBuckets,
-        feeEstimates: estimates.nonNulls.toList(),
-      );
-      if (next != stats || error != null) {
-        stats = next;
-        error = null;
-        notifyListeners();
-      }
+      final streamed = _streams ? _streamed : null;
+      final res = streamed ?? await _orchestrator.mempool.getStats(_statsRequest);
+      _estimates = (await estimatesReq).nonNulls.toList();
+      // A frame that came during the read is newer.
+      _show(_streams ? _streamed! : res);
     } catch (e) {
       error = e.toString();
       log.e('Error fetching mempool: $e');
     } finally {
       isFetching = false;
+    }
+  }
+
+  void _show(GetStatsResponse res) {
+    final feeBuckets = [
+      for (var i = 0; i < _bucketRanges.length && i < res.buckets.length; i++)
+        if (res.buckets[i].txCount > 0)
+          FeeBucket(
+            minFeeRate: _bucketRanges[i].$1,
+            maxFeeRate: _bucketRanges[i].$2,
+            txCount: res.buckets[i].txCount.toInt(),
+            totalVsize: res.buckets[i].vsize.toInt(),
+            totalFees: res.buckets[i].feeSats.toDouble(),
+          ),
+    ];
+
+    final next = MempoolStats(
+      txCount: res.txCount.toInt(),
+      totalVsize: res.vsize.toInt(),
+      totalFees: res.feeSats.toDouble(),
+      medianFeeRate: res.medianFeeRate,
+      feeBuckets: feeBuckets,
+      feeEstimates: _estimates,
+    );
+    if (next != stats || error != null) {
+      stats = next;
+      error = null;
+      notifyListeners();
     }
   }
 
@@ -241,6 +275,8 @@ class MempoolProvider extends ChangeNotifier {
   void dispose() {
     _fetchTimer?.cancel();
     _fetchTimer = null;
+    unawaited(_watch?.dispose());
+    _watch = null;
     super.dispose();
   }
 }

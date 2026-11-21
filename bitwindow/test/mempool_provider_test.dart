@@ -143,4 +143,24 @@ void main() {
     await provider.fetch();
     expect(notified, 1);
   });
+
+  test('a stream frame shows at once and keeps the estimates', () async {
+    transport.mempool = {'a': _tx(100, 300)};
+    final provider = MempoolProvider();
+    await provider.fetch();
+    var notified = 0;
+    provider.addListener(() => notified++);
+    await pumpEventQueue();
+    final calls = transport.mempoolCalls;
+
+    transport.mempool = {'a': _tx(100, 300), 'b': _tx(100, 900)};
+    provider.applyFrame(mempoolpb.WatchStatsResponse(stats: transport._stats([0, 1, 2, 5, 10, 20, 50, 100])));
+    expect(notified, 1);
+    expect(provider.stats.txCount, 2);
+    expect(provider.stats.feeEstimates, isNotEmpty);
+
+    provider.applyFrame(mempoolpb.WatchStatsResponse(heartbeat: true));
+    expect(notified, 1);
+    expect(transport.mempoolCalls, calls, reason: 'a frame reads nothing');
+  });
 }
