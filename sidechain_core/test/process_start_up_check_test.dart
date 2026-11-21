@@ -14,6 +14,15 @@ class _LocalBitWindow extends BitWindow {
   Future<File> resolveBinaryPath(Directory appDir) async => File(executable);
 }
 
+class _LocalDrivechaind extends Drivechaind {
+  final String executable;
+
+  _LocalDrivechaind(this.executable);
+
+  @override
+  Future<File> resolveBinaryPath(Directory appDir) async => File(executable);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -76,6 +85,24 @@ void main() {
     final binary = _LocalBitWindow((await script('exit 3')).path);
 
     await expectLater(made.start(binary, [], () async {}), throwsA(contains('exited with code 3')));
+  }, skip: Platform.isWindows);
+
+  test('a drivechaind start returns once the orchestrator port listens', () async {
+    ServerSocket? server;
+    try {
+      server = await ServerSocket.bind(OrchestratorEndpoint.host, OrchestratorEndpoint.port);
+    } on SocketException {
+      // A drivechaind of this machine already serves the port.
+    }
+    addTearDown(() => server?.close());
+    final made = manager({});
+    final binary = _LocalDrivechaind((await script('sleep 30')).path);
+    addTearDown(() => made.kill(binary));
+
+    final elapsed = Stopwatch()..start();
+    await made.start(binary, [], () async {});
+
+    expect(elapsed.elapsed, lessThan(startCheckWindow), reason: 'the start waited out the full window');
   }, skip: Platform.isWindows);
 
   test('the TCP up check passes only for a port that listens', () async {
