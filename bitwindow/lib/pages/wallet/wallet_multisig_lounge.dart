@@ -920,6 +920,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       notifyListeners();
     };
     _blockchainProvider.addListener(_blockchainListener);
+    _blockchainProvider.recentChanged.addListener(_blockchainListener);
 
     await _stateManager.refreshData();
     if (_disposed) {
@@ -1768,6 +1769,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
     _disposed = true;
     TransactionStorage.notifier.removeListener(_transactionListener);
     _blockchainProvider.removeListener(_blockchainListener);
+    _blockchainProvider.recentChanged.removeListener(_blockchainListener);
 
     super.dispose();
   }

@@ -25,6 +25,7 @@ class NewsProvider extends ChangeNotifier {
 
   NewsProvider() {
     blockchainProvider.addListener(fetch);
+    blockchainProvider.recentChanged.addListener(fetch);
     fetch();
   }
 
@@ -104,6 +105,7 @@ class NewsProvider extends ChangeNotifier {
   @override
   void dispose() {
     blockchainProvider.removeListener(fetch);
+    blockchainProvider.recentChanged.removeListener(fetch);
     super.dispose();
   }
 }

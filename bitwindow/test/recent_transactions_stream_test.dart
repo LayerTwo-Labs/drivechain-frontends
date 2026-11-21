@@ -94,7 +94,9 @@ void main() {
       'polled',
     ], reason: 'the poll fills the list before a frame');
     var notifies = 0;
-    provider.addListener(() => notifies++);
+    var providerNotifies = 0;
+    provider.recentChanged.addListener(() => notifies++);
+    provider.addListener(() => providerNotifies++);
 
     rpc.api.frames.add(_frame(['b', 'a']));
     await pumpEventQueue();
@@ -105,6 +107,7 @@ void main() {
     await pumpEventQueue();
     expect(provider.recentTransactions.map((t) => t.txid), ['c', 'b', 'a']);
     expect(notifies, 2, reason: 'a heartbeat changes nothing');
+    expect(providerNotifies, 0, reason: 'a new tx rebuilds only what shows the list');
   });
 
   test('the poll does not read the list while the stream sends it', () async {
