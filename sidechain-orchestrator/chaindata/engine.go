@@ -97,7 +97,7 @@ type tipInfo struct {
 }
 
 type invalidator interface {
-	invalidate(mask Event)
+	invalidate(mask Event, eager bool)
 	clear()
 }
 
@@ -120,9 +120,11 @@ type Engine struct {
 	caches        []invalidator
 	settling      bool
 	settlePending bool
-	pollCancel    context.CancelFunc
-	kicked        bool
-	zmqCancel     context.CancelFunc
+	// settleBlock marks a settle round that follows a block.
+	settleBlock bool
+	pollCancel  context.CancelFunc
+	kicked      bool
+	zmqCancel   context.CancelFunc
 
 	wake chan struct{}
 
@@ -254,7 +256,14 @@ func (e *Engine) register(c invalidator) {
 }
 
 // Fire marks the reads that depend on mask as stale and tells the watchers.
+// After a block or a write, the cache reads each used value again at once.
+// After a mempool change, the next caller reads it, so churn costs one read
+// per caller and not one per transaction.
 func (e *Engine) Fire(mask Event) {
+	e.fire(mask, mask&(EventBlock|EventWrite) != 0)
+}
+
+func (e *Engine) fire(mask Event, eager bool) {
 	e.mu.Lock()
 	for i := range e.gens {
 		if mask&(1<<i) != 0 {
@@ -266,6 +275,9 @@ func (e *Engine) Fire(mask Event) {
 		KindWallet:  mask&walletEvents != 0,
 	}
 	if mask&settleFollows != 0 {
+		if mask&EventBlock != 0 {
+			e.settleBlock = true
+		}
 		if e.settling {
 			e.settlePending = true
 		} else {
@@ -278,7 +290,7 @@ func (e *Engine) Fire(mask Event) {
 	e.mu.Unlock()
 
 	for _, c := range caches {
-		c.invalidate(mask)
+		c.invalidate(mask, eager)
 	}
 }
 
@@ -286,13 +298,17 @@ func (e *Engine) Fire(mask Event) {
 // EventSettle. Events that come during the wait start one more round.
 func (e *Engine) settle() {
 	for {
+		e.mu.Lock()
+		afterBlock := e.settleBlock
+		e.settleBlock = false
+		e.mu.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), longPoll)
 		_, err := e.call(ctx, "syncwithvalidationinterfacequeue")
 		cancel()
 		if err != nil {
 			time.Sleep(settleDelay)
 		}
-		e.Fire(EventSettle)
+		e.fire(EventSettle, afterBlock)
 
 		e.mu.Lock()
 		if !e.settlePending {

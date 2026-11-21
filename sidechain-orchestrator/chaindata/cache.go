@@ -80,9 +80,9 @@ type entry[V any] struct {
 }
 
 // Cache keeps Core reads by key until an event or a ttl makes them stale.
-// After an event it reads again at once each value that a caller used, so
-// the next caller reads from memory. A value that no caller used waits for
-// the next caller.
+// After an eager event it reads again at once each value that a caller used,
+// so the next caller reads from memory. Other stale values wait for the next
+// caller, who reads Core at once.
 type Cache[V any] struct {
 	e  *Engine
 	mu sync.Mutex
@@ -127,11 +127,8 @@ func (c *Cache[V]) Get(ctx context.Context, method, key string, fetch func(conte
 			return v, nil
 		}
 		f := en.flight
-		switch {
-		case f == nil:
+		if f == nil || f.gen < gen {
 			f = c.start(en, gen)
-		case f.gen < gen:
-			en.pending = true
 		}
 		c.mu.Unlock()
 
@@ -184,7 +181,7 @@ func (c *Cache[V]) start(en *entry[V], gen uint64) *flight[V] {
 	return f
 }
 
-func (c *Cache[V]) invalidate(mask Event) {
+func (c *Cache[V]) invalidate(mask Event, eager bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for key, en := range c.m {
@@ -200,6 +197,9 @@ func (c *Cache[V]) invalidate(mask Event) {
 			if en.flight == nil {
 				delete(c.m, key)
 			}
+			continue
+		}
+		if !eager {
 			continue
 		}
 		if en.flight != nil {
