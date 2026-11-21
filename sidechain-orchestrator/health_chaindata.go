@@ -35,7 +35,13 @@ func (h *chainDataHealthCheck) Check(ctx context.Context) error {
 		return h.first.Check(ctx)
 	}
 	if err != nil {
-		return err
+		// The engine probes a down Core only each second, so the check asks Core.
+		if err := h.engine.Probe(ctx); err != nil {
+			return err
+		}
+		if raw, err = h.engine.Get(chaindata.KindBlockchainInfo); err != nil {
+			return err
+		}
 	}
 	var info struct {
 		Chain   string `json:"chain"`
