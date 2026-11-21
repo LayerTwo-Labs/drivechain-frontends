@@ -3,26 +3,30 @@ package engines
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/mempooltx"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/preferences"
+	mempoolpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1"
 )
 
 // RawCall runs a bitcoind JSON-RPC method and returns its raw result.
 type RawCall func(ctx context.Context, method string, params ...any) (json.RawMessage, error)
 
-// SequenceSubscribe opens a ZMQ sequence subscription.
-type SequenceSubscribe func(ctx context.Context) (<-chan SequenceMsg, func(), error)
+// MempoolStream receives the mempool feed of drivechaind.
+type MempoolStream interface {
+	Receive() (*mempoolpb.WatchTransactionsResponse, error)
+	Close() error
+}
+
+// MempoolFeed opens the mempool feed of drivechaind.
+type MempoolFeed func(ctx context.Context) (MempoolStream, error)
 
 var errRequiresFullNode = errors.New("requires a full node")
 
@@ -35,13 +39,12 @@ type MempoolWatchStatus struct {
 
 // MempoolWatcher records every mempool tx it sees and how long it waited.
 type MempoolWatcher struct {
-	db        *sql.DB
-	call      RawCall
-	subscribe SequenceSubscribe
-	nodeMode  *NodeMode
+	db       *sql.DB
+	call     RawCall
+	feed     MempoolFeed
+	nodeMode *NodeMode
 
-	retryDelay        time.Duration
-	rebootstrapMinGap time.Duration
+	retryDelay time.Duration
 	// statsLookback caps how far back a start reads block stats.
 	statsLookback uint32
 
@@ -55,15 +58,14 @@ type MempoolWatcher struct {
 	tip     uint32
 }
 
-func NewMempoolWatcher(db *sql.DB, call RawCall, subscribe SequenceSubscribe, nodeMode *NodeMode) *MempoolWatcher {
+func NewMempoolWatcher(db *sql.DB, call RawCall, feed MempoolFeed, nodeMode *NodeMode) *MempoolWatcher {
 	return &MempoolWatcher{
-		db:                db,
-		call:              call,
-		subscribe:         subscribe,
-		nodeMode:          nodeMode,
-		retryDelay:        5 * time.Second,
-		rebootstrapMinGap: time.Minute,
-		statsLookback:     144,
+		db:            db,
+		call:          call,
+		feed:          feed,
+		nodeMode:      nodeMode,
+		retryDelay:    5 * time.Second,
+		statsLookback: 144,
 	}
 }
 
@@ -193,157 +195,83 @@ func (w *MempoolWatcher) watch(ctx context.Context) error {
 		return errRequiresFullNode
 	}
 
-	events, cancel, err := w.subscribe(ctx)
+	stream, err := w.feed(ctx)
 	if err != nil {
-		return fmt.Errorf("subscribe: %w", err)
+		return fmt.Errorf("open mempool feed: %w", err)
 	}
-	defer cancel()
-
-	lastSeq, err := w.bootstrap(ctx)
-	if err != nil {
-		return fmt.Errorf("bootstrap: %w", err)
-	}
-	w.setRunning(true)
+	defer stream.Close() //nolint:errcheck // the feed is done either way
 	defer w.setRunning(false)
 
-	log := zerolog.Ctx(ctx)
-	lastBootstrap := time.Now()
-	// Core advances the mempool sequence for txs a block removes but sends
-	// no R event for them, so a block leaves a gap this large at most.
-	var allowedGap uint64
-	// Core also removes txs a block conflicts with, and announces those
-	// removals, before it announces the block. A gap with nothing to explain
-	// it yet is therefore judged when the next block lands.
-	var unexplained uint64
-
+	var parts []*mempoolpb.Transaction
+	synced := false
 	for {
-		select {
-		case <-ctx.Done():
+		msg, err := stream.Receive()
+		if ctx.Err() != nil {
 			return nil
-		case ev, ok := <-events:
-			if !ok {
-				return errors.New("sequence subscription closed")
-			}
-			if ev.Event == TransactionAdded || ev.Event == TransactionRemoved {
-				// Events the snapshot already covers.
-				if ev.MempoolSeq <= lastSeq {
-					continue
-				}
-				if gap := ev.MempoolSeq - lastSeq - 1; gap > allowedGap {
-					unexplained += gap - allowedGap
-				}
-				lastSeq, allowedGap = ev.MempoolSeq, 0
-			}
-			mined, err := w.handle(ctx, ev)
-			if err != nil {
-				return err
-			}
-			allowedGap += mined
-			if ev.Event != BlockConnected {
+		}
+		if err != nil {
+			return fmt.Errorf("receive mempool feed: %w", err)
+		}
+		if snap := msg.GetSnapshot(); snap != nil {
+			parts = append(parts, snap.GetTransactions()...)
+			if snap.GetMore() {
 				continue
 			}
-			if unexplained > mined && time.Since(lastBootstrap) >= w.rebootstrapMinGap {
-				log.Warn().Uint64("unexplained", unexplained).Uint64("block_txs", mined).
-					Msg("mempool watch: sequence gap, resyncing")
-				seq, err := w.bootstrap(ctx)
-				if err != nil {
-					return fmt.Errorf("resync: %w", err)
-				}
-				lastSeq, allowedGap, lastBootstrap = seq, 0, time.Now()
+			if err := w.bootstrap(ctx, snap.GetHeight(), parts); err != nil {
+				return fmt.Errorf("bootstrap: %w", err)
 			}
-			unexplained = 0
+			parts, synced = nil, true
+			w.setRunning(true)
 		}
-	}
-}
-
-type mempoolEntry struct {
-	Vsize        uint32 `json:"vsize"`
-	AncestorSize uint32 `json:"ancestorsize"`
-	Time         int64  `json:"time"`
-	Height       uint32 `json:"height"`
-	Fees         struct {
-		Base     float64 `json:"base"`
-		Ancestor float64 `json:"ancestor"`
-	} `json:"fees"`
-}
-
-func (e mempoolEntry) tx(txid string) (mempooltx.Tx, error) {
-	fee, err := btcutil.NewAmount(e.Fees.Base)
-	if err != nil {
-		return mempooltx.Tx{}, err
-	}
-	// Miners weigh a tx by its ancestor package, so that is the rate that
-	// decides whether skipping it was a choice.
-	packageFee, err := btcutil.NewAmount(e.Fees.Ancestor)
-	if err != nil {
-		return mempooltx.Tx{}, err
-	}
-	var feeRate float64
-	switch {
-	case e.AncestorSize > 0:
-		feeRate = float64(packageFee) / float64(e.AncestorSize)
-	case e.Vsize > 0:
-		feeRate = float64(fee) / float64(e.Vsize)
-	}
-	return mempooltx.Tx{
-		Txid:            txid,
-		FeeSats:         uint64(fee),
-		Vsize:           e.Vsize,
-		FeeRate:         feeRate,
-		FirstSeenAt:     time.Unix(e.Time, 0),
-		FirstSeenHeight: e.Height,
-	}, nil
-}
-
-// bootstrap replaces the watched set with the node's mempool and returns the
-// last mempool sequence the snapshot covers, so that older sequence events
-// can be skipped. Core reports the sequence of the next event, hence
-// the step back. A tx that leaves the mempool between the two reads is
-// skipped; its removal is announced or already was.
-func (w *MempoolWatcher) bootstrap(ctx context.Context) (uint64, error) {
-	var tip uint32
-	if err := w.callInto(ctx, &tip, "getblockcount"); err != nil {
-		return 0, err
-	}
-	var snapshot struct {
-		Txids           []string `json:"txids"`
-		MempoolSequence uint64   `json:"mempool_sequence"`
-	}
-	if err := w.callInto(ctx, &snapshot, "getrawmempool", false, true); err != nil {
-		return 0, err
-	}
-	var entries map[string]mempoolEntry
-	if err := w.callInto(ctx, &entries, "getrawmempool", true); err != nil {
-		return 0, err
-	}
-	var txs []mempooltx.Tx
-	oldest := tip
-	for _, txid := range snapshot.Txids {
-		entry, ok := entries[txid]
-		if !ok {
+		if !synced {
 			continue
 		}
-		tx, err := entry.tx(txid)
-		if err != nil {
-			return 0, err
+		for _, change := range msg.GetChanges() {
+			if err := w.handle(ctx, change); err != nil {
+				return err
+			}
 		}
-		txs = append(txs, tx)
-		oldest = min(oldest, entry.Height)
 	}
-	if err := mempooltx.DeleteNotIn(ctx, w.db, snapshot.Txids); err != nil {
-		return 0, err
+}
+
+func mempoolTx(tx *mempoolpb.Transaction) mempooltx.Tx {
+	// Miners weigh a tx by its ancestor package, so that is the rate that
+	// decides whether skipping it was a choice.
+	var feeRate float64
+	switch {
+	case tx.GetAncestorVsize() > 0:
+		feeRate = float64(tx.GetAncestorFeeSats()) / float64(tx.GetAncestorVsize())
+	case tx.GetVsize() > 0:
+		feeRate = float64(tx.GetFeeSats()) / float64(tx.GetVsize())
+	}
+	return mempooltx.Tx{
+		Txid:            tx.GetTxid(),
+		FeeSats:         tx.GetFeeSats(),
+		Vsize:           tx.GetVsize(),
+		FeeRate:         feeRate,
+		FirstSeenAt:     tx.GetTime().AsTime(),
+		FirstSeenHeight: tx.GetHeight(),
+	}
+}
+
+// bootstrap replaces the watched set with a snapshot of the mempool at tip.
+func (w *MempoolWatcher) bootstrap(ctx context.Context, tip uint32, snapshot []*mempoolpb.Transaction) error {
+	txids := make([]string, len(snapshot))
+	txs := make([]mempooltx.Tx, len(snapshot))
+	oldest := tip
+	for i, tx := range snapshot {
+		txids[i] = tx.GetTxid()
+		txs[i] = mempoolTx(tx)
+		oldest = min(oldest, tx.GetHeight())
+	}
+	if err := mempooltx.DeleteNotIn(ctx, w.db, txids); err != nil {
+		return err
 	}
 	if err := mempooltx.Upsert(ctx, w.db, txs); err != nil {
-		return 0, err
+		return err
 	}
 	w.setTip(tip)
-	if err := w.readStats(ctx, oldest, tip); err != nil {
-		return 0, err
-	}
-	if snapshot.MempoolSequence == 0 {
-		return 0, nil
-	}
-	return snapshot.MempoolSequence - 1, nil
+	return w.readStats(ctx, oldest, tip)
 }
 
 // readStats records the fee floors the snapshot's txs sat through, back to
@@ -377,79 +305,44 @@ func (w *MempoolWatcher) readStats(ctx context.Context, oldest, tip uint32) erro
 // referenceBlocks is how many blocks the frontend averages F* over.
 const referenceBlocks = 6
 
-// handle applies one sequence event and returns how many mempool txs a
-// connected block took with it.
-func (w *MempoolWatcher) handle(ctx context.Context, ev SequenceMsg) (uint64, error) {
-	hash := hex.EncodeToString(ev.Hash[:])
-	switch ev.Event {
-	case TransactionAdded:
-		// A tx already gone again is skipped; its removal follows or came.
-		var entry mempoolEntry
-		err := w.callInto(ctx, &entry, "getmempoolentry", hash)
-		if err != nil && strings.Contains(err.Error(), "not in mempool") {
-			return 0, nil
+// handle applies one change of the mempool feed.
+func (w *MempoolWatcher) handle(ctx context.Context, change *mempoolpb.Change) error {
+	switch c := change.GetChange().(type) {
+	case *mempoolpb.Change_Added:
+		return mempooltx.Upsert(ctx, w.db, []mempooltx.Tx{mempoolTx(c.Added)})
+	case *mempoolpb.Change_Removed:
+		return mempooltx.Forget(ctx, w.db, []string{c.Removed})
+	case *mempoolpb.Change_Block:
+		block := c.Block
+		if !block.GetConnected() {
+			if err := mempooltx.DeleteBlockStatsAbove(ctx, w.db, block.GetHeight()-1); err != nil {
+				return err
+			}
+			w.setTip(block.GetHeight() - 1)
+			return nil
 		}
-		if err != nil {
-			return 0, err
-		}
-		tx, err := entry.tx(hash)
-		if err != nil {
-			return 0, err
-		}
-		return 0, mempooltx.Upsert(ctx, w.db, []mempooltx.Tx{tx})
-
-	case TransactionRemoved:
-		return 0, mempooltx.Forget(ctx, w.db, []string{hash})
-
-	case BlockConnected:
-		var block struct {
-			Height uint32   `json:"height"`
-			Tx     []string `json:"tx"`
-		}
-		if err := w.callInto(ctx, &block, "getblock", hash, 1); err != nil {
-			return 0, err
-		}
-		if block.Height <= w.Status().Tip {
+		if block.GetHeight() <= w.Status().Tip {
 			// Connected before the snapshot was taken.
-			return 0, nil
+			return nil
 		}
-		if err := mempooltx.Forget(ctx, w.db, block.Tx); err != nil {
-			return 0, err
+		if err := mempooltx.Forget(ctx, w.db, block.GetTxids()); err != nil {
+			return err
 		}
 		var stats struct {
 			MinFeeRate float64 `json:"minfeerate"`
 			TotalFee   uint64  `json:"totalfee"`
 		}
-		if err := w.callInto(ctx, &stats, "getblockstats", hash, []string{"minfeerate", "totalfee"}); err != nil {
-			return 0, err
+		if err := w.callInto(ctx, &stats, "getblockstats", block.GetHash(), []string{"minfeerate", "totalfee"}); err != nil {
+			return err
 		}
-		if err := mempooltx.PutBlockStats(ctx, w.db, block.Height, stats.MinFeeRate, stats.TotalFee); err != nil {
-			return 0, err
+		if err := mempooltx.PutBlockStats(ctx, w.db, block.GetHeight(), stats.MinFeeRate, stats.TotalFee); err != nil {
+			return err
 		}
-		w.setTip(block.Height)
-		keep := block.Height - min(block.Height, referenceBlocks-1)
-		if err := mempooltx.PruneBlockStats(ctx, w.db, keep); err != nil {
-			return 0, err
-		}
-		return uint64(len(block.Tx)), nil
-
-	case BlockDisconnected:
-		var block struct {
-			Height uint32 `json:"height"`
-		}
-		if err := w.callInto(ctx, &block, "getblock", hash, 1); err != nil {
-			return 0, err
-		}
-		if err := mempooltx.DeleteBlockStatsAbove(ctx, w.db, block.Height-1); err != nil {
-			return 0, err
-		}
-		w.setTip(block.Height - 1)
-		return 0, nil
-
-	case Invalid:
-		return 0, fmt.Errorf("invalid sequence event for %s", hash)
+		w.setTip(block.GetHeight())
+		keep := block.GetHeight() - min(block.GetHeight(), referenceBlocks-1)
+		return mempooltx.PruneBlockStats(ctx, w.db, keep)
 	}
-	return 0, nil
+	return fmt.Errorf("unknown mempool change %T", change.GetChange())
 }
 
 func (w *MempoolWatcher) callInto(ctx context.Context, out any, method string, params ...any) error {
