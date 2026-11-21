@@ -14,6 +14,7 @@ import (
 
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	wmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/selfbuild"
 )
@@ -29,7 +30,8 @@ func drivechaindBeside(path string) string {
 
 // adoptOrchestrator makes ownerPID the owner of the drivechaind at addr when
 // it runs the file at path. It returns false when the daemon is another build,
-// or when its exit already started.
+// or when its exit already started. A new app asks for the password again, so
+// an unlocked wallet with a password gets locked.
 func adoptOrchestrator(ctx context.Context, addr, bitwindowDir, path string, ownerPID int) (bool, error) {
 	base, err := orchestratorURL(addr)
 	if err != nil {
@@ -38,6 +40,16 @@ func adoptOrchestrator(ctx context.Context, addr, bitwindowDir, path string, own
 	same, err := selfbuild.Ask(ctx, base.String(), path)
 	if err != nil || !same {
 		return false, err
+	}
+	wallets := dial.WalletManager(addr, bitwindowDir)
+	status, err := wallets.GetWalletStatus(ctx, &wmpb.GetWalletStatusRequest{})
+	if err != nil {
+		return false, fmt.Errorf("read the wallet lock: %w", err)
+	}
+	if status.GetEncrypted() && status.GetState() == wmpb.WalletState_WALLET_STATE_UNLOCKED {
+		if _, err := wallets.LockWallet(ctx, &wmpb.LockWalletRequest{}); err != nil {
+			return false, fmt.Errorf("lock the wallet: %w", err)
+		}
 	}
 	_, err = dial.Orchestrator(addr, bitwindowDir).AdoptOwner(ctx, &orchpb.AdoptOwnerRequest{OwnerPid: int32(ownerPID)})
 	if connect.CodeOf(err) == connect.CodeUnavailable {
