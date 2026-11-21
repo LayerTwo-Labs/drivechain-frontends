@@ -9,7 +9,7 @@ build-go:
 
     # Build with version information embedded via ldflags
     CGO_ENABLED=1 go build -v \
-        -ldflags="-X 'github.com/LayerTwo-Labs/sidesail/bitwindow/server/version.Version=${VERSION}' \
+        -ldflags="-s -w -X 'github.com/LayerTwo-Labs/sidesail/bitwindow/server/version.Version=${VERSION}' \
                   -X 'github.com/LayerTwo-Labs/sidesail/bitwindow/server/version.Commit=${COMMIT}' \
                   -X 'github.com/LayerTwo-Labs/sidesail/bitwindow/server/version.BuildDate=${BUILD_DATE}'" \
         -o ./bin/bitwindowd .
