@@ -5,12 +5,16 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:sidechain_core/gen/mempool/v1/mempool.connect.client.dart';
+import 'package:sidechain_core/gen/mempool/v1/mempool.pb.dart' as mempoolpb;
 import 'package:sidechain_core/sidechain_core.dart';
 
 import 'mocks/api_mock.dart';
 
+/// Answers as drivechaind does: a plain getrawmempool holds txids only, and
+/// GetStats sums the mempool in sats.
 class _Transport implements connect.Transport {
-  Map<String, MempoolEntry> mempool = {};
+  Map<String, (int vsize, int feeSats)> mempool = {};
   int mempoolCalls = 0;
 
   @override
@@ -22,13 +26,37 @@ class _Transport implements connect.Transport {
     final Object out;
     if (input is GetRawMempoolRequest) {
       mempoolCalls++;
-      out = GetRawMempoolResponse(transactions: mempool.entries);
+      out = GetRawMempoolResponse(txids: mempool.keys);
+    } else if (input is mempoolpb.GetStatsRequest) {
+      mempoolCalls++;
+      out = _stats(input.bucketEdges);
     } else if (input is EstimateSmartFeeRequest) {
       out = EstimateSmartFeeResponse(feeRate: input.confTarget.toInt() == 144 ? 0 : 0.00002);
     } else {
       throw UnimplementedError('$input');
     }
     return connect.UnaryResponse(spec, connect.Headers(), out as O, connect.Headers());
+  }
+
+  mempoolpb.GetStatsResponse _stats(List<double> edges) {
+    final res = mempoolpb.GetStatsResponse(
+      buckets: [for (final e in edges) mempoolpb.FeeBucket(minFeeRate: e)],
+    );
+    final rates = <double>[];
+    for (final (vsize, fee) in mempool.values) {
+      final rate = fee / vsize;
+      rates.add(rate);
+      res.txCount += 1;
+      res.vsize += vsize;
+      res.feeSats += fee;
+      final b = res.buckets.lastWhere((b) => b.minFeeRate <= rate);
+      b.txCount += 1;
+      b.vsize += vsize;
+      b.feeSats += fee;
+    }
+    rates.sort();
+    res.medianFeeRate = rates.isEmpty ? 0 : rates[rates.length ~/ 2];
+    return res;
   }
 
   @override
@@ -44,13 +72,13 @@ class _Orchestrator implements OrchestratorRPC {
   BitcoinServiceClient get bitcoind => BitcoinServiceClient(transport);
 
   @override
+  MempoolServiceClient get mempool => MempoolServiceClient(transport);
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-MempoolEntry _tx(int vsize, double feeSats) => MempoolEntry(
-  virtualSize: vsize,
-  fees: MempoolEntry_Fees(base: feeSats),
-);
+(int, int) _tx(int vsize, int feeSats) => (vsize, feeSats);
 
 void main() {
   late _Transport transport;
