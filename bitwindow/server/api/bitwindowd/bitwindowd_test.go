@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -38,6 +39,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
+	mempoolpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1"
+	mempoolrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1/mempoolv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 )
@@ -1892,23 +1895,6 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
-		// Mock GetRawMempool with one tx
-		mockBitcoind.EXPECT().
-			GetRawMempool(gomock.Any(), gomock.Any()).
-			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
-				Msg: &corepb.GetRawMempoolResponse{
-					Transactions: map[string]*corepb.MempoolEntry{
-						"mempool_tx1": {
-							VirtualSize: 200,
-							Time:        timestamppb.Now(),
-							Fees: &corepb.MempoolEntry_Fees{
-								Base: 0.00001000,
-							},
-						},
-					},
-				},
-			}, nil)
-
 		// Mock GetBlockchainInfo - return BestBlockHash
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
@@ -1930,12 +1916,15 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
+		mempool := &fakeMempool{txs: []*mempoolpb.Transaction{{Txid: "mempool_tx1", Vsize: 200, FeeSats: 1000, Time: timestamppb.Now()}}}
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind), apitests.WithMempool(mempool)))
 
 		resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{
 			Count: 10,
 		})
 		require.NoError(t, err)
+		assert.Equal(t, []uint32{10}, mempool.counts(), "drivechaind sends only the newest count")
+		assert.Equal(t, uint64(1000), resp.Transactions[0].FeeSats)
 		// Should have 1 mempool tx
 		assert.Len(t, resp.Transactions, 1)
 		assert.Equal(t, "mempool_tx1", resp.Transactions[0].Txid)
@@ -1962,12 +1951,6 @@ func TestService_ListRecentTransactions(t *testing.T) {
 			}, nil).AnyTimes()
 
 		mockBitcoind.EXPECT().
-			GetRawMempool(gomock.Any(), gomock.Any()).
-			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
-				Msg: &corepb.GetRawMempoolResponse{Transactions: map[string]*corepb.MempoolEntry{}},
-			}, nil).Times(2)
-
-		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
 				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 7, BestBlockHash: "blockhash7"},
@@ -1991,7 +1974,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				Msg: &corepb.GetRawTransactionResponse{Vsize: 141, Fee: 0.00002000},
 			}, nil).Times(1)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind), apitests.WithMempool(&fakeMempool{})))
 
 		for range 2 {
 			resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{Count: 10})
@@ -2010,12 +1993,6 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		apitests.ExpectCoreWalletSetup(mockBitcoind)
-
-		mockBitcoind.EXPECT().
-			GetRawMempool(gomock.Any(), gomock.Any()).
-			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
-				Msg: &corepb.GetRawMempoolResponse{Transactions: map[string]*corepb.MempoolEntry{}},
-			}, nil).Times(3)
 
 		// Blocks 1 to 102 each hold one tx. The walk reads 100 blocks.
 		var tip atomic.Uint32
@@ -2054,7 +2031,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				return connectv1.NewResponse(&corepb.GetRawTransactionResponse{Vsize: 141, Fee: 0.00001}), nil
 			}).AnyTimes()
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t), apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t), apitests.WithBitcoind(mockBitcoind), apitests.WithMempool(&fakeMempool{})))
 		list := func() []string {
 			resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{Count: 200})
 			require.NoError(t, err)
@@ -2104,15 +2081,6 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
-		// Empty mempool
-		mockBitcoind.EXPECT().
-			GetRawMempool(gomock.Any(), gomock.Any()).
-			Return(&connectv1.Response[corepb.GetRawMempoolResponse]{
-				Msg: &corepb.GetRawMempoolResponse{
-					Transactions: map[string]*corepb.MempoolEntry{},
-				},
-			}, nil)
-
 		mockBitcoind.EXPECT().
 			GetBlockchainInfo(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetBlockchainInfoResponse]{
@@ -2133,7 +2101,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db, apitests.WithBitcoind(mockBitcoind), apitests.WithMempool(&fakeMempool{})))
 
 		resp, err := cli.ListRecentTransactions(t.Context(), &v1.ListRecentTransactionsRequest{
 			Count: 10,
@@ -2141,6 +2109,32 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, resp.Transactions)
 	})
+}
+
+// fakeMempool answers ListTransactions from txs, newest first as given.
+type fakeMempool struct {
+	mempoolrpc.UnimplementedMempoolServiceHandler
+	txs []*mempoolpb.Transaction
+
+	mu    sync.Mutex
+	asked []uint32
+}
+
+func (f *fakeMempool) ListTransactions(_ context.Context, req *mempoolpb.ListTransactionsRequest) (*mempoolpb.ListTransactionsResponse, error) {
+	f.mu.Lock()
+	f.asked = append(f.asked, req.Count)
+	f.mu.Unlock()
+	txs := f.txs
+	if req.Count > 0 && int(req.Count) < len(txs) {
+		txs = txs[:req.Count]
+	}
+	return &mempoolpb.ListTransactionsResponse{Transactions: txs, Total: uint64(len(f.txs))}, nil
+}
+
+func (f *fakeMempool) counts() []uint32 {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]uint32(nil), f.asked...)
 }
 
 // binaryPids answers GetBinaryStatus with a running process for each named binary.
