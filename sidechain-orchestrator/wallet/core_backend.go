@@ -435,7 +435,8 @@ func (p *CoreBackend) ReceivedTxIDs(ctx context.Context, walletID, address strin
 	return received.TxIDs, nil
 }
 
-const coreHistoryPage = 1000
+// coreHistoryPage is large: Core walks every skipped row again for each page.
+const coreHistoryPage = 10000
 
 // coreSpend is what one wallet tx tells the receive list: its wallet time and
 // the wallet addresses whose coins it spends.
