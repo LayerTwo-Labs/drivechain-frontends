@@ -117,6 +117,9 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Stream<WatchSyncInfoResponse> watchSyncInfo() => const Stream.empty();
 
   @override
+  Stream<WatchRecentTransactionsResponse> watchRecentTransactions() => const Stream.empty();
+
+  @override
   Future<GetSyncInfoResponse> getSyncInfo() {
     return Future.value(
       GetSyncInfoResponse(
