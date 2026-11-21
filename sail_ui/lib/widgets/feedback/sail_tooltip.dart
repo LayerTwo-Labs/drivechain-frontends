@@ -61,6 +61,14 @@ class _SailTooltipState extends State<SailTooltip> with SingleTickerProviderStat
   }
 
   @override
+  void didUpdateWidget(SailTooltip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message != widget.message || oldWidget.title != widget.title) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _entry?.markNeedsBuild());
+    }
+  }
+
+  @override
   void dispose() {
     _showTimer?.cancel();
     _hideTimer?.cancel();
