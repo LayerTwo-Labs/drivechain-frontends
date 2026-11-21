@@ -218,7 +218,7 @@ func (h *WalletHandler) depositConfirmations(ctx context.Context, d wallet.Sidec
 	if h.engine == nil {
 		return 0
 	}
-	tx, err := h.engine.ChainForWallet(d.WalletID).GetRawTransaction(ctx, d.Txid)
+	tx, err := h.readTx(ctx, d.WalletID, d.Txid, "")
 	if err != nil || tx == nil {
 		return 0
 	}
