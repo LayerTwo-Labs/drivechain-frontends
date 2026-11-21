@@ -1,6 +1,7 @@
 import 'package:bitwindow/models/bandwidth_data.dart';
 import 'package:bitwindow/providers/network_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:bitwindow/widgets/shown_signal.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -8,8 +9,19 @@ import 'package:sail_ui/sail_ui.dart';
 class TrafficGraphViewModel extends BaseViewModel {
   final NetworkProvider _networkProvider = GetIt.I.get<NetworkProvider>();
 
-  TrafficGraphViewModel() {
-    _networkProvider.addListener(notifyListeners);
+  bool _listening = false;
+
+  /// A hidden tab drops the listener, so the network stats stop their poll.
+  void listen(bool shown) {
+    if (shown == _listening) {
+      return;
+    }
+    _listening = shown;
+    if (shown) {
+      _networkProvider.addListener(notifyListeners);
+    } else {
+      _networkProvider.removeListener(notifyListeners);
+    }
   }
 
   List<BandwidthDataPoint> get bandwidthHistory => _networkProvider.bandwidthHistory;
@@ -18,7 +30,7 @@ class TrafficGraphViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    _networkProvider.removeListener(notifyListeners);
+    listen(false);
     super.dispose();
   }
 }
@@ -31,16 +43,19 @@ class TrafficGraphWidget extends StatelessWidget {
     return ViewModelBuilder<TrafficGraphViewModel>.reactive(
       viewModelBuilder: () => TrafficGraphViewModel(),
       builder: (context, model, child) {
-        return SailCard(
-          title: 'Network Traffic',
-          subtitle: 'Bandwidth over time',
-          child: model.bandwidthHistory.length > 1
-              ? TrafficGraphContent(
-                  bandwidthHistory: model.bandwidthHistory,
-                  currentRxRate: model.currentRxRate,
-                  currentTxRate: model.currentTxRate,
-                )
-              : const TrafficGraphPlaceholder(),
+        return ShownSignal(
+          onShown: model.listen,
+          child: SailCard(
+            title: 'Network Traffic',
+            subtitle: 'Bandwidth over time',
+            child: model.bandwidthHistory.length > 1
+                ? TrafficGraphContent(
+                    bandwidthHistory: model.bandwidthHistory,
+                    currentRxRate: model.currentRxRate,
+                    currentTxRate: model.currentTxRate,
+                  )
+                : const TrafficGraphPlaceholder(),
+          ),
         );
       },
     );

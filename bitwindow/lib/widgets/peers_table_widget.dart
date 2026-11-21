@@ -1,20 +1,32 @@
-import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/peers_provider.dart';
+import 'package:bitwindow/widgets/shown_signal.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class PeersTableViewModel extends BaseViewModel {
-  final BlockchainProvider _blockchainProvider = GetIt.I.get<BlockchainProvider>();
+  final PeersProvider _peersProvider = GetIt.I.get<PeersProvider>();
 
   String sortColumn = 'addr';
   bool sortAscending = true;
 
-  PeersTableViewModel() {
-    _blockchainProvider.addListener(notifyListeners);
+  bool _listening = false;
+
+  /// A hidden tab drops the listener, so the peer list stops its poll.
+  void listen(bool shown) {
+    if (shown == _listening) {
+      return;
+    }
+    _listening = shown;
+    if (shown) {
+      _peersProvider.addListener(notifyListeners);
+    } else {
+      _peersProvider.removeListener(notifyListeners);
+    }
   }
 
-  List<Peer> get peers => _blockchainProvider.peers;
+  List<Peer> get peers => _peersProvider.peers;
 
   void onSort(String column) {
     if (sortColumn == column) {
@@ -70,7 +82,7 @@ class PeersTableViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    _blockchainProvider.removeListener(notifyListeners);
+    listen(false);
     super.dispose();
   }
 }
@@ -82,8 +94,9 @@ class PeersTableWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<PeersTableViewModel>.reactive(
       viewModelBuilder: () => PeersTableViewModel(),
-      builder: (context, model, child) {
-        return SailCard(
+      builder: (context, model, child) => ShownSignal(
+        onShown: model.listen,
+        child: SailCard(
           title: 'Connected Peers',
           subtitle: '${model.peers.length} peer${model.peers.length == 1 ? '' : 's'} connected',
           child: model.peers.isEmpty
@@ -97,8 +110,8 @@ class PeersTableWidget extends StatelessWidget {
                     onSort: model.onSort,
                   ),
                 ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -150,11 +163,17 @@ class PeersTable extends StatelessWidget {
       getRowId: (index) => peers[index].addr,
       headerBuilder: (context) => [
         SailTableHeaderCell(name: 'Address', onSort: () => onSort('addr')),
-        SailTableHeaderCell(name: 'Direction', onSort: () => onSort('direction')),
+        SailTableHeaderCell(
+          name: 'Direction',
+          onSort: () => onSort('direction'),
+        ),
         SailTableHeaderCell(name: 'Ping', onSort: () => onSort('ping')),
         SailTableHeaderCell(name: 'Sent', onSort: () => onSort('sent')),
         SailTableHeaderCell(name: 'Received', onSort: () => onSort('recv')),
-        SailTableHeaderCell(name: 'Connected', onSort: () => onSort('conntime')),
+        SailTableHeaderCell(
+          name: 'Connected',
+          onSort: () => onSort('conntime'),
+        ),
       ],
       rowBuilder: (context, row, selected) {
         final peer = peers[row];

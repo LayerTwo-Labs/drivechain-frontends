@@ -33,6 +33,7 @@ import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/network_provider.dart';
+import 'package:bitwindow/providers/peers_provider.dart';
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/timestamp_provider.dart';
@@ -377,6 +378,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
   putScoped<BlockchainProvider>(() => refetchOnNewBlock(BlockchainProvider()));
   put<NetworkProvider>(() => NetworkProvider());
+  putScoped<PeersProvider>(() => PeersProvider());
   putScoped<TransactionProvider>(() => refetchOnNewBlock(TransactionProvider()));
 
   // Refetch live on every new mainchain block so the user sees fresh blocks,

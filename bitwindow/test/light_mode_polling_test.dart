@@ -58,7 +58,7 @@ void main() {
   // traffic graph, where the numbers no longer move.
   test('a skipped poll drops the old network stats', () async {
     await boot(wmpb.NodeMode.NODE_MODE_FULL);
-    final provider = NetworkProvider();
+    final provider = NetworkProvider()..addListener(() {});
     await provider.fetch();
     expect(provider.stats, isNotNull);
 
@@ -73,7 +73,7 @@ void main() {
   test('network stats poll in full mode', () async {
     await boot(wmpb.NodeMode.NODE_MODE_FULL);
 
-    final provider = NetworkProvider();
+    final provider = NetworkProvider()..addListener(() {});
     await provider.fetch();
 
     expect(rpc.api.statsCalls, greaterThan(0));

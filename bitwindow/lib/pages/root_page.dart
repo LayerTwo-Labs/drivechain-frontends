@@ -24,6 +24,7 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
+import 'package:bitwindow/widgets/peer_count.dart';
 import 'package:bitwindow/widgets/import_descriptor_dialog.dart';
 import 'package:bitwindow/widgets/no_wallet_card.dart';
 import 'package:bitwindow/widgets/node_mode_chip.dart';
@@ -1271,12 +1272,7 @@ class _StatusBarState extends State<StatusBar> {
           SailSkeletonizer(
             description: 'Waiting for bitcoind to connect..',
             enabled: !blockchainProvider.mainchain.connected,
-            child: SailTooltip(
-              message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
-              child: SailText.secondary12(
-                formatTimeDifference(blockchainProvider.peers.length, 'peer'),
-              ),
-            ),
+            child: PeerCount(count: blockchainProvider.peerCount),
           ),
           const DividerDot(),
         ],

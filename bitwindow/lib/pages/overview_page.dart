@@ -8,6 +8,7 @@ import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
+import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
 import 'package:flutter/services.dart';
@@ -27,7 +28,12 @@ class OverviewPage extends StatefulWidget {
 class _OverviewPageState extends State<OverviewPage> {
   @override
   Widget build(BuildContext context) {
-    return QtPage(child: HomepageView(provider: GetIt.I.get<HomepageProvider>()));
+    // A kept-alive tab that is not shown stops the tickers and polls below it.
+    final tabs = TabsRouterScope.of(context, watch: true)?.controller;
+    return TickerMode(
+      enabled: tabs == null || tabs.current.name == OverviewRoute.name,
+      child: QtPage(child: HomepageView(provider: GetIt.I.get<HomepageProvider>())),
+    );
   }
 }
 

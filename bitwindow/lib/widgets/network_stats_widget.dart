@@ -1,5 +1,6 @@
 import 'package:bitwindow/providers/network_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/widgets/shown_signal.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -7,8 +8,19 @@ import 'package:sail_ui/sail_ui.dart';
 class NetworkStatsViewModel extends BaseViewModel {
   final NetworkProvider _networkProvider = GetIt.I.get<NetworkProvider>();
 
-  NetworkStatsViewModel() {
-    _networkProvider.addListener(notifyListeners);
+  bool _listening = false;
+
+  /// A hidden tab drops the listener, so the network stats stop their poll.
+  void listen(bool shown) {
+    if (shown == _listening) {
+      return;
+    }
+    _listening = shown;
+    if (shown) {
+      _networkProvider.addListener(notifyListeners);
+    } else {
+      _networkProvider.removeListener(notifyListeners);
+    }
   }
 
   GetNetworkStatsResponse? get stats => _networkProvider.stats;
@@ -17,7 +29,7 @@ class NetworkStatsViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    _networkProvider.removeListener(notifyListeners);
+    listen(false);
     super.dispose();
   }
 }
@@ -30,23 +42,26 @@ class NetworkStatsWidget extends StatelessWidget {
     return ViewModelBuilder<NetworkStatsViewModel>.reactive(
       viewModelBuilder: () => NetworkStatsViewModel(),
       builder: (context, model, child) {
-        return SailCard(
-          title: 'Network Stats',
-          subtitle: 'Connection summary',
-          widgetHeaderEnd: SailButton(
-            label: 'Details',
-            variant: ButtonVariant.ghost,
-            onPressed: () async {
-              await GetIt.I.get<AppRouter>().push(NetworkStatisticsRoute());
-            },
+        return ShownSignal(
+          onShown: model.listen,
+          child: SailCard(
+            title: 'Network Stats',
+            subtitle: 'Connection summary',
+            widgetHeaderEnd: SailButton(
+              label: 'Details',
+              variant: ButtonVariant.ghost,
+              onPressed: () async {
+                await GetIt.I.get<AppRouter>().push(NetworkStatisticsRoute());
+              },
+            ),
+            child: model.stats != null
+                ? NetworkStatsContent(
+                    stats: model.stats!,
+                    currentRxRate: model.currentRxRate,
+                    currentTxRate: model.currentTxRate,
+                  )
+                : const NetworkStatsPlaceholder(),
           ),
-          child: model.stats != null
-              ? NetworkStatsContent(
-                  stats: model.stats!,
-                  currentRxRate: model.currentRxRate,
-                  currentTxRate: model.currentTxRate,
-                )
-              : const NetworkStatsPlaceholder(),
         );
       },
     );
