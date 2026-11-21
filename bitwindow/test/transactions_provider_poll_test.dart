@@ -19,6 +19,7 @@ class _OrchestratorWallet implements OrchestratorWalletRPC {
   bool failAddress = false;
   List<wmpb.TransactionEntry> entries = [];
   Future<void>? unspentHold;
+  Future<void>? listHold;
 
   @override
   Future<wmpb.ListUnspentResponse> listUnspent(String walletId) async {
@@ -29,10 +30,12 @@ class _OrchestratorWallet implements OrchestratorWalletRPC {
   @override
   Future<wmpb.ListTransactionsResponse> listTransactions({required String walletId, int count = 100}) async {
     listCalls++;
+    final snapshot = entries;
+    await listHold;
     if (failList) {
       throw Exception('drivechaind is down');
     }
-    return wmpb.ListTransactionsResponse(transactions: entries);
+    return wmpb.ListTransactionsResponse(transactions: snapshot);
   }
 
   @override
@@ -105,6 +108,9 @@ class _WalletReader extends ChangeNotifier implements WalletReaderProvider {
 }
 
 class _Balance extends ChangeNotifier implements BalanceProvider {
+  @override
+  final newestTransactions = ValueNotifier<List<wmpb.TransactionEntry>?>(null);
+
   @override
   void setBalance(RPCConnection rpc, double confirmed, double pending) {}
 
@@ -231,6 +237,51 @@ void main() {
     hold.complete();
     await fetch;
     expect(notifies, 1, reason: 'the list showed, and the rest did not change');
+  });
+
+  test('a balance frame shows a new transaction before the full read', () async {
+    wallet.entries = [wmpb.TransactionEntry(txid: 'a', amountSats: Int64(5), time: Int64(1))];
+    await provider.fetch();
+    final hold = Completer<void>();
+    wallet.unspentHold = hold.future;
+
+    balance.newestTransactions.value = [wmpb.TransactionEntry(txid: 'b', amountSats: Int64(7), time: Int64(2))];
+    expect(provider.walletTransactions.map((t) => t.txid), ['b', 'a'], reason: 'no RPC between frame and row');
+    hold.complete();
+  });
+
+  test('a full read that started before a frame keeps its tx', () async {
+    wallet.entries = [wmpb.TransactionEntry(txid: 'a', amountSats: Int64(5), time: Int64(1))];
+    await provider.fetch();
+    final hold = Completer<void>();
+    wallet.listHold = hold.future;
+    wallet.entries = [
+      wmpb.TransactionEntry(txid: 'a', amountSats: Int64(5), time: Int64(1), confirmations: 1),
+    ];
+    final fetch = provider.fetch();
+    await pumpEventQueue();
+
+    balance.newestTransactions.value = [wmpb.TransactionEntry(txid: 'b', amountSats: Int64(7), time: Int64(2))];
+    hold.complete();
+    await fetch;
+
+    expect(provider.walletTransactions.map((t) => t.txid), ['b', 'a']);
+    expect(provider.walletTransactions.last.confirmationTime.height, 1, reason: 'the read keeps its own rows');
+  });
+
+  test('a merge adds a new tx and changes nothing twice', () {
+    final current = walletTransactionsFromEntries([
+      wmpb.TransactionEntry(txid: 'a', amountSats: Int64(5), time: Int64(1)),
+    ], {});
+    final fresh = [
+      wmpb.TransactionEntry(txid: 'b', amountSats: Int64(-7), time: Int64(2)),
+      wmpb.TransactionEntry(txid: 'b', amountSats: Int64(6), time: Int64(2)),
+    ];
+    final merged = mergeNewestTransactions(current, fresh);
+    expect(merged!.map((t) => t.txid), ['b', 'a']);
+    expect(merged.first.sentSatoshi, Int64(7));
+    expect(merged.first.receivedSatoshi, Int64(6));
+    expect(mergeNewestTransactions(merged, fresh), isNull);
   });
 
   test('a block list or peer change does not fetch', () async {

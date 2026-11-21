@@ -101,6 +101,9 @@ class _WalletReader extends ChangeNotifier implements WalletReaderProvider {
 
 class _Balance extends ChangeNotifier implements BalanceProvider {
   @override
+  final newestTransactions = ValueNotifier<List<wmpb.TransactionEntry>?>(null);
+
+  @override
   void setBalance(RPCConnection rpc, double confirmed, double pending) {}
 
   @override

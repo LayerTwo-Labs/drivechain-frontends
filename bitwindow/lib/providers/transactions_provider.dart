@@ -76,14 +76,49 @@ List<WalletTransaction> walletTransactionsFromEntries(
           : null,
     );
   }
-  return byTxid.values.toList()..sort((a, b) {
-    final aTime = a.confirmationTime.timestamp.seconds;
-    final bTime = b.confirmationTime.timestamp.seconds;
-    if (aTime == bTime) {
-      return b.txid.compareTo(a.txid);
+  return byTxid.values.toList()..sort(_newestFirst);
+}
+
+int _newestFirst(WalletTransaction a, WalletTransaction b) {
+  final aTime = a.confirmationTime.timestamp.seconds;
+  final bTime = b.confirmationTime.timestamp.seconds;
+  if (aTime == bTime) {
+    return b.txid.compareTo(a.txid);
+  }
+  return bTime.compareTo(aTime);
+}
+
+/// [current] with the rows of [fresh], all wallet entries of new txs. Returns
+/// null when nothing changes.
+@visibleForTesting
+List<WalletTransaction>? mergeNewestTransactions(
+  List<WalletTransaction> current,
+  List<wmpb.TransactionEntry> fresh, {
+  bool onlyMissing = false,
+}) {
+  if (fresh.isEmpty) {
+    return null;
+  }
+  final notes = {for (final tx in current) tx.txid: tx.note};
+  final rows = {for (final tx in walletTransactionsFromEntries(fresh, notes)) tx.txid: tx};
+  final byTxid = {for (final tx in current) tx.txid: tx};
+  var changed = false;
+  for (final txid in fresh.map((e) => e.txid).toSet()) {
+    if (onlyMissing && byTxid.containsKey(txid)) {
+      continue;
     }
-    return bTime.compareTo(aTime);
-  });
+    final row = rows[txid];
+    if (row == null) {
+      changed |= byTxid.remove(txid) != null;
+    } else if (byTxid[txid] != row) {
+      byTxid[txid] = row;
+      changed = true;
+    }
+  }
+  if (!changed) {
+    return null;
+  }
+  return byTxid.values.toList()..sort(_newestFirst);
 }
 
 // because the class extends ChangeNotifier, any subscribers
@@ -125,6 +160,9 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   String? error;
 
   bool _isFetching = false;
+
+  /// Balance frames with new txs, so a full read can tell that one came during it.
+  int _freshFrames = 0;
   bool _refetchQueued = false;
   Timer? _fetchTimer;
 
@@ -146,8 +184,24 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
 
   TransactionProvider() {
     balanceProvider.addListener(fetch);
+    balanceProvider.newestTransactions.addListener(_onNewestTransactions);
     _walletReader.addListener(_onWalletChanged);
     _startFetchingTimer();
+  }
+
+  /// Shows the entries of a balance frame before the full read ends.
+  void _onNewestTransactions() {
+    final newest = balanceProvider.newestTransactions.value;
+    if (newest == null || !initialized || error != null) {
+      return;
+    }
+    _freshFrames++;
+    final merged = mergeNewestTransactions(walletTransactions, newest);
+    if (merged == null) {
+      return;
+    }
+    walletTransactions = merged;
+    notifyListeners();
   }
 
   // Another wallet's addresses must never linger while the new ones load.
@@ -213,6 +267,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
     }
     _isFetching = true;
     _idleTicks = 0;
+    final framesAtStart = _freshFrames;
 
     try {
       // Prefer the streamed activeWalletId, but self-heal against a slow/broken
@@ -243,7 +298,10 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
             ).wait;
             return walletTransactionsFromEntries(fetchedTransactions.transactions, notes);
           },
-          (v) => walletTransactions = v,
+          // A read that started before a frame does not hold its tx.
+          (v) => walletTransactions = _freshFrames == framesAtStart
+              ? v
+              : mergeNewestTransactions(v, balanceProvider.newestTransactions.value ?? [], onlyMissing: true) ?? v,
           equals: const DeepCollectionEquality().equals,
         ).then((changed) {
           // A new transaction must not wait for the UTXO and address reads.
@@ -423,6 +481,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   @override
   void dispose() {
     balanceProvider.removeListener(fetch);
+    balanceProvider.newestTransactions.removeListener(_onNewestTransactions);
     _walletReader.removeListener(_onWalletChanged);
     _fetchTimer?.cancel();
     super.dispose();
