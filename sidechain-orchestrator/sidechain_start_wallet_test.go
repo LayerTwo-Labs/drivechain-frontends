@@ -65,10 +65,18 @@ func TestSidechainStartUsesTheSeedAfterUnlock(t *testing.T) {
 			defer cancel()
 			progress, err := o.StartWithL1(ctx, cfg.Name, opts)
 			require.NoError(t, err)
-			select {
-			case p := <-progress:
-				t.Fatalf("the start did not wait for unlock: %+v", p)
-			case <-time.After(100 * time.Millisecond):
+			// Core can start, but the sidechain waits for the seed.
+			wait := time.After(100 * time.Millisecond)
+		waitForUnlock:
+			for {
+				select {
+				case p := <-progress:
+					require.NotContains(t, p.Stage, cfg.Name, "the start did not wait for unlock: %+v", p)
+					require.False(t, p.Done, "the start did not wait for unlock: %+v", p)
+					require.NoError(t, p.Error)
+				case <-wait:
+					break waitForUnlock
+				}
 			}
 			require.NoFileExists(t, filepath.Join(dir, walletStampFile))
 			require.False(t, o.process.IsRunning(cfg.Name))

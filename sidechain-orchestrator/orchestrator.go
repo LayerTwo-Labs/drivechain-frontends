@@ -1070,20 +1070,32 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			}
 			o.prepareEnforcerArgs(&opts)
 		}
-		walletID, err := o.prepareSidechainWallet(ctx, config, &opts)
-		if err != nil {
-			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
-			failBoot(mon, ch, "start "+config.Name, err)
-			return
-		}
-		if err := o.prepareSidechainArgs(config, &opts); err != nil {
-			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
-			failBoot(mon, ch, "start "+config.Name, err)
-			return
+		// The wallet and arguments of the target need no L1, so they get ready while L1 starts.
+		targetOpts := opts
+		prepared := make(chan error, 1)
+		var walletID string
+		go func() {
+			var err error
+			walletID, err = o.prepareSidechainWallet(ctx, config, &targetOpts)
+			if err == nil {
+				err = o.prepareSidechainArgs(config, &targetOpts)
+			}
+			prepared <- err
+		}()
+		awaitPrepared := func() bool {
+			if err := <-prepared; err != nil {
+				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+				failBoot(mon, ch, "start "+config.Name, err)
+				return false
+			}
+			return true
 		}
 
 		if opts.Immediate {
-			o.startTargetOnly(ctx, config, opts, ch, nil)
+			if !awaitPrepared() {
+				return
+			}
+			o.startTargetOnly(ctx, config, targetOpts, ch, nil)
 			o.reloadIfWalletChanged(walletID)
 			return
 		}
@@ -1137,12 +1149,15 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			}
 		}
 
+		if !awaitPrepared() {
+			return
+		}
 		if config.Name == "enforcer" && needsEnforcer {
 			o.awaitBootedEnforcer(ctx, config, ch)
 			return
 		}
 
-		o.startTargetOnly(ctx, config, opts, ch, targetPrefetch)
+		o.startTargetOnly(ctx, config, targetOpts, ch, targetPrefetch)
 		o.reloadIfWalletChanged(walletID)
 	}()
 
