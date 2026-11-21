@@ -63,6 +63,22 @@ func (o *Orchestrator) callCore(ctx context.Context, method string, params ...an
 	return client.call(ctx, method, params...)
 }
 
+func (o *Orchestrator) callCoreBatch(ctx context.Context, method string, params [][]any) ([]chaindata.BatchResult, error) {
+	client, err := o.CoreStatusClient()
+	if err != nil {
+		return nil, err
+	}
+	results, err := CallBitcoindRPCBatch(ctx, client.url, client.user, client.password, method, params)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]chaindata.BatchResult, len(results))
+	for i, r := range results {
+		out[i] = chaindata.BatchResult(r)
+	}
+	return out, nil
+}
+
 func (o *Orchestrator) zmqSequenceAddr() string {
 	if o.BitcoinConf == nil {
 		return ""

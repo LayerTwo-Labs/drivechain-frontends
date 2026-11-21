@@ -446,6 +446,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	orch.stopBinary = orch.Stop
 	orch.chainData = chaindata.New(chaindata.Config{
 		Call:    orch.callCore,
+		Batch:   orch.callCoreBatch,
 		ZMQAddr: orch.zmqSequenceAddr,
 		Log:     log,
 	})

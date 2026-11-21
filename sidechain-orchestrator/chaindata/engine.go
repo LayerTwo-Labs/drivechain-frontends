@@ -18,6 +18,16 @@ import (
 // Caller sends one JSON-RPC call to Bitcoin Core with no wallet.
 type Caller func(ctx context.Context, method string, params ...any) (json.RawMessage, error)
 
+// BatchResult is the answer to one call of a JSON-RPC batch.
+type BatchResult struct {
+	Result json.RawMessage
+	Err    error
+}
+
+// BatchCaller sends method once for each entry of params in one JSON-RPC
+// batch. The results come in the order of params.
+type BatchCaller func(ctx context.Context, method string, params [][]any) ([]BatchResult, error)
+
 // Kind names a part of the state that a client can read or watch.
 type Kind int
 
@@ -72,6 +82,8 @@ var ErrNoProbe = errors.New("bitcoin core: no probe yet")
 // Config wires an Engine to one Bitcoin Core.
 type Config struct {
 	Call Caller
+	// Batch is optional. Without it, the mempool tracker sends one call per entry.
+	Batch BatchCaller
 	// ZMQAddr gives Core's zmqpubsequence endpoint, or "" when it has none.
 	ZMQAddr func() string
 	Log     zerolog.Logger
@@ -116,6 +128,7 @@ type Engine struct {
 
 	json      *Cache[json.RawMessage]
 	responses *Cache[any]
+	mempool   *Mempool
 }
 
 // New builds an Engine. Call Run to start it.
@@ -127,11 +140,16 @@ func New(conf Config) *Engine {
 		health:  ErrNoProbe,
 		subs:    make(map[Kind]map[chan struct{}]struct{}),
 		wake:    make(chan struct{}, 1),
+		mempool: newMempool(conf.Call, conf.Batch),
 	}
+	e.mempool.seeded = func() { e.Fire(EventMempool) }
 	e.json = NewCache[json.RawMessage](e)
 	e.responses = NewCache[any](e)
 	return e
 }
+
+// Mempool is the copy of Core's mempool.
+func (e *Engine) Mempool() *Mempool { return e.mempool }
 
 // Running reports whether Run watches Core. A stopped engine caches nothing.
 func (e *Engine) Running() bool { return e.running.Load() }
