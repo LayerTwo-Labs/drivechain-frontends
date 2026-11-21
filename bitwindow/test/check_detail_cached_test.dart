@@ -7,6 +7,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
 
@@ -78,5 +79,27 @@ void main() {
 
     expect(find.byType(LoadingIndicator), findsNothing);
     expect(find.textContaining('Check for 0.00100000'), findsOneWidget);
+  });
+
+  testWidgets('the check QR in the dark theme draws light modules', (tester) async {
+    GetIt.I.registerSingleton<CheckProvider>(_FakeCheckProvider());
+    GetIt.I.registerSingleton<TransactionProvider>(_FakeTransactions());
+    GetIt.I.registerSingleton<WalletReaderProvider>(_FakeWalletReader());
+    GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator());
+    final dark = SailThemeData.darkTheme(
+      SailColorScheme.orange,
+      false,
+      SailFontValues.inter,
+      SailThemeStyle.bitwindowV2,
+    );
+
+    await tester.pumpSailPage(SailTheme(data: dark, child: const CheckDetailPage(checkId: 1)));
+    await tester.pump();
+
+    final qr = tester.widget<QrImageView>(find.byType(QrImageView));
+    expect(qr.backgroundColor, dark.colors.backgroundSecondary);
+    expect(qr.dataModuleStyle.color, dark.colors.text);
+    expect(qr.eyeStyle.color, dark.colors.text);
+    expect(qr.dataModuleStyle.dataModuleShape, QrDataModuleShape.square);
   });
 }

@@ -372,6 +372,14 @@ class CheckDetailPage extends StatelessWidget {
                                 version: QrVersions.auto,
                                 size: 200,
                                 backgroundColor: context.sailTheme.colors.backgroundSecondary,
+                                eyeStyle: QrEyeStyle(
+                                  color: context.sailTheme.colors.text,
+                                  eyeShape: QrEyeShape.square,
+                                ),
+                                dataModuleStyle: QrDataModuleStyle(
+                                  color: context.sailTheme.colors.text,
+                                  dataModuleShape: QrDataModuleShape.square,
+                                ),
                               ),
                             ),
                           if (check.fundedTxids.isEmpty)
