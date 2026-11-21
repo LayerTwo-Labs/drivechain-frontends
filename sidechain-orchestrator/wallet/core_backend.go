@@ -92,8 +92,9 @@ type CoreBackend struct {
 }
 
 var (
-	_ Backend      = (*CoreBackend)(nil)
-	_ Bip47Backend = (*CoreBackend)(nil)
+	_ Backend         = (*CoreBackend)(nil)
+	_ Bip47Backend    = (*CoreBackend)(nil)
+	_ AddressReceiver = (*CoreBackend)(nil)
 )
 
 // NewCoreBackend creates the Bitcoin Core wallet backend.
@@ -356,6 +357,19 @@ func (p *CoreBackend) ListReceivedByAddress(ctx context.Context, walletID string
 		out[i].LastUsedAt = lastUsed[out[i].Address]
 	}
 	return out, nil
+}
+
+// ReceivedTxIDs implements AddressReceiver.
+func (p *CoreBackend) ReceivedTxIDs(ctx context.Context, walletID, address string) ([]string, error) {
+	name, err := p.walletName(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	received, err := p.rpc.ReceivedByOneAddress(ctx, name, address)
+	if err != nil || received == nil {
+		return nil, err
+	}
+	return received.TxIDs, nil
 }
 
 const coreHistoryPage = 1000
