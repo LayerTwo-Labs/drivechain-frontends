@@ -4,6 +4,7 @@ import 'package:connectrpc/connect.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// Base class for RPC connections to binaries.
@@ -43,6 +44,10 @@ abstract class RPCConnection extends ChangeNotifier implements DaemonState {
     final (confirmed, pending) = await balance();
     return (confirmed, pending, 0.0);
   }
+
+  /// The server stream of the balances of the active wallet, or null for a
+  /// chain that sends none.
+  BalanceStream? get balanceStream => null;
 
   /// Fetches the latest blockchain info.
   Future<BlockchainInfo> getBlockchainInfo();
@@ -234,4 +239,14 @@ String prettifyLogMessage(String message) {
     return extracted;
   }
   return cleaned;
+}
+
+/// A server stream of the balances of the active wallet.
+class BalanceStream {
+  const BalanceStream({required this.subscribe, required this.onTransportDeath});
+
+  final Stream<wmpb.WatchBalanceResponse> Function() subscribe;
+
+  /// Rebuilds the transport after a dead stream.
+  final void Function() onTransportDeath;
 }

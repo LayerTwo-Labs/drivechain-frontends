@@ -116,6 +116,15 @@ class BitwindowRPCLive extends BitwindowRPC {
   }
 
   @override
+  BalanceStream get balanceStream {
+    final orchestrator = GetIt.I.get<OrchestratorRPC>();
+    return BalanceStream(
+      subscribe: orchestrator.wallet.watchBalance,
+      onTransportDeath: orchestrator.recreateConnection,
+    );
+  }
+
+  @override
   Future<(double, double, double)> balances() async {
     return await _withRecreate(() async {
       // Route through orchestrator — balance is a shared wallet primitive.
