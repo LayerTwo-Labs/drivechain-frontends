@@ -148,6 +148,8 @@ class PhoneUi {
     await waitFor(field);
     await tester.ensureVisible(field.first);
     await tester.enterText(field.first, text);
+    // A user closes the keyboard before the next tap; the test text input keeps it up.
+    FocusManager.instance.primaryFocus?.unfocus();
     await settle(const Duration(milliseconds: 600));
   }
 

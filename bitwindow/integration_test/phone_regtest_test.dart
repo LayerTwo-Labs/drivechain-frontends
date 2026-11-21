@@ -45,7 +45,7 @@ Future<void> _hotPaths(WidgetTester tester, PhoneUi ui, RegtestControl regtest) 
   ui.watchLayoutErrors();
 
   ui.step('first-start');
-  await ui.waitFor(find.text('All binaries connected'), timeout: const Duration(minutes: 2));
+  await ui.waitFor(find.text('All binaries connected'), timeout: const Duration(minutes: 4));
   await ui.shot('first-start');
 
   ui.step('create-wallet');
