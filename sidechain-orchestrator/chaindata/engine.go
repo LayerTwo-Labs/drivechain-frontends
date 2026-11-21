@@ -245,7 +245,7 @@ func (e *Engine) Fire(mask Event) {
 	}
 	kinds := map[Kind]bool{
 		KindMempool: mask&EventMempool != 0,
-		KindWallet:  mask&(EventWrite|EventSettle) != 0,
+		KindWallet:  mask&walletEvents != 0,
 	}
 	if mask&settleFollows != 0 {
 		if e.settling {

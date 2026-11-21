@@ -400,3 +400,25 @@ func TestWalletReadAfterABlockReadsCoreBeforeTheSettle(t *testing.T) {
 	require.NoError(t, err)
 	require.JSONEq(t, `{"mine":{"trusted":2}}`, string(raw), "a read after a block shows the block")
 }
+
+func TestBlockWakesWalletWatchersBeforeTheSettle(t *testing.T) {
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+	call := func(ctx context.Context, method string, params ...any) (json.RawMessage, error) {
+		select {
+		case <-release:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		return nil, nil
+	}
+	e := New(Config{Call: call, Log: zerolog.Nop()})
+	ch := e.Subscribe(t.Context(), KindWallet)
+
+	e.Fire(EventBlock)
+	select {
+	case <-ch:
+	case <-time.After(time.Second):
+		t.Fatal("a block did not wake the wallet watchers")
+	}
+}
