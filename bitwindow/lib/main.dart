@@ -51,6 +51,7 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/providers/consolidation_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/services/boot_snapshot.dart';
 import 'package:bitwindow/services/bitwindowd_start.dart';
 import 'package:bitwindow/services/daemon_warm_up.dart';
 import 'package:bitwindow/widgets/address_list.dart';
@@ -127,6 +128,9 @@ void main(List<String> args) async {
 
 final _daemonWarmUp = DaemonWarmUp();
 
+/// The state of the last session, when the root page can show before the backend answers.
+BootSnapshot? _rootSnapshot;
+
 /// Runs a macOS sub-window engine that the main window can give a new page
 /// after each close.
 Future<void> runPooledSubWindow(
@@ -193,6 +197,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Fall back to filesystem if not provided in args
   applicationDir ??= await Environment.datadir();
+  if (!isSubWindow) {
+    final snapshot = BootSnapshot.read(applicationDir);
+    _rootSnapshot = snapshot != null && snapshot.showsRootAtOnce ? snapshot : null;
+  }
   // Point local-auth at the cookie beside wallet.json so every RPC carries it.
   LocalAuth.configure(applicationDir);
   logFile ??= await getLogFile();
@@ -251,7 +259,10 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
   BitcoinConfProvider.promptForDataDir = promptForBitcoinDataDir;
-  final bitcoinConfProvider = await BitcoinConfProvider.create(GetIt.I.get<AppRouter>());
+  final bitcoinConfProvider = await BitcoinConfProvider.create(
+    GetIt.I.get<AppRouter>(),
+    restored: _rootSnapshot?.restoredConfig,
+  );
   GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
 
   // Initialize EnforcerConfProvider to load enforcer config
@@ -339,6 +350,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
   NetworkScopedRegistry.enrol(walletReader);
+  _rootSnapshot?.restore(nodeMode: GetIt.I.get<NodeModeProvider>(), walletReader: walletReader);
   await walletReader.init();
 
   GetIt.I.registerLazySingleton<CoreVariantProvider>(() => CoreVariantProvider());
@@ -481,6 +493,40 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
     await SharedLogTail(file: logFile, source: 'orchestrator', onLine: debugPrint).start();
   }
 
+  final snapshot = _rootSnapshot;
+  final backendState = GetIt.I.get<BackendStateProvider>();
+  final showRoot = ValueNotifier<bool>(snapshot != null);
+  if (snapshot != null) {
+    log.i('STARTUP: showing the root page with the state of the last session');
+    backendState.starting = true;
+  }
+  BootSnapshotWriter(
+    appDir: applicationDir,
+    conf: GetIt.I.get<BitcoinConfProvider>(),
+    nodeMode: GetIt.I.get<NodeModeProvider>(),
+    walletReader: GetIt.I.get<WalletReaderProvider>(),
+    log: log,
+    written: snapshot?.encode(),
+  ).start();
+
+  final boot = () async {
+    try {
+      await bootBitwindowBackend(log, rootShown: snapshot != null);
+    } catch (e) {
+      log.e('bootBitwindowBackend failed: $e');
+      if (backendState.starting) {
+        backendState.startWatching();
+      }
+    } finally {
+      log.i('STARTUP: showing BitWindow UI');
+      // Show the app even if boot failed — providers will reconnect.
+      showRoot.value = true;
+    }
+  }();
+  unawaited(
+    boot.then((_) => SchedulerBinding.instance.scheduleTask(GetIt.I.get<WindowProvider>().startSpare, Priority.idle)),
+  );
+
   const windowOptions = WindowOptions(
     minimumSize: Size(400, 400),
     size: Size(1200, 600),
@@ -488,6 +534,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
     title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
   );
 
+  final look = SailAppLook.load();
   await windowManager.ensureInitialized();
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
@@ -498,28 +545,6 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   // check for updates on boot and every hour therafter
   await initAutoUpdater(log);
-
-  final backendReady = ValueNotifier<bool>(false);
-  void startSpareWindowAfterBoot() {
-    if (!backendReady.value) {
-      return;
-    }
-    backendReady.removeListener(startSpareWindowAfterBoot);
-    unawaited(SchedulerBinding.instance.scheduleTask(GetIt.I.get<WindowProvider>().startSpare, Priority.idle));
-  }
-
-  backendReady.addListener(startSpareWindowAfterBoot);
-  unawaited(() async {
-    try {
-      await bootBitwindowBackend(log);
-    } catch (e) {
-      log.e('bootBitwindowBackend failed: $e');
-    } finally {
-      log.i('STARTUP: showing BitWindow UI');
-      // Show the app even if boot failed — providers will reconnect.
-      backendReady.value = true;
-    }
-  }());
 
   GetIt.I.registerSingleton<HostedChains>(
     HostedChains(
@@ -536,7 +561,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
     startTruthcoinLinks(log, claimScheme: claimsTruthcoinLinks);
   });
 
-  return runApp(BitwindowApp(log: log, backendReady: backendReady));
+  return runApp(BitwindowApp(log: log, showRoot: showRoot, look: await look));
 }
 
 void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) async {
@@ -661,9 +686,10 @@ Future<File> getLogFile() async {
 
 class BitwindowApp extends StatefulWidget {
   final Logger log;
-  final ValueNotifier<bool> backendReady;
+  final ValueNotifier<bool> showRoot;
+  final SailAppLook? look;
 
-  const BitwindowApp({super.key, required this.log, required this.backendReady});
+  const BitwindowApp({super.key, required this.log, required this.showRoot, this.look});
 
   @override
   State<BitwindowApp> createState() => _BitwindowAppState();
@@ -705,7 +731,7 @@ class _BitwindowAppState extends State<BitwindowApp> {
       dense: true,
       builder: (context) {
         return ValueListenableBuilder<bool>(
-          valueListenable: widget.backendReady,
+          valueListenable: widget.showRoot,
           builder: (context, ready, _) {
             if (!ready) {
               return const _SplashScreen();
@@ -715,6 +741,7 @@ class _BitwindowAppState extends State<BitwindowApp> {
         );
       },
       accentColor: accentColor,
+      look: widget.look,
     );
   }
 }
@@ -900,7 +927,8 @@ Future<bool> waitForDrivechaind(
   }
 }
 
-Future<void> bootBitwindowBackend(Logger log) async {
+/// [rootShown] is true when the root page showed before the backend answered.
+Future<void> bootBitwindowBackend(Logger log, {bool rootShown = false}) async {
   log.i('STARTUP: Booting BitWindow backend');
 
   final binaryProvider = GetIt.I.get<BinaryProvider>();
@@ -987,6 +1015,10 @@ Future<void> bootBitwindowBackend(Logger log) async {
   //    starters tab render empty against an already-loaded wallet.
   if (orchestratorReady && GetIt.I.isRegistered<WalletReaderProvider>()) {
     await GetIt.I.get<WalletReaderProvider>().init();
+  }
+  // The password guard let the root page of the last session through.
+  if (orchestratorReady && rootShown) {
+    unawaited(_unlockIfLocked(orchestrator, log));
   }
 
   await startBackendsForMode(
