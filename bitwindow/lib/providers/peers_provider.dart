@@ -39,6 +39,9 @@ class PeersProvider extends ChangeNotifier implements NetworkScoped {
     unawaited(fetch());
   }
 
+  /// True while a widget listens, so [peers] stays fresh.
+  bool get polling => hasListeners;
+
   @override
   void addListener(VoidCallback listener) {
     super.addListener(listener);

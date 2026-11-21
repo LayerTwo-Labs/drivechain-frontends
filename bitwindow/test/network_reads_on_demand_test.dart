@@ -73,6 +73,14 @@ class _API extends MockAPI {
   BitwindowAPI get bitwindowd => api;
 }
 
+class _IdlePeers extends ChangeNotifier implements PeersProvider {
+  @override
+  bool get polling => false;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late _Transport transport;
   late _API rpc;
@@ -137,11 +145,27 @@ void main() {
     GetIt.I.registerSingleton<BitcoindConnection>(MockBitcoindConnection());
     GetIt.I.registerSingleton<EnforcerRPC>(MockEnforcerRPC());
     GetIt.I.registerSingleton<SyncProvider>(SyncProvider(startTimer: false));
+    GetIt.I.registerSingleton<PeersProvider>(_IdlePeers());
     final provider = BlockchainProvider();
     await pumpEventQueue();
 
     expect(provider.peerCount, 8);
     expect(transport.calls['GetPeerInfo'], isNull);
+  });
+
+  test('a shown peer list gives the peer count with no network info read', () async {
+    transport.peers = [Peer(id: 1), Peer(id: 2)];
+    GetIt.I.registerSingleton<BitcoindConnection>(MockBitcoindConnection());
+    GetIt.I.registerSingleton<EnforcerRPC>(MockEnforcerRPC());
+    GetIt.I.registerSingleton<SyncProvider>(SyncProvider(startTimer: false));
+    final peers = PeersProvider()..addListener(() {});
+    GetIt.I.registerSingleton<PeersProvider>(peers);
+    await pumpEventQueue();
+    final provider = BlockchainProvider();
+    await pumpEventQueue();
+
+    expect(provider.peerCount, 2);
+    expect(transport.calls['GetNetworkInfo'], isNull);
   });
 
   test('the peer list is read once at start and then only while a widget listens', () async {

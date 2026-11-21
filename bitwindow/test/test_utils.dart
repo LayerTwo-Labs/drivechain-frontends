@@ -1,5 +1,6 @@
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
+import 'package:bitwindow/providers/peers_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -120,6 +121,10 @@ Future<void> registerTestDependencies() async {
     GetIt.I.registerLazySingleton<BalanceProvider>(
       () => balanceProvider,
     );
+  }
+
+  if (!GetIt.I.isRegistered<PeersProvider>()) {
+    GetIt.I.registerLazySingleton<PeersProvider>(() => PeersProvider());
   }
 
   if (!GetIt.I.isRegistered<BlockchainProvider>()) {

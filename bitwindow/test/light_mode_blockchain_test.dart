@@ -1,4 +1,5 @@
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/peers_provider.dart';
 import 'package:connectrpc/connect.dart' as connect;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -112,6 +113,7 @@ void main() {
     GetIt.I.registerSingleton<EnforcerRPC>(MockEnforcerRPC());
     GetIt.I.registerSingleton<SyncProvider>(SyncProvider(startTimer: false));
     GetIt.I.registerSingleton<NodeModeProvider>(NodeModeProvider()..mode = mode);
+    GetIt.I.registerSingleton<PeersProvider>(PeersProvider());
     return BlockchainProvider();
   }
 

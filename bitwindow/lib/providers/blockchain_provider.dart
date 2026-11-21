@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bitwindow/providers/peers_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
@@ -88,12 +89,17 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       errors = [];
       final tReq = bitwindowd.bitwindowd.listRecentTransactions().onError(_return(recentTransactions));
       final bReq = bitwindowd.bitwindowd.listBlocks().onError(_return((blocks, false)));
-      final nReq = _orchestrator.bitcoind
-          .getNetworkInfo(GetNetworkInfoRequest())
-          .onError(_return(GetNetworkInfoResponse(connections: peerCount)));
+      // A shown peer list polls getpeerinfo, so the count reads no more.
+      final peerList = GetIt.I.get<PeersProvider>();
+      final nReq = peerList.polling
+          ? Future.value(peerList.peers.length)
+          : _orchestrator.bitcoind
+                .getNetworkInfo(GetNetworkInfoRequest())
+                .then((r) => r.connections)
+                .onError(_return(peerCount));
 
       final newTXs = await tReq;
-      final newPeerCount = (await nReq).connections;
+      final newPeerCount = await nReq;
       final (newBlocks, hasMore) = await bReq;
       final connects = hasMore && newBlocks.isNotEmpty && blocks.any((b) => b.hash == newBlocks.last.previousBlockHash);
       final olderBlocks = [

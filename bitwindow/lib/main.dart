@@ -376,9 +376,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   NetworkScopedRegistry.enrolLazy<BalanceProvider>();
   NetworkScopedRegistry.enrolLazy<SyncProvider>();
   GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
+  putScoped<PeersProvider>(() => PeersProvider());
   putScoped<BlockchainProvider>(() => refetchOnNewBlock(BlockchainProvider()));
   put<NetworkProvider>(() => NetworkProvider());
-  putScoped<PeersProvider>(() => PeersProvider());
   putScoped<TransactionProvider>(() => refetchOnNewBlock(TransactionProvider()));
 
   // Refetch live on every new mainchain block so the user sees fresh blocks,
