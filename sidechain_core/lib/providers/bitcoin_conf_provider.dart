@@ -29,6 +29,9 @@ bool fullModeNeedsDataDir(BitcoinConfProvider conf) =>
     (conf.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || conf.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) &&
     !conf.hasDataDirFor(conf.network);
 
+/// The config and the picker rows of an earlier session.
+typedef RestoredBitcoinConfig = ({GetBitcoinConfigResponse config, List<NetworkOption> networks});
+
 /// Bitcoin Core configuration provider backed by orchestrator's BitcoinConfService.
 /// All reads/writes go through the backend — no local file access.
 class BitcoinConfProvider extends ChangeNotifier {
@@ -111,10 +114,18 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   BitcoinConfProvider._create(this.router);
 
-  static Future<BitcoinConfProvider> create(RootStackRouter router) async {
+  /// The last config a backend read gave, or null before the first read.
+  GetBitcoinConfigResponse? backendConfig;
+
+  /// True while the values come from the last session and no backend read landed.
+  bool _restored = false;
+
+  /// [restored] is the config and the picker rows of the last session. The
+  /// provider shows them until the first backend read lands.
+  static Future<BitcoinConfProvider> create(RootStackRouter router, {RestoredBitcoinConfig? restored}) async {
     final instance = BitcoinConfProvider._create(router);
     instance._initClient();
-    await instance.loadConfig(isFirst: true);
+    await instance._load(restored);
     if (!Environment.isInTest) {
       instance.startWatch();
     }
@@ -122,10 +133,22 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   @visibleForTesting
-  static Future<BitcoinConfProvider> withTransport(RootStackRouter router, rpc.Transport transport) async {
+  static Future<BitcoinConfProvider> withTransport(
+    RootStackRouter router,
+    rpc.Transport transport, {
+    RestoredBitcoinConfig? restored,
+  }) async {
     final instance = BitcoinConfProvider._create(router).._client = BitcoinConfServiceClient(transport);
-    await instance.loadConfig(isFirst: true);
+    await instance._load(restored);
     return instance;
+  }
+
+  Future<void> _load(RestoredBitcoinConfig? restored) async {
+    if (restored != null) {
+      _apply(restored.config, restored.networks, isFirst: true);
+      _restored = true;
+    }
+    await loadConfig(isFirst: restored == null);
   }
 
   void _initClient() {
@@ -147,12 +170,12 @@ class BitcoinConfProvider extends ChangeNotifier {
       subscribe: () => _client.watchBitcoinConfig(WatchBitcoinConfigRequest()),
       onFrame: (frame) {
         if (!frame.heartbeat) {
-          _apply(frame.config, frame.networks);
+          _applyRead(frame);
         }
       },
       isHeartbeat: (frame) => frame.heartbeat,
       fetch: _read,
-      onPoll: (resp) => _apply(resp.config, resp.networks),
+      onPoll: _applyRead,
       onPollError: _onLoadError,
       pollInterval: _pollInterval,
       onTransportDeath: _initClient,
@@ -178,10 +201,16 @@ class BitcoinConfProvider extends ChangeNotifier {
   Future<void> loadConfig({bool isFirst = false}) async {
     try {
       final resp = await _read();
-      _apply(resp.config, resp.networks, isFirst: isFirst);
+      _applyRead(resp, isFirst: isFirst);
     } catch (e) {
       _onLoadError(e);
     }
+  }
+
+  void _applyRead(WatchBitcoinConfigResponse resp, {bool isFirst = false}) {
+    backendConfig = resp.config;
+    _apply(resp.config, resp.networks, isFirst: isFirst);
+    _restored = false;
   }
 
   /// Reads the config after a write. The stream sends the same change, and a
@@ -189,6 +218,8 @@ class BitcoinConfProvider extends ChangeNotifier {
   Future<void> _reload() => _watch?.refresh() ?? loadConfig();
 
   void _apply(GetBitcoinConfigResponse resp, List<NetworkOption> newNetworks, {bool isFirst = false}) {
+    final fromNetwork = network;
+    final fromECashId = ecashNetworkId;
     final newNetwork = _parseNetwork(resp.network);
     final newConfigPath = resp.configPath.isEmpty ? null : resp.configPath;
     final newDefaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
@@ -228,6 +259,10 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
 
     _settlePendingSwitch();
+
+    if (_restored && _movedChainFrom(fromNetwork, fromECashId)) {
+      _onNetworkChanged();
+    }
 
     if (changed) {
       notifyListeners();
