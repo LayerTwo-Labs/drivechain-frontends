@@ -306,4 +306,38 @@ void main() {
 
     await supervisor.dispose();
   });
+
+  test('retryNow skips the backoff wait', () async {
+    final source = _FakeStreamSource<int>();
+    final supervisor = StreamSupervisor<int>(
+      subscribe: source.subscribe,
+      onEvent: (_) {},
+      onTransportDeath: () {},
+      logger: _SilentLogger(),
+      tag: 'test',
+    )..start();
+
+    // Fail often enough that the next wait is seconds long.
+    for (var i = 0; i < 7; i++) {
+      final before = source.subscribeCount;
+      source.last.addError(StateError('boom'));
+      await Future<void>.delayed(ms(10));
+      if (i < 4) {
+        while (source.subscribeCount == before) {
+          await Future<void>.delayed(ms(20));
+        }
+      } else {
+        supervisor.retryNow();
+        await Future<void>.delayed(ms(10));
+        expect(source.subscribeCount, before + 1, reason: 'a retry does not wait out the backoff');
+      }
+    }
+
+    final count = source.subscribeCount;
+    supervisor.retryNow();
+    await Future<void>.delayed(ms(10));
+    expect(source.subscribeCount, count, reason: 'no retry while a subscription is open');
+
+    await supervisor.dispose();
+  });
 }
