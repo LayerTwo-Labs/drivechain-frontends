@@ -46,6 +46,7 @@ type WalletTransaction struct {
 	Confirmations int     `json:"confirmations"`
 	BlockTime     int64   `json:"blocktime"`
 	Time          int64   `json:"time"`
+	TimeReceived  int64   `json:"timereceived"`
 	TxID          string  `json:"txid"`
 	Label         string  `json:"label"`
 	Abandoned     bool    `json:"abandoned"`

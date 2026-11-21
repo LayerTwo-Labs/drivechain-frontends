@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -3213,4 +3214,41 @@ func TestCoreBackendReceivedTxIDsAsksForOneAddress(t *testing.T) {
 	txids, err := backend.ReceivedTxIDs(context.Background(), coreID, "bcrt1qnotif")
 	require.NoError(t, err)
 	require.Equal(t, []string{"a", "b"}, txids)
+}
+
+func TestCoreBackendListUnspentReadsManyCoinTimesFromTheHistory(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	var coins, history []map[string]any
+	for i := range 20 {
+		txid := fmt.Sprintf("%064x", i)
+		coins = append(coins, map[string]any{"txid": txid, "vout": 0, "amount": 0.001})
+		if i > 0 {
+			history = append(history, map[string]any{"txid": txid, "category": "receive", "timereceived": 1_600_000_000 + i})
+		}
+	}
+	fake.handle("listunspent", func(bitcoindCall) (any, string) { return coins, "" })
+	fake.handle("listtransactions", func(bitcoindCall) (any, string) { return history, "" })
+
+	for range 2 {
+		utxos, err := backend.ListUnspent(context.Background(), coreID)
+		require.NoError(t, err)
+		require.Len(t, utxos, 20)
+		assert.Zero(t, utxos[0].ReceivedAt, "a coin missing from the history keeps no time")
+		for i, u := range utxos[1:] {
+			assert.EqualValues(t, 1_600_000_001+i, u.ReceivedAt)
+		}
+	}
+	assert.Len(t, fake.callsFor("listtransactions"), 1, "the second read takes the times from memory")
+
+	var unlisted []map[string]any
+	for i := range 20 {
+		unlisted = append(unlisted, map[string]any{"txid": fmt.Sprintf("%064x", 200+i), "vout": 0, "amount": 0.001})
+	}
+	coins = unlisted
+	for range 2 {
+		_, err := backend.ListUnspent(context.Background(), coreID)
+		require.NoError(t, err)
+	}
+	assert.Len(t, fake.callsFor("listtransactions"), 2, "coins the history leaves out cost one walk, not one per read")
 }

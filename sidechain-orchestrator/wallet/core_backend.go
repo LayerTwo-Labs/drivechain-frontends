@@ -58,9 +58,10 @@ type CoreBackend struct {
 	staleMu      sync.Mutex
 	staleWallets map[string]bool // Core wallet name -> Core does not hold it
 
-	// spentMu guards spentTxs, and it is never held across an RPC.
-	spentMu  sync.Mutex
-	spentTxs map[string]coreSpend // Core wallet name:txid -> what the tx spends
+	// spentMu guards spentTxs and receivedAt, and it is never held across an RPC.
+	spentMu    sync.Mutex
+	spentTxs   map[string]coreSpend // Core wallet name:txid -> what the tx spends
+	receivedAt map[string]int64     // Core wallet name:txid -> Core's timereceived
 
 	// previewChange holds the change address a send preview reuses, so a
 	// preview does not reserve a new change key in Core each time.
@@ -111,6 +112,7 @@ func NewCoreBackend(svc *Service, rpc *CoreRPCClient, params ParamsFunc, log zer
 		bip47Waiting:    make(map[string]bool),
 		staleWallets:    make(map[string]bool),
 		spentTxs:        make(map[string]coreSpend),
+		receivedAt:      make(map[string]int64),
 	}
 	rpc.OnWalletError = backend.markWalletStale
 	return backend
@@ -153,6 +155,7 @@ func (p *CoreBackend) ResetNetworkState() {
 
 	p.spentMu.Lock()
 	p.spentTxs = make(map[string]coreSpend)
+	p.receivedAt = make(map[string]int64)
 	p.spentMu.Unlock()
 }
 
@@ -314,7 +317,67 @@ func (p *CoreBackend) ListUnspent(ctx context.Context, walletID string) ([]UTXO,
 	// minconf 0: Core's default hides a coin that waits in the mempool, so a
 	// send emptied the coin list until it confirmed. The electrum backend
 	// lists that coin, and CPFP must find it.
-	return p.rpc.ListUnspentMinConf(ctx, name, 0)
+	utxos, err := p.rpc.ListUnspentMinConf(ctx, name, 0)
+	if err != nil {
+		return nil, err
+	}
+	if err := p.fillReceivedAt(ctx, name, utxos); err != nil {
+		return nil, err
+	}
+	return utxos, nil
+}
+
+// receivedAtListMin is the count of coins with an unknown time above which
+// one walk of the wallet history costs less than a wallet tx read per coin.
+const receivedAtListMin = 16
+
+// fillReceivedAt sets the time Core received each coin's tx, from one walk of
+// the history when many are unknown. A coin it leaves at zero gets its time
+// from the caller's own wallet tx read.
+func (p *CoreBackend) fillReceivedAt(ctx context.Context, name string, utxos []UTXO) error {
+	p.spentMu.Lock()
+	unknown := 0
+	for i := range utxos {
+		if at, ok := p.receivedAt[name+":"+utxos[i].TxID]; ok {
+			utxos[i].ReceivedAt = at
+		} else {
+			unknown++
+		}
+	}
+	p.spentMu.Unlock()
+	if unknown <= receivedAtListMin {
+		return nil
+	}
+
+	listed := make(map[string]int64)
+	for skip := 0; ; skip += coreHistoryPage {
+		page, err := p.rpc.ListTransactionsRange(ctx, name, coreHistoryPage, skip)
+		if err != nil {
+			return fmt.Errorf("read coin times: %w", err)
+		}
+		for _, tx := range page {
+			if tx.TimeReceived > 0 {
+				listed[tx.TxID] = tx.TimeReceived
+			}
+		}
+		if len(page) < coreHistoryPage {
+			break
+		}
+	}
+
+	// A tx the history leaves out, such as a consolidation, keeps a zero time,
+	// so the next read does not walk the history again for it.
+	p.spentMu.Lock()
+	defer p.spentMu.Unlock()
+	for i := range utxos {
+		key := name + ":" + utxos[i].TxID
+		if _, known := p.receivedAt[key]; known {
+			continue
+		}
+		utxos[i].ReceivedAt = listed[utxos[i].TxID]
+		p.receivedAt[key] = utxos[i].ReceivedAt
+	}
+	return nil
 }
 
 func (p *CoreBackend) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
