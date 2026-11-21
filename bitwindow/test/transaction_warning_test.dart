@@ -99,6 +99,9 @@ class _Balance extends ChangeNotifier implements BalanceProvider {
   void setBalance(RPCConnection rpc, double confirmed, double pending) {}
 
   @override
+  bool streams(RPCConnection rpc) => false;
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

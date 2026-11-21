@@ -11,6 +11,7 @@ import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wm
 class _OrchestratorWallet implements OrchestratorWalletRPC {
   int listCalls = 0;
   int addressCalls = 0;
+  int balanceCalls = 0;
   bool failList = false;
   bool failAddress = false;
 
@@ -31,7 +32,10 @@ class _OrchestratorWallet implements OrchestratorWalletRPC {
       wmpb.ListReceiveAddressesResponse();
 
   @override
-  Future<wmpb.GetBalanceResponse> getBalance(String walletId) async => wmpb.GetBalanceResponse();
+  Future<wmpb.GetBalanceResponse> getBalance(String walletId) async {
+    balanceCalls++;
+    return wmpb.GetBalanceResponse();
+  }
 
   @override
   Future<wmpb.GetNewAddressResponse> getNewAddress(String walletId, {wmpb.AddressType? addressType}) async {
@@ -96,6 +100,11 @@ class _Balance extends ChangeNotifier implements BalanceProvider {
   @override
   void setBalance(RPCConnection rpc, double confirmed, double pending) {}
 
+  bool streamed = false;
+
+  @override
+  bool streams(RPCConnection rpc) => streamed;
+
   void changed() => notifyListeners();
 
   @override
@@ -131,6 +140,7 @@ void main() {
     await pumpEventQueue();
     wallet.listCalls = 0;
     wallet.addressCalls = 0;
+    wallet.balanceCalls = 0;
   });
 
   tearDown(() async {
@@ -181,6 +191,18 @@ void main() {
     balance.changed();
     await pumpEventQueue();
     expect(wallet.listCalls, 1);
+  });
+
+  test('a streamed balance change reads no balance', () async {
+    balance.streamed = true;
+    balance.changed();
+    await pumpEventQueue();
+    expect(wallet.listCalls, 1);
+    expect(wallet.balanceCalls, 0);
+
+    balance.streamed = false;
+    await provider.fetch();
+    expect(wallet.balanceCalls, 1);
   });
 
   test('a block list or peer change does not fetch', () async {

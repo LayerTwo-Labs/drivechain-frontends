@@ -312,6 +312,9 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
           equals: const DeepCollectionEquality().equals,
         ),
         () async {
+          if (balanceProvider.streams(bitwindowd)) {
+            return false;
+          }
           final balance = await orchestratorWallet.getBalance(walletId);
           balanceProvider.setBalance(
             bitwindowd,
