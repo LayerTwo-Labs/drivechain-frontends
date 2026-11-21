@@ -8,7 +8,7 @@ import 'test_utils.dart';
 
 class _Binaries extends ChangeNotifier implements BinaryProvider {
   @override
-  List<Binary> binaries = [BitWindow(), Drivechaind()];
+  List<Binary> binaries = [BitcoinCore(), BitWindow(), Drivechaind()];
 
   @override
   bool isConnected(Binary binary) => binary is BitWindow;
@@ -42,19 +42,38 @@ class _Backend extends ChangeNotifier implements BackendStateProvider {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _Conf extends ChangeNotifier implements BitcoinConfProvider {
+  @override
+  int rpcPort = 18443;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   tearDown(() => GetIt.I.reset());
 
-  Future<String> drivechaindStatus(WidgetTester tester, {required bool reachable}) async {
+  Future<List<String>> processCells(WidgetTester tester, {bool reachable = true}) async {
     await GetIt.I.reset();
     GetIt.I.registerSingleton<BinaryProvider>(_Binaries());
     GetIt.I.registerSingleton<BackendStateProvider>(_Backend(orchestratorReachable: reachable));
+    GetIt.I.registerSingleton<BitcoinConfProvider>(_Conf());
     await tester.pumpSailPage(const ProcessesTab());
     await tester.pump();
-    final cells = tester.widgetList<SailTableCell>(find.byType(SailTableCell)).map((c) => c.value).toList();
+    return tester.widgetList<SailTableCell>(find.byType(SailTableCell)).map((c) => c.value).toList();
+  }
+
+  Future<String> drivechaindStatus(WidgetTester tester, {required bool reachable}) async {
+    final cells = await processCells(tester, reachable: reachable);
     const statusColumn = 3;
     return cells[cells.indexOf(Drivechaind().name) + statusColumn];
   }
+
+  testWidgets('bitcoin core shows the rpc port of its config', (tester) async {
+    final cells = await processCells(tester);
+    const portColumn = 2;
+    expect(cells[cells.indexOf(BitcoinCore().name) + portColumn], '18443');
+  });
 
   testWidgets('drivechaind reads as connected when the orchestrator answers', (tester) async {
     expect(await drivechaindStatus(tester, reachable: true), 'Connected');

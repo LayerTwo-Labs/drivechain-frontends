@@ -538,10 +538,11 @@ class _ProcessesTabState extends State<ProcessesTab> {
   @override
   Widget build(BuildContext context) {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final confProvider = GetIt.I.get<BitcoinConfProvider>();
     final theme = context.sailTheme;
 
     return ListenableBuilder(
-      listenable: _drivechaind,
+      listenable: Listenable.merge([_drivechaind, confProvider]),
       builder: (context, _) {
         final allBinaries = binaryProvider.binaries;
 
@@ -573,7 +574,7 @@ class _ProcessesTabState extends State<ProcessesTab> {
               return [
                 SailTableCell(value: binary.name),
                 SailTableCell(value: binary.type.name),
-                SailTableCell(value: binary.port.toString()),
+                SailTableCell(value: (binary is BitcoinCore ? confProvider.rpcPort : binary.port).toString()),
                 SailTableCell(value: status),
               ];
             },
