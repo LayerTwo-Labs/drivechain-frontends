@@ -97,6 +97,94 @@ func CallBitcoindRPC(ctx context.Context, url, user, password, method string, pa
 	return rpcResp.Result, nil
 }
 
+// BatchResult is the answer to one call of a JSON-RPC batch.
+type BatchResult struct {
+	Result json.RawMessage
+	Err    error
+}
+
+// CallBitcoindRPCBatch sends method once for each entry of params in one
+// JSON-RPC batch. The results come in the order of params.
+func CallBitcoindRPCBatch(ctx context.Context, url, user, password, method string, params [][]any) ([]BatchResult, error) {
+	if len(params) == 0 {
+		return nil, nil
+	}
+	release, err := acquireBitcoindRPCSlot(ctx, method)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", method, err)
+	}
+	defer release()
+
+	type call struct {
+		JSONRPC string `json:"jsonrpc"`
+		ID      int    `json:"id"`
+		Method  string `json:"method"`
+		Params  []any  `json:"params"`
+	}
+	calls := make([]call, len(params))
+	for i, p := range params {
+		if p == nil {
+			p = []any{}
+		}
+		calls[i] = call{JSONRPC: "1.0", ID: i, Method: method, Params: p}
+	}
+	reqBody, err := json.Marshal(calls)
+	if err != nil {
+		return nil, fmt.Errorf("marshal %s batch: %w", method, err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("build %s batch request: %w", method, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if user != "" {
+		req.SetBasicAuth(user, password)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%s batch: %w", method, err)
+	}
+	defer resp.Body.Close() //nolint:errcheck // cleanup
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read %s batch response: %w", method, err)
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("%s: %w", method, ErrRPCUnauthorized)
+	}
+	var replies []struct {
+		ID     int             `json:"id"`
+		Result json.RawMessage `json:"result"`
+		Error  *struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(respBody, &replies); err != nil {
+		return nil, fmt.Errorf("decode %s batch: HTTP %d: %w", method, resp.StatusCode, err)
+	}
+	out := make([]BatchResult, len(params))
+	seen := make([]bool, len(params))
+	for _, r := range replies {
+		if r.ID < 0 || r.ID >= len(out) || seen[r.ID] {
+			return nil, fmt.Errorf("%s batch: unexpected reply id %d", method, r.ID)
+		}
+		seen[r.ID] = true
+		if r.Error != nil {
+			out[r.ID].Err = &RPCError{Method: method, Code: r.Error.Code, Message: r.Error.Message}
+			continue
+		}
+		out[r.ID].Result = r.Result
+	}
+	for i, ok := range seen {
+		if !ok {
+			return nil, fmt.Errorf("%s batch: no reply for id %d", method, i)
+		}
+	}
+	return out, nil
+}
+
 // ErrRPCUnauthorized is Core's answer to credentials it does not know.
 var ErrRPCUnauthorized = errors.New("rpc credentials rejected")
 
