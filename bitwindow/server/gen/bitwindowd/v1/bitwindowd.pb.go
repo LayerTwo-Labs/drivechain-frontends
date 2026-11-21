@@ -2529,6 +2529,59 @@ func (x *ListRecentTransactionsResponse) GetTransactions() []*RecentTransaction 
 	return nil
 }
 
+type WatchRecentTransactionsResponse struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Transactions []*RecentTransaction   `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
+	// True for an idle keepalive frame that carries no list.
+	Heartbeat     bool `protobuf:"varint,2,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchRecentTransactionsResponse) Reset() {
+	*x = WatchRecentTransactionsResponse{}
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchRecentTransactionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchRecentTransactionsResponse) ProtoMessage() {}
+
+func (x *WatchRecentTransactionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchRecentTransactionsResponse.ProtoReflect.Descriptor instead.
+func (*WatchRecentTransactionsResponse) Descriptor() ([]byte, []int) {
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *WatchRecentTransactionsResponse) GetTransactions() []*RecentTransaction {
+	if x != nil {
+		return x.Transactions
+	}
+	return nil
+}
+
+func (x *WatchRecentTransactionsResponse) GetHeartbeat() bool {
+	if x != nil {
+		return x.Heartbeat
+	}
+	return false
+}
+
 type RecentTransaction struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	VirtualSize uint32                 `protobuf:"varint,1,opt,name=virtual_size,json=virtualSize,proto3" json:"virtual_size,omitempty"`
@@ -2543,7 +2596,7 @@ type RecentTransaction struct {
 
 func (x *RecentTransaction) Reset() {
 	*x = RecentTransaction{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[37]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2555,7 +2608,7 @@ func (x *RecentTransaction) String() string {
 func (*RecentTransaction) ProtoMessage() {}
 
 func (x *RecentTransaction) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[37]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2568,7 +2621,7 @@ func (x *RecentTransaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecentTransaction.ProtoReflect.Descriptor instead.
 func (*RecentTransaction) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{37}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *RecentTransaction) GetVirtualSize() uint32 {
@@ -2616,7 +2669,7 @@ type ListBlocksRequest struct {
 
 func (x *ListBlocksRequest) Reset() {
 	*x = ListBlocksRequest{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[38]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2628,7 +2681,7 @@ func (x *ListBlocksRequest) String() string {
 func (*ListBlocksRequest) ProtoMessage() {}
 
 func (x *ListBlocksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[38]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2641,7 +2694,7 @@ func (x *ListBlocksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBlocksRequest.ProtoReflect.Descriptor instead.
 func (*ListBlocksRequest) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{38}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ListBlocksRequest) GetStartHeight() uint32 {
@@ -2684,7 +2737,7 @@ type Block struct {
 
 func (x *Block) Reset() {
 	*x = Block{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[39]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2696,7 +2749,7 @@ func (x *Block) String() string {
 func (*Block) ProtoMessage() {}
 
 func (x *Block) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[39]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2709,7 +2762,7 @@ func (x *Block) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Block.ProtoReflect.Descriptor instead.
 func (*Block) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{39}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *Block) GetBlockTime() *timestamppb.Timestamp {
@@ -2841,7 +2894,7 @@ type ListBlocksResponse struct {
 
 func (x *ListBlocksResponse) Reset() {
 	*x = ListBlocksResponse{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[40]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2853,7 +2906,7 @@ func (x *ListBlocksResponse) String() string {
 func (*ListBlocksResponse) ProtoMessage() {}
 
 func (x *ListBlocksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[40]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2866,7 +2919,7 @@ func (x *ListBlocksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBlocksResponse.ProtoReflect.Descriptor instead.
 func (*ListBlocksResponse) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{40}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ListBlocksResponse) GetRecentBlocks() []*Block {
@@ -2915,7 +2968,7 @@ type GetNetworkStatsResponse struct {
 
 func (x *GetNetworkStatsResponse) Reset() {
 	*x = GetNetworkStatsResponse{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[41]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2927,7 +2980,7 @@ func (x *GetNetworkStatsResponse) String() string {
 func (*GetNetworkStatsResponse) ProtoMessage() {}
 
 func (x *GetNetworkStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[41]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2940,7 +2993,7 @@ func (x *GetNetworkStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNetworkStatsResponse.ProtoReflect.Descriptor instead.
 func (*GetNetworkStatsResponse) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{41}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetNetworkStatsResponse) GetNetworkHashrate() float64 {
@@ -3056,7 +3109,7 @@ type ProcessBandwidth struct {
 
 func (x *ProcessBandwidth) Reset() {
 	*x = ProcessBandwidth{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[42]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3068,7 +3121,7 @@ func (x *ProcessBandwidth) String() string {
 func (*ProcessBandwidth) ProtoMessage() {}
 
 func (x *ProcessBandwidth) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[42]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3081,7 +3134,7 @@ func (x *ProcessBandwidth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessBandwidth.ProtoReflect.Descriptor instead.
 func (*ProcessBandwidth) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{42}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ProcessBandwidth) GetProcessName() string {
@@ -3148,7 +3201,7 @@ type UpdateNetworkRequest struct {
 
 func (x *UpdateNetworkRequest) Reset() {
 	*x = UpdateNetworkRequest{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[43]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3160,7 +3213,7 @@ func (x *UpdateNetworkRequest) String() string {
 func (*UpdateNetworkRequest) ProtoMessage() {}
 
 func (x *UpdateNetworkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[43]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3173,7 +3226,7 @@ func (x *UpdateNetworkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateNetworkRequest.ProtoReflect.Descriptor instead.
 func (*UpdateNetworkRequest) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{43}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *UpdateNetworkRequest) GetNetwork() string {
@@ -3205,7 +3258,7 @@ type UpdateNetworkResponse struct {
 
 func (x *UpdateNetworkResponse) Reset() {
 	*x = UpdateNetworkResponse{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[44]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3217,7 +3270,7 @@ func (x *UpdateNetworkResponse) String() string {
 func (*UpdateNetworkResponse) ProtoMessage() {}
 
 func (x *UpdateNetworkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[44]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3230,7 +3283,7 @@ func (x *UpdateNetworkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateNetworkResponse.ProtoReflect.Descriptor instead.
 func (*UpdateNetworkResponse) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{44}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{45}
 }
 
 var File_bitwindowd_v1_bitwindowd_proto protoreflect.FileDescriptor
@@ -3412,7 +3465,10 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x1dListRecentTransactionsRequest\x12\x14\n" +
 	"\x05count\x18\x01 \x01(\x03R\x05count\"f\n" +
 	"\x1eListRecentTransactionsResponse\x12D\n" +
-	"\ftransactions\x18\x01 \x03(\v2 .bitwindowd.v1.RecentTransactionR\ftransactions\"\xdf\x01\n" +
+	"\ftransactions\x18\x01 \x03(\v2 .bitwindowd.v1.RecentTransactionR\ftransactions\"\x85\x01\n" +
+	"\x1fWatchRecentTransactionsResponse\x12D\n" +
+	"\ftransactions\x18\x01 \x03(\v2 .bitwindowd.v1.RecentTransactionR\ftransactions\x12\x1c\n" +
+	"\theartbeat\x18\x02 \x01(\bR\theartbeat\"\xdf\x01\n" +
 	"\x11RecentTransaction\x12!\n" +
 	"\fvirtual_size\x18\x01 \x01(\rR\vvirtualSize\x12.\n" +
 	"\x04time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x12\n" +
@@ -3506,7 +3562,7 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x1eMINING_POOL_WINDOW_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16MINING_POOL_WINDOW_24H\x10\x01\x12\x19\n" +
 	"\x15MINING_POOL_WINDOW_3D\x10\x02\x12\x19\n" +
-	"\x15MINING_POOL_WINDOW_1W\x10\x032\xa4\x12\n" +
+	"\x15MINING_POOL_WINDOW_1W\x10\x032\x9f\x13\n" +
 	"\x11BitwindowdService\x12K\n" +
 	"\x04Stop\x12+.bitwindowd.v1.BitwindowdServiceStopRequest\x1a\x16.google.protobuf.Empty\x12J\n" +
 	"\fCreateDenial\x12\".bitwindowd.v1.CreateDenialRequest\x1a\x16.google.protobuf.Empty\x12J\n" +
@@ -3524,7 +3580,8 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\fExportLabels\x12\x16.google.protobuf.Empty\x1a#.bitwindowd.v1.ExportLabelsResponse\x12W\n" +
 	"\fImportLabels\x12\".bitwindowd.v1.ImportLabelsRequest\x1a#.bitwindowd.v1.ImportLabelsResponse\x12U\n" +
 	"\x11GetFireplaceStats\x12\x16.google.protobuf.Empty\x1a(.bitwindowd.v1.GetFireplaceStatsResponse\x12u\n" +
-	"\x16ListRecentTransactions\x12,.bitwindowd.v1.ListRecentTransactionsRequest\x1a-.bitwindowd.v1.ListRecentTransactionsResponse\x12Q\n" +
+	"\x16ListRecentTransactions\x12,.bitwindowd.v1.ListRecentTransactionsRequest\x1a-.bitwindowd.v1.ListRecentTransactionsResponse\x12y\n" +
+	"\x17WatchRecentTransactions\x12,.bitwindowd.v1.ListRecentTransactionsRequest\x1a..bitwindowd.v1.WatchRecentTransactionsResponse0\x01\x12Q\n" +
 	"\n" +
 	"ListBlocks\x12 .bitwindowd.v1.ListBlocksRequest\x1a!.bitwindowd.v1.ListBlocksResponse\x12Q\n" +
 	"\x0fGetNetworkStats\x12\x16.google.protobuf.Empty\x1a&.bitwindowd.v1.GetNetworkStatsResponse\x12P\n" +
@@ -3550,7 +3607,7 @@ func file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP() []byte {
 }
 
 var file_bitwindowd_v1_bitwindowd_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_bitwindowd_v1_bitwindowd_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
+var file_bitwindowd_v1_bitwindowd_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_bitwindowd_v1_bitwindowd_proto_goTypes = []any{
 	(Direction)(0),                          // 0: bitwindowd.v1.Direction
 	(BitcoinNetwork)(0),                     // 1: bitwindowd.v1.BitcoinNetwork
@@ -3593,103 +3650,107 @@ var file_bitwindowd_v1_bitwindowd_proto_goTypes = []any{
 	(*ListMiningPoolsResponse)(nil),         // 38: bitwindowd.v1.ListMiningPoolsResponse
 	(*ListRecentTransactionsRequest)(nil),   // 39: bitwindowd.v1.ListRecentTransactionsRequest
 	(*ListRecentTransactionsResponse)(nil),  // 40: bitwindowd.v1.ListRecentTransactionsResponse
-	(*RecentTransaction)(nil),               // 41: bitwindowd.v1.RecentTransaction
-	(*ListBlocksRequest)(nil),               // 42: bitwindowd.v1.ListBlocksRequest
-	(*Block)(nil),                           // 43: bitwindowd.v1.Block
-	(*ListBlocksResponse)(nil),              // 44: bitwindowd.v1.ListBlocksResponse
-	(*GetNetworkStatsResponse)(nil),         // 45: bitwindowd.v1.GetNetworkStatsResponse
-	(*ProcessBandwidth)(nil),                // 46: bitwindowd.v1.ProcessBandwidth
-	(*UpdateNetworkRequest)(nil),            // 47: bitwindowd.v1.UpdateNetworkRequest
-	(*UpdateNetworkResponse)(nil),           // 48: bitwindowd.v1.UpdateNetworkResponse
-	(*timestamppb.Timestamp)(nil),           // 49: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                   // 50: google.protobuf.Empty
+	(*WatchRecentTransactionsResponse)(nil), // 41: bitwindowd.v1.WatchRecentTransactionsResponse
+	(*RecentTransaction)(nil),               // 42: bitwindowd.v1.RecentTransaction
+	(*ListBlocksRequest)(nil),               // 43: bitwindowd.v1.ListBlocksRequest
+	(*Block)(nil),                           // 44: bitwindowd.v1.Block
+	(*ListBlocksResponse)(nil),              // 45: bitwindowd.v1.ListBlocksResponse
+	(*GetNetworkStatsResponse)(nil),         // 46: bitwindowd.v1.GetNetworkStatsResponse
+	(*ProcessBandwidth)(nil),                // 47: bitwindowd.v1.ProcessBandwidth
+	(*UpdateNetworkRequest)(nil),            // 48: bitwindowd.v1.UpdateNetworkRequest
+	(*UpdateNetworkResponse)(nil),           // 49: bitwindowd.v1.UpdateNetworkResponse
+	(*timestamppb.Timestamp)(nil),           // 50: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                   // 51: google.protobuf.Empty
 }
 var file_bitwindowd_v1_bitwindowd_proto_depIdxs = []int32{
-	49, // 0: bitwindowd.v1.DenialInfo.create_time:type_name -> google.protobuf.Timestamp
-	49, // 1: bitwindowd.v1.DenialInfo.cancel_time:type_name -> google.protobuf.Timestamp
-	49, // 2: bitwindowd.v1.DenialInfo.next_execution_time:type_name -> google.protobuf.Timestamp
+	50, // 0: bitwindowd.v1.DenialInfo.create_time:type_name -> google.protobuf.Timestamp
+	50, // 1: bitwindowd.v1.DenialInfo.cancel_time:type_name -> google.protobuf.Timestamp
+	50, // 2: bitwindowd.v1.DenialInfo.next_execution_time:type_name -> google.protobuf.Timestamp
 	7,  // 3: bitwindowd.v1.DenialInfo.executions:type_name -> bitwindowd.v1.ExecutedDenial
-	49, // 4: bitwindowd.v1.DenialInfo.paused_at:type_name -> google.protobuf.Timestamp
-	49, // 5: bitwindowd.v1.ExecutedDenial.create_time:type_name -> google.protobuf.Timestamp
+	50, // 4: bitwindowd.v1.DenialInfo.paused_at:type_name -> google.protobuf.Timestamp
+	50, // 5: bitwindowd.v1.ExecutedDenial.create_time:type_name -> google.protobuf.Timestamp
 	0,  // 6: bitwindowd.v1.CreateAddressBookEntryRequest.direction:type_name -> bitwindowd.v1.Direction
 	13, // 7: bitwindowd.v1.CreateAddressBookEntryResponse.entry:type_name -> bitwindowd.v1.AddressBookEntry
 	0,  // 8: bitwindowd.v1.AddressBookEntry.direction:type_name -> bitwindowd.v1.Direction
-	49, // 9: bitwindowd.v1.AddressBookEntry.create_time:type_name -> google.protobuf.Timestamp
+	50, // 9: bitwindowd.v1.AddressBookEntry.create_time:type_name -> google.protobuf.Timestamp
 	2,  // 10: bitwindowd.v1.AddressBookEntry.type:type_name -> bitwindowd.v1.AddressType
 	13, // 11: bitwindowd.v1.ListAddressBookResponse.entries:type_name -> bitwindowd.v1.AddressBookEntry
-	49, // 12: bitwindowd.v1.GetSyncInfoResponse.tip_block_processed_at:type_name -> google.protobuf.Timestamp
+	50, // 12: bitwindowd.v1.GetSyncInfoResponse.tip_block_processed_at:type_name -> google.protobuf.Timestamp
 	17, // 13: bitwindowd.v1.WatchSyncInfoResponse.info:type_name -> bitwindowd.v1.GetSyncInfoResponse
 	21, // 14: bitwindowd.v1.ListTransactionNotesResponse.notes:type_name -> bitwindowd.v1.TransactionNote
-	49, // 15: bitwindowd.v1.MempoolTransaction.first_seen:type_name -> google.protobuf.Timestamp
+	50, // 15: bitwindowd.v1.MempoolTransaction.first_seen:type_name -> google.protobuf.Timestamp
 	30, // 16: bitwindowd.v1.ListMempoolTransactionsResponse.transactions:type_name -> bitwindowd.v1.MempoolTransaction
 	33, // 17: bitwindowd.v1.ListBlockStatsResponse.blocks:type_name -> bitwindowd.v1.BlockStats
 	35, // 18: bitwindowd.v1.MiningPoolShare.pool:type_name -> bitwindowd.v1.MiningPool
 	3,  // 19: bitwindowd.v1.ListMiningPoolsRequest.window:type_name -> bitwindowd.v1.MiningPoolWindow
 	36, // 20: bitwindowd.v1.ListMiningPoolsResponse.pools:type_name -> bitwindowd.v1.MiningPoolShare
-	41, // 21: bitwindowd.v1.ListRecentTransactionsResponse.transactions:type_name -> bitwindowd.v1.RecentTransaction
-	49, // 22: bitwindowd.v1.RecentTransaction.time:type_name -> google.protobuf.Timestamp
-	49, // 23: bitwindowd.v1.Block.block_time:type_name -> google.protobuf.Timestamp
-	35, // 24: bitwindowd.v1.Block.pool:type_name -> bitwindowd.v1.MiningPool
-	43, // 25: bitwindowd.v1.ListBlocksResponse.recent_blocks:type_name -> bitwindowd.v1.Block
-	46, // 26: bitwindowd.v1.GetNetworkStatsResponse.bitcoind_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
-	46, // 27: bitwindowd.v1.GetNetworkStatsResponse.enforcer_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
-	4,  // 28: bitwindowd.v1.BitwindowdService.Stop:input_type -> bitwindowd.v1.BitwindowdServiceStopRequest
-	5,  // 29: bitwindowd.v1.BitwindowdService.CreateDenial:input_type -> bitwindowd.v1.CreateDenialRequest
-	8,  // 30: bitwindowd.v1.BitwindowdService.CancelDenial:input_type -> bitwindowd.v1.CancelDenialRequest
-	9,  // 31: bitwindowd.v1.BitwindowdService.PauseDenial:input_type -> bitwindowd.v1.PauseDenialRequest
-	10, // 32: bitwindowd.v1.BitwindowdService.ResumeDenial:input_type -> bitwindowd.v1.ResumeDenialRequest
-	11, // 33: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:input_type -> bitwindowd.v1.CreateAddressBookEntryRequest
-	50, // 34: bitwindowd.v1.BitwindowdService.ListAddressBook:input_type -> google.protobuf.Empty
-	15, // 35: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:input_type -> bitwindowd.v1.UpdateAddressBookEntryRequest
-	16, // 36: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:input_type -> bitwindowd.v1.DeleteAddressBookEntryRequest
-	50, // 37: bitwindowd.v1.BitwindowdService.GetSyncInfo:input_type -> google.protobuf.Empty
-	50, // 38: bitwindowd.v1.BitwindowdService.WatchSyncInfo:input_type -> google.protobuf.Empty
-	19, // 39: bitwindowd.v1.BitwindowdService.SetTransactionNote:input_type -> bitwindowd.v1.SetTransactionNoteRequest
-	20, // 40: bitwindowd.v1.BitwindowdService.ListTransactionNotes:input_type -> bitwindowd.v1.ListTransactionNotesRequest
-	50, // 41: bitwindowd.v1.BitwindowdService.ExportLabels:input_type -> google.protobuf.Empty
-	24, // 42: bitwindowd.v1.BitwindowdService.ImportLabels:input_type -> bitwindowd.v1.ImportLabelsRequest
-	50, // 43: bitwindowd.v1.BitwindowdService.GetFireplaceStats:input_type -> google.protobuf.Empty
-	39, // 44: bitwindowd.v1.BitwindowdService.ListRecentTransactions:input_type -> bitwindowd.v1.ListRecentTransactionsRequest
-	42, // 45: bitwindowd.v1.BitwindowdService.ListBlocks:input_type -> bitwindowd.v1.ListBlocksRequest
-	50, // 46: bitwindowd.v1.BitwindowdService.GetNetworkStats:input_type -> google.protobuf.Empty
-	27, // 47: bitwindowd.v1.BitwindowdService.SetMempoolWatch:input_type -> bitwindowd.v1.SetMempoolWatchRequest
-	50, // 48: bitwindowd.v1.BitwindowdService.ResetMempoolWatch:input_type -> google.protobuf.Empty
-	50, // 49: bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus:input_type -> google.protobuf.Empty
-	29, // 50: bitwindowd.v1.BitwindowdService.ListMempoolTransactions:input_type -> bitwindowd.v1.ListMempoolTransactionsRequest
-	32, // 51: bitwindowd.v1.BitwindowdService.ListBlockStats:input_type -> bitwindowd.v1.ListBlockStatsRequest
-	37, // 52: bitwindowd.v1.BitwindowdService.ListMiningPools:input_type -> bitwindowd.v1.ListMiningPoolsRequest
-	47, // 53: bitwindowd.v1.BitwindowdService.UpdateNetwork:input_type -> bitwindowd.v1.UpdateNetworkRequest
-	50, // 54: bitwindowd.v1.BitwindowdService.Stop:output_type -> google.protobuf.Empty
-	50, // 55: bitwindowd.v1.BitwindowdService.CreateDenial:output_type -> google.protobuf.Empty
-	50, // 56: bitwindowd.v1.BitwindowdService.CancelDenial:output_type -> google.protobuf.Empty
-	50, // 57: bitwindowd.v1.BitwindowdService.PauseDenial:output_type -> google.protobuf.Empty
-	50, // 58: bitwindowd.v1.BitwindowdService.ResumeDenial:output_type -> google.protobuf.Empty
-	12, // 59: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:output_type -> bitwindowd.v1.CreateAddressBookEntryResponse
-	14, // 60: bitwindowd.v1.BitwindowdService.ListAddressBook:output_type -> bitwindowd.v1.ListAddressBookResponse
-	50, // 61: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:output_type -> google.protobuf.Empty
-	50, // 62: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:output_type -> google.protobuf.Empty
-	17, // 63: bitwindowd.v1.BitwindowdService.GetSyncInfo:output_type -> bitwindowd.v1.GetSyncInfoResponse
-	18, // 64: bitwindowd.v1.BitwindowdService.WatchSyncInfo:output_type -> bitwindowd.v1.WatchSyncInfoResponse
-	50, // 65: bitwindowd.v1.BitwindowdService.SetTransactionNote:output_type -> google.protobuf.Empty
-	22, // 66: bitwindowd.v1.BitwindowdService.ListTransactionNotes:output_type -> bitwindowd.v1.ListTransactionNotesResponse
-	23, // 67: bitwindowd.v1.BitwindowdService.ExportLabels:output_type -> bitwindowd.v1.ExportLabelsResponse
-	25, // 68: bitwindowd.v1.BitwindowdService.ImportLabels:output_type -> bitwindowd.v1.ImportLabelsResponse
-	26, // 69: bitwindowd.v1.BitwindowdService.GetFireplaceStats:output_type -> bitwindowd.v1.GetFireplaceStatsResponse
-	40, // 70: bitwindowd.v1.BitwindowdService.ListRecentTransactions:output_type -> bitwindowd.v1.ListRecentTransactionsResponse
-	44, // 71: bitwindowd.v1.BitwindowdService.ListBlocks:output_type -> bitwindowd.v1.ListBlocksResponse
-	45, // 72: bitwindowd.v1.BitwindowdService.GetNetworkStats:output_type -> bitwindowd.v1.GetNetworkStatsResponse
-	50, // 73: bitwindowd.v1.BitwindowdService.SetMempoolWatch:output_type -> google.protobuf.Empty
-	50, // 74: bitwindowd.v1.BitwindowdService.ResetMempoolWatch:output_type -> google.protobuf.Empty
-	28, // 75: bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus:output_type -> bitwindowd.v1.GetMempoolWatchStatusResponse
-	31, // 76: bitwindowd.v1.BitwindowdService.ListMempoolTransactions:output_type -> bitwindowd.v1.ListMempoolTransactionsResponse
-	34, // 77: bitwindowd.v1.BitwindowdService.ListBlockStats:output_type -> bitwindowd.v1.ListBlockStatsResponse
-	38, // 78: bitwindowd.v1.BitwindowdService.ListMiningPools:output_type -> bitwindowd.v1.ListMiningPoolsResponse
-	48, // 79: bitwindowd.v1.BitwindowdService.UpdateNetwork:output_type -> bitwindowd.v1.UpdateNetworkResponse
-	54, // [54:80] is the sub-list for method output_type
-	28, // [28:54] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	42, // 21: bitwindowd.v1.ListRecentTransactionsResponse.transactions:type_name -> bitwindowd.v1.RecentTransaction
+	42, // 22: bitwindowd.v1.WatchRecentTransactionsResponse.transactions:type_name -> bitwindowd.v1.RecentTransaction
+	50, // 23: bitwindowd.v1.RecentTransaction.time:type_name -> google.protobuf.Timestamp
+	50, // 24: bitwindowd.v1.Block.block_time:type_name -> google.protobuf.Timestamp
+	35, // 25: bitwindowd.v1.Block.pool:type_name -> bitwindowd.v1.MiningPool
+	44, // 26: bitwindowd.v1.ListBlocksResponse.recent_blocks:type_name -> bitwindowd.v1.Block
+	47, // 27: bitwindowd.v1.GetNetworkStatsResponse.bitcoind_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
+	47, // 28: bitwindowd.v1.GetNetworkStatsResponse.enforcer_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
+	4,  // 29: bitwindowd.v1.BitwindowdService.Stop:input_type -> bitwindowd.v1.BitwindowdServiceStopRequest
+	5,  // 30: bitwindowd.v1.BitwindowdService.CreateDenial:input_type -> bitwindowd.v1.CreateDenialRequest
+	8,  // 31: bitwindowd.v1.BitwindowdService.CancelDenial:input_type -> bitwindowd.v1.CancelDenialRequest
+	9,  // 32: bitwindowd.v1.BitwindowdService.PauseDenial:input_type -> bitwindowd.v1.PauseDenialRequest
+	10, // 33: bitwindowd.v1.BitwindowdService.ResumeDenial:input_type -> bitwindowd.v1.ResumeDenialRequest
+	11, // 34: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:input_type -> bitwindowd.v1.CreateAddressBookEntryRequest
+	51, // 35: bitwindowd.v1.BitwindowdService.ListAddressBook:input_type -> google.protobuf.Empty
+	15, // 36: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:input_type -> bitwindowd.v1.UpdateAddressBookEntryRequest
+	16, // 37: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:input_type -> bitwindowd.v1.DeleteAddressBookEntryRequest
+	51, // 38: bitwindowd.v1.BitwindowdService.GetSyncInfo:input_type -> google.protobuf.Empty
+	51, // 39: bitwindowd.v1.BitwindowdService.WatchSyncInfo:input_type -> google.protobuf.Empty
+	19, // 40: bitwindowd.v1.BitwindowdService.SetTransactionNote:input_type -> bitwindowd.v1.SetTransactionNoteRequest
+	20, // 41: bitwindowd.v1.BitwindowdService.ListTransactionNotes:input_type -> bitwindowd.v1.ListTransactionNotesRequest
+	51, // 42: bitwindowd.v1.BitwindowdService.ExportLabels:input_type -> google.protobuf.Empty
+	24, // 43: bitwindowd.v1.BitwindowdService.ImportLabels:input_type -> bitwindowd.v1.ImportLabelsRequest
+	51, // 44: bitwindowd.v1.BitwindowdService.GetFireplaceStats:input_type -> google.protobuf.Empty
+	39, // 45: bitwindowd.v1.BitwindowdService.ListRecentTransactions:input_type -> bitwindowd.v1.ListRecentTransactionsRequest
+	39, // 46: bitwindowd.v1.BitwindowdService.WatchRecentTransactions:input_type -> bitwindowd.v1.ListRecentTransactionsRequest
+	43, // 47: bitwindowd.v1.BitwindowdService.ListBlocks:input_type -> bitwindowd.v1.ListBlocksRequest
+	51, // 48: bitwindowd.v1.BitwindowdService.GetNetworkStats:input_type -> google.protobuf.Empty
+	27, // 49: bitwindowd.v1.BitwindowdService.SetMempoolWatch:input_type -> bitwindowd.v1.SetMempoolWatchRequest
+	51, // 50: bitwindowd.v1.BitwindowdService.ResetMempoolWatch:input_type -> google.protobuf.Empty
+	51, // 51: bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus:input_type -> google.protobuf.Empty
+	29, // 52: bitwindowd.v1.BitwindowdService.ListMempoolTransactions:input_type -> bitwindowd.v1.ListMempoolTransactionsRequest
+	32, // 53: bitwindowd.v1.BitwindowdService.ListBlockStats:input_type -> bitwindowd.v1.ListBlockStatsRequest
+	37, // 54: bitwindowd.v1.BitwindowdService.ListMiningPools:input_type -> bitwindowd.v1.ListMiningPoolsRequest
+	48, // 55: bitwindowd.v1.BitwindowdService.UpdateNetwork:input_type -> bitwindowd.v1.UpdateNetworkRequest
+	51, // 56: bitwindowd.v1.BitwindowdService.Stop:output_type -> google.protobuf.Empty
+	51, // 57: bitwindowd.v1.BitwindowdService.CreateDenial:output_type -> google.protobuf.Empty
+	51, // 58: bitwindowd.v1.BitwindowdService.CancelDenial:output_type -> google.protobuf.Empty
+	51, // 59: bitwindowd.v1.BitwindowdService.PauseDenial:output_type -> google.protobuf.Empty
+	51, // 60: bitwindowd.v1.BitwindowdService.ResumeDenial:output_type -> google.protobuf.Empty
+	12, // 61: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:output_type -> bitwindowd.v1.CreateAddressBookEntryResponse
+	14, // 62: bitwindowd.v1.BitwindowdService.ListAddressBook:output_type -> bitwindowd.v1.ListAddressBookResponse
+	51, // 63: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:output_type -> google.protobuf.Empty
+	51, // 64: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:output_type -> google.protobuf.Empty
+	17, // 65: bitwindowd.v1.BitwindowdService.GetSyncInfo:output_type -> bitwindowd.v1.GetSyncInfoResponse
+	18, // 66: bitwindowd.v1.BitwindowdService.WatchSyncInfo:output_type -> bitwindowd.v1.WatchSyncInfoResponse
+	51, // 67: bitwindowd.v1.BitwindowdService.SetTransactionNote:output_type -> google.protobuf.Empty
+	22, // 68: bitwindowd.v1.BitwindowdService.ListTransactionNotes:output_type -> bitwindowd.v1.ListTransactionNotesResponse
+	23, // 69: bitwindowd.v1.BitwindowdService.ExportLabels:output_type -> bitwindowd.v1.ExportLabelsResponse
+	25, // 70: bitwindowd.v1.BitwindowdService.ImportLabels:output_type -> bitwindowd.v1.ImportLabelsResponse
+	26, // 71: bitwindowd.v1.BitwindowdService.GetFireplaceStats:output_type -> bitwindowd.v1.GetFireplaceStatsResponse
+	40, // 72: bitwindowd.v1.BitwindowdService.ListRecentTransactions:output_type -> bitwindowd.v1.ListRecentTransactionsResponse
+	41, // 73: bitwindowd.v1.BitwindowdService.WatchRecentTransactions:output_type -> bitwindowd.v1.WatchRecentTransactionsResponse
+	45, // 74: bitwindowd.v1.BitwindowdService.ListBlocks:output_type -> bitwindowd.v1.ListBlocksResponse
+	46, // 75: bitwindowd.v1.BitwindowdService.GetNetworkStats:output_type -> bitwindowd.v1.GetNetworkStatsResponse
+	51, // 76: bitwindowd.v1.BitwindowdService.SetMempoolWatch:output_type -> google.protobuf.Empty
+	51, // 77: bitwindowd.v1.BitwindowdService.ResetMempoolWatch:output_type -> google.protobuf.Empty
+	28, // 78: bitwindowd.v1.BitwindowdService.GetMempoolWatchStatus:output_type -> bitwindowd.v1.GetMempoolWatchStatusResponse
+	31, // 79: bitwindowd.v1.BitwindowdService.ListMempoolTransactions:output_type -> bitwindowd.v1.ListMempoolTransactionsResponse
+	34, // 80: bitwindowd.v1.BitwindowdService.ListBlockStats:output_type -> bitwindowd.v1.ListBlockStatsResponse
+	38, // 81: bitwindowd.v1.BitwindowdService.ListMiningPools:output_type -> bitwindowd.v1.ListMiningPoolsResponse
+	49, // 82: bitwindowd.v1.BitwindowdService.UpdateNetwork:output_type -> bitwindowd.v1.UpdateNetworkResponse
+	56, // [56:83] is the sub-list for method output_type
+	29, // [29:56] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_bitwindowd_v1_bitwindowd_proto_init() }
@@ -3698,14 +3759,14 @@ func file_bitwindowd_v1_bitwindowd_proto_init() {
 		return
 	}
 	file_bitwindowd_v1_bitwindowd_proto_msgTypes[2].OneofWrappers = []any{}
-	file_bitwindowd_v1_bitwindowd_proto_msgTypes[37].OneofWrappers = []any{}
+	file_bitwindowd_v1_bitwindowd_proto_msgTypes[38].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bitwindowd_v1_bitwindowd_proto_rawDesc), len(file_bitwindowd_v1_bitwindowd_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   45,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
