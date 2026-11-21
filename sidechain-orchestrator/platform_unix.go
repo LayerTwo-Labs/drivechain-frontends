@@ -28,17 +28,6 @@ func chmod(path string) error {
 	return os.Chmod(path, 0o755)
 }
 
-// isPidAlive checks if a process with the given PID is alive. A zombie still
-// answers `ps -p`, so the state column decides.
-func isPidAlive(pid int) bool {
-	out, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "stat=").Output()
-	if err != nil {
-		return false
-	}
-	stat := strings.TrimSpace(string(out))
-	return stat != "" && !strings.HasPrefix(stat, "Z")
-}
-
 // processAge returns how long the process at pid ran. The OS reuses PID
 // numbers, so a caller that recorded a PID needs the age to tell that process
 // from a stranger that later took its number.
