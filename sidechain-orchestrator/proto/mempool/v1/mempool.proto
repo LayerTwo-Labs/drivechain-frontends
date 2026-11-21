@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package mempool.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// MempoolService reads the mainchain mempool from the memory of drivechaind.
+// Core's ZMQ sequence feed keeps that copy current.
+service MempoolService {
+  // ListTransactions gives the newest mempool transactions, newest first.
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+
+  // GetStats gives the size of the mempool and its fee rate buckets.
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+
+  // WatchTransactions sends the full mempool, then each change. A new full
+  // mempool replaces the old one.
+  rpc WatchTransactions(WatchTransactionsRequest) returns (stream WatchTransactionsResponse);
+}
+
+// Transaction is a mempool transaction as Core reported it when it entered.
+message Transaction {
+  string txid = 1;
+  uint64 fee_sats = 2;
+  uint32 vsize = 3;
+  google.protobuf.Timestamp time = 4;
+  // The fee and size of the transaction with its unconfirmed ancestors.
+  uint64 ancestor_fee_sats = 5;
+  uint32 ancestor_vsize = 6;
+  // The tip height when the transaction entered.
+  uint32 height = 7;
+}
+
+message ListTransactionsRequest {
+  // The most transactions to give. Zero gives all.
+  uint32 count = 1;
+}
+
+message ListTransactionsResponse {
+  repeated Transaction transactions = 1;
+  // The number of transactions in the mempool.
+  uint64 total = 2;
+}
+
+message GetStatsRequest {
+  // The lower edges of the fee rate buckets in sat/vB, in ascending order.
+  // A bucket ends at the next edge. The last bucket has no end.
+  repeated double bucket_edges = 1;
+}
+
+message FeeBucket {
+  // The lower edge in sat/vB.
+  double min_fee_rate = 1;
+  uint64 tx_count = 2;
+  uint64 vsize = 3;
+  uint64 fee_sats = 4;
+}
+
+message GetStatsResponse {
+  uint64 tx_count = 1;
+  uint64 vsize = 2;
+  uint64 fee_sats = 3;
+  // The fee rate in sat/vB at the middle of the sorted rates.
+  double median_fee_rate = 4;
+  // One bucket per edge of the request, in the same order.
+  repeated FeeBucket buckets = 5;
+}
+
+message WatchTransactionsRequest {}
+
+message WatchTransactionsResponse {
+  // A full mempool. A large one comes in parts: each part except the last
+  // has more set.
+  Snapshot snapshot = 1;
+  // The changes after the newest snapshot, in order.
+  repeated Change changes = 2;
+  // A heartbeat holds no data. It shows that the stream is alive.
+  bool heartbeat = 3;
+}
+
+message Snapshot {
+  // The tip height of the snapshot.
+  uint32 height = 1;
+  repeated Transaction transactions = 2;
+  bool more = 3;
+}
+
+message Change {
+  oneof change {
+    Transaction added = 1;
+    // A transaction that left the mempool for a reason other than a block.
+    string removed = 2;
+    Block block = 3;
+  }
+}
+
+// Block is a block that Core connected to or disconnected from the tip.
+message Block {
+  string hash = 1;
+  uint32 height = 2;
+  bool connected = 3;
+  // The transactions of the block, in block order.
+  repeated string txids = 4;
+}
