@@ -543,8 +543,10 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   await setupSignalHandlers(log);
 
-  // check for updates on boot and every hour therafter
-  await initAutoUpdater(log);
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    // check for updates on boot and every hour therafter
+    unawaited(initAutoUpdater(log));
+  });
 
   GetIt.I.registerSingleton<HostedChains>(
     HostedChains(
