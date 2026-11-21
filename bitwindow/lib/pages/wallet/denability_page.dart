@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -16,6 +18,34 @@ bool denialHasScheduledNextExecution(DenialInfo info) {
     return false;
   }
   return info.nextExecutionTime.toDateTime().millisecondsSinceEpoch != 0;
+}
+
+/// Hops of a UTXO as done/total, or '0' when the UTXO has no denial.
+String denialHopsLabel(UnspentOutput utxo) {
+  if (!utxo.hasDenialInfo()) {
+    return '0';
+  }
+  return '${utxo.denialInfo.hopsCompleted}/${utxo.denialInfo.numHops}';
+}
+
+/// Time until the next hop, such as "in 2 hours", or '-' when no hop is scheduled.
+String denialNextExecutionLabel(DenialInfo info, DateTime now) {
+  if (!denialHasScheduledNextExecution(info)) {
+    return '-';
+  }
+  final seconds = info.nextExecutionTime.toDateTime().difference(now).inSeconds;
+  if (seconds <= 0) {
+    return 'now';
+  }
+  final minutes = (seconds + 59) ~/ 60;
+  if (minutes < 60) {
+    return 'in $minutes min';
+  }
+  final hours = minutes ~/ 60;
+  if (hours < 48) {
+    return 'in $hours ${hours == 1 ? 'hour' : 'hours'}';
+  }
+  return 'in ${hours ~/ 24} days';
 }
 
 class DeniabilityTab extends StatelessWidget {
@@ -161,6 +191,19 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
 
   String sortColumn = 'txid';
   bool sortAscending = true;
+  late final Timer _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    _clock = Timer.periodic(const Duration(seconds: 30), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _clock.cancel();
+    super.dispose();
+  }
 
   String _rowId(UnspentOutput utxo) => '${utxo.output}:${utxo.denialInfo.executions.length}';
 
@@ -205,20 +248,13 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   final hasDenialInfo = utxo.hasDenialInfo();
 
                   String status = '-';
-                  String nextExecution = '-';
-                  String hops = '0';
+                  final nextExecution = hasDenialInfo ? denialNextExecutionLabel(utxo.denialInfo, DateTime.now()) : '-';
                   bool canControl = false;
                   bool isPaused = false;
                   bool isTip = false;
 
                   if (hasDenialInfo) {
-                    final completedHops = utxo.denialInfo.hopsCompleted;
-                    final totalHops = utxo.denialInfo.numHops;
-                    hops = '$completedHops/$totalHops';
                     final hasNext = denialHasScheduledNextExecution(utxo.denialInfo);
-                    if (!hasNext) {
-                      hops = '$completedHops';
-                    }
 
                     isPaused = utxo.denialInfo.hasPausedAt();
                     isTip = !utxo.denialInfo.isChange;
@@ -230,13 +266,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                         : !hasNext
                         ? 'Completed'
                         : 'Ongoing';
-                    nextExecution = hasNext ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString() : '-';
                     // Only the tip can be controlled (paused/resumed/cancelled)
                     canControl = isTip && (status == 'Ongoing' || status == 'Paused');
-
-                    if (status == 'Cancelled') {
-                      hops = '$completedHops';
-                    }
                   }
 
                   return [
@@ -245,7 +276,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                       copyValue: utxo.denialInfo.id.toString(),
                     ),
                     SailTableCell(
-                      value: hops,
+                      value: denialHopsLabel(utxo),
                     ),
                     SailTableCell(
                       value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
@@ -257,6 +288,9 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     ),
                     SailTableCell(
                       value: nextExecution,
+                      copyValue: denialHasScheduledNextExecution(utxo.denialInfo)
+                          ? formatDate(utxo.denialInfo.nextExecutionTime.toDateTime())
+                          : null,
                     ),
                     SailTooltip(
                       message: utxo.denialInfo.cancelReason,
