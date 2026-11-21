@@ -18,9 +18,14 @@ class _StreamBitwindowdAPI extends MockBitwindowdAPI {
   final frames = StreamController<WatchRecentTransactionsResponse>.broadcast();
   List<RecentTransaction> polled = [RecentTransaction(txid: 'polled')];
   int listCalls = 0;
+  int subscribes = 0;
+  bool failStream = false;
 
   @override
-  Stream<WatchRecentTransactionsResponse> watchRecentTransactions() => frames.stream;
+  Stream<WatchRecentTransactionsResponse> watchRecentTransactions() {
+    subscribes++;
+    return failStream ? Stream.error(Exception('Core is not ready')) : frames.stream;
+  }
 
   @override
   Future<List<RecentTransaction>> listRecentTransactions() async {
@@ -140,5 +145,19 @@ void main() {
 
     expect(rpc.api.frames.hasListener, isFalse);
     expect(provider.recentTransactions, isEmpty);
+  });
+
+  test('a poll that bitwindowd answers subscribes the stream at once', () async {
+    rpc.api.failStream = true;
+    provider.dispose();
+    provider = BlockchainProvider(streamRecent: true);
+    await pumpEventQueue();
+    final subscribes = rpc.api.subscribes;
+
+    rpc.api.failStream = false;
+    await provider.fetch();
+    await pumpEventQueue();
+
+    expect(rpc.api.subscribes, subscribes + 1, reason: 'the stream does not wait out its backoff');
   });
 }
