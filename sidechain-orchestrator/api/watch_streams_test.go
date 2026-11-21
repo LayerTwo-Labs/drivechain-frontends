@@ -25,6 +25,7 @@ import (
 type fakeSyncSource struct {
 	mu      sync.Mutex
 	blocks  int64
+	reads   int
 	changed chan struct{}
 }
 
@@ -33,6 +34,7 @@ func (f *fakeSyncSource) SubscribeSyncStatus(ctx context.Context) <-chan struct{
 func (f *fakeSyncSource) SyncStatus(ctx context.Context) (*orchestrator.SyncStatus, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.reads++
 	return &orchestrator.SyncStatus{
 		Mainchain: &orchestrator.ChainSyncResult{Blocks: f.blocks, Headers: f.blocks},
 		Enforcer:  &orchestrator.ChainSyncResult{},
@@ -109,6 +111,48 @@ func TestWatchBinariesSendsTheList(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, first.GetBinaries(), 1)
 	require.Equal(t, "streamtest", first.GetBinaries()[0].GetName())
+}
+
+func TestWatchSyncStatusReadsOneTimeForAllStreams(t *testing.T) {
+	orch := orchestrator.New(t.TempDir(), "regtest", t.TempDir(), nil, zerolog.New(io.Discard))
+	src := &fakeSyncSource{blocks: 100, changed: make(chan struct{}, 1)}
+	handler := NewHandler(orch)
+	handler.SetSyncStatusSource(src)
+
+	mux := http.NewServeMux()
+	rpcServer := connect.NewServer()
+	rpc.RegisterOrchestratorServiceHandler(rpcServer, handler)
+	connecthttp.Mount(mux, rpcServer)
+	srv := h2cServer(mux)
+	defer srv.Close()
+	client := rpc.NewOrchestratorServiceClient(connect.NewClient(connecthttp.NewTransport(h2cClient(), srv.URL, connecthttp.WithGRPC())))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var streams []rpc.OrchestratorServiceWatchSyncStatusClientStream
+	for range 2 {
+		stream, err := client.WatchSyncStatus(ctx, &pb.WatchSyncStatusRequest{})
+		require.NoError(t, err)
+		first, err := stream.Receive()
+		require.NoError(t, err)
+		require.EqualValues(t, 100, first.GetStatus().GetMainchain().GetBlocks())
+		streams = append(streams, stream)
+	}
+
+	src.mu.Lock()
+	src.blocks = 101
+	src.mu.Unlock()
+	src.changed <- struct{}{}
+	for _, stream := range streams {
+		next, err := stream.Receive()
+		require.NoError(t, err)
+		require.EqualValues(t, 101, next.GetStatus().GetMainchain().GetBlocks())
+	}
+
+	time.Sleep(2 * binariesRecheckInterval)
+	src.mu.Lock()
+	defer src.mu.Unlock()
+	require.Equal(t, 2, src.reads)
 }
 
 func TestEngineSyncStatusWakesOnANewBlock(t *testing.T) {
