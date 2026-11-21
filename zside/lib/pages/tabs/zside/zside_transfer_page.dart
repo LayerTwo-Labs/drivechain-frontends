@@ -432,7 +432,8 @@ class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
                   ),
                   child: widget.searchWidget,
                 ),
-                Expanded(
+                SizedBox(
+                  height: 300,
                   child: SailTable(
                     getRowId: (index) => widget.entries[index].txid,
                     headerBuilder: (context) => [
@@ -617,7 +618,8 @@ class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
                   ),
                   child: widget.searchWidget,
                 ),
-                Expanded(
+                SizedBox(
+                  height: 300,
                   child: SailTable(
                     getRowId: (index) => widget.entries[index].txid,
                     headerBuilder: (context) => [
