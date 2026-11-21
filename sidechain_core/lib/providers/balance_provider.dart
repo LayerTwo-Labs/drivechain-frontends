@@ -40,17 +40,6 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   bool _isFetching = false;
   Timer? _fetchTimer;
 
-  /// When [setBalance] last wrote each connection.
-  final Map<RPCConnection, DateTime> _setAt = {};
-
-  /// A poll skips a connection that [setBalance] wrote this recently.
-  static const _setBalanceFresh = Duration(seconds: 6);
-
-  /// When a poll last read each connection. [setBalance] holds no maturing
-  /// balance, so a skipped connection still gets a read this often.
-  final Map<RPCConnection, DateTime> _readAt = {};
-  static const _maturingMaxAge = Duration(seconds: 30);
-
   // A recreated transport abandons in-flight requests without ever completing
   // their futures, which would latch _isFetching for the rest of the session.
   static const _fetchTimeout = Duration(seconds: 30);
@@ -107,7 +96,6 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   // so the displayed number can't drift from the list it belongs to.
   void setBalance(RPCConnection rpc, double confirmed, double pending) {
     final changed = _balances[rpc] != (confirmed, pending) || !_reported.contains(rpc);
-    _setAt[rpc] = DateTime.now();
     _balances[rpc] = (confirmed, pending);
     _reported.add(rpc);
     if (changed) {
@@ -121,8 +109,6 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
       _balances[rpc] = (0.0, 0.0);
     }
     _maturing.clear();
-    _setAt.clear();
-    _readAt.clear();
     _reported.clear();
     _loggedError.clear();
     _lastWalletId = _walletReader?.activeWalletId;
@@ -130,19 +116,14 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     notifyListeners();
   }
 
-  Future<void> fetch() => _fetch(skipFresh: false);
-
-  /// The timer poll. It skips a connection whose balance another provider
-  /// wrote with [setBalance] in the last [_setBalanceFresh], unless its last
-  /// read is older than [_maturingMaxAge].
+  /// The timer poll.
   @visibleForTesting
-  Future<void> poll() => _fetch(skipFresh: true);
+  Future<void> poll() => fetch();
 
-  Future<void> _fetch({required bool skipFresh}) async {
+  Future<void> fetch() async {
     if (_isFetching) {
       return;
     }
-    final now = DateTime.now();
 
     try {
       _isFetching = true;
@@ -155,16 +136,6 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
           // dont bother fetching balance if connection is down
           continue;
         }
-        final setAt = _setAt[rpc];
-        final readAt = _readAt[rpc];
-        if (skipFresh &&
-            setAt != null &&
-            now.difference(setAt) < _setBalanceFresh &&
-            readAt != null &&
-            now.difference(readAt) < _maturingMaxAge) {
-          continue;
-        }
-        _readAt[rpc] = now;
         final (double confirmed, double pending, double maturing) balances;
         try {
           balances = await rpc.balances().timeout(_fetchTimeout);
