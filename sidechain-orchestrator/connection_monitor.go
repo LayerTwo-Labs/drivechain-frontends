@@ -15,8 +15,8 @@ import (
 // It manages:
 //   - A persistent health-check timer (Dart: connectionTimer)
 //   - A 500ms restart timer that auto-restarts crashed processes (Dart: restartTimer)
-//   - connectModeOnly: after a willful stop, the timer keeps pinging each
-//     second to detect externally started processes, but suppresses errors silently
+//   - connectModeOnly: after a willful stop, the timer keeps pinging fast
+//     to detect externally started processes, but suppresses errors silently
 //
 // Dart equivalents:
 //   - connectionTimer      → connectionTicker
@@ -74,7 +74,7 @@ type ConnectionMonitor struct {
 	lastRestartAt time.Time
 
 	// stopped is set by MarkStopped: the process is gone, so the connection
-	// timer probes at the slow pace until the next kick.
+	// timer probes each downProbeInterval, not fast, for an external start.
 	stopped bool
 
 	// kickedAt is the last start, restart or loss of the binary. The
@@ -177,10 +177,16 @@ func NewConnectionMonitor(name string, checker HealthChecker, startupPatterns []
 const (
 	fastProbeInterval = 25 * time.Millisecond
 	fastProbeWindow   = 10 * time.Second
-	slowProbeInterval = 100 * time.Millisecond
-	slowProbeWindow   = time.Minute
+	downProbeInterval = 50 * time.Millisecond
+	remoteProbeWindow = time.Minute
 	probeInterval     = time.Second
 )
+
+// remoteChecker is a HealthChecker that can reach another host. A down remote
+// gets the slow probe after remoteProbeWindow.
+type remoteChecker interface {
+	Remote() bool
+}
 
 // Kick makes the connection timer probe fast, for a binary that starts or
 // that was lost.
@@ -202,18 +208,19 @@ func (m *ConnectionMonitor) kickLocked() {
 // nextProbe returns the delay to the next probe.
 func (m *ConnectionMonitor) nextProbe() time.Duration {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.stopped || m.connected || m.kickedAt.IsZero() {
+	connected, stopped, kickedAt, checker := m.connected, m.stopped, m.kickedAt, m.Checker
+	m.mu.Unlock()
+	if connected || kickedAt.IsZero() {
 		return probeInterval
 	}
-	switch since := time.Since(m.kickedAt); {
-	case since < fastProbeWindow:
+	since := time.Since(kickedAt)
+	if !stopped && since < fastProbeWindow {
 		return fastProbeInterval
-	case since < slowProbeWindow:
-		return slowProbeInterval
-	default:
+	}
+	if r, ok := checker.(remoteChecker); ok && since >= remoteProbeWindow && r.Remote() {
 		return probeInterval
 	}
+	return downProbeInterval
 }
 
 // ProcessExited marks the binary down at once. A crash wakes the restart
@@ -748,7 +755,7 @@ func (m *ConnectionMonitor) StopAllTimers() {
 
 // MarkStopped marks the connection as stopped.
 // Dart: RPCConnection.stop() (rpc_connection.dart L356-383)
-// The timer keeps pinging each second to detect an externally started process.
+// The timer keeps pinging fast to detect an externally started process.
 func (m *ConnectionMonitor) MarkStopped() {
 	m.mu.Lock()
 
