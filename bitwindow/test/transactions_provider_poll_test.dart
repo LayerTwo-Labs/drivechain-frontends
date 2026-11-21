@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -14,9 +17,14 @@ class _OrchestratorWallet implements OrchestratorWalletRPC {
   int balanceCalls = 0;
   bool failList = false;
   bool failAddress = false;
+  List<wmpb.TransactionEntry> entries = [];
+  Future<void>? unspentHold;
 
   @override
-  Future<wmpb.ListUnspentResponse> listUnspent(String walletId) async => wmpb.ListUnspentResponse();
+  Future<wmpb.ListUnspentResponse> listUnspent(String walletId) async {
+    await unspentHold;
+    return wmpb.ListUnspentResponse();
+  }
 
   @override
   Future<wmpb.ListTransactionsResponse> listTransactions({required String walletId, int count = 100}) async {
@@ -24,7 +32,7 @@ class _OrchestratorWallet implements OrchestratorWalletRPC {
     if (failList) {
       throw Exception('drivechaind is down');
     }
-    return wmpb.ListTransactionsResponse();
+    return wmpb.ListTransactionsResponse(transactions: entries);
   }
 
   @override
@@ -203,6 +211,26 @@ void main() {
     balance.streamed = false;
     await provider.fetch();
     expect(wallet.balanceCalls, 1);
+  });
+
+  test('a new transaction does not wait for the UTXO read', () async {
+    wallet.entries = [wmpb.TransactionEntry(txid: 'a', amountSats: Int64(5))];
+    await provider.fetch();
+    expect(provider.initialized, isTrue);
+    var notifies = 0;
+    provider.addListener(() => notifies++);
+
+    final hold = Completer<void>();
+    wallet.unspentHold = hold.future;
+    wallet.entries = [...wallet.entries, wmpb.TransactionEntry(txid: 'b', amountSats: Int64(7))];
+    final fetch = provider.fetch();
+    await pumpEventQueue();
+    expect(provider.walletTransactions.map((t) => t.txid), containsAll(['a', 'b']));
+    expect(notifies, 1);
+
+    hold.complete();
+    await fetch;
+    expect(notifies, 1, reason: 'the list showed, and the rest did not change');
   });
 
   test('a block list or peer change does not fetch', () async {
