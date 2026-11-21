@@ -409,6 +409,59 @@ void main() {
     });
   }
 
+  for (final phone in [true, false]) {
+    testWidgets('Daemon Status opens ${phone ? 'full screen on a phone' : 'as a dialog on a desktop'}', (tester) async {
+      SailStyleValues.phoneLayoutOverride = phone;
+      addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+      final nav = BottomNav(
+        endWidgets: const [],
+        additionalConnection: model.additionalConnection,
+        mainchainInfo: true,
+        navigateToLogs: (_, _, _) {},
+      );
+      tester.view.physicalSize = phone ? const Size(600, 1400) : const Size(1600, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          // The test font draws each letter as a wide square, so the text shrinks to fit a phone width.
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(0.8)),
+            child: child!,
+          ),
+          home: SailTheme(
+            data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+            child: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => nav.displayConnectionStatusDialog(context, model.additionalConnection, false),
+                  child: const Text('Status'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Status'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(DaemonConnectionCard), findsWidgets);
+      expect(find.byType(SailPhonePage), phone ? findsOneWidget : findsNothing);
+      expect(find.byType(Dialog), phone ? findsNothing : findsOneWidget);
+      if (phone) {
+        final card = tester.getRect(find.byType(DaemonConnectionCard).first);
+        expect(card.left, 12);
+        expect(card.right, 600 - 12);
+        await tester.tap(find.byKey(const Key('phone-page-back')));
+        await tester.pumpAndSettle();
+        expect(find.byType(SailPhonePage), findsNothing);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
   for (final light in [true, false]) {
     testWidgets(
       '${light ? 'light' : 'full'} mode with a run-locally action ${light ? 'marks' : 'keeps'} the L1 cards',
@@ -623,5 +676,41 @@ void main() {
     expect(taps, 1);
     expect(find.byType(DaemonConnectionCard), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('on a 390 px phone a pending balance leaves room for the status icon', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+    final balance = _Balance()..pendingBalance = 2;
+    GetIt.I.registerSingleton<BalanceProvider>(balance);
+    GetIt.I.registerSingleton<PriceProvider>(_Price());
+    GetIt.I.registerSingleton<UpdateProvider>(_Update());
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SailTheme(
+          data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+          child: Scaffold(
+            bottomNavigationBar: BottomNav(
+              endWidgets: const [],
+              additionalConnection: model.additionalConnection,
+              mainchainInfo: true,
+              navigateToLogs: (_, _, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(formatBitcoin(2)), findsOneWidget);
+    final status = tester.getRect(find.byTooltip(model.connectionStatus));
+    expect(status.right, lessThanOrEqualTo(390));
+    expect(status.width, greaterThanOrEqualTo(24));
+    expect(status.left, greaterThan(tester.getRect(find.text(formatBitcoin(2))).right));
   });
 }

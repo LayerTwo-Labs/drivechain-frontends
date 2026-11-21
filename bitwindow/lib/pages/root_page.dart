@@ -99,11 +99,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     (id: TabIndices.wallet, route: WalletRoute(), nav: TopNavRoute(label: 'Wallet')),
     if (_confProvider.drivechainFeaturesAvailable)
       (id: TabIndices.sidechains, route: SidechainsRoute(), nav: TopNavRoute(label: 'Sidechains')),
-    (id: TabIndices.mining, route: MiningRoute(), nav: TopNavRoute(label: 'Mining')),
+    if (hasMiningTab()) (id: TabIndices.mining, route: MiningRoute(), nav: TopNavRoute(label: 'Mining')),
     (id: TabIndices.learn, route: LearnRoute(), nav: TopNavRoute(label: 'Learn')),
     (id: TabIndices.console, route: ConsoleRoute(), nav: TopNavRoute(label: 'Console')),
     (id: TabIndices.chat, route: ChatRoute(), nav: TopNavRoute(label: 'Chat')),
-    (id: TabIndices.settings, route: SettingsRoute(), nav: TopNavRoute(icon: SailSVGAsset.settings)),
+    (
+      id: TabIndices.settings,
+      route: SettingsRoute(),
+      nav: const TopNavRoute(icon: SailSVGAsset.settings, drawerLabel: 'Settings'),
+    ),
   ];
 
   int _tabIndex(int id) {
@@ -185,6 +189,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   }
 
   Future<void> _initializeWindowManager() async {
+    if (!hasDesktopWindow) {
+      return;
+    }
     windowManager.addListener(this);
     await windowManager.setPreventClose(true);
   }
@@ -200,9 +207,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
       CommandItem(
         label: 'Import Wallet Seed',
         category: 'Wallet',
-        onSelected: () => GetIt.I.get<AppRouter>().push(
-          CreateAnotherWalletRoute(),
-        ),
+        onSelected: () => GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute()),
       ),
       CommandItem(
         label: 'Backup',
@@ -231,16 +236,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
       ),
 
       // Banking
-      CommandItem(
-        label: 'Send Money',
-        category: 'Banking',
-        onSelected: () => openWalletSubtab('Send'),
-      ),
-      CommandItem(
-        label: 'Request Money',
-        category: 'Banking',
-        onSelected: () => openWalletSubtab('Receive'),
-      ),
+      CommandItem(label: 'Send Money', category: 'Banking', onSelected: () => openWalletSubtab('Send')),
+      CommandItem(label: 'Request Money', category: 'Banking', onSelected: () => openWalletSubtab('Receive')),
       CommandItem(
         label: 'See Wallet Transactions',
         category: 'Banking',
@@ -325,17 +322,18 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Crypto Tools',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.converter),
       ),
-      if (minesHere())
+      if (hasMiningTab() && minesHere())
         CommandItem(
           label: 'Mine',
           category: 'Work for Bitcoin',
           onSelected: () => _openMining(MiningPage.miningSubtabLabel),
         ),
-      CommandItem(
-        label: 'Mining Pools',
-        category: 'Work for Bitcoin',
-        onSelected: () => _openMining(MiningPage.poolsSubtabLabel),
-      ),
+      if (hasMiningTab())
+        CommandItem(
+          label: 'Mining Pools',
+          category: 'Work for Bitcoin',
+          onSelected: () => _openMining(MiningPage.poolsSubtabLabel),
+        ),
 
       // This Node
       CommandItem(
@@ -356,11 +354,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'This Node',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.logs),
       ),
-      CommandItem(
-        label: openLogsLabel(),
-        category: 'This Node',
-        onSelected: openLogs,
-      ),
+      CommandItem(label: openLogsLabel(), category: 'This Node', onSelected: openLogs),
 
       for (final module in hostedModules)
         for (final (n, tab) in shellTabRoutes(module).indexed)
@@ -461,10 +455,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'About bitwindow',
                       onSelected: () {
-                        showThemedDialog(
-                          context: context,
-                          builder: (context) => const AboutBitwindowDialog(),
-                        );
+                        showThemedDialog(context: context, builder: (context) => const AboutBitwindowDialog());
                       },
                     ),
                     PlatformMenuItem(
@@ -491,9 +482,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     ),
                   ],
                 ),
-                PlatformMenuItemGroup(
-                  members: buildVisibilityMenuItems(),
-                ),
+                PlatformMenuItemGroup(members: buildVisibilityMenuItems()),
                 PlatformMenuItemGroup(
                   members: [
                     PlatformMenuItem(
@@ -528,17 +517,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Create New Wallet',
                       onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(
-                          CreateAnotherWalletRoute(),
-                        );
+                        await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
                       },
                     ),
                     PlatformMenuItem(
                       label: 'Import Wallet Seed',
                       onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(
-                          CreateAnotherWalletRoute(),
-                        );
+                        await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
                       },
                     ),
                   ],
@@ -548,9 +533,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Backup',
                       onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(
-                          BackupWalletRoute(appName: 'bitwindow'),
-                        );
+                        await GetIt.I.get<AppRouter>().push(BackupWalletRoute(appName: 'bitwindow'));
                       },
                     ),
                     PlatformMenuItem(
@@ -570,16 +553,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   encrypted: _isWalletEncrypted,
                   hasWallet: hasWallet,
                   onEncrypt: () {
-                    showThemedDialog(
-                      context: context,
-                      builder: (context) => const EncryptWalletDialog(),
-                    );
+                    showThemedDialog(context: context, builder: (context) => const EncryptWalletDialog());
                   },
                   onChangePassword: () {
-                    showThemedDialog(
-                      context: context,
-                      builder: (context) => const ChangePasswordDialog(),
-                    );
+                    showThemedDialog(context: context, builder: (context) => const ChangePasswordDialog());
                   },
                   onRemoveEncryption: () {
                     GetIt.I.get<AppRouter>().push(RemoveEncryptionRoute());
@@ -594,18 +571,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               menus: [
                 PlatformMenuItemGroup(
                   members: [
-                    PlatformMenuItem(
-                      label: 'Send Money',
-                      onSelected: () => openWalletSubtab('Send'),
-                    ),
-                    PlatformMenuItem(
-                      label: 'Request Money',
-                      onSelected: () => openWalletSubtab('Receive'),
-                    ),
-                    PlatformMenuItem(
-                      label: 'See Wallet Transactions',
-                      onSelected: () => openWalletSubtab('Overview'),
-                    ),
+                    PlatformMenuItem(label: 'Send Money', onSelected: () => openWalletSubtab('Send')),
+                    PlatformMenuItem(label: 'Request Money', onSelected: () => openWalletSubtab('Receive')),
+                    PlatformMenuItem(label: 'See Wallet Transactions', onSelected: () => openWalletSubtab('Overview')),
                     PlatformMenuItem(
                       label: 'Address Book',
                       onSelected: () {
@@ -640,10 +608,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Proof of Funds',
                       onSelected: () {
-                        showThemedDialog(
-                          context: context,
-                          builder: (context) => const ProofOfFundsModal(),
-                        );
+                        showThemedDialog(context: context, builder: (context) => const ProofOfFundsModal());
                       },
                     ),
                     PlatformMenuItem(
@@ -666,10 +631,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Paper Wallet',
                       onSelected: () {
-                        showThemedDialog(
-                          context: context,
-                          builder: (context) => const PaperWalletDialog(),
-                        );
+                        showThemedDialog(context: context, builder: (context) => const PaperWalletDialog());
                       },
                     ),
                     PlatformMenuItem(
@@ -718,11 +680,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                             showThemedDialog(
                               context: context,
                               builder: (context) => const SailModal(
-                                child: SizedBox(
-                                  width: 900,
-                                  height: 700,
-                                  child: GraffitiExplorerView(),
-                                ),
+                                child: SizedBox(width: 900, height: 700, child: GraffitiExplorerView()),
                               ),
                             );
                           },
@@ -750,10 +708,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Chain Merchants',
                       onSelected: () {
-                        showThemedDialog(
-                          context: context,
-                          builder: (context) => const ChainMerchantsDialog(),
-                        );
+                        showThemedDialog(context: context, builder: (context) => const ChainMerchantsDialog());
                       },
                     ),
                     if (_confProvider.drivechainFeaturesAvailable)
@@ -775,24 +730,19 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               menus: [
                 PlatformMenuItemGroup(
                   members: [
-                    if (minesHere())
-                      PlatformMenuItem(
-                        label: 'Mine',
-                        onSelected: () => _openMining(MiningPage.miningSubtabLabel),
-                      ),
+                    if (hasMiningTab() && minesHere())
+                      PlatformMenuItem(label: 'Mine', onSelected: () => _openMining(MiningPage.miningSubtabLabel)),
                     PlatformMenuItem(
                       label: 'Network Statistics',
                       onSelected: () {
-                        showThemedDialog(
-                          context: context,
-                          builder: (context) => const NetworkStatisticsPage(),
-                        );
+                        showThemedDialog(context: context, builder: (context) => const NetworkStatisticsPage());
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'Mining Pools',
-                      onSelected: () => _openMining(MiningPage.poolsSubtabLabel),
-                    ),
+                    if (hasMiningTab())
+                      PlatformMenuItem(
+                        label: 'Mining Pools',
+                        onSelected: () => _openMining(MiningPage.poolsSubtabLabel),
+                      ),
                     PlatformMenuItem(
                       label: 'Sidechain Activation',
                       onSelected: () {
@@ -851,16 +801,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Merkle Tree',
                       onSelected: () {
-                        showThemedDialog(
-                          context: context,
-                          builder: (context) => const MerkleTreeDialog(),
-                        );
+                        showThemedDialog(context: context, builder: (context) => const MerkleTreeDialog());
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'Signatures',
-                      onSelected: null,
-                    ),
+                    PlatformMenuItem(label: 'Signatures', onSelected: null),
                     PlatformMenuItem(
                       label: 'Converter',
                       onSelected: () {
@@ -900,10 +844,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         tabsRouter?.setActiveIndex(_tabIndex(TabIndices.settings));
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'Command-line options',
-                      onSelected: null,
-                    ),
+                    PlatformMenuItem(label: 'Command-line options', onSelected: null),
                   ],
                 ),
                 PlatformMenuItemGroup(
@@ -951,9 +892,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Report Issue',
                       onSelected: () async {
-                        await openUrl(
-                          Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends/issues'),
-                        );
+                        await openUrl(Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends/issues'));
                       },
                     ),
                   ],
@@ -970,9 +909,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               builder: (context, child, controller) {
                 final theme = SailTheme.of(context);
 
+                final phone = SailStyleValues.phoneLayout(context);
                 return SailSelectionArea(
                   child: SailScaffold(
                     backgroundColor: theme.colors.background,
+                    drawer: phone
+                        ? TopNavDrawer(routes: [for (final t in _navTabs) t.nav], menus: phoneMenus(_cachedMenuList!))
+                        : null,
                     appBar: TopNav(
                       locked: _homepageProvider.editing,
                       leadingWidget: _isWalletSwitching
@@ -1101,14 +1044,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                               );
                             },
                           ),
-                          SailButton(
-                            onPressed: () async {
-                              await openUrl(Uri.parse('https://t.me/DcInsiders'));
-                            },
-                            variant: ButtonVariant.icon,
-                            icon: SailSVGAsset.telegram,
-                            small: true,
-                          ),
+                          if (!phone)
+                            SailButton(
+                              onPressed: () async {
+                                await openUrl(Uri.parse('https://t.me/DcInsiders'));
+                              },
+                              variant: ButtonVariant.icon,
+                              icon: SailSVGAsset.telegram,
+                              small: true,
+                            ),
                         ],
                       ),
                     ),
@@ -1214,10 +1158,7 @@ class _StatusBarState extends State<StatusBar> {
   @override
   Widget build(BuildContext context) {
     final migration = GetIt.I.get<ECashMigrationProvider>();
-    return ListenableBuilder(
-      listenable: migration,
-      builder: (context, _) => _bottomNav(context, migration),
-    );
+    return ListenableBuilder(listenable: migration, builder: (context, _) => _bottomNav(context, migration));
   }
 
   Widget _bottomNav(BuildContext context, ECashMigrationProvider migration) {
@@ -1227,20 +1168,11 @@ class _StatusBarState extends State<StatusBar> {
       statusOverride: migration.swapping && swap != null
           ? BottomNavStatusOverride(
               label: migration.navLabel,
-              onTap: () => unawaited(
-                openECashMigration(
-                  context,
-                  fromId: swap.fromId,
-                  toId: swap.toId,
-                  initialStatus: swap,
-                ),
-              ),
+              onTap: () =>
+                  unawaited(openECashMigration(context, fromId: swap.fromId, toId: swap.toId, initialStatus: swap)),
             )
           : null,
-      additionalConnection: ConnectionMonitor(
-        rpc: bitwindow,
-        name: 'BitWindow',
-      ),
+      additionalConnection: ConnectionMonitor(rpc: bitwindow, name: 'BitWindow'),
       modeChip: const NodeModeChip(),
       onRunLocally: NodeModeChip.open,
       navigateToLogs: openLogWindow,
@@ -1251,9 +1183,7 @@ class _StatusBarState extends State<StatusBar> {
         GetIt.I.get<AppRouter>().push(const EnforcerConfEditorRoute());
       },
       mainchainInfo: true,
-      balanceEndWidgets: const [
-        GetCoinsButton(),
-      ],
+      balanceEndWidgets: const [GetCoinsButton()],
       endWidgets: [
         // Electrum wallets run no local bitcoind, so block height and peer
         // counts don't apply — only show them when a Bitcoin Core backend runs.
@@ -1273,9 +1203,7 @@ class _StatusBarState extends State<StatusBar> {
             enabled: !blockchainProvider.mainchain.connected,
             child: SailTooltip(
               message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
-              child: SailText.secondary12(
-                formatTimeDifference(blockchainProvider.peers.length, 'peer'),
-              ),
+              child: SailText.secondary12(formatTimeDifference(blockchainProvider.peers.length, 'peer')),
             ),
           ),
           const DividerDot(),
@@ -1283,11 +1211,8 @@ class _StatusBarState extends State<StatusBar> {
         ResetButton(
           compact: compact,
           onTap: () async {
-            final confProvider = GetIt.I.get<BitcoinConfProvider>();
-            final settingsTabIndex = confProvider.networkSupportsSidechains ? 7 : 6;
             SettingsPage.setSection(5);
-            final tabsRouter = AutoTabsRouter.of(context);
-            tabsRouter.setActiveIndex(settingsTabIndex);
+            await AutoTabsRouter.of(context).navigate(SettingsRoute());
           },
         ),
       ],
@@ -1385,10 +1310,7 @@ class _LastBlockAgeState extends State<LastBlockAge> {
     final age = _timeSinceLastBlock();
     final lastBlock = 'Last block: $age';
     if (!widget.compact) {
-      return SailTooltip(
-        message: widget.blockInfo ?? '',
-        child: SailText.secondary12(lastBlock),
-      );
+      return SailTooltip(message: widget.blockInfo ?? '', child: SailText.secondary12(lastBlock));
     }
     return SailTooltip(
       message: [lastBlock, ?widget.blockInfo].join('\n'),
@@ -1433,6 +1355,21 @@ List<PlatformMenuItem> encryptionMenuGroups({
     return [];
   }
   return [PlatformMenuItemGroup(members: members)];
+}
+
+/// The menus without the items a phone has no use for: window controls, mining and the file manager.
+List<PlatformMenuItem> phoneMenus(List<PlatformMenuItem> menus) {
+  final hidden = {'Quit bitwindow', 'Minimize bitwindow', 'Mine', 'Mining Pools', openLogsLabel()};
+  List<PlatformMenuItem> keep(List<PlatformMenuItem> items) => [
+    for (final item in items)
+      if (item is PlatformMenuItemGroup)
+        PlatformMenuItemGroup(members: keep(item.members))
+      else if (item is PlatformMenu)
+        PlatformMenu(label: item.label, menus: keep(item.menus))
+      else if (!hidden.contains(item.label))
+        item,
+  ];
+  return keep(menus);
 }
 
 List<PlatformMenuItem> buildVisibilityMenuItems() {
@@ -1483,64 +1420,35 @@ class AboutBitwindowDialog extends StatelessWidget {
                   height: 1.5,
                 ),
                 children: [
-                  const TextSpan(
-                    text: 'BitWindow — GUI for the BIP300/301 sidechain enforcer.\n\n',
-                  ),
-                  const TextSpan(
-                    text: 'Copyright (C) 2009-2026 The Drivechain developers\n',
-                  ),
-                  const TextSpan(
-                    text: 'Copyright (C) 2009-2026 The Bitcoin Core developers\n\n',
-                  ),
-                  const TextSpan(
-                    text: 'Please contribute if you find Drivechain useful. Visit ',
-                  ),
+                  const TextSpan(text: 'BitWindow — GUI for the BIP300/301 sidechain enforcer.\n\n'),
+                  const TextSpan(text: 'Copyright (C) 2009-2026 The Drivechain developers\n'),
+                  const TextSpan(text: 'Copyright (C) 2009-2026 The Bitcoin Core developers\n\n'),
+                  const TextSpan(text: 'Please contribute if you find Drivechain useful. Visit '),
                   TextSpan(
                     text: 'https://drivechain.info',
-                    style: TextStyle(
-                      color: theme.colors.primary,
-                      decoration: TextDecoration.underline,
-                    ),
+                    style: TextStyle(color: theme.colors.primary, decoration: TextDecoration.underline),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
                         await openUrl(Uri.parse('https://drivechain.info'));
                       },
                   ),
                   const TextSpan(text: ' for further information about the software.\n'),
-                  const TextSpan(
-                    text: 'The source code for this application is available from ',
-                  ),
+                  const TextSpan(text: 'The source code for this application is available from '),
                   TextSpan(
                     text: 'https://github.com/LayerTwo-Labs/drivechain-frontends',
-                    style: TextStyle(
-                      color: theme.colors.primary,
-                      decoration: TextDecoration.underline,
-                    ),
+                    style: TextStyle(color: theme.colors.primary, decoration: TextDecoration.underline),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        await openUrl(
-                          Uri.parse(
-                            'https://github.com/LayerTwo-Labs/drivechain-frontends',
-                          ),
-                        );
+                        await openUrl(Uri.parse('https://github.com/LayerTwo-Labs/drivechain-frontends'));
                       },
                   ),
-                  const TextSpan(
-                    text: '. The source code for the underlying enforcer is available from ',
-                  ),
+                  const TextSpan(text: '. The source code for the underlying enforcer is available from '),
                   TextSpan(
                     text: 'https://github.com/LayerTwo-Labs/bip300301_enforcer',
-                    style: TextStyle(
-                      color: theme.colors.primary,
-                      decoration: TextDecoration.underline,
-                    ),
+                    style: TextStyle(color: theme.colors.primary, decoration: TextDecoration.underline),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        await openUrl(
-                          Uri.parse(
-                            'https://github.com/LayerTwo-Labs/bip300301_enforcer',
-                          ),
-                        );
+                        await openUrl(Uri.parse('https://github.com/LayerTwo-Labs/bip300301_enforcer'));
                       },
                   ),
                   const TextSpan(text: '.\n\n'),
@@ -1550,10 +1458,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                   ),
                   TextSpan(
                     text: 'https://opensource.org/licenses/MIT',
-                    style: TextStyle(
-                      color: theme.colors.primary,
-                      decoration: TextDecoration.underline,
-                    ),
+                    style: TextStyle(color: theme.colors.primary, decoration: TextDecoration.underline),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
                         await openUrl(Uri.parse('https://opensource.org/licenses/MIT'));
@@ -1565,10 +1470,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                   ),
                   TextSpan(
                     text: 'https://www.openssl.org',
-                    style: TextStyle(
-                      color: theme.colors.primary,
-                      decoration: TextDecoration.underline,
-                    ),
+                    style: TextStyle(color: theme.colors.primary, decoration: TextDecoration.underline),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
                         await openUrl(Uri.parse('https://www.openssl.org'));
@@ -1583,10 +1485,7 @@ class AboutBitwindowDialog extends StatelessWidget {
             const SizedBox(height: 20),
             Align(
               alignment: Alignment.centerRight,
-              child: SailButton(
-                onPressed: () async => Navigator.of(context).pop(),
-                label: 'OK',
-              ),
+              child: SailButton(onPressed: () async => Navigator.of(context).pop(), label: 'OK'),
             ),
           ],
         ),

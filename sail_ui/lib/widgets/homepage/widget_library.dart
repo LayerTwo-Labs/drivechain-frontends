@@ -78,6 +78,49 @@ class _WidgetLibrary extends StatelessWidget {
     );
   }
 
+  Widget _phoneRow(BuildContext context, HomepageWidgetInfo info) {
+    final theme = SailTheme.of(context);
+    final onHomepage = _currentSize(info) != null;
+    final canPick = !onHomepage || info.sizes.length > 1;
+    final subtitle = info.subtitle;
+    return GestureDetector(
+      key: Key('WidgetLibrary-${info.id}'),
+      behavior: HitTestBehavior.opaque,
+      onTap: canPick ? () => _pick(context, info) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding12),
+        child: SailRow(
+          spacing: SailStyleValues.padding12,
+          children: [
+            Expanded(
+              child: SailColumn(
+                spacing: 2,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.primary13(info.name, bold: true),
+                  if (subtitle != null) SailText.secondary12(subtitle),
+                ],
+              ),
+            ),
+            SailSVG.icon(
+              onHomepage ? SailSVGAsset.check : SailSVGAsset.plus,
+              width: 14,
+              height: 14,
+              color: theme.colors.textTertiary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _phoneGroup(BuildContext context, String? title, List<HomepageWidgetInfo> infos) {
+    return [
+      if (title != null) SailText.primary16(title),
+      SailStatList(children: [for (final info in infos) _phoneRow(context, info)]),
+    ];
+  }
+
   List<Widget> _group(BuildContext context, String? title, List<HomepageWidgetInfo> infos) {
     final rows = <Widget>[];
     HomepageWidgetInfo? waiting;
@@ -123,6 +166,7 @@ class _WidgetLibrary extends StatelessWidget {
     for (final info in provider.catalog.values) {
       groups.putIfAbsent(info.group, () => []).add(info);
     }
+    final phone = SailStyleValues.phoneLayout(context);
 
     return Column(
       key: const Key('WidgetLibrary'),
@@ -157,13 +201,25 @@ class _WidgetLibrary extends StatelessWidget {
               SailStyleValues.padding32,
             ),
             children: [
-              SailColumn(
-                spacing: SailStyleValues.padding16,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final entry in groups.entries) ..._group(context, entry.key, entry.value),
-                ],
-              ),
+              if (phone)
+                SailColumn(
+                  spacing: SailStyleValues.padding08,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (i, entry) in groups.entries.indexed) ...[
+                      if (i > 0) const SizedBox(height: SailStyleValues.padding08),
+                      ..._phoneGroup(context, entry.key, entry.value),
+                    ],
+                  ],
+                )
+              else
+                SailColumn(
+                  spacing: SailStyleValues.padding16,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final entry in groups.entries) ..._group(context, entry.key, entry.value),
+                  ],
+                ),
             ],
           ),
         ),

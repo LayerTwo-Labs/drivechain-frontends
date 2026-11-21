@@ -296,166 +296,181 @@ class CheckDetailPage extends StatelessWidget {
               }
 
               final check = model.check!;
+              final phone = SailStyleValues.phoneLayout(context);
+              final statusColor = check.funded ? context.sailTheme.colors.success : context.sailTheme.colors.orange;
+              final buttonWidth = phone ? double.infinity : 400.0;
 
               return SafeArea(
                 child: SingleChildScrollView(
                   child: Center(
                     child: Container(
                       constraints: const BoxConstraints(maxWidth: 600),
-                      padding: const EdgeInsets.all(SailStyleValues.padding40),
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding20,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: Stack(
-                                  alignment: Alignment.center,
+                      padding: EdgeInsets.all(phone ? SailStyleValues.padding16 : SailStyleValues.padding40),
+                      child: _PhonePanel(
+                        phone: phone,
+                        child: SailColumn(
+                          spacing: phone ? SailStyleValues.padding16 : SailStyleValues.padding20,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (phone)
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(shape: BoxShape.circle, color: statusColor),
+                                  )
+                                else
+                                  SizedBox(
+                                    width: 32,
+                                    height: 32,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: check.funded
+                                                ? context.sailTheme.colors.success.withValues(alpha: 0.2)
+                                                : context.sailTheme.colors.orange.withValues(alpha: 0.2),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 20,
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: check.funded
+                                                ? context.sailTheme.colors.success.withValues(alpha: 0.5)
+                                                : context.sailTheme.colors.orange.withValues(alpha: 0.5),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 12,
+                                          height: 12,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: check.funded
+                                                ? context.sailTheme.colors.success
+                                                : context.sailTheme.colors.orange,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                SizedBox(width: phone ? SailStyleValues.padding08 : SailStyleValues.padding12),
+                                SailText.primary13(_statusLabel(check)),
+                              ],
+                            ),
+                            if (check.fundedTxids.isEmpty)
+                              Container(
+                                padding: const EdgeInsets.all(SailStyleValues.padding20),
+                                decoration: BoxDecoration(
+                                  color: context.sailTheme.colors.backgroundSecondary,
+                                  borderRadius: context.sailTheme.chrome.radiusSmall,
+                                ),
+                                child: QrImageView(
+                                  data: check.address,
+                                  version: QrVersions.auto,
+                                  size: 200,
+                                  backgroundColor: context.sailTheme.colors.backgroundSecondary,
+                                ),
+                              ),
+                            if (check.fundedTxids.isEmpty && phone)
+                              Row(
+                                children: [
+                                  Expanded(child: SailText.primary13(check.address)),
+                                  const SizedBox(width: SailStyleValues.padding08),
+                                  CopyButton(text: check.address),
+                                ],
+                              ),
+                            if (check.fundedTxids.isEmpty && !phone)
+                              SailRow(
+                                spacing: SailStyleValues.padding08,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: SailText.primary13(
+                                      check.address,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  CopyButton(text: check.address),
+                                ],
+                              ),
+                            if (check.fundedTxids.isNotEmpty &&
+                                check.hasPrivateKeyWif() &&
+                                check.privateKeyWif.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.all(SailStyleValues.padding16),
+                                decoration: BoxDecoration(
+                                  color: context.sailTheme.colors.backgroundSecondary,
+                                  borderRadius: context.sailTheme.chrome.radiusSmall,
+                                  border: Border.all(
+                                    color: context.sailTheme.colors.orange.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: SailColumn(
+                                  spacing: SailStyleValues.padding08,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: check.funded
-                                            ? context.sailTheme.colors.success.withValues(alpha: 0.2)
-                                            : context.sailTheme.colors.orange.withValues(alpha: 0.2),
-                                      ),
+                                    Row(
+                                      children: [
+                                        SailSVG.icon(SailSVGAsset.iconWarning, width: 16),
+                                        const SizedBox(width: SailStyleValues.padding08),
+                                        SailText.primary13(
+                                          'Private Key (WIF)',
+                                          bold: true,
+                                        ),
+                                      ],
                                     ),
-                                    Container(
-                                      width: 20,
-                                      height: 20,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: check.funded
-                                            ? context.sailTheme.colors.success.withValues(alpha: 0.5)
-                                            : context.sailTheme.colors.orange.withValues(alpha: 0.5),
-                                      ),
+                                    SailText.secondary12(
+                                      'Share this private key with the recipient. They can import it into most Bitcoin wallets to access the funds.',
                                     ),
-                                    Container(
-                                      width: 12,
-                                      height: 12,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: check.funded
-                                            ? context.sailTheme.colors.success
-                                            : context.sailTheme.colors.orange,
-                                      ),
+                                    SailRow(
+                                      spacing: SailStyleValues.padding08,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Flexible(
+                                          child: SailSelectableText(
+                                            check.privateKeyWif,
+                                            style: TextStyle(
+                                              fontFamily: SailFonts.mono,
+                                              fontSize: 12,
+                                              color: context.sailTheme.colors.text,
+                                            ),
+                                          ),
+                                        ),
+                                        CopyButton(secret: true, text: check.privateKeyWif),
+                                      ],
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: SailStyleValues.padding12),
-                              SailText.primary13(
-                                check.funded
-                                    ? 'Funded'
-                                    : check.fundedTxids.isNotEmpty
-                                    ? 'Partially Funded'
-                                    : 'Awaiting funding',
-                              ),
-                            ],
-                          ),
-                          if (check.fundedTxids.isEmpty)
-                            Container(
-                              padding: const EdgeInsets.all(SailStyleValues.padding20),
-                              decoration: BoxDecoration(
-                                color: context.sailTheme.colors.backgroundSecondary,
-                                borderRadius: context.sailTheme.chrome.radiusSmall,
-                              ),
-                              child: QrImageView(
-                                data: check.address,
-                                version: QrVersions.auto,
-                                size: 200,
-                                backgroundColor: context.sailTheme.colors.backgroundSecondary,
-                              ),
-                            ),
-                          if (check.fundedTxids.isEmpty)
-                            SailRow(
-                              spacing: SailStyleValues.padding08,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: SailText.primary13(
-                                    check.address,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                CopyButton(text: check.address),
-                              ],
-                            ),
-                          if (check.fundedTxids.isNotEmpty &&
-                              check.hasPrivateKeyWif() &&
-                              check.privateKeyWif.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.all(SailStyleValues.padding16),
-                              decoration: BoxDecoration(
-                                color: context.sailTheme.colors.backgroundSecondary,
-                                borderRadius: context.sailTheme.chrome.radiusSmall,
-                                border: Border.all(
-                                  color: context.sailTheme.colors.orange.withValues(alpha: 0.3),
+                            if (check.fundedTxids.isEmpty)
+                              SizedBox(
+                                width: buttonWidth,
+                                child: SailButton(
+                                  label: 'Fund with Wallet',
+                                  onPressed: () async => model.fundWithWallet(context),
                                 ),
                               ),
-                              child: SailColumn(
-                                spacing: SailStyleValues.padding08,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      SailSVG.icon(SailSVGAsset.iconWarning, width: 16),
-                                      const SizedBox(width: SailStyleValues.padding08),
-                                      SailText.primary13(
-                                        'Private Key (WIF)',
-                                        bold: true,
-                                      ),
-                                    ],
-                                  ),
-                                  SailText.secondary12(
-                                    'Share this private key with the recipient. They can import it into most Bitcoin wallets to access the funds.',
-                                  ),
-                                  SailRow(
-                                    spacing: SailStyleValues.padding08,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Flexible(
-                                        child: SailSelectableText(
-                                          check.privateKeyWif,
-                                          style: TextStyle(
-                                            fontFamily: SailFonts.mono,
-                                            fontSize: 12,
-                                            color: context.sailTheme.colors.text,
-                                          ),
-                                        ),
-                                      ),
-                                      CopyButton(secret: true, text: check.privateKeyWif),
-                                    ],
-                                  ),
-                                ],
+                            if (check.fundedTxids.isNotEmpty)
+                              SizedBox(
+                                width: buttonWidth,
+                                child: SailButton(
+                                  label: 'Sweep Check to Wallet',
+                                  onPressed: () async => model.sweepCheck(context),
+                                ),
                               ),
-                            ),
-                          if (check.fundedTxids.isEmpty)
-                            SizedBox(
-                              width: 400,
-                              child: SailButton(
-                                label: 'Fund with Wallet',
-                                onPressed: () async => model.fundWithWallet(context),
-                              ),
-                            ),
-                          if (check.fundedTxids.isNotEmpty)
-                            SizedBox(
-                              width: 400,
-                              child: SailButton(
-                                label: 'Sweep Check to Wallet',
-                                onPressed: () async => model.sweepCheck(context),
-                              ),
-                            ),
-                          if (model.actionError != null)
-                            SizedBox(width: 400, child: SailInlineError(model.actionError!)),
-                        ],
+                            if (model.actionError != null)
+                              SizedBox(width: buttonWidth, child: SailInlineError(model.actionError!)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -467,4 +482,21 @@ class CheckDetailPage extends StatelessWidget {
       },
     );
   }
+}
+
+String _statusLabel(Cheque check) => check.funded
+    ? 'Funded'
+    : check.fundedTxids.isNotEmpty
+    ? 'Partially Funded'
+    : 'Awaiting funding';
+
+/// The phone form puts the page content in one panel.
+class _PhonePanel extends StatelessWidget {
+  final bool phone;
+  final Widget child;
+
+  const _PhonePanel({required this.phone, required this.child});
+
+  @override
+  Widget build(BuildContext context) => phone ? SailCard(child: child) : child;
 }

@@ -1,3 +1,6 @@
+import 'package:truthcoin/widgets/market_stat_tile.dart';
+import 'package:flutter/widgets.dart';
+import 'package:sail_ui/sail_ui.dart' show SailStatList, SailStatRow, SailStyleValues, SailTheme;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -72,6 +75,24 @@ void main() {
   });
 
   group('PortfolioPage', () {
+    testWidgets('a phone lists the stats in one panel under a row of two buttons', (tester) async {
+      SailStyleValues.phoneLayoutOverride = true;
+      addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+      await tester.pumpSailPage(const PortfolioPage());
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SailStatList), findsOneWidget);
+      expect(find.byType(MarketStatTile), findsNothing);
+      expect(tester.widget<Text>(find.text('Portfolio')).style!.fontSize, 20);
+      final refresh = tester.getCenter(find.text('Refresh'));
+      final markets = tester.getCenter(find.text('Markets'));
+      expect(markets.dy, closeTo(refresh.dy, 1));
+      final pnl = tester.widget<SailStatRow>(find.widgetWithText(SailStatRow, 'Profit and loss'));
+      final theme = SailTheme.of(tester.element(find.text('Portfolio')));
+      expect(pnl.valueColor, anyOf(theme.colors.success, theme.colors.error));
+    });
     testWidgets('shows the four stat tiles', (tester) async {
       await tester.pumpSailPage(const PortfolioPage());
       await tester.pumpAndSettle();

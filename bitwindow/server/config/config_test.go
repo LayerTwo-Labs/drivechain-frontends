@@ -54,7 +54,7 @@ func TestPprofAddr(t *testing.T) {
 func TestAddressesWithNoPortOffset(t *testing.T) {
 	t.Setenv(instance.PortOffsetEnv, "")
 	unsetEnv(t, "API_HOST")
-	conf, err := parse(nil)
+	conf, err := ParseArgs(nil)
 	require.NoError(t, err)
 	require.Equal(t, "localhost:30301", conf.APIHost)
 	require.Equal(t, "http://localhost:30400", conf.OrchestratorAddr)
@@ -67,7 +67,7 @@ func TestAddressesWithNoPortOffset(t *testing.T) {
 func TestAddressesWithPortOffset(t *testing.T) {
 	t.Setenv(instance.PortOffsetEnv, "1000")
 	unsetEnv(t, "API_HOST")
-	conf, err := parse(nil)
+	conf, err := ParseArgs(nil)
 	require.NoError(t, err)
 	require.Equal(t, "localhost:31301", conf.APIHost)
 	require.Equal(t, "http://localhost:31400", conf.OrchestratorAddr)
@@ -85,14 +85,14 @@ func TestAddressesWithPortOffset(t *testing.T) {
 func TestAddressFlagWithPortOffset(t *testing.T) {
 	t.Setenv(instance.PortOffsetEnv, "1000")
 	unsetEnv(t, "API_HOST")
-	conf, err := parse([]string{"--api.host=localhost:40000"})
+	conf, err := ParseArgs([]string{"--api.host=localhost:40000"})
 	require.NoError(t, err)
 	require.Equal(t, "localhost:40000", conf.APIHost)
 }
 
 func TestBadPortOffset(t *testing.T) {
 	t.Setenv(instance.PortOffsetEnv, "many")
-	_, err := parse(nil)
+	_, err := ParseArgs(nil)
 	require.ErrorContains(t, err, instance.PortOffsetEnv)
 }
 
@@ -101,7 +101,7 @@ func TestDatadirFollowsBitwindowHome(t *testing.T) {
 	t.Setenv(instance.HomeEnv, home)
 	unsetEnv(t, "BITWINDOWD_DATADIR")
 	unsetEnv(t, "XDG_DATA_HOME")
-	conf, err := parse(nil)
+	conf, err := ParseArgs(nil)
 	require.NoError(t, err)
 	require.True(t, strings.HasPrefix(conf.Datadir, home+string(filepath.Separator)), conf.Datadir)
 }
@@ -117,7 +117,7 @@ func TestLinuxDatadirIgnoresXDGWithBitwindowHome(t *testing.T) {
 	t.Setenv(instance.HomeEnv, home)
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
 	unsetEnv(t, "BITWINDOWD_DATADIR")
-	conf, err := parse(nil)
+	conf, err := ParseArgs(nil)
 	require.NoError(t, err)
 	require.True(t, strings.HasPrefix(conf.Datadir, home+string(filepath.Separator)), conf.Datadir)
 }

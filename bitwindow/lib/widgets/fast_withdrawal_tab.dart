@@ -313,6 +313,43 @@ class _SuccessSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailCard(
+        child: SailColumn(
+          spacing: SailStyleValues.padding12,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 20, color: theme.colors.success),
+                SailText.primary16('Withdrawal Completed', bold: true),
+              ],
+            ),
+            SailText.secondary13(
+              'Coins are on their way to your L1-wallet and should show up in your unconfirmed balance soon.',
+            ),
+            if (provider.l1Txid != null || provider.l2Txid != null)
+              SailStatList(
+                panel: false,
+                children: [
+                  if (provider.l1Txid case final txid?)
+                    SailStatRow(title: 'L1 TXID', subtitle: '', value: truncateMiddle(txid)),
+                  if (provider.l2Txid case final txid?)
+                    SailStatRow(title: 'L2 TXID', subtitle: '', value: truncateMiddle(txid)),
+                ],
+              ),
+            SailButton(
+              label: 'Start New Withdrawal',
+              onPressed: () async {
+                provider.reset();
+              },
+              variant: ButtonVariant.primary,
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(

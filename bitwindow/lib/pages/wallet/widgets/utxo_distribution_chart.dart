@@ -287,3 +287,77 @@ class _Legend extends StatelessWidget {
     );
   }
 }
+
+/// Upper bounds in sats of the phone buckets: 0.001, 0.01, 0.1, 1 and 10 coins.
+const List<int> phoneBucketBounds = [100000, 1000000, 10000000, 100000000, 1000000000];
+const List<String> phoneBucketLabels = ['<.001', '.001–.01', '.01–.1', '.1–1', '1–10', '>10'];
+
+/// The coins sorted into the six phone buckets, smallest first. A bucket with no coins stays in the list.
+List<UTXOBucket> phoneUtxoBuckets(List<UnspentOutput> utxos) {
+  final buckets = [for (final label in phoneBucketLabels) UTXOBucket(label: label)];
+  for (final utxo in utxos) {
+    final sats = utxo.valueSats.toInt();
+    var index = phoneBucketBounds.indexWhere((bound) => sats < bound);
+    if (index < 0) {
+      index = phoneBucketBounds.length;
+    }
+    final bucket = buckets[index];
+    bucket.valueSats += utxo.valueSats;
+    bucket.count += 1;
+    bucket.outpoints.add(utxo.output);
+  }
+  return buckets;
+}
+
+/// The phone form of the UTXO distribution: one bar per bucket, with the coin count above it.
+class UTXOPhoneBars extends StatelessWidget {
+  final List<UnspentOutput> utxos;
+  final void Function(UTXOBucket bucket, Offset position)? onBucketContextMenu;
+
+  const UTXOPhoneBars({super.key, required this.utxos, this.onBucketContextMenu});
+
+  static const double barWidth = 38;
+  static const double maxBarHeight = 100;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final buckets = phoneUtxoBuckets(utxos);
+    final most = buckets.fold<int>(0, (most, b) => b.count > most ? b.count : most);
+
+    return SizedBox(
+      height: 150,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < buckets.length; i++)
+            Expanded(
+              child: GestureDetector(
+                key: ValueKey('utxo_bar_$i'),
+                behavior: HitTestBehavior.opaque,
+                onLongPressStart: buckets[i].count == 0
+                    ? null
+                    : (details) => onBucketContextMenu?.call(buckets[i], details.globalPosition),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (buckets[i].count > 0) ...[
+                      SailText.primary12('${buckets[i].count}'),
+                      const SizedBox(height: SailStyleValues.padding04),
+                    ],
+                    Container(
+                      width: barWidth,
+                      height: buckets[i].count == 0 ? 1 : maxBarHeight * buckets[i].count / most,
+                      color: buckets[i].count == 0 ? theme.colors.divider : theme.colors.orange,
+                    ),
+                    const SizedBox(height: SailStyleValues.padding08),
+                    SailText.secondary12(buckets[i].label),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

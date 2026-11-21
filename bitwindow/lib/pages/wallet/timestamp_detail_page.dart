@@ -70,6 +70,16 @@ class TimestampDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailScaffold(
+        backgroundColor: SailTheme.of(context).colors.background,
+        appBar: SailAppBar.build(context),
+        body: ViewModelBuilder<TimestampDetailViewModel>.reactive(
+          viewModelBuilder: () => TimestampDetailViewModel(timestampId),
+          builder: (context, model, child) => _PhoneTimestampDetails(model: model),
+        ),
+      );
+    }
     return SailPage(
       title: 'Timestamp Details',
       body: ViewModelBuilder<TimestampDetailViewModel>.reactive(
@@ -136,6 +146,83 @@ class TimestampDetailPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _PhoneTimestampDetails extends StatelessWidget {
+  final TimestampDetailViewModel model;
+
+  const _PhoneTimestampDetails({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    if (model.isLoading) {
+      return const Center(child: LoadingIndicator());
+    }
+    final ts = model.timestamp;
+    if (ts == null) {
+      return Center(child: SailText.primary15(model.modelError ?? 'Timestamp not found'));
+    }
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(SailStyleValues.padding16),
+        child: SailCard(
+          title: 'Timestamp Details',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SailColumn(
+                spacing: 0,
+                withDivider: true,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SailValueRow(label: 'Filename', value: ts.filename),
+                  SailStackedValueRow(
+                    label: 'File Hash',
+                    value: ts.fileHash,
+                    action: _CopyIcon(onCopy: () => model.copyHash(context)),
+                  ),
+                  SailValueRow(label: 'Timestamped', value: formatConfirmedAt(ts, 'MMM d, yyyy HH:mm:ss')),
+                  SailValueRow(label: 'Status', value: ts.status.toUpperCase()),
+                  if (ts.status == 'confirming' || ts.status == 'confirmed')
+                    SailValueRow(label: 'Confirmations', value: ts.confirmations.toString()),
+                  if (ts.hasTxid())
+                    SailStackedValueRow(
+                      label: 'Transaction ID',
+                      value: ts.txid,
+                      action: _CopyIcon(onCopy: () => model.copyTxid(context)),
+                    ),
+                  if (ts.hasBlockHeight()) SailValueRow(label: 'Block Height', value: ts.blockHeight.toString()),
+                ],
+              ),
+              const SizedBox(height: SailStyleValues.padding08),
+              Align(
+                alignment: Alignment.centerRight,
+                child: SailButton(label: 'Close', onPressed: () async => GetIt.I.get<AppRouter>().pop()),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CopyIcon extends StatelessWidget {
+  final VoidCallback onCopy;
+
+  const _CopyIcon({required this.onCopy});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailButton(
+      variant: ButtonVariant.icon,
+      icon: SailSVGAsset.iconCopy,
+      iconWidth: 16,
+      onPressed: () async => onCopy(),
     );
   }
 }

@@ -16,18 +16,32 @@ class SailSettingsScaffold extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSectionSelected;
 
+  /// On a phone, each new value opens the selected section in place of the section list. Zero opens nothing.
+  final int phoneOpenRequest;
+
   const SailSettingsScaffold({
     super.key,
     required this.subtitle,
     required this.sections,
     required this.selectedIndex,
     required this.onSectionSelected,
+    this.phoneOpenRequest = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final index = selectedIndex.clamp(0, sections.length - 1);
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return _PhoneSettings(
+        subtitle: subtitle,
+        sections: sections,
+        selectedIndex: index,
+        onSectionSelected: onSectionSelected,
+        openRequest: phoneOpenRequest,
+      );
+    }
 
     return Container(
       color: theme.colors.background,
@@ -60,6 +74,126 @@ class SailSettingsScaffold extends StatelessWidget {
                   Expanded(child: sections[index].builder(context)),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The phone settings: a panel with a row per section. A row opens its section as a page with a back row.
+class _PhoneSettings extends StatefulWidget {
+  final String subtitle;
+  final List<SailSettingsSection> sections;
+  final int selectedIndex;
+  final ValueChanged<int> onSectionSelected;
+  final int openRequest;
+
+  const _PhoneSettings({
+    required this.subtitle,
+    required this.sections,
+    required this.selectedIndex,
+    required this.onSectionSelected,
+    required this.openRequest,
+  });
+
+  @override
+  State<_PhoneSettings> createState() => _PhoneSettingsState();
+}
+
+class _PhoneSettingsState extends State<_PhoneSettings> {
+  late bool _open = widget.openRequest > 0;
+
+  @override
+  void didUpdateWidget(_PhoneSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex != oldWidget.selectedIndex || widget.openRequest != oldWidget.openRequest) {
+      _open = true;
+    }
+  }
+
+  void _select(int index) {
+    widget.onSectionSelected(index);
+    setState(() => _open = true);
+  }
+
+  void _back() => setState(() => _open = false);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final section = widget.sections[widget.selectedIndex];
+
+    if (_open) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) {
+            _back();
+          }
+        },
+        child: ColoredBox(
+          color: theme.colors.background,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SailTappable(
+                key: const Key('settings-back'),
+                onTap: () async => _back(),
+                child: SizedBox(
+                  height: 44,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding12),
+                    child: Row(
+                      children: [
+                        SailSVG.fromAsset(SailSVGAsset.chevronLeft, color: theme.colors.text, width: 16),
+                        const SailSpacing(SailStyleValues.padding08),
+                        SailText.primary15(section.label, bold: true),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding12),
+                  child: SelectionArea(child: section.builder(context)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ColoredBox(
+      color: theme.colors.background,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(SailStyleValues.padding12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary18('Settings'),
+            const SailSpacing(SailStyleValues.padding04),
+            SailText.secondary13(widget.subtitle),
+            const SailSpacing(SailStyleValues.padding12),
+            SailStatList(
+              children: [
+                for (var i = 0; i < widget.sections.length; i++)
+                  SailTappable(
+                    onTap: () async => _select(i),
+                    child: SizedBox(
+                      height: 44,
+                      child: Row(
+                        children: [
+                          Expanded(child: SailText.primary13(widget.sections[i].label)),
+                          SailSVG.fromAsset(SailSVGAsset.chevronRight, color: theme.colors.textTertiary, width: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

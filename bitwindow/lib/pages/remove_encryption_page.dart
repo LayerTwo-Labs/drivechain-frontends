@@ -60,6 +60,57 @@ class _RemoveEncryptionPageState extends State<RemoveEncryptionPage> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final fields = <Widget>[
+      if (_errorMessage != null) ...[
+        Container(
+          padding: const EdgeInsets.all(SailStyleValues.padding12),
+          decoration: BoxDecoration(
+            color: theme.colors.error.withValues(alpha: 0.1),
+            borderRadius: context.sailTheme.chrome.radiusSmall,
+            border: Border.all(color: theme.colors.error),
+          ),
+          child: SailText.secondary13(_errorMessage!),
+        ),
+        const SizedBox(height: SailStyleValues.padding16),
+      ],
+      SailTextField(
+        controller: _passwordController,
+        label: 'Current Password',
+        hintText: 'Enter your current password',
+        obscureText: _obscurePassword,
+        enabled: !_isRemoving,
+        autofocus: true,
+        maxLines: 1,
+        onSubmitted: (_) => _removeEncryption(),
+        suffixWidget: GestureDetector(
+          onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+          child: SailSVG.fromAsset(
+            _obscurePassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
+            color: theme.colors.text,
+          ),
+        ),
+      ),
+    ];
+    final button = SailButton(
+      label: 'REMOVE ENCRYPTION',
+      variant: ButtonVariant.destructive,
+      loading: _isRemoving,
+      onPressed: () async => _removeEncryption(),
+    );
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailScaffold(
+        backgroundColor: theme.colors.background,
+        appBar: SailAppBar.build(context),
+        body: SafeArea(
+          child: SailPanelPage(
+            title: 'Remove Encryption',
+            actions: Align(alignment: Alignment.centerLeft, child: button),
+            children: fields,
+          ),
+        ),
+      );
+    }
 
     return SailScaffold(
       backgroundColor: theme.colors.background,
@@ -73,42 +124,9 @@ class _RemoveEncryptionPageState extends State<RemoveEncryptionPage> {
               children: [
                 SailText.primary24('REMOVE ENCRYPTION', bold: true),
                 const SizedBox(height: SailStyleValues.padding32),
-                if (_errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(SailStyleValues.padding12),
-                    decoration: BoxDecoration(
-                      color: theme.colors.error.withValues(alpha: 0.1),
-                      borderRadius: context.sailTheme.chrome.radiusSmall,
-                      border: Border.all(color: theme.colors.error),
-                    ),
-                    child: SailText.secondary13(_errorMessage!),
-                  ),
-                  const SizedBox(height: SailStyleValues.padding16),
-                ],
-                SailTextField(
-                  controller: _passwordController,
-                  label: 'Current Password',
-                  hintText: 'Enter your current password',
-                  obscureText: _obscurePassword,
-                  enabled: !_isRemoving,
-                  autofocus: true,
-                  maxLines: 1,
-                  onSubmitted: (_) => _removeEncryption(),
-                  suffixWidget: GestureDetector(
-                    onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-                    child: SailSVG.fromAsset(
-                      _obscurePassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
-                      color: theme.colors.text,
-                    ),
-                  ),
-                ),
+                ...fields,
                 const SizedBox(height: SailStyleValues.padding32),
-                SailButton(
-                  label: 'REMOVE ENCRYPTION',
-                  variant: ButtonVariant.destructive,
-                  loading: _isRemoving,
-                  onPressed: () async => _removeEncryption(),
-                ),
+                button,
               ],
             ),
           ),

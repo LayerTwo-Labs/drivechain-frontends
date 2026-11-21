@@ -44,27 +44,11 @@ class MultisigLoungeTab extends StatefulWidget {
 }
 
 class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindingObserver {
-  MultisigLoungeViewModel? _viewModel;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _viewModel?.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<MultisigLoungeViewModel>.reactive(
       viewModelBuilder: () => MultisigLoungeViewModel(),
-      onViewModelReady: (model) {
-        _viewModel = model;
-        model.initialize();
-      },
+      onViewModelReady: (model) => model.initialize(),
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
           return const SailPage(
@@ -119,6 +103,60 @@ class _GroupsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SailCard(
+            title: 'Multisig Groups',
+            subtitle: '${viewModel.multisigGroups.length} group(s)',
+            child: MultisigGroupsTable(
+              groups: viewModel.multisigGroups,
+              selectedGroup: viewModel.selectedGroup,
+              onSelectGroup: viewModel._stateManager.setSelectedGroup,
+              isLoading: viewModel.isLoadingGroups,
+            ),
+          ),
+          SailCard(
+            title: 'Group Tools',
+            subtitle: 'Manage multisig groups',
+            error: viewModel.groupToolsError,
+            child: _ToolGrid(
+              rows: [
+                [
+                  SailButton(
+                    label: 'Create New Group',
+                    onPressed: () => viewModel.createNewGroup(context),
+                    variant: ButtonVariant.primary,
+                  ),
+                  SailButton(
+                    label: 'Fund Group',
+                    onPressed: viewModel.multisigGroups.isNotEmpty
+                        ? () => viewModel.fundGroupWithSelection(context)
+                        : null,
+                    variant: ButtonVariant.secondary,
+                  ),
+                ],
+                [
+                  SailButton(
+                    label: 'Import from TXID',
+                    onPressed: () => viewModel.importFromTxid(context),
+                    variant: ButtonVariant.secondary,
+                  ),
+                  SailButton(
+                    label: 'Get Key',
+                    onPressed: () => viewModel.getMultisigKey(context),
+                    variant: ButtonVariant.secondary,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -199,6 +237,59 @@ class _TransactionsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SailCard(
+            title: 'Multisig Transactions',
+            subtitle: '${viewModel.transactionRows.length} transaction(s)',
+            error: viewModel.transactionsError,
+            child: MultisigTransactionsTable(
+              transactionRows: viewModel.transactionRows,
+              groups: viewModel.multisigGroups,
+              onAction: (tx, group) => viewModel.handleTransactionAction(context, tx, group),
+              onBroadcast: () => viewModel.openCombineAndBroadcastModal(context),
+              onView: (tx) => viewModel.openTransactionModal(context, tx),
+              onSign: (tx, group) => viewModel.showSignPreview(context, tx, group),
+              isLoading: viewModel.isLoadingTransactions,
+            ),
+          ),
+          SailCard(
+            title: 'Transaction Tools',
+            subtitle: 'Create and manage transactions',
+            error: viewModel.transactionToolsError,
+            child: _ToolGrid(
+              rows: [
+                [
+                  SailButton(
+                    label: 'Create Transaction',
+                    onPressed: viewModel.multisigGroups.any((g) => g.balance > 0)
+                        ? () => viewModel.createTransaction(context, null)
+                        : null,
+                    variant: ButtonVariant.primary,
+                  ),
+                ],
+                [
+                  SailButton(
+                    label: 'Import PSBT',
+                    onPressed: () => viewModel.importPSBT(context),
+                    variant: ButtonVariant.secondary,
+                  ),
+                  SailButton(
+                    label: 'Combine & Broadcast',
+                    onPressed: () => viewModel.openCombineAndBroadcastModal(context),
+                    variant: ButtonVariant.secondary,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -265,6 +356,30 @@ class _TransactionsSection extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Tool buttons in rows of equal width.
+class _ToolGrid extends StatelessWidget {
+  final List<List<Widget>> rows;
+
+  const _ToolGrid({required this.rows});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final row in rows)
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisSize: MainAxisSize.max,
+            children: [for (final button in row) Expanded(child: button)],
+          ),
       ],
     );
   }
@@ -362,6 +477,8 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
         enabled: true,
         description: 'Loading multisig groups...',
         child: SailTable(
+          phoneColumns: const [0, 2, 6],
+          shrinkWrap: SailStyleValues.phoneLayout(context),
           getRowId: (index) => 'skeleton$index',
           headerBuilder: (context) => [
             SailTableHeaderCell(name: 'Name', onSort: () => onSort('name')),
@@ -420,6 +537,8 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
     }
 
     return SailTable(
+      phoneColumns: const [0, 2, 6],
+      shrinkWrap: SailStyleValues.phoneLayout(context),
       getRowId: (index) => _sortedGroups.isNotEmpty ? _sortedGroups[index].id : 'empty$index',
       onSelectedRow: (rowId) {
         if (rowId != null && _sortedGroups.isNotEmpty) {
@@ -655,6 +774,8 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
         enabled: true,
         description: 'Loading multisig transactions...',
         child: SailTable(
+          phoneColumns: const [0, 2, 8],
+          shrinkWrap: SailStyleValues.phoneLayout(context),
           getRowId: (index) => 'skeleton$index',
           headerBuilder: (context) => [
             SailTableHeaderCell(name: 'Group', onSort: () => onSort('group')),
@@ -732,6 +853,8 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
     }
 
     return SailTable(
+      phoneColumns: const [0, 2, 8],
+      shrinkWrap: SailStyleValues.phoneLayout(context),
       getRowId: (index) =>
           widget.transactionRows.isNotEmpty ? widget.transactionRows[index].transaction.id : 'empty$index',
       headerBuilder: (context) => [

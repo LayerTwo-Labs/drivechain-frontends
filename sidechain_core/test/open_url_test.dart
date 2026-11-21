@@ -28,6 +28,11 @@ void main() {
     );
   });
 
+  test('openUrlCommand has no command on a phone, which opens a link through the app', () {
+    expect(() => openUrlCommand(OS.android, uri), throwsUnsupportedError);
+    expect(() => openUrlCommand(OS.ios, uri), throwsUnsupportedError);
+  });
+
   test('openUrlCommand keeps a file URI', () {
     _expectCommand(openUrlCommand(OS.macos, Uri.file('/tmp/paper wallet.pdf')), 'open', [
       'file:///tmp/paper%20wallet.pdf',

@@ -29,6 +29,40 @@ class TransactionDiagram extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
 
+    if (SailStyleValues.phoneLayout(context)) {
+      return Container(
+        padding: const EdgeInsets.all(SailStyleValues.padding12),
+        decoration: BoxDecoration(
+          color: theme.colors.backgroundSecondary,
+          borderRadius: context.sailTheme.chrome.radius,
+          border: Border.all(color: theme.colors.divider),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SailText.secondary12('Inputs (${details.inputs.length})', bold: true),
+            const SailSpacing(SailStyleValues.padding08),
+            for (final input in details.inputs) _InputNode(input: input, stacked: true),
+            if (details.inputs.isEmpty) SailText.secondary12('No inputs'),
+            const SailSpacing(SailStyleValues.padding08),
+            Center(
+              child: _FeeJunction(details: details, hasFee: hasFee, inline: true),
+            ),
+            const SailSpacing(SailStyleValues.padding12),
+            SailText.secondary12('Outputs (${details.outputs.length})', bold: true),
+            const SailSpacing(SailStyleValues.padding08),
+            for (final output in details.outputs)
+              _OutputNode(
+                output: output,
+                isChange: output.address.isNotEmpty && changeAddresses.contains(output.address),
+                stacked: true,
+              ),
+            if (details.outputs.isEmpty) SailText.secondary12('No outputs'),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(SailStyleValues.padding12),
       decoration: BoxDecoration(
@@ -80,12 +114,38 @@ class _FeeJunction extends StatelessWidget {
   final GetTransactionDetailsResponse details;
   final bool hasFee;
 
-  const _FeeJunction({required this.details, required this.hasFee});
+  /// True puts the label and the amount on one line.
+  final bool inline;
+
+  const _FeeJunction({required this.details, required this.hasFee, this.inline = false});
 
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
     final formatter = GetIt.I<FormatterProvider>();
+    final amount = hasFee ? formatter.formatSats(details.feeSats.toInt()) : 'Unknown';
+
+    if (inline) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SailStyleValues.padding12,
+          vertical: SailStyleValues.padding08,
+        ),
+        decoration: BoxDecoration(
+          color: theme.colors.orange.withValues(alpha: 0.15),
+          borderRadius: context.sailTheme.chrome.radiusSmall,
+          border: Border.all(color: theme.colors.orange),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailText.secondary12('Fee', bold: true, color: theme.colors.orange),
+            const SizedBox(width: 6),
+            SailText.primary12(amount, monospace: true),
+          ],
+        ),
+      );
+    }
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -103,10 +163,7 @@ class _FeeJunction extends StatelessWidget {
           child: Column(
             children: [
               SailText.secondary12('Fee', bold: true, color: theme.colors.orange),
-              SailText.primary12(
-                hasFee ? formatter.formatSats(details.feeSats.toInt()) : 'Unknown',
-                monospace: true,
-              ),
+              SailText.primary12(amount, monospace: true),
             ],
           ),
         ),
@@ -117,8 +174,9 @@ class _FeeJunction extends StatelessWidget {
 
 class _InputNode extends StatelessWidget {
   final TransactionInput input;
+  final bool stacked;
 
-  const _InputNode({required this.input});
+  const _InputNode({required this.input, this.stacked = false});
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +196,7 @@ class _InputNode extends StatelessWidget {
       accent: theme.colors.primary,
       amount: amount,
       label: label,
+      stacked: stacked,
     );
   }
 }
@@ -145,8 +204,9 @@ class _InputNode extends StatelessWidget {
 class _OutputNode extends StatelessWidget {
   final TransactionOutput output;
   final bool isChange;
+  final bool stacked;
 
-  const _OutputNode({required this.output, required this.isChange});
+  const _OutputNode({required this.output, required this.isChange, this.stacked = false});
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +223,7 @@ class _OutputNode extends StatelessWidget {
       amount: formatter.formatSats(output.valueSats.toInt()),
       label: label,
       tag: isChange ? 'change' : null,
+      stacked: stacked,
     );
   }
 }
@@ -174,17 +235,51 @@ class _Node extends StatelessWidget {
   final String label;
   final String? tag;
 
+  /// True fills the width with the text at the left, for the vertical phone diagram.
+  final bool stacked;
+
   const _Node({
     required this.alignEnd,
     required this.accent,
     required this.amount,
     required this.label,
     this.tag,
+    this.stacked = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
+
+    if (stacked) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: SailStyleValues.padding04),
+        padding: const EdgeInsets.symmetric(
+          horizontal: SailStyleValues.padding12,
+          vertical: SailStyleValues.padding08,
+        ),
+        decoration: BoxDecoration(
+          color: theme.colors.background,
+          borderRadius: context.sailTheme.chrome.radiusSmall,
+          border: Border(
+            left: alignEnd ? BorderSide.none : BorderSide(color: accent, width: 3),
+            right: alignEnd ? BorderSide(color: accent, width: 3) : BorderSide.none,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: SailText.primary12(amount, monospace: true, bold: true, maxLines: 1)),
+                if (tag != null) _tagChip(theme),
+              ],
+            ),
+            SailText.secondary12(_short(label), monospace: true, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: SailStyleValues.padding04),

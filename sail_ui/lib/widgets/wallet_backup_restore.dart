@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sidechain_core/utils/share_file.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Create a wallet backup zip file via backend RPC.
@@ -25,6 +26,27 @@ Future<String> createWalletBackup({
   log.i('Backup created successfully via RPC: $destinationPath');
   return destinationPath;
 }
+
+/// Writes a backup from [fetch] as [fileName] into a cleared [dir], then hands the file to [share].
+/// A phone app cannot write to a folder that the user picks, so the share sheet saves it.
+Future<String> shareWalletBackup({
+  required Future<List<int>> Function() fetch,
+  required Future<void> Function(String path) share,
+  required Directory dir,
+  required String fileName,
+}) async {
+  if (await dir.exists()) {
+    await dir.delete(recursive: true);
+  }
+  await dir.create(recursive: true);
+  final file = File(path.join(dir.path, fileName));
+  await file.writeAsBytes(await fetch());
+  await share(file.path);
+  return file.path;
+}
+
+@visibleForTesting
+Future<void> Function(String path) backupSharer = shareFile;
 
 /// Check if current wallet exists
 Future<bool> hasCurrentWallet(WalletWriterProvider walletProvider) async {
@@ -77,12 +99,38 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
   String? _error;
   bool _success = false;
 
+  String _backupFileName() {
+    final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+    return '${widget.appName.toLowerCase()}-backup-$timestamp.zip';
+  }
+
+  Future<void> _shareBackup() async {
+    setState(() {
+      _isCreatingBackup = true;
+      _error = null;
+    });
+    try {
+      await shareWalletBackup(
+        fetch: () async => (await GetIt.I.get<BitwindowRPC>().wallet.createBackup()).backupData,
+        share: backupSharer,
+        dir: Directory(path.join(Directory.systemTemp.path, 'wallet-backup')),
+        fileName: _backupFileName(),
+      );
+    } catch (e) {
+      log.e('Backup failed: $e');
+      if (mounted) {
+        setState(() => _error = 'Backup failed: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingBackup = false);
+      }
+    }
+  }
+
   Future<void> _selectSaveLocation() async {
     try {
-      final timestamp = DateFormat(
-        'yyyy-MM-dd_HH-mm-ss',
-      ).format(DateTime.now());
-      final defaultFileName = '${widget.appName.toLowerCase()}-backup-$timestamp.zip';
+      final defaultFileName = _backupFileName();
 
       final result = await FilePicker.getDirectoryPath(
         dialogTitle: 'Save Wallet Backup',
@@ -146,6 +194,124 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
       return _BackupSuccessScreen(selectedPath: _selectedPath);
     }
 
+    final phone = SailStyleValues.phoneLayout(context);
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // What's included
+        Container(
+          padding: phone ? EdgeInsets.zero : const EdgeInsets.all(16),
+          decoration: phone
+              ? null
+              : BoxDecoration(
+                  color: theme.colors.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary13(
+                'What will be backed up:',
+                bold: true,
+              ),
+              const SizedBox(height: 12),
+              const BulletPoint(
+                'Master wallet and all derived keys',
+              ),
+              const BulletPoint('All sidechain wallet seeds'),
+              const BulletPoint(
+                'Multisig group configurations',
+              ),
+              const BulletPoint(
+                'Transaction history and notes',
+              ),
+            ],
+          ),
+        ),
+        if (!phone) ...[
+          const SizedBox(height: 24),
+
+          // File selection
+          SailText.primary13('Save location:', bold: true),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _isCreatingBackup ? null : _selectSaveLocation,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: _selectedPath != null ? theme.colors.primary : theme.colors.border,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SailText.secondary13(
+                      _selectedPath ?? 'Click to choose save location...',
+                    ),
+                  ),
+                  Icon(
+                    Icons.folder_open,
+                    color: theme.colors.textSecondary,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+
+        if (_error != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colors.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: SailText.primary13(
+              _error!,
+              color: theme.colors.error,
+            ),
+          ),
+        ],
+      ],
+    );
+    final actions = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        SailButton(
+          label: '\u2190 Back',
+          variant: ButtonVariant.secondary,
+          onPressed: () async {
+            await context.router.maybePop();
+          },
+        ),
+        SailButton(
+          label: 'Create Backup',
+          variant: ButtonVariant.primary,
+          loading: _isCreatingBackup,
+          disabled: !phone && _selectedPath == null,
+          onPressed: phone ? _shareBackup : _createBackup,
+        ),
+      ],
+    );
+
+    if (phone) {
+      return Scaffold(
+        backgroundColor: theme.colors.background,
+        body: SafeArea(
+          child: SailPanelPage(
+            title: 'Backup your wallet',
+            subtitle: 'Create a secure backup of your wallet. This includes your master seed, all sidechain wallets, multisig configurations, and transaction history.',
+            actions: actions,
+            children: [body],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: theme.colors.background,
       body: Center(
@@ -163,108 +329,12 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
                 ),
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // What's included
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SailText.primary13(
-                                'What will be backed up:',
-                                bold: true,
-                              ),
-                              const SizedBox(height: 12),
-                              const BulletPoint(
-                                'Master wallet and all derived keys',
-                              ),
-                              const BulletPoint('All sidechain wallet seeds'),
-                              const BulletPoint(
-                                'Multisig group configurations',
-                              ),
-                              const BulletPoint(
-                                'Transaction history and notes',
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // File selection
-                        SailText.primary13('Save location:', bold: true),
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: _isCreatingBackup ? null : _selectSaveLocation,
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: _selectedPath != null ? theme.colors.primary : theme.colors.border,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: SailText.secondary13(
-                                    _selectedPath ?? 'Click to choose save location...',
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.folder_open,
-                                  color: theme.colors.textSecondary,
-                                  size: 20,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        if (_error != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: theme.colors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: SailText.primary13(
-                              _error!,
-                              color: theme.colors.error,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                    child: body,
                   ),
                 ),
                 const SizedBox(height: 24),
                 // Navigation buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SailButton(
-                      label: '\u2190 Back',
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async {
-                        await context.router.maybePop();
-                      },
-                    ),
-                    SailButton(
-                      label: 'Create Backup',
-                      variant: ButtonVariant.primary,
-                      loading: _isCreatingBackup,
-                      disabled: _selectedPath == null,
-                      onPressed: _createBackup,
-                    ),
-                  ],
-                ),
+                actions,
                 const SizedBox(height: 32),
               ],
             ),
@@ -723,13 +793,13 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
   Future<String?> _promptBackupPassword(wmpb.WalletBackup backup) async {
     final controller = TextEditingController();
     try {
-      return await showDialog<String>(
+      return await showSailDialog<String>(
         context: context,
         builder: (context) {
           final theme = SailTheme.of(context);
           return Dialog(
             backgroundColor: theme.colors.background,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: SailSheetScope.of(context) ? null : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 400),
               padding: const EdgeInsets.all(24),
@@ -978,6 +1048,20 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
       );
     }
 
+    if (widget.showScaffold && SailStyleValues.phoneLayout(context)) {
+      return Scaffold(
+        backgroundColor: theme.colors.background,
+        body: SafeArea(
+          child: SailPanelPage(
+            title: 'Restore from backup',
+            subtitle: 'Restore your wallet from a local backup or a backup file. This will restore your master seed and all sidechain wallets.',
+            actions: _restoreActions(),
+            children: [_buildRestoreOptionsBody(theme)],
+          ),
+        ),
+      );
+    }
+
     final options = _buildRestoreOptions(theme);
     if (!widget.showScaffold) {
       return options;
@@ -1014,40 +1098,47 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
         else
           _buildRestoreOptionsBody(theme),
         const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: widget.showBackButton ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
-          children: [
-            if (widget.showBackButton)
-              SailButton(
-                label: '\u2190 Back',
-                variant: ButtonVariant.secondary,
-                onPressed: () async {
-                  await context.router.maybePop();
-                },
-              ),
-            SailButton(
-              label: 'Restore selected backup',
-              variant: ButtonVariant.primary,
-              disabled: _selectedFile == null && _selectedBackup == null,
-              onPressed: _startRestore,
-            ),
-          ],
+        _restoreActions(),
+      ],
+    );
+  }
+
+  Widget _restoreActions() {
+    return Row(
+      mainAxisAlignment: widget.showBackButton ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+      children: [
+        if (widget.showBackButton)
+          SailButton(
+            label: '\u2190 Back',
+            variant: ButtonVariant.secondary,
+            onPressed: () async {
+              await context.router.maybePop();
+            },
+          ),
+        SailButton(
+          label: 'Restore selected backup',
+          variant: ButtonVariant.primary,
+          disabled: _selectedFile == null && _selectedBackup == null,
+          onPressed: _startRestore,
         ),
       ],
     );
   }
 
   Widget _buildRestoreOptionsBody(SailThemeData theme) {
+    final phone = SailStyleValues.phoneLayout(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Supported formats
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(8),
-          ),
+          padding: phone ? EdgeInsets.zero : const EdgeInsets.all(16),
+          decoration: phone
+              ? null
+              : BoxDecoration(
+                  color: theme.colors.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

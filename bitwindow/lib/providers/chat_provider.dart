@@ -577,6 +577,11 @@ class ChatProvider extends ChangeNotifier {
     await addContact(contact);
   }
 
+  void clearSelectedContact() {
+    _selectedContact = null;
+    notifyListeners();
+  }
+
   void selectContact(ChatContact contact) {
     _selectedContact = contact;
     _sendError = null;

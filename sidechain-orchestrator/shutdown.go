@@ -3,7 +3,6 @@ package orchestrator
 import (
 	"context"
 	"errors"
-	"os"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
@@ -17,15 +16,18 @@ const (
 	shutdownStateDrainingKeep int32 = 2 // drain in progress, stay alive at end
 )
 
-// exitProcess ends the daemon. A test replaces it to watch the exit.
-var exitProcess = os.Exit
-
 // ShutdownDraining reports whether a drain is currently in progress and, if
 // so, whether the daemon will os.Exit when it completes.
 func (o *Orchestrator) ShutdownDraining() (draining, willExit bool) {
 	o.shutdownMu.Lock()
 	defer o.shutdownMu.Unlock()
 	return o.shutdownState != shutdownStateRunning, o.shutdownState == shutdownStateDrainingExit
+}
+
+// SetExit replaces the call that ends the daemon after a shutdown drain. The
+// default is os.Exit.
+func (o *Orchestrator) SetExit(exit func(code int)) {
+	o.exit = exit
 }
 
 // SetLease hands over the client lease so a leaving frontend can waive its
@@ -125,7 +127,7 @@ func (o *Orchestrator) runShutdown(idleCh chan struct{}, keepL1 bool) {
 		o.shutdownIdle = nil
 		close(idleCh)
 		o.shutdownMu.Unlock()
-		exitProcess(0)
+		o.exit(0)
 		return
 	}
 
@@ -146,7 +148,7 @@ func (o *Orchestrator) runShutdown(idleCh chan struct{}, keepL1 bool) {
 
 	if final == shutdownStateDrainingExit {
 		o.log.Info().Msg("shutdown drain complete; exiting")
-		exitProcess(0)
+		o.exit(0)
 	}
 	o.log.Info().Msg("shutdown drain complete; staying alive (adopted by relaunched bitwindowd)")
 }

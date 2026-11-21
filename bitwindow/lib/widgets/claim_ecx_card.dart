@@ -351,7 +351,7 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
             const SailSpacing(SailStyleValues.padding16),
             Divider(height: 1, color: theme.colors.divider),
             const SailSpacing(SailStyleValues.padding16),
-            SailText.primary24(formatEcx(preview.amountSats)),
+            _ClaimAmount(formatEcx(preview.amountSats)),
             const SailSpacing(SailStyleValues.padding04),
             SailText.secondary12(
               '${preview.outputCount} ${preview.outputCount == 1 ? 'output' : 'outputs'} · ${shortenAddress(preview.address)}',
@@ -523,7 +523,7 @@ class _ClaimedCard extends StatelessWidget {
           const SailSpacing(SailStyleValues.padding04),
           SailText.secondary13('Your $_ticker is on the way to your wallet. It lands in the next block.'),
           const SailSpacing(SailStyleValues.padding16),
-          SailText.primary24(formatEcx(amountSats)),
+          _ClaimAmount(formatEcx(amountSats)),
           const SailSpacing(SailStyleValues.padding04),
           SailText.secondary12('To ${shortenAddress(destination)}'),
           const SailSpacing(SailStyleValues.padding16),
@@ -698,4 +698,18 @@ String shortenAddress(String value) {
     return value;
   }
   return '${value.substring(0, 12)}…${value.substring(value.length - 8)}';
+}
+
+class _ClaimAmount extends StatelessWidget {
+  final String amount;
+
+  const _ClaimAmount(this.amount);
+
+  @override
+  Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailText.primary18(amount);
+    }
+    return SailText.primary24(amount);
+  }
 }

@@ -223,6 +223,27 @@ class SendActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final airgap = onAirgap == null
+        ? null
+        : SailButton(
+            variant: ButtonVariant.secondary,
+            label: 'External signer (airgap)',
+            disabled: creating,
+            onPressed: onAirgap,
+          );
+    final stop = creating
+        ? SailButton(
+            variant: ButtonVariant.outline,
+            label: 'Cancel',
+            onPressed: () async => onCancel(),
+          )
+        : SailButton(
+            variant: ButtonVariant.outline,
+            label: 'Clear All',
+            onPressed: onClear,
+          );
+    final phone = SailStyleValues.phoneLayout(context);
+
     return SailColumn(
       spacing: SailStyleValues.padding08,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -234,13 +255,7 @@ class SendActions extends StatelessWidget {
           disabled: creating,
           onPressed: onCreate,
         ),
-        if (onAirgap != null)
-          SailButton(
-            variant: ButtonVariant.secondary,
-            label: 'External signer (airgap)',
-            disabled: creating,
-            onPressed: onAirgap,
-          ),
+        if (!phone) ?airgap,
         if (deviceType != null)
           SailButton(
             variant: ButtonVariant.secondary,
@@ -248,18 +263,16 @@ class SendActions extends StatelessWidget {
             disabled: creating,
             onPressed: onDevice,
           ),
-        if (creating)
-          SailButton(
-            variant: ButtonVariant.outline,
-            label: 'Cancel',
-            onPressed: () async => onCancel(),
+        if (phone && airgap != null)
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              Expanded(child: airgap),
+              Expanded(child: stop),
+            ],
           )
         else
-          SailButton(
-            variant: ButtonVariant.outline,
-            label: 'Clear All',
-            onPressed: onClear,
-          ),
+          stop,
       ],
     );
   }
@@ -378,6 +391,7 @@ class PayToCard extends ViewModelWidget<SendPageViewModel> {
   @override
   Widget build(BuildContext context, SendPageViewModel viewModel) {
     final canRemove = viewModel.recipients.length > 1;
+    final phone = SailStyleValues.phoneLayout(context);
 
     return SailCard(
       title: 'Pay To',
@@ -385,18 +399,21 @@ class PayToCard extends ViewModelWidget<SendPageViewModel> {
         spacing: SailStyleValues.padding12,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          RecipientColumnLabels(currentUnit: viewModel.currentUnit, canRemove: canRemove),
+          if (!phone) RecipientColumnLabels(currentUnit: viewModel.currentUnit, canRemove: canRemove),
           for (int i = 0; i < viewModel.recipients.length; i++)
-            RecipientRow(
-              key: ValueKey('recipient_row_${viewModel.recipients[i].id}'),
-              index: i,
-              recipient: viewModel.recipients[i],
-              addressBookEntries: viewModel.addressBookEntries,
-              onAddressSelected: (entry) => viewModel.onAddressSelected(i, entry),
-              onUseAvailableBalance: viewModel.onUseAvailableBalance,
-              currentUnit: viewModel.currentUnit,
-              onSaveToAddressBook: viewModel.saveToAddressBook,
-              onRemove: canRemove ? () => viewModel.removeRecipient(i) : null,
+            _RecipientDivider(
+              show: phone && i > 0,
+              child: RecipientRow(
+                key: ValueKey('recipient_row_${viewModel.recipients[i].id}'),
+                index: i,
+                recipient: viewModel.recipients[i],
+                addressBookEntries: viewModel.addressBookEntries,
+                onAddressSelected: (entry) => viewModel.onAddressSelected(i, entry),
+                onUseAvailableBalance: viewModel.onUseAvailableBalance,
+                currentUnit: viewModel.currentUnit,
+                onSaveToAddressBook: viewModel.saveToAddressBook,
+                onRemove: canRemove ? () => viewModel.removeRecipient(i) : null,
+              ),
             ),
           // The backend rejects subtract-fee with more than one destination.
           if (viewModel.recipients.length == 1)
@@ -418,6 +435,27 @@ class PayToCard extends ViewModelWidget<SendPageViewModel> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RecipientDivider extends StatelessWidget {
+  final bool show;
+  final Widget child;
+
+  const _RecipientDivider({required this.show, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!show) {
+      return child;
+    }
+    return Container(
+      padding: const EdgeInsets.only(top: SailStyleValues.padding12),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.sailTheme.colors.divider)),
+      ),
+      child: child,
     );
   }
 }
@@ -482,66 +520,63 @@ class RecipientRow extends StatelessWidget {
     final address = recipient.addressController.text;
     final bookLabel = addressBookEntries.firstWhereOrNull((e) => e.address == address)?.label ?? '';
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    final phone = SailStyleValues.phoneLayout(context);
+    final addressTools = SailRow(
       children: [
-        Expanded(
-          flex: _addressFlex,
-          child: SailTextField(
-            key: Key('recipient_address_$index'),
-            controller: recipient.addressController,
-            hintText: 'Enter a single L1 ${activeTicker.name} address (e.g. 1NS17iag...)',
-            size: TextFieldSize.small,
-            maxLines: null,
-            suffixWidget: SailRow(
-              children: [
-                PasteButton(onPaste: (text) => recipient.addressController.text = text),
-                if (address.isNotEmpty && !addressBookEntries.any((e) => e.address == address))
-                  SailButton(
-                    label: 'Save',
-                    variant: ButtonVariant.ghost,
-                    onPressed: () async => onSaveToAddressBook(context, address),
-                  ),
-                Flexible(
-                  child: SailDropdownButton<AddressBookEntry>(
-                    value: null,
-                    hint: addressBookEntries.isEmpty
-                        ? 'No Addresses Saved'
-                        : (bookLabel.isNotEmpty ? bookLabel : 'Address Book'),
-                    items: [
-                      for (final entry in addressBookEntries)
-                        SailDropdownItem<AddressBookEntry>(value: entry, label: entry.label),
-                    ],
-                    icon: SailSVG.fromAsset(SailSVGAsset.bookUser, width: 13, color: theme.colors.inactiveNavText),
-                    onChanged: onAddressSelected,
-                  ),
-                ),
-              ],
-            ),
+        PasteButton(onPaste: (text) => recipient.addressController.text = text),
+        if (address.isNotEmpty && !addressBookEntries.any((e) => e.address == address))
+          SailButton(
+            label: 'Save',
+            variant: ButtonVariant.ghost,
+            onPressed: () async => onSaveToAddressBook(context, address),
+          ),
+        Flexible(
+          child: SailDropdownButton<AddressBookEntry>(
+            value: null,
+            hint: addressBookEntries.isEmpty
+                ? 'No Addresses Saved'
+                : (bookLabel.isNotEmpty ? bookLabel : 'Address Book'),
+            items: [
+              for (final entry in addressBookEntries)
+                SailDropdownItem<AddressBookEntry>(value: entry, label: entry.label),
+            ],
+            icon: SailSVG.fromAsset(SailSVGAsset.bookUser, width: 13, color: theme.colors.inactiveNavText),
+            onChanged: onAddressSelected,
           ),
         ),
-        const SizedBox(width: SailStyleValues.padding08),
-        Expanded(
-          flex: _amountFlex,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: _amountMinWidth),
-            child: NumericField(
-              key: Key('recipient_amount_$index'),
-              controller: recipient.amountController,
-              hintText: '0.00',
-              textFieldType: currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
-              suffixWidget: SailButton(
-                label: 'MAX',
-                variant: ButtonVariant.link,
-                onPressed: () async => onUseAvailableBalance(index),
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-        ),
-        if (onRemove != null) ...[
-          const SizedBox(width: SailStyleValues.padding08),
-          SizedBox(
+      ],
+    );
+    final addressField = SailTextField(
+      key: Key('recipient_address_$index'),
+      controller: recipient.addressController,
+      hintText: 'Enter a single L1 ${activeTicker.name} address (e.g. 1NS17iag...)',
+      size: TextFieldSize.small,
+      minLines: phone ? 1 : null,
+      maxLines: null,
+      suffixWidget: phone ? null : addressTools,
+      bottomWidget: phone ? addressTools : null,
+    );
+    final maxButton = SailButton(
+      label: 'MAX',
+      variant: ButtonVariant.link,
+      onPressed: () async => onUseAvailableBalance(index),
+      padding: EdgeInsets.zero,
+    );
+    final amountField = NumericField(
+      key: Key('recipient_amount_$index'),
+      controller: recipient.amountController,
+      hintText: '0.00',
+      textFieldType: currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
+      suffixWidget: phone
+          ? SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [SailText.secondary13(currentUnit.symbol), maxButton],
+            )
+          : maxButton,
+    );
+    final removeButton = onRemove == null
+        ? null
+        : SizedBox(
             width: _removeWidth,
             child: SailButton(
               key: Key('recipient_remove_$index'),
@@ -549,8 +584,37 @@ class RecipientRow extends StatelessWidget {
               icon: SailSVGAsset.iconClose,
               onPressed: () async => onRemove!(),
             ),
+          );
+
+    if (phone) {
+      return SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          addressField,
+          Row(
+            children: [
+              Expanded(child: amountField),
+              if (removeButton != null) ...[const SizedBox(width: SailStyleValues.padding08), removeButton],
+            ],
           ),
         ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(flex: _addressFlex, child: addressField),
+        const SizedBox(width: SailStyleValues.padding08),
+        Expanded(
+          flex: _amountFlex,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: _amountMinWidth),
+            child: amountField,
+          ),
+        ),
+        if (removeButton != null) ...[const SizedBox(width: SailStyleValues.padding08), removeButton],
       ],
     );
   }

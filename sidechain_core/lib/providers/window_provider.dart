@@ -41,6 +41,13 @@ class WindowProvider extends ChangeNotifier {
 
   WindowProvider._create({required this.logFile, required this.appDir});
 
+  /// False where the app owns no OS windows, so [open] shows the window in the app.
+  @visibleForTesting
+  bool desktopWindows = hasDesktopWindow;
+
+  /// Shows a window as a page in the app. [open] calls it where there are no desktop windows.
+  Future<void> Function(SailWindow windowType, Map<String, dynamic> arguments)? openInApp;
+
   // Async factory
   static Future<WindowProvider> newInstance(
     File logFile,
@@ -56,7 +63,7 @@ class WindowProvider extends ChangeNotifier {
   Future<void> _initialize({required bool isMainWindow}) async {
     // Only the main window registers the handler in unidirectional mode
     // Sub-windows can invoke methods but don't register
-    if (isMainWindow) {
+    if (isMainWindow && hasDesktopWindow) {
       const channel = WindowMethodChannel(
         _windowChannel,
         mode: ChannelMode.unidirectional,
@@ -67,6 +74,14 @@ class WindowProvider extends ChangeNotifier {
 
   /// Create a new window with the specified window type
   Future<WindowInfo?> open(SailWindow windowType, {Map<String, dynamic> arguments = const {}}) async {
+    if (!desktopWindows) {
+      final opener = openInApp;
+      if (opener == null) {
+        throw StateError('no in-app page for window ${windowType.identifier}');
+      }
+      await opener(windowType, arguments);
+      return null;
+    }
     try {
       final screen = PlatformDispatcher.instance.displays.first;
       final physicalSize = screen.size;

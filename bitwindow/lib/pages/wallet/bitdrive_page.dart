@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
+import 'package:sidechain_core/utils/share_file.dart';
 import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/sail_ui.dart';
 
@@ -22,7 +23,7 @@ class BitDriveTab extends StatelessWidget {
           subtitle:
               'BitDrive lets you permanently store files and text on the ${activeTicker.name} blockchain. Your data becomes part of ${activeTicker.name} history.',
           bottomPadding: false,
-          widgetHeaderEnd: model.bitdriveDir != null
+          widgetHeaderEnd: model.bitdriveDir != null && !SailStyleValues.phoneLayout(context)
               ? SailButton(
                   label: 'Open Folder',
                   variant: ButtonVariant.secondary,
@@ -219,6 +220,9 @@ class _MyFilesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return _PhoneMyFiles(model: model);
+    }
     return SailColumn(
       spacing: SailStyleValues.padding16,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,19 +321,115 @@ class _MyFilesTab extends StatelessWidget {
       ],
     );
   }
+}
 
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) {
-      return '$bytes B';
-    }
-    if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    }
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+String _formatFileSize(int bytes) {
+  if (bytes < 1024) {
+    return '$bytes B';
+  }
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
+DateTime _fileDate(bitdrivepb.BitDriveFile file) =>
+    file.hasCreatedAt() ? file.createdAt.toDateTime() : DateTime.fromMillisecondsSinceEpoch(file.timestamp * 1000);
+
+class _PhoneMyFiles extends StatelessWidget {
+  final BitDriveViewModel model;
+
+  const _PhoneMyFiles({required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final files = model.downloadedFiles;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SailText.primary15('Your files stored on ${activeTicker.name}', bold: true),
+        SailText.secondary12(
+          '${files.length} files downloaded${model.pendingDownloadsCount > 0 ? ', ${model.pendingDownloadsCount} pending' : ''}',
+        ),
+        const SizedBox(height: SailStyleValues.padding04),
+        SailRow(
+          spacing: SailStyleValues.padding08,
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SailButton(
+              label: 'Scan for new',
+              variant: model.pendingDownloadsCount > 0 ? ButtonVariant.secondary : ButtonVariant.primary,
+              small: true,
+              loading: model.isScanning,
+              loadingLabel: 'Scanning...',
+              onPressed: () async => model.scanFiles(),
+            ),
+            SailButton(
+              label: 'Download all',
+              variant: model.pendingDownloadsCount > 0 ? ButtonVariant.primary : ButtonVariant.secondary,
+              small: true,
+              disabled: model.pendingDownloadsCount == 0,
+              loading: model.isDownloading,
+              loadingLabel: 'Downloading...',
+              onPressed: () async => model.downloadFiles(),
+            ),
+          ],
+        ),
+        const SizedBox(height: SailStyleValues.padding12),
+        Expanded(
+          child: files.isEmpty
+              ? Center(child: SailText.secondary13('No files downloaded yet'))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(height: 1, color: SailTheme.of(context).colors.divider),
+                    Expanded(
+                      child: SailDividedList(
+                        itemCount: files.length,
+                        itemBuilder: (context, index) {
+                          final file = files[index];
+                          return SailTappable(
+                            onTap: () async {
+                              try {
+                                await model.shareDownloadedFile(file.filename);
+                              } catch (e) {
+                                if (context.mounted) {
+                                  showSailToast(context, '$e', variant: SailToastVariant.destructive);
+                                }
+                              }
+                            },
+                            child: SailListRow(
+                              title: file.filename,
+                              subtitle: DateFormat('MMM d, yyyy').format(_fileDate(file)),
+                              trailing: SailRow(
+                                spacing: SailStyleValues.padding12,
+                                children: [
+                                  SailText.primary13(_formatFileSize(file.sizeBytes.toInt())),
+                                  SailSVG.fromAsset(
+                                    SailSVGAsset.share,
+                                    width: 14,
+                                    color: SailTheme.of(context).colors.textSecondary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ],
+    );
   }
 }
 
 class BitDriveViewModel extends BaseViewModel {
+  @visibleForTesting
+  static Future<void> Function(String path) share = shareFile;
+
   final BitDriveProvider provider = GetIt.I.get<BitDriveProvider>();
   final TextEditingController textController = TextEditingController();
   late final TextEditingController feeController = TextEditingController(text: '${provider.feeSatPerVbyte}');
@@ -434,6 +534,15 @@ class BitDriveViewModel extends BaseViewModel {
     } catch (e) {
       log.e('Error loading downloaded files: $e');
     }
+  }
+
+  /// Opens the phone share sheet for a downloaded file.
+  Future<void> shareDownloadedFile(String filename) async {
+    final dir = _bitdriveDir;
+    if (dir == null) {
+      throw StateError('the BitDrive folder is not known yet');
+    }
+    await share(p.join(dir, filename));
   }
 
   Future<void> openBitdriveDir() async {

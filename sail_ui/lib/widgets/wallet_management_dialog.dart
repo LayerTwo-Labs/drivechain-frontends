@@ -4,6 +4,7 @@ import 'package:sidechain_core/models/wallet_metadata.dart';
 import 'package:sidechain_core/utils/uuid.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/buttons/button.dart';
+import 'package:sail_ui/widgets/containers/sail_dialogs.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sail_ui/widgets/inputs/text_field.dart';
 import 'package:sail_ui/widgets/wallet_blob_avatar.dart';
@@ -79,7 +80,7 @@ class _WalletManagementDialogState extends State<WalletManagementDialog> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showSailDialog<bool>(
       context: context,
       builder: (context) => _DeleteConfirmationDialog(walletName: widget.existingWallet!.name),
     );

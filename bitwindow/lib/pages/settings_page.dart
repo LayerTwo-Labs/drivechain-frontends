@@ -19,7 +19,7 @@ class SettingsPage extends StatefulWidget {
 
   static void setSection(int index) {
     if (_currentState != null) {
-      _currentState!.setSelectedIndex(index);
+      _currentState!.openSection(index);
     } else {
       _pendingSection = index;
     }
@@ -50,6 +50,7 @@ class SettingsPage extends StatefulWidget {
 
 class SettingsPageState extends State<SettingsPage> {
   late int _selectedIndex;
+  late int _openRequest;
 
   @override
   void initState() {
@@ -57,6 +58,7 @@ class SettingsPageState extends State<SettingsPage> {
     SettingsPage._currentState = this;
     final pending = SettingsPage._pendingSection;
     SettingsPage._pendingSection = null;
+    _openRequest = pending != null || widget.initialSection != 0 ? 1 : 0;
     _selectedIndex = (pending ?? widget.initialSection).clamp(0, SettingsPage.sections.length - 1);
   }
 
@@ -66,6 +68,15 @@ class SettingsPageState extends State<SettingsPage> {
       SettingsPage._currentState = null;
     }
     super.dispose();
+  }
+
+  void openSection(int index) {
+    if (index >= 0 && index < SettingsPage.sections.length) {
+      setState(() {
+        _selectedIndex = index;
+        _openRequest++;
+      });
+    }
   }
 
   void setSelectedIndex(int index) {
@@ -83,6 +94,7 @@ class SettingsPageState extends State<SettingsPage> {
       selectedIndex: _selectedIndex,
       onSectionSelected: setSelectedIndex,
       sections: SettingsPage.sections,
+      phoneOpenRequest: _openRequest,
     );
   }
 }

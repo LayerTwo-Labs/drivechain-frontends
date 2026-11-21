@@ -245,9 +245,8 @@ func RPCPortForNetwork(n Network) int {
 
 // EsploraURLsForNetwork returns the esplora API URLs for a network, primary
 // first. The wallet rotates to the next on a rate-limit/outage, so a network
-// can list multiple providers for resilience. Regtest returns nil — no public
-// esplora exists for it and we don't ship a local one, so the enforcer falls
-// back to wallet-sync-source=disabled (see GetCliArgs in enforcer_conf.go).
+// can list multiple providers for resilience. No public esplora exists for
+// regtest, so it returns the self-hosted server of SetRegtestEndpoints, or nil.
 func EsploraURLsForNetwork(n Network) []string {
 	switch n {
 	case NetworkSignet:
@@ -259,6 +258,11 @@ func EsploraURLsForNetwork(n Network) []string {
 	case NetworkECash:
 		if backend := ECashEndpoints().BackendURL("esplora"); backend != "" {
 			return []string{backend}
+		}
+		return nil
+	case NetworkRegtest:
+		if url := CurrentRegtestEndpoints().EsploraURL; url != "" {
+			return []string{url}
 		}
 		return nil
 	default:
@@ -613,7 +617,7 @@ func ChainParamsFor(n Network) *chaincfg.Params {
 
 // SupportsLightMode reports whether a network can run without a local node.
 // Light mode reads the chain from Esplora, so a network with no Esplora server
-// — regtest and testnet — runs in full mode only.
+// — testnet, and regtest with no self-hosted server — runs in full mode only.
 func SupportsLightMode(n Network) bool {
 	return EsploraURLForNetwork(n) != ""
 }

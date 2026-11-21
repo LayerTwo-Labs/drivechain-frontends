@@ -56,27 +56,30 @@ class ForkCountdownTimer extends StatelessWidget {
             color: theme.colors.orange.withValues(alpha: 0.08),
             border: Border(bottom: BorderSide(color: theme.colors.divider)),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(color: theme.colors.orange, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              SailText.secondary12(
-                forkStripLabel(_fork.networkName, _fork.blocksUntilFork),
-                bold: true,
-                color: theme.colors.textSecondary,
-              ),
-              const SizedBox(width: 10),
-              _Countdown(target: target),
-              const SizedBox(width: 10),
-              _divider(theme),
-              const SizedBox(width: 10),
-              SailText.secondary12('BLOCK ~${_grouped(_fork.forkHeight)}', color: theme.colors.orange),
-            ],
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(color: theme.colors.orange, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 8),
+                SailText.secondary12(
+                  forkStripLabel(_fork.networkName, _fork.blocksUntilFork),
+                  bold: true,
+                  color: theme.colors.textSecondary,
+                ),
+                const SizedBox(width: 10),
+                _Countdown(target: target),
+                const SizedBox(width: 10),
+                _divider(theme),
+                const SizedBox(width: 10),
+                SailText.secondary12('BLOCK ~${_grouped(_fork.forkHeight)}', color: theme.colors.orange),
+              ],
+            ),
           ),
         );
       },

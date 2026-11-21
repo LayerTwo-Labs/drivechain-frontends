@@ -173,21 +173,28 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_consolidation.runs.isNotEmpty) _ProgressCard(consolidation: _consolidation),
-              SailRow(
-                spacing: SailStyleValues.padding16,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding16,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [_limitCard(), _coinsCard()],
+              if (_consolidation.runs.isNotEmpty && !SailStyleValues.phoneLayout(context))
+                _ProgressCard(consolidation: _consolidation),
+              if (SailStyleValues.phoneLayout(context)) ...[
+                _limitCard(),
+                _coinsCard(),
+                if (_consolidation.runs.isNotEmpty) _ProgressCard(consolidation: _consolidation),
+                _planCard(),
+              ] else
+                SailRow(
+                  spacing: SailStyleValues.padding16,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding16,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [_limitCard(), _coinsCard()],
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 360, child: _planCard()),
-                ],
-              ),
+                    SizedBox(width: 360, child: _planCard()),
+                  ],
+                ),
             ],
           ),
         );
@@ -198,16 +205,19 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
   Widget _limitCard() {
     final belowLimit = _coins.where((c) => c.valueSats.toInt() <= _limitSats).toList();
     final belowSats = belowLimit.fold<int>(0, (sum, c) => sum + c.valueSats.toInt());
+    final phone = SailStyleValues.phoneLayout(context);
 
     return SailCard(
       title: 'Coin size limit',
       subtitle: 'Select every coin below this value.',
-      widgetHeaderEnd: SailText.primary15(_formatter.formatSats(_limitSats), bold: true),
+      widgetHeaderEnd: phone ? null : SailText.primary15(_formatter.formatSats(_limitSats), bold: true),
       child: SailColumn(
         spacing: SailStyleValues.padding08,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailSlider(
+            showSteps: !phone,
+            trackColor: phone ? SailTheme.of(context).colors.divider : null,
             value: _limitIndex.toDouble(),
             min: 0,
             max: (limitSteps.length - 1).toDouble(),
@@ -217,15 +227,20 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
               _setBase(_SelectionBase.limit);
             },
           ),
-          SailRow(
-            spacing: SailStyleValues.padding12,
-            children: [
-              Expanded(
-                child: SailText.secondary12('${belowLimit.length} coins are below the limit'),
-              ),
-              SailText.secondary12(_formatter.formatSats(belowSats)),
-            ],
-          ),
+          if (phone) ...[
+            SailText.primary15(_formatter.formatSats(_limitSats), bold: true),
+            SailText.secondary12('${belowLimit.length} coins are below the limit'),
+            SailText.secondary12(_formatter.formatSats(belowSats)),
+          ] else
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              children: [
+                Expanded(
+                  child: SailText.secondary12('${belowLimit.length} coins are below the limit'),
+                ),
+                SailText.secondary12(_formatter.formatSats(belowSats)),
+              ],
+            ),
         ],
       ),
     );
@@ -234,6 +249,88 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
   Widget _coinsCard() {
     final coins = _visibleCoins;
     final frozenCount = _coins.where((c) => _isFrozen(c.output)).length;
+    final phone = SailStyleValues.phoneLayout(context);
+
+    final table = SailTable(
+      phoneColumns: const [0, 1, 5],
+      shrinkWrap: phone,
+      getRowId: (index) => coins[index].output,
+      rowCount: coins.length,
+      emptyPlaceholder: 'This wallet holds no coins',
+      headerBuilder: (context) => const [
+        SailTableHeaderCell(name: ''),
+        SailTableHeaderCell(name: 'Date'),
+        SailTableHeaderCell(name: 'Coin'),
+        SailTableHeaderCell(name: 'Address'),
+        SailTableHeaderCell(name: 'Label'),
+        SailTableHeaderCell(name: 'Value'),
+      ],
+      rowBuilder: (context, row, selected) {
+        final coin = coins[row];
+        final frozen = _isFrozen(coin.output);
+
+        return [
+          SailTableCell(
+            value: '',
+            child: SailCheckbox(
+              value: _isSelected(coin),
+              enabled: !frozen,
+              onChanged: frozen ? null : (value) => _toggle(coin.output, value),
+            ),
+          ),
+          SailTableCell(
+            value: coin.hasReceivedAt() ? formatDate(coin.receivedAt.toDateTime().toLocal()) : '—',
+          ),
+          SailTableCell(
+            value: '${coin.output.substring(0, 6)}..:${coin.output.split(':').last}',
+            copyValue: coin.output,
+          ),
+          SailTableCell(value: coin.address, copyValue: coin.address),
+          SailTableCell(
+            value: _isLocked(coin.output)
+                ? 'Locked'
+                : frozen
+                ? 'Frozen'
+                : _coinSelection.getLabel(coin.output),
+          ),
+          SailTableCell(value: _formatter.formatSats(coin.valueSats.toInt()), monospace: true),
+        ];
+      },
+    );
+
+    if (phone) {
+      return SailCard(
+        title: 'Coins',
+        subtitle: '${_selectedCoins.length} of ${_coins.length} coins selected',
+        child: SailColumn(
+          spacing: SailStyleValues.padding08,
+          children: [
+            SailRow(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SailButton(
+                  label: _hideFrozen ? 'Show frozen ($frozenCount)' : 'Hide frozen ($frozenCount)',
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => setState(() => _hideFrozen = !_hideFrozen),
+                ),
+                SailButton(
+                  label: 'Select all',
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => _setBase(_SelectionBase.all),
+                ),
+                SailButton(
+                  label: 'Clear',
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => _setBase(_SelectionBase.none),
+                ),
+              ],
+            ),
+            table,
+          ],
+        ),
+      );
+    }
 
     return SailCard(
       title: 'Coins',
@@ -259,53 +356,7 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
           ),
         ],
       ),
-      child: SizedBox(
-        height: 420,
-        child: SailTable(
-          getRowId: (index) => coins[index].output,
-          rowCount: coins.length,
-          emptyPlaceholder: 'This wallet holds no coins',
-          headerBuilder: (context) => const [
-            SailTableHeaderCell(name: ''),
-            SailTableHeaderCell(name: 'Date'),
-            SailTableHeaderCell(name: 'Coin'),
-            SailTableHeaderCell(name: 'Address'),
-            SailTableHeaderCell(name: 'Label'),
-            SailTableHeaderCell(name: 'Value'),
-          ],
-          rowBuilder: (context, row, selected) {
-            final coin = coins[row];
-            final frozen = _isFrozen(coin.output);
-
-            return [
-              SailTableCell(
-                value: '',
-                child: SailCheckbox(
-                  value: _isSelected(coin),
-                  enabled: !frozen,
-                  onChanged: frozen ? null : (value) => _toggle(coin.output, value),
-                ),
-              ),
-              SailTableCell(
-                value: coin.hasReceivedAt() ? formatDate(coin.receivedAt.toDateTime().toLocal()) : '—',
-              ),
-              SailTableCell(
-                value: '${coin.output.substring(0, 6)}..:${coin.output.split(':').last}',
-                copyValue: coin.output,
-              ),
-              SailTableCell(value: coin.address, copyValue: coin.address),
-              SailTableCell(
-                value: _isLocked(coin.output)
-                    ? 'Locked'
-                    : frozen
-                    ? 'Frozen'
-                    : _coinSelection.getLabel(coin.output),
-              ),
-              SailTableCell(value: _formatter.formatSats(coin.valueSats.toInt()), monospace: true),
-            ];
-          },
-        ),
-      ),
+      child: SizedBox(height: 420, child: table),
     );
   }
 
@@ -392,6 +443,9 @@ class _ConsolidateTabState extends State<ConsolidateTab> {
   );
 
   Widget _note(String text) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailText.secondary12(text);
+    }
     final theme = SailTheme.of(context);
     return Container(
       width: double.infinity,
@@ -414,6 +468,7 @@ class _ProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
     final runs = consolidation.runs;
+    final phone = SailStyleValues.phoneLayout(context);
 
     return SailCard(
       title: 'Consolidation runs',
@@ -440,32 +495,56 @@ class _ProgressCard extends StatelessWidget {
         ],
       ),
       child: SailColumn(
-        spacing: SailStyleValues.padding08,
+        spacing: phone ? 0 : SailStyleValues.padding08,
+        withDivider: phone,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final run in runs)
-            SailRow(
-              spacing: SailStyleValues.padding12,
-              children: [
-                SizedBox(width: 110, child: SailText.primary13('${run.index + 1} of ${runs.length}')),
-                SizedBox(width: 110, child: SailText.secondary13('${run.coinCount} coins')),
-                SizedBox(width: 110, child: SailText.secondary13('${run.vbytes} vB')),
-                Expanded(child: SailText.secondary13(formatter.formatSats(run.outputSats))),
-                SailText.secondary12(_statusLabel(run.status)),
-                if (run.txid != null)
-                  SailButton(
-                    label: 'Show',
-                    variant: ButtonVariant.ghost,
-                    onPressed: () async => showTransactionDetails(context, run.txid!),
-                  ),
-                if (run.canUnfreeze)
-                  SailButton(
-                    label: 'Unfreeze',
-                    variant: ButtonVariant.ghost,
-                    onPressed: () async => consolidation.unfreeze(run),
-                  ),
-              ],
-            ),
+          if (phone)
+            for (final run in runs)
+              SailListRow(
+                title: '${run.index + 1} of ${runs.length} · ${run.coinCount} coins',
+                subtitle: '${formatter.formatSats(run.outputSats)} · ${_statusLabel(run.status)}',
+                trailing: SailRow(
+                  children: [
+                    if (run.txid != null)
+                      SailButton(
+                        label: 'Show',
+                        variant: ButtonVariant.ghost,
+                        onPressed: () async => showTransactionDetails(context, run.txid!),
+                      ),
+                    if (run.canUnfreeze)
+                      SailButton(
+                        label: 'Unfreeze',
+                        variant: ButtonVariant.ghost,
+                        onPressed: () async => consolidation.unfreeze(run),
+                      ),
+                  ],
+                ),
+              )
+          else
+            for (final run in runs)
+              SailRow(
+                spacing: SailStyleValues.padding12,
+                children: [
+                  SizedBox(width: 110, child: SailText.primary13('${run.index + 1} of ${runs.length}')),
+                  SizedBox(width: 110, child: SailText.secondary13('${run.coinCount} coins')),
+                  SizedBox(width: 110, child: SailText.secondary13('${run.vbytes} vB')),
+                  Expanded(child: SailText.secondary13(formatter.formatSats(run.outputSats))),
+                  SailText.secondary12(_statusLabel(run.status)),
+                  if (run.txid != null)
+                    SailButton(
+                      label: 'Show',
+                      variant: ButtonVariant.ghost,
+                      onPressed: () async => showTransactionDetails(context, run.txid!),
+                    ),
+                  if (run.canUnfreeze)
+                    SailButton(
+                      label: 'Unfreeze',
+                      variant: ButtonVariant.ghost,
+                      onPressed: () async => consolidation.unfreeze(run),
+                    ),
+                ],
+              ),
           for (final run in runs.where((r) => r.error != null))
             SailText.secondary12('Transaction ${run.index + 1}: ${run.error}'),
         ],

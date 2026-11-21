@@ -17,6 +17,7 @@ class ChatPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final phone = SailStyleValues.phoneLayout(context);
 
     return QtPage(
       child: ViewModelBuilder<ChatViewModel>.reactive(
@@ -37,6 +38,7 @@ class ChatPage extends StatelessWidget {
                     width: double.infinity,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: phone ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                       children: [
                         SailSVG.fromAsset(
                           SailSVGAsset.iconWarning,
@@ -54,7 +56,7 @@ class ChatPage extends StatelessWidget {
                           '1. Go to the Sidechains tab\n'
                           '2. Download and start BitNames\n'
                           '3. Register at least one BitName identity',
-                          textAlign: TextAlign.center,
+                          textAlign: phone ? TextAlign.start : TextAlign.center,
                         ),
                       ],
                     ),
@@ -65,177 +67,287 @@ class ChatPage extends StatelessWidget {
           }
 
           final contacts = model.contacts;
-          return Column(
-            children: [
-              // Identity selector (inlined)
-              SailCard(
-                padding: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: SailStyleValues.padding16,
-                    vertical: SailStyleValues.padding08,
+          final identityBar = SailCard(
+            padding: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: SailStyleValues.padding16,
+                vertical: SailStyleValues.padding08,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Status bars - stack all status messages
+                  ...model.statusMessages.map(
+                    (status) => _ClaimingStatusBar(status: status.message),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                  // Main action bar
+                  Row(
                     children: [
-                      // Status bars - stack all status messages
-                      ...model.statusMessages.map(
-                        (status) => _ClaimingStatusBar(status: status.message),
-                      ),
-                      // Main action bar
-                      Row(
-                        children: [
-                          SailText.secondary13('Chatting as:'),
-                          const SizedBox(width: SailStyleValues.padding12),
-                          if (model.myIdentities.isNotEmpty)
-                            _SearchableIdentityDropdown(
-                              identities: model.myIdentities,
-                              allBitNames: model.allBitNames,
-                              selectedIdentity: model.selectedIdentity,
-                              onIdentitySelected: model.selectIdentity,
-                            )
-                          else
-                            SailText.secondary13('No BitNames owned'),
-                          const SizedBox(width: SailStyleValues.padding12),
-                          if (model.hasSufficientBalance)
-                            SailTooltip(
-                              message: 'Registering a BitName costs sats on the BitNames sidechain',
-                              child: SailButton(
-                                label: 'Register BitName',
-                                variant: ButtonVariant.secondary,
-                                disabled: model.isClaiming,
-                                onPressed: () async => _showRegisterBitNameDialog(context, model),
-                                skipLoading: true,
-                              ),
-                            )
-                          else if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
-                            SailTooltip(
-                              message: 'You need BitNames sidechain balance to register a BitName',
-                              child: SailButton(
-                                label: 'Deposit to BitNames',
-                                variant: ButtonVariant.primary,
-                                onPressed: () async => showDepositModal(context, BitNames().slot, 'BitNames'),
-                              ),
-                            ),
-                          const Spacer(),
-                          SailButton(
-                            label: 'Add Contact',
+                      SailText.secondary13('Chatting as:'),
+                      SizedBox(width: phone ? SailStyleValues.padding08 : SailStyleValues.padding12),
+                      if (model.myIdentities.isNotEmpty && phone)
+                        Flexible(
+                          child: _SearchableIdentityDropdown(
+                            identities: model.myIdentities,
+                            allBitNames: model.allBitNames,
+                            selectedIdentity: model.selectedIdentity,
+                            onIdentitySelected: model.selectIdentity,
+                          ),
+                        )
+                      else if (model.myIdentities.isNotEmpty)
+                        _SearchableIdentityDropdown(
+                          identities: model.myIdentities,
+                          allBitNames: model.allBitNames,
+                          selectedIdentity: model.selectedIdentity,
+                          onIdentitySelected: model.selectIdentity,
+                        )
+                      else if (phone)
+                        Flexible(child: SailText.secondary13('No BitNames owned'))
+                      else
+                        SailText.secondary13('No BitNames owned'),
+                      SizedBox(width: phone ? SailStyleValues.padding08 : SailStyleValues.padding12),
+                      if (model.hasSufficientBalance)
+                        SailTooltip(
+                          message: 'Registering a BitName costs sats on the BitNames sidechain',
+                          child: SailButton(
+                            label: 'Register BitName',
                             variant: ButtonVariant.secondary,
-                            onPressed: () async => _showAddContactDialog(context, model),
+                            disabled: model.isClaiming,
+                            onPressed: () async => _showRegisterBitNameDialog(context, model),
+                            skipLoading: true,
+                          ),
+                        )
+                      else if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
+                        SailTooltip(
+                          message: 'You need BitNames sidechain balance to register a BitName',
+                          child: SailButton(
+                            label: 'Deposit to BitNames',
+                            variant: ButtonVariant.primary,
+                            onPressed: () async => showDepositModal(context, BitNames().slot, 'BitNames'),
+                          ),
+                        ),
+                      if (!phone) ...[
+                        const Spacer(),
+                        SailButton(
+                          label: 'Add Contact',
+                          variant: ButtonVariant.secondary,
+                          onPressed: () async => _showAddContactDialog(context, model),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+          final chatsCard = SailCard(
+            title: 'Chats',
+            subtitle: 'You pay a name to reach it. They keep the postage.',
+            widgetHeaderEnd: phone
+                ? SailButton(
+                    label: 'Add Contact',
+                    variant: ButtonVariant.outline,
+                    small: true,
+                    onPressed: () async => _showAddContactDialog(context, model),
+                  )
+                : null,
+            bottomPadding: false,
+            child: contacts.isEmpty
+                ? Center(
+                    heightFactor: phone ? 1 : null,
+                    child: Padding(
+                      padding: const EdgeInsets.all(SailStyleValues.padding20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SailText.secondary13('No contacts yet'),
+                          const SizedBox(height: SailStyleValues.padding08),
+                          SailText.secondary12(
+                            'Add a contact to start chatting',
+                            color: theme.colors.textTertiary,
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: SailStyleValues.padding08),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 360,
-                      // Contact list (inlined)
-                      child: SailCard(
-                        title: 'Chats',
-                        subtitle: 'You pay a name to reach it. They keep the postage.',
-                        bottomPadding: false,
-                        child: contacts.isEmpty
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(SailStyleValues.padding20),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SailText.secondary13('No contacts yet'),
-                                      const SizedBox(height: SailStyleValues.padding08),
-                                      SailText.secondary12(
-                                        'Add a contact to start chatting',
-                                        color: theme.colors.textTertiary,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            : ListView.builder(
-                                itemCount: contacts.length,
-                                itemBuilder: (context, index) {
-                                  final contact = contacts[index];
-                                  final isSelected = model.selectedContact?.id == contact.id;
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: phone,
+                    itemCount: contacts.length,
+                    itemBuilder: (context, index) {
+                      final contact = contacts[index];
+                      final isSelected = model.selectedContact?.id == contact.id;
 
-                                  return SailTappable(
-                                    onTap: () async => model.selectContact(contact),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(SailStyleValues.padding12),
-                                      decoration: BoxDecoration(
-                                        color: isSelected ? theme.colors.primary.withAlpha(30) : null,
-                                        border: Border(
-                                          bottom: BorderSide(
-                                            color: theme.colors.divider,
-                                            width: 1,
-                                          ),
-                                        ),
+                      return SailTappable(
+                        onTap: () async => model.selectContact(contact),
+                        child: Container(
+                          padding: const EdgeInsets.all(SailStyleValues.padding12),
+                          decoration: BoxDecoration(
+                            color: isSelected ? theme.colors.primary.withAlpha(30) : null,
+                            border: Border(
+                              bottom: BorderSide(
+                                color: theme.colors.divider,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // Avatar (inlined)
+                              Builder(
+                                builder: (context) {
+                                  final initials = contact.displayName.isNotEmpty
+                                      ? contact.displayName.substring(0, 1).toUpperCase()
+                                      : '?';
+                                  return Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: theme.colors.primary.withAlpha(50),
+                                    ),
+                                    child: Center(
+                                      child: SailText.primary13(initials, bold: true),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: SailStyleValues.padding12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SailText.primary13(
+                                      contact.displayName,
+                                      bold: true,
+                                    ),
+                                    if (contact.lastMessage != null)
+                                      SailText.secondary12(
+                                        contact.lastMessage!,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      child: Row(
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (contact.lastMessageTime != null)
+                                    SailText.secondary12(
+                                      _formatTime(contact.lastMessageTime!),
+                                      color: theme.colors.textTertiary,
+                                    ),
+                                  if (model.unreadCount(contact.id) > 0) ...[
+                                    const SizedBox(height: SailStyleValues.padding04),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: theme.colors.primary,
+                                        borderRadius: context.sailTheme.chrome.radius,
+                                      ),
+                                      child: SailText.secondary12(
+                                        '${model.unreadCount(contact.id)}',
+                                        color: theme.colors.background,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          );
+          final selected = model.selectedContact;
+          final conversation = selected == null
+              ? null
+              : SailCard(
+                  title: model.selectedContact!.displayName,
+                  subtitle:
+                      '${model.postageSats} ${activeTicker.subunit} to reach them, plus '
+                      '${ChatProvider.networkFeeSats} ${activeTicker.subunit} network fee. '
+                      'They keep the postage.',
+                  bottomPadding: false,
+                  child: Column(
+                    mainAxisSize: phone ? MainAxisSize.min : MainAxisSize.max,
+                    children: [
+                      Flexible(
+                        fit: phone ? FlexFit.loose : FlexFit.tight,
+                        child: Builder(
+                          builder: (context) {
+                            final messages = model.currentConversation;
+
+                            if (messages.isEmpty) {
+                              return Center(
+                                heightFactor: phone ? 2 : null,
+                                child: SailText.secondary13(
+                                  'No messages yet. Say hello!',
+                                  color: theme.colors.textTertiary,
+                                ),
+                              );
+                            }
+
+                            return ListView.builder(
+                              shrinkWrap: phone,
+                              reverse: true,
+                              padding: const EdgeInsets.all(SailStyleValues.padding08),
+                              itemCount: messages.length,
+                              itemBuilder: (context, index) {
+                                final message = messages[messages.length - 1 - index];
+                                // Message bubble (inlined)
+                                final isOwn = message.isOutgoing;
+
+                                // A message the mempool still holds reads as sent, not
+                                // as delivered.
+                                final bodyColor = isOwn ? theme.colors.background : theme.colors.text;
+                                final metaColor = isOwn
+                                    ? theme.colors.background.withValues(alpha: 0.7)
+                                    : theme.colors.textTertiary;
+
+                                return Align(
+                                  alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
+                                  child: Opacity(
+                                    opacity: message.isPending ? 0.65 : 1,
+                                    child: Container(
+                                      constraints: const BoxConstraints(maxWidth: 520),
+                                      margin: const EdgeInsets.symmetric(
+                                        vertical: SailStyleValues.padding04,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: SailStyleValues.padding12,
+                                        vertical: SailStyleValues.padding08,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isOwn ? theme.colors.primary : theme.colors.backgroundSecondary,
+                                        borderRadius: context.sailTheme.chrome.radiusLarge,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          // Avatar (inlined)
-                                          Builder(
-                                            builder: (context) {
-                                              final initials = contact.displayName.isNotEmpty
-                                                  ? contact.displayName.substring(0, 1).toUpperCase()
-                                                  : '?';
-                                              return Container(
-                                                width: 40,
-                                                height: 40,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: theme.colors.primary.withAlpha(50),
-                                                ),
-                                                child: Center(
-                                                  child: SailText.primary13(initials, bold: true),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                          const SizedBox(width: SailStyleValues.padding12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                SailText.primary13(
-                                                  contact.displayName,
-                                                  bold: true,
-                                                ),
-                                                if (contact.lastMessage != null)
-                                                  SailText.secondary12(
-                                                    contact.lastMessage!,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                          SailText.primary13(message.content, color: bodyColor),
+                                          const SizedBox(height: SailStyleValues.padding04),
+                                          Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              if (contact.lastMessageTime != null)
+                                              SailText.secondary12(
+                                                _formatMessageTime(message.timestamp),
+                                                color: metaColor,
+                                              ),
+                                              if (message.valueSats != null) ...[
+                                                const SizedBox(width: SailStyleValues.padding08),
                                                 SailText.secondary12(
-                                                  _formatTime(contact.lastMessageTime!),
-                                                  color: theme.colors.textTertiary,
+                                                  '${message.valueSats} ${activeTicker.subunit}',
+                                                  color: metaColor,
                                                 ),
-                                              if (model.unreadCount(contact.id) > 0) ...[
-                                                const SizedBox(height: SailStyleValues.padding04),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: theme.colors.primary,
-                                                    borderRadius: context.sailTheme.chrome.radius,
-                                                  ),
-                                                  child: SailText.secondary12(
-                                                    '${model.unreadCount(contact.id)}',
-                                                    color: theme.colors.background,
-                                                  ),
+                                              ],
+                                              if (message.isPending) ...[
+                                                const SizedBox(width: SailStyleValues.padding08),
+                                                SailText.secondary12(
+                                                  'waiting for a block',
+                                                  color: metaColor,
                                                 ),
                                               ],
                                             ],
@@ -243,162 +355,117 @@ class ChatPage extends StatelessWidget {
                                         ],
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
+                      const SizedBox(height: SailStyleValues.padding08),
+                      if (model.sendError != null) ...[
+                        SailText.primary12(model.sendError!, color: theme.colors.error),
+                        const SizedBox(height: SailStyleValues.padding08),
+                      ],
+                      // Message input (inlined)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SailTextField(
+                              controller: model.messageController,
+                              hintText: 'Type a message...',
+                              maxLines: 3,
+                              minLines: 1,
+                              onSubmitted: (_) => model.sendMessage(),
+                            ),
+                          ),
+                          const SizedBox(width: SailStyleValues.padding08),
+                          ListenableBuilder(
+                            listenable: model.messageController,
+                            builder: (context, child) => SailButton(
+                              label: 'Send · ${model.messageCostSats} ${activeTicker.subunit}',
+                              loading: model.isSending,
+                              disabled: model.messageController.text.isEmpty,
+                              onPressed: model.sendMessage,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+
+          if (phone) {
+            if (conversation != null) {
+              return PopScope(
+                canPop: false,
+                onPopInvokedWithResult: (didPop, _) {
+                  if (!didPop) {
+                    model.closeConversation();
+                  }
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        SailButton(
+                          key: const ValueKey('chat-back'),
+                          variant: ButtonVariant.icon,
+                          icon: SailSVGAsset.chevronLeft,
+                          onPressed: () async => model.closeConversation(),
+                        ),
+                        const SizedBox(width: SailStyleValues.padding08),
+                        Expanded(child: SailText.primary16(model.selectedContact!.displayName, bold: true)),
+                      ],
                     ),
+                    const SizedBox(height: SailStyleValues.padding08),
+                    Flexible(child: conversation),
+                  ],
+                ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                identityBar,
+                const SizedBox(height: SailStyleValues.padding08),
+                Flexible(child: chatsCard),
+              ],
+            );
+          }
+
+          return Column(
+            children: [
+              identityBar,
+              const SizedBox(height: SailStyleValues.padding08),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(width: 360, child: chatsCard),
                     const SizedBox(width: SailStyleValues.padding08),
                     Expanded(
-                      // Chat panel (inlined)
-                      child: model.selectedContact == null
-                          ? Center(
-                              child: SailCard(
-                                width: null,
-                                bottomPadding: false,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SailSVG.fromAsset(
-                                      SailSVGAsset.messageCircle,
-                                      color: theme.colors.textTertiary,
-                                      height: 64,
-                                    ),
-                                    const SizedBox(height: SailStyleValues.padding16),
-                                    SailText.secondary13('Select a contact to start chatting'),
-                                  ],
-                                ),
-                              ),
-                            )
-                          : SailCard(
-                              title: model.selectedContact!.displayName,
-                              subtitle:
-                                  '${model.postageSats} ${activeTicker.subunit} to reach them, plus '
-                                  '${ChatProvider.networkFeeSats} ${activeTicker.subunit} network fee. '
-                                  'They keep the postage.',
+                      child:
+                          conversation ??
+                          Center(
+                            child: SailCard(
+                              width: null,
                               bottomPadding: false,
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Expanded(
-                                    // Message list (inlined)
-                                    child: Builder(
-                                      builder: (context) {
-                                        final messages = model.currentConversation;
-
-                                        if (messages.isEmpty) {
-                                          return Center(
-                                            child: SailText.secondary13(
-                                              'No messages yet. Say hello!',
-                                              color: theme.colors.textTertiary,
-                                            ),
-                                          );
-                                        }
-
-                                        return ListView.builder(
-                                          reverse: true,
-                                          padding: const EdgeInsets.all(SailStyleValues.padding08),
-                                          itemCount: messages.length,
-                                          itemBuilder: (context, index) {
-                                            final message = messages[messages.length - 1 - index];
-                                            // Message bubble (inlined)
-                                            final isOwn = message.isOutgoing;
-
-                                            // A message the mempool still holds reads as sent, not
-                                            // as delivered.
-                                            final bodyColor = isOwn ? theme.colors.background : theme.colors.text;
-                                            final metaColor = isOwn
-                                                ? theme.colors.background.withValues(alpha: 0.7)
-                                                : theme.colors.textTertiary;
-
-                                            return Align(
-                                              alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
-                                              child: Opacity(
-                                                opacity: message.isPending ? 0.65 : 1,
-                                                child: Container(
-                                                  constraints: const BoxConstraints(maxWidth: 520),
-                                                  margin: const EdgeInsets.symmetric(
-                                                    vertical: SailStyleValues.padding04,
-                                                  ),
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: SailStyleValues.padding12,
-                                                    vertical: SailStyleValues.padding08,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: isOwn
-                                                        ? theme.colors.primary
-                                                        : theme.colors.backgroundSecondary,
-                                                    borderRadius: context.sailTheme.chrome.radiusLarge,
-                                                  ),
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      SailText.primary13(message.content, color: bodyColor),
-                                                      const SizedBox(height: SailStyleValues.padding04),
-                                                      Row(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          SailText.secondary12(
-                                                            _formatMessageTime(message.timestamp),
-                                                            color: metaColor,
-                                                          ),
-                                                          if (message.valueSats != null) ...[
-                                                            const SizedBox(width: SailStyleValues.padding08),
-                                                            SailText.secondary12(
-                                                              '${message.valueSats} ${activeTicker.subunit}',
-                                                              color: metaColor,
-                                                            ),
-                                                          ],
-                                                          if (message.isPending) ...[
-                                                            const SizedBox(width: SailStyleValues.padding08),
-                                                            SailText.secondary12(
-                                                              'waiting for a block',
-                                                              color: metaColor,
-                                                            ),
-                                                          ],
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                    ),
+                                  SailSVG.fromAsset(
+                                    SailSVGAsset.messageCircle,
+                                    color: theme.colors.textTertiary,
+                                    height: 64,
                                   ),
-                                  const SizedBox(height: SailStyleValues.padding08),
-                                  if (model.sendError != null) ...[
-                                    SailText.primary12(model.sendError!, color: theme.colors.error),
-                                    const SizedBox(height: SailStyleValues.padding08),
-                                  ],
-                                  // Message input (inlined)
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: SailTextField(
-                                          controller: model.messageController,
-                                          hintText: 'Type a message...',
-                                          maxLines: 3,
-                                          minLines: 1,
-                                          onSubmitted: (_) => model.sendMessage(),
-                                        ),
-                                      ),
-                                      const SizedBox(width: SailStyleValues.padding08),
-                                      ListenableBuilder(
-                                        listenable: model.messageController,
-                                        builder: (context, child) => SailButton(
-                                          label: 'Send · ${model.messageCostSats} ${activeTicker.subunit}',
-                                          loading: model.isSending,
-                                          disabled: model.messageController.text.isEmpty,
-                                          onPressed: model.sendMessage,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                  const SizedBox(height: SailStyleValues.padding16),
+                                  SailText.secondary13('Select a contact to start chatting'),
                                 ],
                               ),
                             ),
+                          ),
                     ),
                   ],
                 ),
@@ -584,6 +651,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final filtered = filteredBitNames;
+    final phone = SailStyleValues.phoneLayout(context);
 
     return SailDialog(
       title: 'Add Contact',
@@ -655,7 +723,11 @@ class _AddContactDialogState extends State<_AddContactDialog> {
                       child: Container(
                         padding: const EdgeInsets.all(SailStyleValues.padding12),
                         decoration: BoxDecoration(
-                          color: isMatch ? theme.colors.success.withValues(alpha: 0.1) : null,
+                          color: isMatch
+                              ? (phone
+                                    ? theme.colors.primary.withAlpha(30)
+                                    : theme.colors.success.withValues(alpha: 0.1))
+                              : null,
                           border: Border(
                             bottom: BorderSide(color: theme.colors.divider, width: 1),
                           ),
@@ -671,13 +743,18 @@ class _AddContactDialogState extends State<_AddContactDialog> {
                                   else
                                     SailText.secondary13('(encrypted)'),
                                   SailText.secondary12(
-                                    '${entry.hash.substring(0, 32)}...',
+                                    phone ? entry.hash : '${entry.hash.substring(0, 32)}...',
                                     color: theme.colors.textTertiary,
                                   ),
                                 ],
                               ),
                             ),
-                            if (isMatch) SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.success, height: 12),
+                            if (isMatch)
+                              SailSVG.fromAsset(
+                                SailSVGAsset.check,
+                                color: theme.colors.success,
+                                height: 12,
+                              ),
                           ],
                         ),
                       ),
@@ -850,6 +927,10 @@ class ChatViewModel extends BaseViewModel {
 
   Future<void> addContactFromEntry(BitnameEntry entry, {String? plaintextName}) async {
     await _chatProvider.addContactFromEntry(entry, plaintextName: plaintextName);
+  }
+
+  void closeConversation() {
+    _chatProvider.clearSelectedContact();
   }
 
   void selectContact(ChatContact contact) {

@@ -274,6 +274,10 @@ typedef OnStaged = void Function(String canonical, File file);
 /// Copies the embedded binaries from [sourceDir] to [fileDir]. A binary that
 /// is already staged from the same bundle file stays.
 Future<void> stageEmbeddedBinaries(Logger log, Directory sourceDir, Directory fileDir, {OnStaged? onStaged}) async {
+  // A phone runs the daemons in the app process.
+  if (isMobile) {
+    return;
+  }
   await fileDir.create(recursive: true);
   await removeAsideBinaries(fileDir);
 

@@ -124,6 +124,8 @@ class _FakeConf implements BitcoinConfProvider {
 }
 
 void main() {
+  setUpAll(loadBundledFonts);
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _FakeWalletApi walletApi;
@@ -144,9 +146,15 @@ void main() {
   });
 
   Future<void> pumpCard(WidgetTester tester) async {
+    final phone = SailStyleValues.phoneLayoutOverride == true;
     await tester.pumpSailPage(
-      Center(child: SizedBox(width: 480, child: const ClaimEcxCard())),
+      Center(
+        child: SizedBox(width: phone ? double.infinity : 480, child: const ClaimEcxCard()),
+      ),
     );
+    if (phone) {
+      await tester.usePhoneSize();
+    }
     await tester.pump();
   }
 
@@ -207,6 +215,27 @@ void main() {
       expect(find.text('You receive'), findsOneWidget);
       expect(find.text('1,249.99999548 ECX'), findsWidgets);
     });
+
+    for (final phone in [true, false]) {
+      final size = phone ? 18.0 : 24.0;
+
+      testWidgets('the ${phone ? 'phone' : 'desktop'} claim amounts are ${size.toInt()} px', (tester) async {
+        SailStyleValues.phoneLayoutOverride = phone;
+        addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+        walletApi.preview = _preview(amountSats: 125000000000);
+        await pumpCard(tester);
+        await enterKey(tester, _validWif);
+
+        expect(tester.widget<Text>(find.text('1,250.00000000 ECX')).style?.fontSize, size);
+
+        await tester.tap(find.text('Claim 1,249.99999548 ECX').first);
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('ECX claimed'), findsOneWidget);
+        expect(tester.widget<Text>(find.text('1,249.99999548 ECX').first).style?.fontSize, size);
+      });
+    }
 
     testWidgets('claims to the wallet address and shows the transaction', (tester) async {
       walletApi.preview = _preview(amountSats: 125000000000);

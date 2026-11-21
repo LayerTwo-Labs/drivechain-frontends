@@ -13,6 +13,7 @@ import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart' show Intl;
 import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -113,15 +114,19 @@ class FireplaceStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final details = LoadingDetails(
+      enabled: loading,
+      description: 'Waiting for enforcer to boot and wallet to sync..',
+    );
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailStatRow(title: title, subtitle: subtitle, value: value, loading: details);
+    }
     return SailCardStats(
       title: title,
       subtitle: subtitle,
       value: value,
       icon: icon,
-      loading: LoadingDetails(
-        enabled: loading,
-        description: 'Waiting for enforcer to boot and wallet to sync..',
-      ),
+      loading: details,
     );
   }
 }
@@ -285,8 +290,10 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
   @override
   Widget build(BuildContext context) {
     final entries = [...widget.entries]..sort(compare);
+    final phone = SailStyleValues.phoneLayout(context);
     return SailTable(
       getRowId: (index) => entries[index].txid,
+      phoneColumns: const [0, 1, 4],
       headerBuilder: (context) => [
         SailTableHeaderCell(
           name: 'Time',
@@ -313,11 +320,12 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         final entry = entries[row];
         return [
           SailTableCell(value: entry.time.toDateTime().toLocal().toString()),
-          SailTableCell(value: entry.feeSats.toString()),
+          SailTableCell(value: entry.feeSats.toString(), width: phone ? 56 : null),
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
           SailTableCell(
             value: entry.confirmedInBlock == 0 ? '-' : entry.confirmedInBlock.toString(),
+            width: phone ? 76 : null,
           ),
         ];
       },
@@ -375,6 +383,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
     final blocks = [...widget.blocks]..sort(compare);
     return SailTable(
       getRowId: (index) => blocks[index].hash,
+      phoneColumns: const [0, 1, 3],
       headerBuilder: (context) => [
         const SailTableHeaderCell(name: 'Time'),
         const SailTableHeaderCell(name: 'Height'),
@@ -887,7 +896,9 @@ class _SubscribeTab extends StatelessWidget {
             Expanded(
               child: SailTextField(
                 controller: viewModel.urlController,
-                hintText: 'Enter URL e.g. 7{a1a1a1a1}US Weekly',
+                hintText: SailStyleValues.phoneLayout(context)
+                    ? 'e.g. 7{a1a1a1a1}US Weekly'
+                    : 'Enter URL e.g. 7{a1a1a1a1}US Weekly',
               ),
             ),
             SailButton(
@@ -921,6 +932,7 @@ class _CreateTopicTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pendingTopics = viewModel.topics.where((t) => !t.confirmed).toList();
+    final phone = SailStyleValues.phoneLayout(context);
 
     return SingleChildScrollView(
       child: SailColumn(
@@ -953,7 +965,8 @@ class _CreateTopicTab extends StatelessWidget {
             SailText.secondary13('Pending Topics (awaiting confirmation)'),
             ...pendingTopics.map(
               (topic) => SailTappable(
-                onDoubleTap: () async => showTransactionDetails(context, topic.txid),
+                onTap: phone ? () async => showTransactionDetails(context, topic.txid) : null,
+                onDoubleTap: phone ? null : () async => showTransactionDetails(context, topic.txid),
                 borderRadius: context.sailTheme.chrome.radius,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -967,10 +980,13 @@ class _CreateTopicTab extends StatelessWidget {
                       SailText.primary13(topic.name),
                       SailText.secondary12('(${topic.topic})'),
                       const Spacer(),
-                      SailText.secondary12(
-                        'double-click to view tx',
-                        italic: true,
-                      ),
+                      if (phone)
+                        SailText.secondary12('Tap to view tx', maxLines: 1)
+                      else
+                        SailText.secondary12(
+                          'double-click to view tx',
+                          italic: true,
+                        ),
                     ],
                   ),
                 ),
@@ -1598,37 +1614,65 @@ class GraffitiTable extends StatelessWidget {
     required this.onSort,
   });
 
+  static const _phoneTimeWidth = 136.0;
+  static const _phoneHeightWidth = 76.0;
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final formatter = GetIt.I<FormatterProvider>();
+    final phone = SailStyleValues.phoneLayout(context);
 
-    return ListenableBuilder(
-      listenable: formatter,
-      builder: (context, child) => SailTable(
-        backgroundColor: theme.colors.backgroundSecondary,
-        getRowId: (index) => entries[index].id.toString(),
-        headerBuilder: (context) => [
-          SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
-          SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
-          SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
-          SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
-        ],
-        rowBuilder: (context, row, selected) {
-          final entry = entries[row];
-          return [
-            SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),
-            SailTableCell(value: entry.height == 0 ? '-' : entry.height.toString()),
-            SailTableCell(value: entry.txid),
-            SailTableCell(value: entry.message),
-          ];
-        },
-        rowCount: entries.length,
-        emptyPlaceholder: 'No graffiti found',
-        onSort: (columnIndex, ascending) {
-          onSort(['message', 'time', 'height'][columnIndex]);
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final phoneMessageWidth = max(
+          defaultMinColumnWidth,
+          constraints.maxWidth - _phoneTimeWidth - _phoneHeightWidth,
+        );
+        return ListenableBuilder(
+          listenable: formatter,
+          builder: (context, child) => SailTable(
+            backgroundColor: theme.colors.backgroundSecondary,
+            getRowId: (index) => entries[index].id.toString(),
+            phoneColumns: const [0, 1, 3],
+            headerBuilder: (context) => [
+              SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
+              SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
+              SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
+              SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
+            ],
+            rowBuilder: (context, row, selected) {
+              final entry = entries[row];
+              return [
+                SailTableCell(
+                  value: phone
+                      ? cachedDateFormat(
+                          'yyyy-MM-dd HH:mm',
+                          Intl.getCurrentLocale(),
+                        ).format(entry.createTime.toDateTime().toLocal())
+                      : entry.createTime.toDateTime().toLocal().format(),
+                  width: phone ? _phoneTimeWidth : null,
+                ),
+                SailTableCell(
+                  value: entry.height == 0 ? '-' : entry.height.toString(),
+                  width: phone ? _phoneHeightWidth : null,
+                ),
+                SailTableCell(value: entry.txid),
+                SailTableCell(
+                  value: entry.message,
+                  width: phone ? phoneMessageWidth : null,
+                  child: phone ? SailText.primary13(entry.message) : null,
+                ),
+              ];
+            },
+            rowCount: entries.length,
+            emptyPlaceholder: 'No graffiti found',
+            onSort: (columnIndex, ascending) {
+              onSort(['message', 'time', 'height'][columnIndex]);
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -1695,6 +1739,10 @@ class FireplaceStatsView extends StatelessWidget {
             loading: loading,
           ),
         ];
+
+        if (SailStyleValues.phoneLayout(context)) {
+          return SailStatList(children: cardList);
+        }
 
         return GridView.count(
           crossAxisCount: crossAxisCount,

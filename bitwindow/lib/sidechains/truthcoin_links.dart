@@ -13,6 +13,9 @@ const bitwindowSchemeHost = SchemeHost(
   wmClass: 'bitwindow',
 );
 
+/// True when the app links plugin serves [os]. It has no phone build.
+bool truthcoinLinksServe(String os) => const {'macos', 'windows', 'linux'}.contains(os);
+
 /// Opens truthcoin:// links in the Truthcoin view of BitWindow. With [claimScheme],
 /// BitWindow also tells Windows and Linux that it opens the scheme.
 DeepLinkService startTruthcoinLinks(Logger log, {required bool claimScheme}) {

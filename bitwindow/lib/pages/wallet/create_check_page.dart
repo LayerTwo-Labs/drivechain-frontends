@@ -28,6 +28,7 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
 
   @override
   Widget build(BuildContext context) {
+    final phone = SailStyleValues.phoneLayout(context);
     return SailScaffold(
       backgroundColor: SailTheme.of(context).colors.background,
       appBar: SailAppBar.build(context, title: SailText.primary20('Create Check')),
@@ -36,41 +37,46 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
           child: SingleChildScrollView(
             child: Container(
               constraints: const BoxConstraints(maxWidth: 600),
-              padding: const EdgeInsets.all(SailStyleValues.padding20),
-              child: SailColumn(
-                spacing: SailStyleValues.padding32,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SailText.primary24('How much should the check be for?'),
-                  SailTextField(
-                    controller: _amountController,
-                    hintText: '0.00000000',
-                    suffix: activeTicker.symbol,
-                    textFieldType: TextFieldType.bitcoin,
-                    onChanged: (_) {
-                      if (_error != null) {
-                        setState(() => _error = null);
-                      }
-                    },
-                  ),
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      SailButton(
-                        label: 'Cancel',
-                        variant: ButtonVariant.ghost,
-                        onPressed: () async => context.router.maybePop(),
-                      ),
-                      SailButton(
-                        label: 'Create',
-                        loading: _isCreating,
-                        onPressed: () async => _createCheck(),
-                      ),
-                    ],
-                  ),
-                  if (_error != null) SailInlineError(_error!),
-                ],
+              padding: EdgeInsets.all(phone ? SailStyleValues.padding16 : SailStyleValues.padding20),
+              child: _PhonePanel(
+                phone: phone,
+                child: SailColumn(
+                  spacing: phone ? SailStyleValues.padding16 : SailStyleValues.padding32,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    phone
+                        ? SailText.primary15('How much should the check be for?', bold: true)
+                        : SailText.primary24('How much should the check be for?'),
+                    SailTextField(
+                      controller: _amountController,
+                      hintText: '0.00000000',
+                      suffix: activeTicker.symbol,
+                      textFieldType: TextFieldType.bitcoin,
+                      onChanged: (_) {
+                        if (_error != null) {
+                          setState(() => _error = null);
+                        }
+                      },
+                    ),
+                    SailRow(
+                      spacing: SailStyleValues.padding08,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        SailButton(
+                          label: 'Cancel',
+                          variant: ButtonVariant.ghost,
+                          onPressed: () async => context.router.maybePop(),
+                        ),
+                        SailButton(
+                          label: 'Create',
+                          loading: _isCreating,
+                          onPressed: () async => _createCheck(),
+                        ),
+                      ],
+                    ),
+                    if (_error != null) SailInlineError(_error!),
+                  ],
+                ),
               ),
             ),
           ),
@@ -193,4 +199,15 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
 
     passwordController.dispose();
   }
+}
+
+/// The phone form puts the page content in one panel.
+class _PhonePanel extends StatelessWidget {
+  final bool phone;
+  final Widget child;
+
+  const _PhonePanel({required this.phone, required this.child});
+
+  @override
+  Widget build(BuildContext context) => phone ? SailCard(child: child) : child;
 }

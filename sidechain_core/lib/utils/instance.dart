@@ -6,12 +6,20 @@ const bitwindowHomeKey = 'BITWINDOW_HOME';
 /// The integer added to every fixed port.
 const portOffsetKey = 'BITWINDOW_PORT_OFFSET';
 
+/// The Esplora server of a self-hosted regtest chain, for light mode on regtest.
+const regtestEsploraUrlKey = 'ORCHESTRATOR_REGTEST_ESPLORA_URL';
+
+/// The enforcer of a self-hosted regtest chain, for light mode on regtest.
+const regtestEnforcerUrlKey = 'ORCHESTRATOR_REGTEST_ENFORCER_URL';
+
 /// Keeps the highest generated port, 58004 for a signet sidechain, under 65536.
 const maxPortOffset = 7500;
 
 const _defines = {
   bitwindowHomeKey: String.fromEnvironment(bitwindowHomeKey),
   portOffsetKey: String.fromEnvironment(portOffsetKey),
+  regtestEsploraUrlKey: String.fromEnvironment(regtestEsploraUrlKey),
+  regtestEnforcerUrlKey: String.fromEnvironment(regtestEnforcerUrlKey),
 };
 
 /// Reads [key] from the environment, or from --dart-define when the environment does not set it.
@@ -20,10 +28,18 @@ String _setting(Map<String, String>? env, String key) {
   return value.isNotEmpty ? value : _defines[key]!;
 }
 
+String? _phoneHome;
+
+/// Sets BITWINDOW_HOME for this process when the environment has none. Dart cannot read the process environment on iOS.
+void setBitwindowHome(String home) => _phoneHome = home;
+
 /// BITWINDOW_HOME, or null when it is not set.
 String? bitwindowHome([Map<String, String>? env]) {
   final home = _setting(env, bitwindowHomeKey);
-  return home.isEmpty ? null : home;
+  if (home.isEmpty) {
+    return _phoneHome;
+  }
+  return home;
 }
 
 /// BITWINDOW_PORT_OFFSET, or 0 when it is not set.
@@ -46,4 +62,6 @@ int instancePort(int base, [Map<String, String>? env]) => base == 0 ? 0 : base +
 Map<String, String> instanceEnvironment([Map<String, String>? env]) => {
   bitwindowHomeKey: ?bitwindowHome(env),
   if (portOffset(env) != 0) portOffsetKey: '${portOffset(env)}',
+  for (final key in const [regtestEsploraUrlKey, regtestEnforcerUrlKey])
+    if (_setting(env, key).isNotEmpty) key: _setting(env, key),
 };

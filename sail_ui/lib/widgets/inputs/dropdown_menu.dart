@@ -274,6 +274,8 @@ class SailDropdownItem<T> extends StatelessWidget {
             (asTrigger ? triggerChild ?? child : child) ??
             Text(
               displayLabel,
+              maxLines: asTrigger ? 1 : null,
+              overflow: asTrigger ? TextOverflow.ellipsis : null,
               style: SailStyleValues.thirteen.copyWith(
                 color: SailTheme.of(context).colors.text,
                 fontFamily: SailTheme.of(context).chrome.textFamily(monospace: monospace),

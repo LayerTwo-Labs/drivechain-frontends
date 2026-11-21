@@ -559,6 +559,16 @@ class ConsoleEntryWidget extends StatelessWidget {
       }
     }
 
+    final phone = SailStyleValues.phoneLayout(context);
+    final content = SelectableText(
+      entry.content,
+      style: TextStyle(
+        color: getColor(),
+        fontFamily: SailFonts.mono,
+        fontSize: 13,
+      ),
+    );
+
     return Container(
       decoration: entry.isGrouped
           ? BoxDecoration(
@@ -575,47 +585,44 @@ class ConsoleEntryWidget extends StatelessWidget {
         top: entry.isGroupStart ? 16 : 0,
       ),
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SailSpacing(SailStyleValues.padding08),
-          SailText.secondary13(
-            _timeFormat.format(entry.timestamp),
-            color: theme.colors.textSecondary,
-            monospace: true,
-          ),
-          const SizedBox(width: 8),
-          if (entry.type == EntryType.command) ...[
-            if (!_hasResponse(entry.requestId))
-              SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 1,
-                  color: theme.colors.primary,
+      child: phone && entry.type != EntryType.command
+          ? Padding(
+              key: const ValueKey('console-output-full-width'),
+              padding: const EdgeInsets.only(left: SailStyleValues.padding08),
+              child: SizedBox(width: double.infinity, child: content),
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SailSpacing(SailStyleValues.padding08),
+                SailText.secondary13(
+                  _timeFormat.format(entry.timestamp),
+                  color: theme.colors.textSecondary,
+                  monospace: true,
                 ),
-              )
-            else
-              Icon(
-                Icons.chevron_right,
-                size: 16,
-                color: theme.colors.textSecondary,
-              ),
-          ] else
-            const SizedBox(width: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SelectableText(
-              entry.content,
-              style: TextStyle(
-                color: getColor(),
-                fontFamily: SailFonts.mono,
-                fontSize: 13,
-              ),
+                const SizedBox(width: 8),
+                if (entry.type == EntryType.command) ...[
+                  if (!_hasResponse(entry.requestId))
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1,
+                        color: theme.colors.primary,
+                      ),
+                    )
+                  else
+                    Icon(
+                      Icons.chevron_right,
+                      size: 16,
+                      color: theme.colors.textSecondary,
+                    ),
+                ] else
+                  const SizedBox(width: 16),
+                const SizedBox(width: 8),
+                Expanded(child: content),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

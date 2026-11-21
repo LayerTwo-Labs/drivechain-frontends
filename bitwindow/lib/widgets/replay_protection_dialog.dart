@@ -34,33 +34,57 @@ Future<ReplayChoice> askReplayProtection(
               'Replay protection keeps this transaction on this chain only. The other chain rejects it.',
             ),
             const SizedBox(height: SailStyleValues.padding16),
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: SailStyleValues.padding08,
-              runSpacing: SailStyleValues.padding08,
-              children: [
-                SailButton(
-                  label: 'Cancel',
-                  variant: ButtonVariant.ghost,
-                  onPressed: () async => Navigator.of(context).pop(ReplayChoice.cancel),
-                ),
-                SailButton(
-                  label: 'Send without protection',
-                  variant: ButtonVariant.secondary,
-                  onPressed: () async => Navigator.of(context).pop(ReplayChoice.sendPlain),
-                ),
-                SailButton(
-                  label: 'Enable replay protection',
-                  onPressed: () async => Navigator.of(context).pop(ReplayChoice.sendProtected),
-                ),
-              ],
-            ),
+            _ReplayActions(onChoice: (choice) => Navigator.of(context).pop(choice)),
           ],
         ),
       ),
     ),
   );
   return choice ?? ReplayChoice.cancel;
+}
+
+/// The three answers to the prompt. A phone stacks them.
+class _ReplayActions extends StatelessWidget {
+  final void Function(ReplayChoice choice) onChoice;
+
+  const _ReplayActions({required this.onChoice});
+
+  @override
+  Widget build(BuildContext context) {
+    final cancel = SailButton(
+      label: 'Cancel',
+      variant: ButtonVariant.ghost,
+      onPressed: () async => onChoice(ReplayChoice.cancel),
+    );
+    final plain = SailButton(
+      label: 'Send without protection',
+      variant: ButtonVariant.secondary,
+      onPressed: () async => onChoice(ReplayChoice.sendPlain),
+    );
+    final protect = SailButton(
+      label: 'Enable replay protection',
+      onPressed: () async => onChoice(ReplayChoice.sendProtected),
+    );
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          protect,
+          plain,
+          Center(child: cancel),
+        ],
+      );
+    }
+
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: SailStyleValues.padding08,
+      runSpacing: SailStyleValues.padding08,
+      children: [cancel, plain, protect],
+    );
+  }
 }
 
 /// The coins of the send, with their count and total on top. Scrolls once the

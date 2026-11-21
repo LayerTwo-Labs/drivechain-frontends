@@ -17,6 +17,7 @@ class WithdrawalsPage extends StatelessWidget {
         builder: (context, model, child) {
           final theme = SailTheme.of(context);
           final formatter = GetIt.I<FormatterProvider>();
+          final phone = SailStyleValues.phoneLayout(context);
 
           return SailColumn(
             spacing: SailStyleValues.padding16,
@@ -24,23 +25,33 @@ class WithdrawalsPage extends StatelessWidget {
               // Status header
               Container(
                 padding: const EdgeInsets.all(SailStyleValues.padding12),
-                decoration: BoxDecoration(
-                  color: model.bundle != null
-                      ? theme.colors.success.withValues(alpha: 0.1)
-                      : theme.colors.orange.withValues(alpha: 0.1),
-                  borderRadius: SailStyleValues.borderRadiusSmall,
-                  border: Border.all(
-                    color: model.bundle != null
-                        ? theme.colors.success.withValues(alpha: 0.3)
-                        : theme.colors.orange.withValues(alpha: 0.3),
-                  ),
-                ),
+                decoration: phone
+                    ? BoxDecoration(
+                        color: theme.chrome.panel(theme.colors).color,
+                        borderRadius: theme.chrome.radiusLarge,
+                        border: Border.all(color: theme.colors.border),
+                      )
+                    : BoxDecoration(
+                        color: model.bundle != null
+                            ? theme.colors.success.withValues(alpha: 0.1)
+                            : theme.colors.orange.withValues(alpha: 0.1),
+                        borderRadius: SailStyleValues.borderRadiusSmall,
+                        border: Border.all(
+                          color: model.bundle != null
+                              ? theme.colors.success.withValues(alpha: 0.3)
+                              : theme.colors.orange.withValues(alpha: 0.3),
+                        ),
+                      ),
                 child: Row(
                   children: [
                     SailSVG.fromAsset(
                       model.bundle != null ? SailSVGAsset.clipboardList : SailSVGAsset.hourglass,
                       width: 20,
-                      color: model.bundle != null ? theme.colors.success : theme.colors.orange,
+                      color: phone
+                          ? theme.colors.textSecondary
+                          : model.bundle != null
+                          ? theme.colors.success
+                          : theme.colors.orange,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -59,9 +70,11 @@ class WithdrawalsPage extends StatelessWidget {
                               children: [
                                 SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 16, color: theme.colors.error),
                                 const SizedBox(width: 4),
-                                SailText.primary12(
-                                  'Last failed bundle at height: ${model.lastFailedHeight}',
-                                  color: theme.colors.error,
+                                Flexible(
+                                  child: SailText.primary12(
+                                    'Last failed bundle at height: ${model.lastFailedHeight}',
+                                    color: theme.colors.error,
+                                  ),
                                 ),
                               ],
                             ),

@@ -1,0 +1,3 @@
+// bitwindowd and drivechaind, built by `just ios-backend`. force_load keeps the
+// exported functions that Dart looks up at run time.
+OTHER_LDFLAGS = $(inherited) -force_load $(PROJECT_DIR)/Backend/$(PLATFORM_NAME)/libbitwindow_backend.a -framework CoreFoundation -framework Security -lresolv

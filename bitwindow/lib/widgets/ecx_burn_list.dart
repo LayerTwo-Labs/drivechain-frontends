@@ -103,7 +103,9 @@ class _EcxBurnListState extends State<EcxBurnList> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SailText.primary24('${widget.networkName} burns', bold: true),
+        SailStyleValues.phoneLayout(context)
+            ? SailText.primary16('${widget.networkName} burns', bold: true)
+            : SailText.primary24('${widget.networkName} burns', bold: true),
         if (_needsNode) _NodeForm(url: _coreUrl, cookie: _coreCookie, loading: _loading, onLoad: _load),
         if (_error != null)
           SailCard(
@@ -180,6 +182,20 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailStatList(
+        children: [
+          SailStatRow(
+            title: 'Burned',
+            subtitle: 'Sent to $burnEcxAddress',
+            value: formatBurnAmount(burns.totalBurnSats.toInt(), activeTicker.symbol),
+          ),
+          SailStatRow(title: 'Burns', subtitle: '', value: '${burns.burns.length}'),
+          SailStatRow(title: 'Payout addresses', subtitle: '', value: '${burns.payoutAddressCount}'),
+          SailStatRow(title: 'Payout', subtitle: '', value: formatEcxAmount(burns.totalPayoutSats.toInt())),
+        ],
+      );
+    }
     return SailCard(
       child: SailColumn(
         spacing: SailStyleValues.padding16,

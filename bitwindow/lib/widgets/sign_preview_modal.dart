@@ -61,14 +61,18 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _TransactionDetails(transaction: tx, group: group),
-              _SigningDetails(
-                transaction: tx,
-                group: group,
-                walletKeys: walletKeys,
-                unsignedWalletKeys: unsignedWalletKeys,
-              ),
-              _KeyStatus(transaction: tx, group: group),
+              if (SailStyleValues.phoneLayout(context))
+                _PhonePreview(transaction: tx, group: group, unsignedWalletKeys: unsignedWalletKeys)
+              else ...[
+                _TransactionDetails(transaction: tx, group: group),
+                _SigningDetails(
+                  transaction: tx,
+                  group: group,
+                  walletKeys: walletKeys,
+                  unsignedWalletKeys: unsignedWalletKeys,
+                ),
+                _KeyStatus(transaction: tx, group: group),
+              ],
               SailRow(
                 spacing: SailStyleValues.padding12,
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -92,6 +96,88 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
       ),
     );
   }
+}
+
+class _PhonePreview extends StatelessWidget {
+  final MultisigTransaction transaction;
+  final MultisigGroup group;
+  final List<MultisigKey> unsignedWalletKeys;
+
+  const _PhonePreview({required this.transaction, required this.group, required this.unsignedWalletKeys});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SailText.primary15('Transaction Details'),
+        SailStatList(
+          children: [
+            SailValueRow(label: 'Transaction ID', value: transaction.shortId),
+            SailValueRow(label: 'Group', value: group.name),
+            SailValueRow(label: 'Amount', value: '${transaction.amount.toStringAsFixed(8)} ${activeTicker.symbol}'),
+            SailValueRow(label: 'Fee', value: '${transaction.fee.toStringAsFixed(8)} ${activeTicker.symbol}'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.secondary13('Destination'),
+                  const SizedBox(height: 4),
+                  SailText.primary13(transaction.destination, overflow: TextOverflow.visible),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: SailStyleValues.padding08),
+        SailText.primary15('Signing Information'),
+        SailStatList(
+          children: [
+            SailValueRow(label: 'Current Signatures', value: '${transaction.signatureCount}/${group.m}'),
+            SailValueRow(label: 'Wallet Keys Available', value: '${unsignedWalletKeys.length}'),
+            if (unsignedWalletKeys.isNotEmpty)
+              SailValueRow(label: 'Keys to be signed', value: unsignedWalletKeys.map((k) => k.owner).join(', ')),
+          ],
+        ),
+        const SizedBox(height: SailStyleValues.padding08),
+        SailText.primary15('Key Status'),
+        SailStatList(
+          children: [
+            for (final key in group.keys)
+              SailListRow(
+                title: key.owner,
+                subtitle: _keyStatusLabel(transaction, key),
+                trailing: key.isWallet
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: theme.colors.backgroundSecondary,
+                          borderRadius: theme.chrome.radiusSmall,
+                        ),
+                        child: SailText.secondary12('Wallet Key'),
+                      )
+                    : null,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+String _keyStatusLabel(MultisigTransaction transaction, MultisigKey key) {
+  final keyPSBT = transaction.keyPSBTs.where((kp) => kp.keyId == key.xpub).firstOrNull;
+  if (keyPSBT?.isSigned ?? false) {
+    return 'Signed';
+  }
+  if (keyPSBT?.psbt == null) {
+    return 'No PSBT available';
+  }
+  return key.isWallet ? 'Ready to sign' : 'Awaiting external signature';
 }
 
 class _TransactionDetails extends StatelessWidget {

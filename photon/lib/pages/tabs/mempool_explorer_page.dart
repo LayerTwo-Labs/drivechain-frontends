@@ -17,6 +17,8 @@ class MempoolExplorerPage extends StatelessWidget {
         builder: (context, model, child) {
           final theme = SailTheme.of(context);
           final formatter = GetIt.I<FormatterProvider>();
+          final phone = SailStyleValues.phoneLayout(context);
+          final valueAlignment = phone ? Alignment.centerRight : Alignment.centerLeft;
 
           return SailColumn(
             spacing: SailStyleValues.padding16,
@@ -50,22 +52,39 @@ class MempoolExplorerPage extends StatelessWidget {
                 ),
               ),
 
-              // Stats row
-              SailRow(
-                spacing: SailStyleValues.padding16,
-                children: [
-                  _StatCard(
-                    label: 'Total UTXOs',
-                    value: model.utxos.length.toString(),
-                    loading: model.isLoading,
-                  ),
-                  _StatCard(
-                    label: 'Total Value',
-                    value: formatter.formatSats(model.totalValue),
-                    loading: model.isLoading,
-                  ),
-                ],
-              ),
+              if (phone)
+                SailStatList(
+                  children: [
+                    SailStatRow(
+                      title: 'Total UTXOs',
+                      subtitle: '',
+                      value: model.utxos.length.toString(),
+                      loading: LoadingDetails(enabled: model.isLoading, description: 'Loading...'),
+                    ),
+                    SailStatRow(
+                      title: 'Total Value',
+                      subtitle: '',
+                      value: formatter.formatSats(model.totalValue),
+                      loading: LoadingDetails(enabled: model.isLoading, description: 'Loading...'),
+                    ),
+                  ],
+                )
+              else
+                SailRow(
+                  spacing: SailStyleValues.padding16,
+                  children: [
+                    _StatCard(
+                      label: 'Total UTXOs',
+                      value: model.utxos.length.toString(),
+                      loading: model.isLoading,
+                    ),
+                    _StatCard(
+                      label: 'Total Value',
+                      value: formatter.formatSats(model.totalValue),
+                      loading: model.isLoading,
+                    ),
+                  ],
+                ),
 
               // UTXO list
               Expanded(
@@ -82,7 +101,7 @@ class MempoolExplorerPage extends StatelessWidget {
                               SailTableHeaderCell(name: 'Type'),
                               SailTableHeaderCell(name: 'Outpoint'),
                               SailTableHeaderCell(name: 'Address'),
-                              SailTableHeaderCell(name: 'Value'),
+                              SailTableHeaderCell(name: 'Value', alignment: valueAlignment),
                             ],
                             rowBuilder: (context, row, selected) {
                               final utxo = model.utxos[row];
@@ -101,11 +120,13 @@ class MempoolExplorerPage extends StatelessWidget {
                                 SailTableCell(
                                   value: formatter.formatSats(utxo.valueSats.toInt()),
                                   monospace: true,
+                                  alignment: valueAlignment,
                                 ),
                               ];
                             },
                             rowCount: model.utxos.length,
                             drawGrid: true,
+                            phoneColumns: const [0, 2, 3],
                             emptyPlaceholder: model.isLoading ? 'Loading UTXOs...' : 'No UTXOs found',
                           ),
                         ),

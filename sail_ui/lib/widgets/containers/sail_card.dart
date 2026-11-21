@@ -69,11 +69,17 @@ class SailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final radius = borderRadius ?? (theme.chrome.terminalStyle ? theme.chrome.radius : theme.chrome.radiusLarge);
+    final sheet = SailSheetScope.of(context);
+    var radius = borderRadius ?? (theme.chrome.terminalStyle ? theme.chrome.radius : theme.chrome.radiusLarge);
+    if (sheet) {
+      radius = BorderRadius.vertical(top: radius.topLeft);
+    }
+    final bottomInset = sheet ? MediaQuery.paddingOf(context).bottom : 0.0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) => _build(context, theme, radius, constraints.hasBoundedHeight),
+    final card = LayoutBuilder(
+      builder: (context, constraints) => _build(context, theme, radius, constraints.hasBoundedHeight, bottomInset),
     );
+    return sheet ? SailSheetScope(active: false, child: card) : card;
   }
 
   Widget _build(
@@ -81,6 +87,7 @@ class SailCard extends StatelessWidget {
     SailThemeData theme,
     BorderRadius radius,
     bool boundedHeight,
+    double bottomInset,
   ) {
     return SelectionArea(
       child: SailShadow(
@@ -166,9 +173,9 @@ class SailCard extends StatelessWidget {
                               top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
                               left: SailStyleValues.padding16,
                               right: SailStyleValues.padding16,
-                              bottom: bottomPadding ? SailStyleValues.padding16 : 0,
+                              bottom: (bottomPadding ? SailStyleValues.padding16 : 0) + bottomInset,
                             )
-                          : EdgeInsets.zero,
+                          : EdgeInsets.only(bottom: bottomInset),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -369,8 +376,47 @@ class SailAlertCard extends StatelessWidget {
     this.cancelText = 'Cancel',
   });
 
+  Future<void> _cancel(BuildContext context) async {
+    if (onCancel != null) {
+      await onCancel!();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (SailSheetScope.of(context)) {
+      return Align(
+        alignment: Alignment.bottomCenter,
+        child: SailCard(
+          title: title,
+          subtitle: subtitle,
+          child: SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              Expanded(
+                child: SailButton(
+                  label: cancelText,
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async => _cancel(context),
+                ),
+              ),
+              Expanded(
+                child: SailButton(
+                  label: confirmText,
+                  variant: confirmButtonVariant ?? ButtonVariant.primary,
+                  loadingLabel: loadingLabel,
+                  loading: loadingLabel != null,
+                  onPressed: onConfirm,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Center(
       child: SizedBox(
         width: 512,
@@ -385,13 +431,7 @@ class SailAlertCard extends StatelessWidget {
               SailButton(
                 label: cancelText,
                 variant: ButtonVariant.ghost,
-                onPressed: () async {
-                  if (onCancel != null) {
-                    await onCancel!();
-                  } else {
-                    Navigator.of(context).pop();
-                  }
-                },
+                onPressed: () async => _cancel(context),
               ),
               SailButton(
                 label: confirmText,
@@ -586,18 +626,24 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ...List.generate(widget.fields.length, (i) {
-            final field = widget.fields[i];
+            final label = SailText.primary13(widget.fields[i].name, bold: true);
+            final input = SailTextField(
+              controller: controllers[i],
+              hintText: '',
+              autofocus: i == 0,
+            );
+            if (SailStyleValues.phoneLayout(context)) {
+              return SailColumn(
+                spacing: SailStyleValues.padding08,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [label, input],
+              );
+            }
             return SailRow(
               spacing: 16,
               children: [
-                SailText.primary13(field.name, bold: true),
-                Expanded(
-                  child: SailTextField(
-                    controller: controllers[i],
-                    hintText: '',
-                    autofocus: i == 0,
-                  ),
-                ),
+                label,
+                Expanded(child: input),
               ],
             );
           }),

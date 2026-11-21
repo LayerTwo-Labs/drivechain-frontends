@@ -72,17 +72,22 @@ void main() {
   });
 
   tearDown(() async {
+    SailStyleValues.phoneLayoutOverride = null;
     await GetIt.I.reset();
   });
 
   Future<void> pumpList(WidgetTester tester) async {
+    final phone = SailStyleValues.phoneLayoutOverride == true;
     await tester.pumpSailPage(
-      const SizedBox(
-        width: 1200,
-        height: 900,
-        child: EcxBurnList(networkName: 'Betanet', networkId: 'betanet'),
+      SizedBox(
+        width: phone ? double.infinity : 1200,
+        height: phone ? 760 : 900,
+        child: const EcxBurnList(networkName: 'Betanet', networkId: 'betanet'),
       ),
     );
+    if (phone) {
+      await tester.usePhoneSize();
+    }
   }
 
   testWidgets('shows every burn with its payout and the totals', (tester) async {
@@ -104,6 +109,39 @@ void main() {
       find.byWidgetPredicate((widget) => widget is SailButton && widget.label == 'Download CSV'),
     );
     expect(download.disabled, isFalse);
+  });
+
+  testWidgets('on a phone the title is 16 px and the totals are one stat list', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    rpc.responses.add(() async => _response());
+    await pumpList(tester);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<Text>(find.text('Betanet burns')).style?.fontSize, 16);
+    expect(find.byType(SailStatList), findsOneWidget);
+    final rows = tester.widgetList<SailStatRow>(find.byType(SailStatRow)).toList();
+    expect([for (final row in rows) row.title], ['Burned', 'Burns', 'Payout addresses', 'Payout']);
+    expect(rows.first.value, '20,889.00019620 ${activeTicker.symbol}');
+    expect(rows.last.value, '417.78000393 ECX');
+  });
+
+  testWidgets('on a phone the error state keeps the 16 px title', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    rpc.responses.add(() async => throw Exception('esplora is down'));
+    await pumpList(tester);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<Text>(find.text('Betanet burns')).style?.fontSize, 16);
+  });
+
+  testWidgets('on a desktop the title is 24 px and the totals stay in a card', (tester) async {
+    SailStyleValues.phoneLayoutOverride = false;
+    rpc.responses.add(() async => _response());
+    await pumpList(tester);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<Text>(find.text('Betanet burns')).style?.fontSize, 24);
+    expect(find.byType(SailStatList), findsNothing);
   });
 
   testWidgets('shows the error and loads again on a retry', (tester) async {

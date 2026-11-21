@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/providers/price_provider.dart';
@@ -59,6 +61,9 @@ class BottomNavStatusOverride {
   const BottomNavStatusOverride({required this.label, required this.onTap});
 }
 
+/// The width the phone bar keeps for the connection icon when the balance is wide.
+const _phoneStatusMinWidth = 56.0;
+
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
   final List<Widget> balanceEndWidgets;
@@ -96,7 +101,109 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final phone = SailStyleValues.phoneLayout(context);
+    final status = ViewModelBuilder.reactive(
+      viewModelBuilder: () => BottomNavViewModel(
+        additionalConnection: additionalConnection,
+        mainchainInfo: mainchainInfo,
+        navigateToLogs: navigateToLogs,
+      ),
+      fireOnViewModelReadyOnce: true,
+      builder: ((context, model, child) {
+        final compact = SailStyleValues.compactBars(context);
+        Widget phoneFlex(Widget child) => phone ? Flexible(child: child) : child;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!phone) ?modeChip,
+            phoneFlex(
+              InkWell(
+                onTap: () {
+                  final override = statusOverride;
+                  if (override != null) {
+                    override.onTap();
+                    return;
+                  }
+                  displayConnectionStatusDialog(
+                    context,
+                    additionalConnection,
+                    onlyShowAdditional,
+                  );
+                },
+                child: Tooltip(
+                  message: compact
+                      ? statusOverride?.label ?? model.connectionStatus
+                      : statusOverride == null
+                      ? 'Open daemon status dialog'
+                      : 'Open the swap progress',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: SailStyleValues.padding08),
+                      DecoratedBox(
+                        decoration:
+                            statusOverride == null &&
+                                !model.initializingAny &&
+                                model.connectionColor == SailColorScheme.red
+                            ? BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: SailColorScheme.red.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    blurRadius: 8,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              )
+                            : const BoxDecoration(),
+                        child: SailSVG.fromAsset(
+                          SailSVGAsset.iconConnectionStatus,
+                          // The swap stops the daemons on purpose, so the red alarm would misread.
+                          color: statusOverride == null ? model.connectionColor : SailTheme.of(context).colors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: SailStyleValues.padding08),
+                      phoneFlex(
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: compact ? 140 : 200),
+                          child: statusOverride != null
+                              ? SailText.primary12(
+                                  statusOverride!.label,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                )
+                              : model.connectionStatus == 'All binaries connected'
+                              ? SailText.secondary12(
+                                  model.connectionStatus,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                )
+                              : SailText.primary12(
+                                  model.connectionStatus,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: SailStyleValues.padding08),
+            if (!phone) ...[
+              ChainLoaders(),
+              const UpdateIndicator(),
+              const DividerDot(),
+              ...endWidgets,
+              const SailSpacing(SailStyleValues.padding08),
+            ],
+          ],
+        );
+      }),
+    );
+    final bar = SizedBox(
       height: 36,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -111,122 +218,54 @@ class BottomNav extends StatelessWidget {
           trailingSpacing: true,
           children: [
             const SailSpacing(SailStyleValues.padding04),
-            const BottomNavBalance(),
-            if (balanceEndWidgets.isNotEmpty) ...[
+            if (!phone) const BottomNavBalance(),
+            if (!phone && balanceEndWidgets.isNotEmpty) ...[
               const SailSpacing(SailStyleValues.padding08),
               ...balanceEndWidgets,
             ],
-            Expanded(child: Container()),
-            Builder(
-              builder: (context) => MiningStatus(
-                onTap: () => displayConnectionStatusDialog(
-                  context,
-                  additionalConnection,
-                  onlyShowAdditional,
+            if (!phone) Expanded(child: Container()),
+            if (!phone) ...[
+              Builder(
+                builder: (context) => MiningStatus(
+                  onTap: () => displayConnectionStatusDialog(
+                    context,
+                    additionalConnection,
+                    onlyShowAdditional,
+                  ),
                 ),
               ),
-            ),
-            const ElectrumScanStatus(),
-            ViewModelBuilder.reactive(
-              viewModelBuilder: () => BottomNavViewModel(
-                additionalConnection: additionalConnection,
-                mainchainInfo: mainchainInfo,
-                navigateToLogs: navigateToLogs,
-              ),
-              fireOnViewModelReadyOnce: true,
-              builder: ((context, model, child) {
-                final compact = SailStyleValues.compactBars(context);
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ?modeChip,
-                    InkWell(
-                      onTap: () {
-                        final override = statusOverride;
-                        if (override != null) {
-                          override.onTap();
-                          return;
-                        }
-                        displayConnectionStatusDialog(
-                          context,
-                          additionalConnection,
-                          onlyShowAdditional,
-                        );
-                      },
-                      child: Tooltip(
-                        message: compact
-                            ? statusOverride?.label ?? model.connectionStatus
-                            : statusOverride == null
-                            ? 'Open daemon status dialog'
-                            : 'Open the swap progress',
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(width: SailStyleValues.padding08),
-                            DecoratedBox(
-                              decoration:
-                                  statusOverride == null &&
-                                      !model.initializingAny &&
-                                      model.connectionColor == SailColorScheme.red
-                                  ? BoxDecoration(
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: SailColorScheme.red.withValues(
-                                            alpha: 0.5,
-                                          ),
-                                          blurRadius: 8,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    )
-                                  : const BoxDecoration(),
-                              child: SailSVG.fromAsset(
-                                SailSVGAsset.iconConnectionStatus,
-                                // The swap stops the daemons on purpose, so the red alarm would misread.
-                                color: statusOverride == null
-                                    ? model.connectionColor
-                                    : SailTheme.of(context).colors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: SailStyleValues.padding08),
-                            ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: compact ? 140 : 200),
-                              child: statusOverride != null
-                                  ? SailText.primary12(
-                                      statusOverride!.label,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    )
-                                  : model.connectionStatus == 'All binaries connected'
-                                  ? SailText.secondary12(
-                                      model.connectionStatus,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    )
-                                  : SailText.primary12(
-                                      model.connectionStatus,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                            ),
-                          ],
+              const ElectrumScanStatus(),
+            ],
+            if (phone)
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Row(
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: math.max(0, constraints.maxWidth - _phoneStatusMinWidth),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: BottomNavBalance(),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: SailStyleValues.padding08),
-                    ChainLoaders(),
-                    const UpdateIndicator(),
-                    const DividerDot(),
-                    ...endWidgets,
-                    const SailSpacing(SailStyleValues.padding08),
-                  ],
-                );
-              }),
-            ),
+                      const SizedBox(width: SailStyleValues.padding04),
+                      Expanded(
+                        child: Align(alignment: Alignment.centerRight, child: status),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              status,
           ],
         ),
       ),
     );
+    return phone ? SafeArea(top: false, child: bar) : bar;
   }
 
   void displayConnectionStatusDialog(
@@ -234,180 +273,186 @@ class BottomNav extends StatelessWidget {
     ConnectionMonitor additionalConnection,
     bool onlyShowAdditional,
   ) {
-    widgetDialog(
-      context: context,
-      title: 'Daemon Status',
-      child: ViewModelBuilder.reactive(
-        viewModelBuilder: () => BottomNavViewModel(
-          mainchainInfo: mainchainInfo,
-          additionalConnection: additionalConnection,
-          navigateToLogs: navigateToLogs,
-        ),
-        builder: ((context, model, child) {
-          final binaryProvider = GetIt.I.get<BinaryProvider>();
-          final walletNeedsBackends = NodeModeProvider.runsLocalBackends;
-          final runLocally = onRunLocally;
-          final lightRemote = runLocally != null && (model.nodeMode?.isLight ?? false);
-          final showMainchain = showDaemonCard(
-            walletNeedsBackends: walletNeedsBackends,
-            connected: model.mainchain.connected,
-            initializing: model.mainchain.initializingBinary,
-          );
-          final showEnforcer = showDaemonCard(
-            walletNeedsBackends: model.needsEnforcer,
-            connected: model.enforcer.connected,
-            initializing: model.enforcer.initializingBinary,
-          );
-          final additional = additionalConnection.rpc;
-          final showAdditional = showDaemonCard(
-            walletNeedsBackends: model.needsAdditional,
-            connected: additional.connected,
-            initializing: additional.initializingBinary,
-          );
+    final content = ViewModelBuilder.reactive(
+      viewModelBuilder: () => BottomNavViewModel(
+        mainchainInfo: mainchainInfo,
+        additionalConnection: additionalConnection,
+        navigateToLogs: navigateToLogs,
+      ),
+      builder: ((context, model, child) {
+        final binaryProvider = GetIt.I.get<BinaryProvider>();
+        final walletNeedsBackends = NodeModeProvider.runsLocalBackends;
+        final runLocally = onRunLocally;
+        final lightRemote = runLocally != null && (model.nodeMode?.isLight ?? false);
+        final showMainchain = showDaemonCard(
+          walletNeedsBackends: walletNeedsBackends,
+          connected: model.mainchain.connected,
+          initializing: model.mainchain.initializingBinary,
+        );
+        final showEnforcer = showDaemonCard(
+          walletNeedsBackends: model.needsEnforcer,
+          connected: model.enforcer.connected,
+          initializing: model.enforcer.initializingBinary,
+        );
+        final additional = additionalConnection.rpc;
+        final showAdditional = showDaemonCard(
+          walletNeedsBackends: model.needsAdditional,
+          connected: additional.connected,
+          initializing: additional.initializingBinary,
+        );
 
-          return SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding20,
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailColumn(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (lightRemote) ...[
+        return SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding20,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailColumn(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (lightRemote) ...[
+                    DaemonConnectionCard(
+                      connection: model.remoteChain,
+                      syncInfo: null,
+                      infoMessage: null,
+                      remote: true,
+                      remoteBadge: true,
+                      navigateToLogs: model.navigateToLogs,
+                    ),
+                    if (model.needsEnforcer)
                       DaemonConnectionCard(
-                        connection: model.remoteChain,
+                        connection: model.enforcer,
                         syncInfo: null,
                         infoMessage: null,
                         remote: true,
                         remoteBadge: true,
                         navigateToLogs: model.navigateToLogs,
                       ),
-                      if (model.needsEnforcer)
-                        DaemonConnectionCard(
-                          connection: model.enforcer,
-                          syncInfo: null,
-                          infoMessage: null,
-                          remote: true,
-                          remoteBadge: true,
-                          navigateToLogs: model.navigateToLogs,
-                        ),
-                    ],
-                    if (!lightRemote &&
-                        showMainchain &&
-                        (!model.mainchain.connected ||
-                            !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
-                            !onlyShowAdditional))
-                      DaemonConnectionCard(
-                        connection: model.mainchain,
-                        syncInfo: model.syncProvider.mainchainSyncInfo,
-                        restartDaemon: () => binaryProvider.restart(
-                          binaryProvider.binaries.firstWhere(
-                            (b) => b.name == BitcoinCore().name,
-                          ),
-                        ),
-                        stopDaemon: () => binaryProvider.stop(
-                          binaryProvider.binaries.firstWhere(
-                            (b) => b.name == BitcoinCore().name,
-                          ),
-                        ),
-                        infoMessage: null,
-                        navigateToLogs: model.navigateToLogs,
-                        onOpenConfConfigurator: onOpenConfConfigurator,
-                      ),
-                    if (!lightRemote &&
-                        showEnforcer &&
-                        (!model.enforcer.connected ||
-                            !(model.syncProvider.enforcerSyncInfo?.allSyncsComplete ?? false) ||
-                            !onlyShowAdditional))
-                      DaemonConnectionCard(
-                        connection: model.enforcer,
-                        syncInfo: model.syncProvider.enforcerSyncInfo,
-                        remote: !walletNeedsBackends,
-                        infoMessage: model.mainchain.initializingBinary
-                            ? 'Waiting for mainchain to finish initializing'
-                            : model.syncProvider.inHeaderSync
-                            ? 'Waiting for L1 to sync headers...'
-                            : null,
-                        restartDaemon: walletNeedsBackends
-                            ? () => binaryProvider.restart(
-                                binaryProvider.binaries.firstWhere(
-                                  (b) => b.name == Enforcer().name,
-                                ),
-                              )
-                            : null,
-                        stopDaemon: walletNeedsBackends
-                            ? () => binaryProvider.stop(
-                                binaryProvider.binaries.firstWhere(
-                                  (b) => b.name == Enforcer().name,
-                                ),
-                              )
-                            : null,
-                        navigateToLogs: model.navigateToLogs,
-                        onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
-                      ),
-                    if (showAdditional)
-                      Builder(
-                        builder: (context) {
-                          final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
-                          final bool coreReady =
-                              !model.needsBackends ||
-                              !isSidechain ||
-                              (model.mainchain.connected &&
-                                  !model.mainchain.initializingBinary &&
-                                  model.mainchain.startupError == null &&
-                                  !model.syncProvider.inHeaderSync);
-                          final infoMessage = additionalDaemonWait(
-                            headerSyncPending: isSidechain && !coreReady,
-                            waitsForCore: model.additionalSyncInfo?.waitsForCore ?? false,
-                          );
-                          return DaemonConnectionCard(
-                            connection: additionalConnection.rpc,
-                            syncInfo: infoMessage == null ? model.additionalSyncInfo : null,
-                            infoMessage: infoMessage,
-                            restartDaemon: () => binaryProvider.restart(
-                              binaryProvider.binaries.firstWhere(
-                                (b) => b.name == additionalConnection.rpc.binary.name,
-                              ),
-                            ),
-                            stopDaemon: () => binaryProvider.stop(
-                              binaryProvider.binaries.firstWhere(
-                                (b) => b.name == additionalConnection.rpc.binary.name,
-                              ),
-                            ),
-                            navigateToLogs: model.navigateToLogs,
-                            onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
-                          );
-                        },
-                      ),
-                    // Everything else runs under drivechaind, and a hot start
-                    // adopts one this process never spawned. So it carries no
-                    // start or stop control.
-                    if (model.drivechaind case final orchestrator?)
-                      DaemonConnectionCard(
-                        connection: orchestrator,
-                        syncInfo: null,
-                        infoMessage: null,
-                        navigateToLogs: model.navigateToLogs,
-                      ),
                   ],
+                  if (!lightRemote &&
+                      showMainchain &&
+                      (!model.mainchain.connected ||
+                          !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
+                          !onlyShowAdditional))
+                    DaemonConnectionCard(
+                      connection: model.mainchain,
+                      syncInfo: model.syncProvider.mainchainSyncInfo,
+                      restartDaemon: () => binaryProvider.restart(
+                        binaryProvider.binaries.firstWhere(
+                          (b) => b.name == BitcoinCore().name,
+                        ),
+                      ),
+                      stopDaemon: () => binaryProvider.stop(
+                        binaryProvider.binaries.firstWhere(
+                          (b) => b.name == BitcoinCore().name,
+                        ),
+                      ),
+                      infoMessage: null,
+                      navigateToLogs: model.navigateToLogs,
+                      onOpenConfConfigurator: onOpenConfConfigurator,
+                    ),
+                  if (!lightRemote &&
+                      showEnforcer &&
+                      (!model.enforcer.connected ||
+                          !(model.syncProvider.enforcerSyncInfo?.allSyncsComplete ?? false) ||
+                          !onlyShowAdditional))
+                    DaemonConnectionCard(
+                      connection: model.enforcer,
+                      syncInfo: model.syncProvider.enforcerSyncInfo,
+                      remote: !walletNeedsBackends,
+                      infoMessage: model.mainchain.initializingBinary
+                          ? 'Waiting for mainchain to finish initializing'
+                          : model.syncProvider.inHeaderSync
+                          ? 'Waiting for L1 to sync headers...'
+                          : null,
+                      restartDaemon: walletNeedsBackends
+                          ? () => binaryProvider.restart(
+                              binaryProvider.binaries.firstWhere(
+                                (b) => b.name == Enforcer().name,
+                              ),
+                            )
+                          : null,
+                      stopDaemon: walletNeedsBackends
+                          ? () => binaryProvider.stop(
+                              binaryProvider.binaries.firstWhere(
+                                (b) => b.name == Enforcer().name,
+                              ),
+                            )
+                          : null,
+                      navigateToLogs: model.navigateToLogs,
+                      onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
+                    ),
+                  if (showAdditional)
+                    Builder(
+                      builder: (context) {
+                        final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
+                        final bool coreReady =
+                            !model.needsBackends ||
+                            !isSidechain ||
+                            (model.mainchain.connected &&
+                                !model.mainchain.initializingBinary &&
+                                model.mainchain.startupError == null &&
+                                !model.syncProvider.inHeaderSync);
+                        final infoMessage = additionalDaemonWait(
+                          headerSyncPending: isSidechain && !coreReady,
+                          waitsForCore: model.additionalSyncInfo?.waitsForCore ?? false,
+                        );
+                        return DaemonConnectionCard(
+                          connection: additionalConnection.rpc,
+                          syncInfo: infoMessage == null ? model.additionalSyncInfo : null,
+                          infoMessage: infoMessage,
+                          restartDaemon: () => binaryProvider.restart(
+                            binaryProvider.binaries.firstWhere(
+                              (b) => b.name == additionalConnection.rpc.binary.name,
+                            ),
+                          ),
+                          stopDaemon: () => binaryProvider.stop(
+                            binaryProvider.binaries.firstWhere(
+                              (b) => b.name == additionalConnection.rpc.binary.name,
+                            ),
+                          ),
+                          navigateToLogs: model.navigateToLogs,
+                          onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
+                        );
+                      },
+                    ),
+                  // Everything else runs under drivechaind, and a hot start
+                  // adopts one this process never spawned. So it carries no
+                  // start or stop control.
+                  if (model.drivechaind case final orchestrator?)
+                    DaemonConnectionCard(
+                      connection: orchestrator,
+                      syncInfo: null,
+                      infoMessage: null,
+                      navigateToLogs: model.navigateToLogs,
+                    ),
+                ],
+              ),
+              if (lightRemote)
+                SailButton(
+                  label: 'Run everything locally',
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    runLocally();
+                  },
                 ),
-                if (lightRemote)
-                  SailButton(
-                    label: 'Run everything locally',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      runLocally();
-                    },
-                  ),
-              ],
-            ),
-          );
-        }),
-      ),
+            ],
+          ),
+        );
+      }),
     );
+
+    if (SailStyleValues.phoneLayout(context)) {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SailPhonePage(title: 'Daemon Status', child: content),
+        ),
+      );
+      return;
+    }
+    widgetDialog(context: context, title: 'Daemon Status', child: content);
   }
 }
 
@@ -1069,25 +1114,23 @@ class UpdateIndicator extends StatelessWidget {
   }
 
   void _showUpdateDialog(BuildContext context, UpdateProvider updateProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => SailAlertCard(
-        title: 'Update Available',
-        subtitle:
-            'A new version (v${updateProvider.latestVersion}) is available.\n\n'
-            'The application will download and install the update, then restart automatically.',
-        cancelText: 'Hide Alert',
-        confirmText: 'Update',
-        onCancel: () async {
-          updateProvider.dismissUpdate();
-          Navigator.of(context).pop();
-        },
-        onConfirm: () async {
-          Navigator.of(context).pop();
-          await updateProvider.performUpdate();
-        },
-      ),
+    Widget alert(BuildContext context) => SailAlertCard(
+      title: 'Update Available',
+      subtitle:
+          'A new version (v${updateProvider.latestVersion}) is available.\n\n'
+          'The application will download and install the update, then restart automatically.',
+      cancelText: 'Hide Alert',
+      confirmText: 'Update',
+      onCancel: () async {
+        updateProvider.dismissUpdate();
+        Navigator.of(context).pop();
+      },
+      onConfirm: () async {
+        Navigator.of(context).pop();
+        await updateProvider.performUpdate();
+      },
     );
+    showSailDialog<void>(context: context, builder: alert);
   }
 }
 

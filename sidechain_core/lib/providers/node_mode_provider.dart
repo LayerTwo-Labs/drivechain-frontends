@@ -21,7 +21,7 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
   bool remoteEnforcerAvailable = false;
 
   /// False on a platform with no Bitcoin Core, enforcer or sidechain build.
-  bool localBuildsAvailable = Abi.current() != Abi.linuxArm64;
+  bool localBuildsAvailable = hasLocalBuilds(Abi.current());
 
   /// The mode to record with no question, or null when the user picks.
   wmpb.NodeMode? get forcedMode => !localBuildsAvailable && lightModeAvailable ? wmpb.NodeMode.NODE_MODE_LIGHT : null;
@@ -117,3 +117,13 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
   @override
   Future<void> onNetworkChanged() => load();
 }
+
+/// False for an ABI with no Bitcoin Core, enforcer or sidechain build.
+bool hasLocalBuilds(Abi abi) => !const {
+  Abi.linuxArm64,
+  Abi.androidArm64,
+  Abi.androidArm,
+  Abi.androidX64,
+  Abi.iosArm64,
+  Abi.iosX64,
+}.contains(abi);

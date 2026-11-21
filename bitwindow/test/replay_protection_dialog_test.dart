@@ -14,14 +14,19 @@ UnspentOutput coin(String address, int sats) =>
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(loadBundledFonts);
+
   setUp(() async {
     await GetIt.I.reset();
     await registerTestDependencies();
   });
 
   tearDown(() async {
+    SailStyleValues.phoneLayoutOverride = null;
     await GetIt.I.reset();
   });
+
+  Finder button(String label) => find.byWidgetPredicate((w) => w is SailButton && w.label == label);
 
   Future<ReplayChoice?> openDialog(WidgetTester tester, List<UnspentOutput> coins, {bool coinsKnown = true}) async {
     ReplayChoice? choice;
@@ -33,6 +38,9 @@ void main() {
         ),
       ),
     );
+    if (SailStyleValues.phoneLayoutOverride == true) {
+      await tester.usePhoneSize();
+    }
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     return choice;
@@ -77,5 +85,28 @@ void main() {
     final card = tester.getSize(find.byType(SailCard).first);
     final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
     expect(card.height, lessThan(screen.height * 0.7));
+  });
+
+  testWidgets('on a phone Enable, Send without and Cancel stack in that order', (tester) async {
+    SailStyleValues.phoneLayoutOverride = true;
+    await openDialog(tester, [coin('tb1qm4v000000000000000008xr2', 30000000)]);
+
+    final protect = tester.getRect(button('Enable replay protection'));
+    final plain = tester.getRect(button('Send without protection'));
+    final cancel = tester.getRect(button('Cancel'));
+    expect(plain.top, greaterThan(protect.bottom - 1));
+    expect(cancel.top, greaterThan(plain.bottom - 1));
+    expect(plain.width, closeTo(protect.width, 1));
+    expect(cancel.center.dx, closeTo(protect.center.dx, 1));
+  });
+
+  testWidgets('on a desktop the three answers share one row', (tester) async {
+    SailStyleValues.phoneLayoutOverride = false;
+    await openDialog(tester, [coin('tb1qm4v000000000000000008xr2', 30000000)]);
+
+    final protect = tester.getRect(button('Enable replay protection'));
+    final cancel = tester.getRect(button('Cancel'));
+    expect(cancel.center.dy, closeTo(protect.center.dy, 1));
+    expect(cancel.right, lessThan(protect.left));
   });
 }

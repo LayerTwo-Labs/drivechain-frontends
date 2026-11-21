@@ -115,34 +115,24 @@ class _UTXOsTabState extends State<UTXOsTab> {
                             await widgetDialog(
                               context: context,
                               title: 'About UTXO Distribution',
-                              child: SailColumn(
-                                spacing: SailStyleValues.padding12,
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SailText.primary13(
-                                    'UTXOs (Unspent Transaction Outputs) are the individual "coins" in your wallet. '
-                                    'This chart shows how your balance is distributed across different UTXO sizes.',
-                                  ),
-                                  SailText.primary13(
-                                    'Why it matters: Many small UTXOs can lead to higher transaction fees. '
-                                    'Consider consolidating small UTXOs when fees are low.',
-                                  ),
-                                  SailText.primary13(
-                                    'Right-click on any bar to see options for the UTXOs in that bucket.',
-                                  ),
-                                ],
-                              ),
+                              child: const UTXODistributionHelp(),
                             );
                           },
                         ),
-                        child: UTXODistributionChart(
-                          walletId: walletId,
-                          onBucketContextMenu: (bucket, position) {
-                            _showBucketContextMenu(context, bucket, position);
-                          },
-                          onConsolidate: (_) => WalletPage.openSubtab(WalletPage.consolidateSubtabLabel),
-                        ),
+                        child: SailStyleValues.phoneLayout(context)
+                            ? UTXOPhoneBars(
+                                utxos: model.entries,
+                                onBucketContextMenu: (bucket, position) {
+                                  _showBucketContextMenu(context, bucket, position);
+                                },
+                              )
+                            : UTXODistributionChart(
+                                walletId: walletId,
+                                onBucketContextMenu: (bucket, position) {
+                                  _showBucketContextMenu(context, bucket, position);
+                                },
+                                onConsolidate: (_) => WalletPage.openSubtab(WalletPage.consolidateSubtabLabel),
+                              ),
                       ),
                     ),
                   ),
@@ -428,6 +418,7 @@ class _UTXOTableState extends State<UTXOTable> {
               return isDenied(utxo) ? theme.colors.success.withValues(alpha: 0.1) : null;
             },
             getRowId: (index) => sortedEntries[index].output,
+            phoneColumns: const [2, 3, 6],
             headerBuilder: (context) => [
               SailTableHeaderCell(name: '', onSort: () => onSort('frozen')),
               SailTableHeaderCell(
@@ -637,6 +628,33 @@ class _OutputCell extends StatelessWidget {
       children: [
         Flexible(child: SailText.primary13(output.substring(0, separator), overflow: TextOverflow.ellipsis)),
         SailText.primary13(output.substring(separator)),
+      ],
+    );
+  }
+}
+
+class UTXODistributionHelp extends StatelessWidget {
+  const UTXODistributionHelp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding12,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary13(
+          'UTXOs (Unspent Transaction Outputs) are the individual "coins" in your wallet. '
+          'This chart shows how your balance is distributed across different UTXO sizes.',
+        ),
+        SailText.primary13(
+          'Why it matters: Many small UTXOs can lead to higher transaction fees. '
+          'Consider consolidating small UTXOs when fees are low.',
+        ),
+        SailText.primary13(
+          '${SailStyleValues.phoneLayout(context) ? 'Long-press any bar' : 'Right-click on any bar'} '
+          'to see options for the UTXOs in that bucket.',
+        ),
       ],
     );
   }

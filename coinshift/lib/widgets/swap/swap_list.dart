@@ -30,7 +30,7 @@ class SwapList extends StatelessWidget {
       builder: (context, model, child) {
         return SailCard(
           title: showOnlyActive ? 'Active Swaps' : 'My Swaps',
-          bottomPadding: false,
+          bottomPadding: SailStyleValues.phoneLayout(context),
           child: Column(
             children: [
               // Header with refresh button and checking status
@@ -348,7 +348,10 @@ class _SwapTableState extends State<_SwapTable> {
           spacing: SailStyleValues.padding08,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SailText.primary15('No swaps found'),
+            if (SailStyleValues.phoneLayout(context))
+              SailText.primary13('No swaps found', bold: true)
+            else
+              SailText.primary15('No swaps found'),
             SailText.secondary12('Swaps will appear here once created'),
           ],
         ),

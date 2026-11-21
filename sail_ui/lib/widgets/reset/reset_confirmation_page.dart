@@ -171,7 +171,7 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
         body: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+              padding: EdgeInsets.symmetric(horizontal: SailStyleValues.phoneLayout(context) ? 0 : 32.0),
               child: SizedBox(
                 width: 800,
                 child: _gathering
@@ -209,6 +209,86 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     bool hasMovedItems,
     String resetVerb,
   ) {
+    final state = resetHeaderState(deletionComplete: _deletionComplete, errorCount: errorCount);
+    final icon = switch (state) {
+      ResetHeaderState.success => Icon(Icons.check_circle, color: theme.colors.success, size: 32),
+      ResetHeaderState.partial => SailSVG.fromAsset(
+        SailSVGAsset.iconWarning,
+        color: theme.colors.orange,
+        width: 32,
+        height: 32,
+      ),
+      ResetHeaderState.confirm => SailSVG.fromAsset(
+        SailSVGAsset.iconWarning,
+        color: theme.colors.error,
+        width: 32,
+        height: 32,
+      ),
+    };
+    final title = switch (state) {
+      ResetHeaderState.success => 'Reset Complete',
+      ResetHeaderState.partial => 'Reset Partially Complete',
+      ResetHeaderState.confirm => 'Confirm Deletion',
+    };
+    final Widget status;
+    if (_isDeleting && !_deletionComplete) {
+      status = _stoppingBinaries
+          ? SailRow(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: SailStyleValues.padding08,
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: theme.colors.primary),
+                ),
+                SailText.secondary13('Stopping binaries...'),
+              ],
+            )
+          : SailText.secondary13('Deleting: ${_currentIndex + 1} / ${_items.length}');
+    } else if (_deletionComplete) {
+      status = SailText.secondary13(
+        '${hasMovedItems ? 'Reset' : 'Deleted'} $successCount items${errorCount > 0 ? ', $errorCount failed' : ''}',
+      );
+    } else {
+      status = SailText.secondary13('The following ${_items.length} items will be $resetVerb:');
+    }
+    final list = DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colors.backgroundSecondary,
+        borderRadius: context.sailTheme.chrome.radiusSmall,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(SailStyleValues.padding12),
+        child: _isDeleting
+            ? _DeletionProgress(filesToDelete: _items)
+            : PathTreeView(paths: _items.map((f) => f.path).toList()),
+      ),
+    );
+    final buttons = <Widget>[
+      if (!_isDeleting) ...[
+        SailButton(
+          label: 'Cancel',
+          onPressed: () async => Navigator.of(context).pop(false),
+        ),
+        const SizedBox(width: SailStyleValues.padding12),
+        SailButton(
+          label: hasMovedItems ? 'Reset ${_items.length} items' : 'Delete ${_items.length} items',
+          variant: ButtonVariant.destructive,
+          onPressed: () async => await _startDeletion(),
+        ),
+      ] else if (_deletionComplete)
+        SailButton(
+          label: 'Continue',
+          variant: ButtonVariant.primary,
+          onPressed: () async => _handleBack(),
+        ),
+    ];
+
+    if (SailStyleValues.phoneLayout(context)) {
+      return ResetConfirmationPanel(title: title, icon: icon, status: status, list: list, buttons: buttons);
+    }
+
     return Stack(
       children: [
         SingleChildScrollView(
@@ -221,91 +301,50 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 spacing: SailStyleValues.padding12,
                 children: [
-                  switch (resetHeaderState(deletionComplete: _deletionComplete, errorCount: errorCount)) {
-                    ResetHeaderState.success => Icon(Icons.check_circle, color: theme.colors.success, size: 32),
-                    ResetHeaderState.partial => SailSVG.fromAsset(
-                      SailSVGAsset.iconWarning,
-                      color: theme.colors.orange,
-                      width: 32,
-                      height: 32,
-                    ),
-                    ResetHeaderState.confirm => SailSVG.fromAsset(
-                      SailSVGAsset.iconWarning,
-                      color: theme.colors.error,
-                      width: 32,
-                      height: 32,
-                    ),
-                  },
-                  SailText.primary24(
-                    switch (resetHeaderState(deletionComplete: _deletionComplete, errorCount: errorCount)) {
-                      ResetHeaderState.success => 'Reset Complete',
-                      ResetHeaderState.partial => 'Reset Partially Complete',
-                      ResetHeaderState.confirm => 'Confirm Deletion',
-                    },
-                    bold: true,
-                  ),
+                  icon,
+                  SailText.primary24(title, bold: true),
                 ],
               ),
               const SizedBox(height: 16),
-              if (_isDeleting && !_deletionComplete) ...[
-                if (_stoppingBinaries)
-                  SailRow(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: theme.colors.primary),
-                      ),
-                      SailText.secondary13('Stopping binaries...'),
-                    ],
-                  )
-                else
-                  SailText.secondary13('Deleting: ${_currentIndex + 1} / ${_items.length}'),
-              ] else if (_deletionComplete)
-                SailText.secondary13(
-                  '${hasMovedItems ? 'Reset' : 'Deleted'} $successCount items${errorCount > 0 ? ', $errorCount failed' : ''}',
-                )
-              else
-                SailText.secondary13('The following ${_items.length} items will be $resetVerb:'),
+              status,
               const SizedBox(height: 24),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colors.backgroundSecondary,
-                  borderRadius: context.sailTheme.chrome.radiusSmall,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(SailStyleValues.padding12),
-                  child: _isDeleting
-                      ? _DeletionProgress(filesToDelete: _items)
-                      : PathTreeView(paths: _items.map((f) => f.path).toList()),
-                ),
-              ),
+              list,
             ],
           ),
         ),
-        BottomActionBar(
-          children: [
-            if (!_isDeleting) ...[
-              SailButton(
-                label: 'Cancel',
-                onPressed: () async => Navigator.of(context).pop(false),
-              ),
-              const SizedBox(width: SailStyleValues.padding12),
-              SailButton(
-                label: hasMovedItems ? 'Reset ${_items.length} items' : 'Delete ${_items.length} items',
-                variant: ButtonVariant.destructive,
-                onPressed: () async => await _startDeletion(),
-              ),
-            ] else if (_deletionComplete)
-              SailButton(
-                label: 'Continue',
-                variant: ButtonVariant.primary,
-                onPressed: () async => _handleBack(),
-              ),
-          ],
-        ),
+        BottomActionBar(children: buttons),
+      ],
+    );
+  }
+}
+
+/// The phone form of the reset confirmation: one panel with the title, the status, the file list and the buttons.
+class ResetConfirmationPanel extends StatelessWidget {
+  final String title;
+  final Widget icon;
+  final Widget status;
+  final Widget list;
+  final List<Widget> buttons;
+
+  const ResetConfirmationPanel({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.status,
+    required this.list,
+    required this.buttons,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailPanelPage(
+      title: title,
+      leading: SizedBox(width: 20, height: 20, child: FittedBox(child: icon)),
+      actions: buttons.isEmpty ? null : Row(mainAxisAlignment: MainAxisAlignment.end, children: buttons),
+      children: [
+        Align(alignment: Alignment.centerLeft, child: status),
+        const SizedBox(height: 16),
+        list,
       ],
     );
   }

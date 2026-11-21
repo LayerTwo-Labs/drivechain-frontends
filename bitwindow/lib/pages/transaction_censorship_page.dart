@@ -58,6 +58,44 @@ class _Header extends StatelessWidget {
     final provider = model.provider;
     final status = provider.status;
 
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailSkeletonizer(
+        enabled: model.loading,
+        description: 'Reading the watch status',
+        child: SailColumn(
+          spacing: SailStyleValues.padding08,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailButton(
+                  label: status.enabled ? 'Stop watching' : 'Start watching',
+                  variant: status.enabled ? ButtonVariant.outline : ButtonVariant.primary,
+                  small: true,
+                  disabled: model.loading,
+                  onPressed: model.toggle,
+                ),
+                SailButton(
+                  label: 'Reset tracker',
+                  variant: ButtonVariant.outline,
+                  small: true,
+                  disabled: model.loading,
+                  onPressed: provider.reset,
+                ),
+              ],
+            ),
+            SailText.secondary13(model.statusText),
+            SailTextField(
+              controller: model.searchController,
+              hintText: 'Search txid',
+              onChanged: (_) => model.onSearchChanged(),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SailSkeletonizer(
       enabled: model.loading,
       description: 'Reading the watch status',

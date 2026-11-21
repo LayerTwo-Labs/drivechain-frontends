@@ -113,4 +113,21 @@ void main() {
     expect(find.text('Paths'), findsOneWidget);
     expect(find.text('Wipe and reinstall'), findsWidgets);
   });
+
+  for (final (phone, titleSize, labelWidth) in [(true, 16.0, 112.0), (false, 20.0, 170.0)]) {
+    testWidgets('the title is $titleSize px and the labels $labelWidth px wide when phoneLayout is $phone', (
+      tester,
+    ) async {
+      SailStyleValues.phoneLayoutOverride = phone;
+      addTearDown(() => SailStyleValues.phoneLayoutOverride = null);
+      await pumpEnforcer(tester, remote: true);
+
+      final title = tester.widget<Text>(find.text(Enforcer().name).first);
+      expect(title.style!.fontSize, titleSize);
+      expect(
+        tester.getSize(find.ancestor(of: find.text('Repository'), matching: find.byType(SizedBox)).first).width,
+        labelWidth,
+      );
+    });
+  }
 }

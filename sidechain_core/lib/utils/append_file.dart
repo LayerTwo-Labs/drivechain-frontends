@@ -2,6 +2,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 /// A write-only file that the OS moves to its end before each write.
 /// [FileMode.append] moves there only at open, so it overwrites other writers.
@@ -14,6 +15,13 @@ abstract interface class AppendFile {
 
   void close();
 }
+
+/// The open(2) flags O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC on [os].
+@visibleForTesting
+int appendOpenFlags(String os) => switch (os) {
+  'macos' || 'ios' => 0x1 | 0x8 | 0x200 | 0x1000000,
+  _ => 0x1 | 0x400 | 0x40 | 0x80000,
+};
 
 typedef _OpenC = Int32 Function(Pointer<Utf8>, Int32, VarArgs<(Int32,)>);
 typedef _OpenDart = int Function(Pointer<Utf8>, int, int);
@@ -28,13 +36,7 @@ class _PosixAppendFile implements AppendFile {
   static final _write = _libc.lookupFunction<_WriteC, _WriteDart>('write');
   static final _close = _libc.lookupFunction<_CloseC, _CloseDart>('close');
 
-  static const _wrOnly = 0x1;
-  static final _flags = Platform.isMacOS
-      ? _wrOnly |
-            0x8 |
-            0x200 |
-            0x1000000 // O_APPEND | O_CREAT | O_CLOEXEC
-      : _wrOnly | 0x400 | 0x40 | 0x80000;
+  static final _flags = appendOpenFlags(Platform.operatingSystem);
   static const _mode = 0x1a4; // 0644
 
   _PosixAppendFile(this._path) : _fd = _openFd(_path);

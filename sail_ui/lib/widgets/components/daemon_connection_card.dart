@@ -86,6 +86,22 @@ class DaemonConnectionCard extends StatelessWidget {
       (b) => b.name == connection.binary.name,
     );
     final isDownloading = downloadProgress != null;
+    final phone = SailStyleValues.phoneLayout(context);
+    final status = _infoMessage != null || _connectionError != null || !connection.connected
+        ? prettifyLogMessage(
+            resolveDaemonStatusMessage(
+              connectionError: _connectionError,
+              startupError: connection.startupError,
+              infoMessage: _infoMessage,
+              initializingBinary: connection.initializingBinary,
+              initializingFallback: providerBinary?.startupLogs.lastOrNull?.message,
+            ),
+          )
+        : '';
+    final statusIcon = SailSVG.fromAsset(
+      SailSVGAsset.iconConnectionStatus,
+      color: _getConnectionColor(theme, isDownloading: isDownloading),
+    );
 
     return SailCard(
       child: SailColumn(
@@ -93,16 +109,25 @@ class DaemonConnectionCard extends StatelessWidget {
           SailRow(
             spacing: SailStyleValues.padding04,
             children: [
-              SailText.primary15(
-                '${connection.binary.name} daemon',
-                bold: true,
-              ),
-              SailSVG.fromAsset(
-                SailSVGAsset.iconConnectionStatus,
-                color: _getConnectionColor(theme, isDownloading: isDownloading),
-              ),
-              if (remoteBadge) const SailBadge('remote'),
-              Expanded(child: Container()),
+              if (phone) ...[
+                statusIcon,
+                Expanded(
+                  child: SailColumn(
+                    spacing: 2,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.primary13(connection.binary.name, bold: true),
+                      if (status.trim().isNotEmpty) SailText.secondary12(status.trim()),
+                    ],
+                  ),
+                ),
+                if (remoteBadge) const SailBadge('remote'),
+              ] else ...[
+                SailText.primary15('${connection.binary.name} daemon', bold: true),
+                statusIcon,
+                if (remoteBadge) const SailBadge('remote'),
+                Expanded(child: Container()),
+              ],
               if (providerBinary != null && providerBinary.updateAvailable)
                 SailButton(
                   label: 'Update',
@@ -154,7 +179,7 @@ class DaemonConnectionCard extends StatelessWidget {
                 SailButton(
                   variant: ButtonVariant.icon,
                   onPressed: () async {
-                    await showDialog(
+                    await showSailDialog<void>(
                       context: context,
                       builder: (context) => ChainSettingsModal(
                         connection: chain,
@@ -195,22 +220,11 @@ class DaemonConnectionCard extends StatelessWidget {
                   ? BlockStatus(name: connection.binary.name, syncInfo: syncInfo!)
                   : null,
             ),
-          Padding(
-            padding: const EdgeInsets.only(top: SailStyleValues.padding04),
-            child: DaemonStatusBlock(
-              message: _infoMessage != null || _connectionError != null || !connection.connected
-                  ? prettifyLogMessage(
-                      resolveDaemonStatusMessage(
-                        connectionError: _connectionError,
-                        startupError: connection.startupError,
-                        infoMessage: _infoMessage,
-                        initializingBinary: connection.initializingBinary,
-                        initializingFallback: providerBinary?.startupLogs.lastOrNull?.message,
-                      ),
-                    )
-                  : '',
+          if (!phone)
+            Padding(
+              padding: const EdgeInsets.only(top: SailStyleValues.padding04),
+              child: DaemonStatusBlock(message: status),
             ),
-          ),
         ],
       ),
     );

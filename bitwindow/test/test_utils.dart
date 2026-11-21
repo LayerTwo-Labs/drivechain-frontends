@@ -142,3 +142,12 @@ Future<void> loadBundledFonts() async {
     await loader.load();
   }
 }
+
+extension PhoneSizeExtension on WidgetTester {
+  /// Gives the test a 390 x 844 phone screen until the test ends.
+  Future<void> usePhoneSize() async {
+    await binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => binding.setSurfaceSize(null));
+    await pump();
+  }
+}

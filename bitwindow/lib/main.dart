@@ -92,18 +92,21 @@ void main(List<String> args) async {
       await withWindowsFileRetry(() async {
         try {
           WidgetsFlutterBinding.ensureInitialized();
+          if (Platform.isIOS) {
+            await loadIosBitwindowHome();
+          }
 
-          // Get the current window controller to check if this is a sub-window
-          final windowController = await WindowController.fromCurrentEngine();
+          final windowController = hasDesktopWindow ? await WindowController.fromCurrentEngine() : null;
+          final windowArguments = windowController?.arguments ?? '';
 
-          final (applicationDir, logFile, log) = await init(windowController.arguments);
-          if (subWindowTimers != null) {
+          final (applicationDir, logFile, log) = await init(windowArguments);
+          if (windowController != null && subWindowTimers != null) {
             return await runPooledSubWindow(windowController, subWindowTimers, log, logFile);
           }
 
           // If arguments are not empty, this is a sub-window
-          if (windowController.arguments.isNotEmpty) {
-            return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
+          if (windowArguments.isNotEmpty) {
+            return runMultiWindow(windowArguments, log, applicationDir, logFile);
           }
 
           await runMainWindow(log, applicationDir, logFile);
@@ -241,6 +244,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<Logger>(() => log);
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: !isSubWindow);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  if (!hasDesktopWindow) {
+    final windowLogFile = logFile;
+    windowProvider.openInApp = (window, arguments) async {
+      final router = GetIt.I.get<AppRouter>();
+      await router.pushWidget(
+        SailWindowScaffold(
+          title: window.name,
+          onBack: () => router.maybePop(),
+          child: inAppWindowPage(window.identifier, arguments, windowLogFile),
+        ),
+      );
+    };
+  }
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
   GetIt.I.registerLazySingleton<ClientSettings>(() => ClientSettings(store: storage, log: log));
   GetIt.I.registerLazySingleton<BitwindowClientSettings>(() => BitwindowClientSettings(store: storage, log: log));
@@ -486,11 +502,13 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
     title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
   );
 
-  await windowManager.ensureInitialized();
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
+  if (hasDesktopWindow) {
+    await windowManager.ensureInitialized();
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
 
   await setupSignalHandlers(log);
 
@@ -530,9 +548,11 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   );
 
   final claimsTruthcoinLinks = !GetIt.I.get<SettingsProvider>().bitwindowSettings.openSidechainsInWindow;
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    startTruthcoinLinks(log, claimScheme: claimsTruthcoinLinks);
-  });
+  if (truthcoinLinksServe(Platform.operatingSystem)) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      startTruthcoinLinks(log, claimScheme: claimsTruthcoinLinks);
+    });
+  }
 
   return runApp(BitwindowApp(log: log, backendReady: backendReady));
 }
@@ -742,6 +762,20 @@ class _BitwindowAppContent extends StatelessWidget {
         // layout cost on normal routes. When either daemon fails terminally
         // it renders a 36px red banner — visible on pre-auth screens where
         // root_page's richer BottomNav isn't mounted.
+        // A Scaffold bottom bar takes the bottom inset from the page, which a phone page needs.
+        if (SailStyleValues.phoneLayout(context)) {
+          return _ErrorBoundary(
+            child: Material(
+              color: theme.colors.background,
+              child: Column(
+                children: [
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                  const BackendSwapBar(child: PersistentStatusBar()),
+                ],
+              ),
+            ),
+          );
+        }
         return _ErrorBoundary(
           child: Scaffold(
             body: child ?? const SizedBox.shrink(),
@@ -1384,4 +1418,37 @@ Future<void> initAutoUpdater(Logger log) async {
   } catch (e) {
     log.w('Failed to initialize auto updater: $e');
   }
+}
+
+/// The page that [windowType] shows inside the app, where no sub-window exists.
+Widget inAppWindowPage(String? windowType, Map<String, dynamic> arguments, File logFile) {
+  switch (windowType) {
+    case SubWindowTypes.debugId:
+      return DebugWindow();
+    case SubWindowTypes.logsId:
+      final logWindow = LogWindowArguments.fromWindowArguments(arguments, bitwindowLogPath: logFile.path);
+      return LogPage(logPath: logWindow.logPath, title: logWindow.title, binaryType: logWindow.binaryType);
+    case SubWindowTypes.deniabilityId:
+      return DeniabilityTab(newWindowButton: null);
+    case SubWindowTypes.blockExplorerId:
+      return const BlockExplorerDialog();
+    case SubWindowTypes.addressbookId:
+      return AddressBookTable();
+    case SubWindowTypes.messageSignerId:
+      return const MessageSigner();
+    case SubWindowTypes.hashCalculatorId:
+      return const HashCalculator();
+    case SubWindowTypes.converterId:
+      return const ConverterWindow();
+    case SubWindowTypes.hdWalletId:
+      return const HDWalletTab();
+    case SubWindowTypes.multisigLoungeId:
+      return const MultisigLoungeTab();
+    case SubWindowTypes.bitDriveId:
+      return const BitDriveTab();
+  }
+  return SailCard(
+    title: 'Unknown window type: $windowType',
+    child: SailText.primary15('Programmers messed up, and supplied an unknown window type: $windowType'),
+  );
 }

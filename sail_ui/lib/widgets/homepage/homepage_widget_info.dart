@@ -19,6 +19,12 @@ class HomepageWidgetInfo {
   /// The library section that lists the widget. Null puts it in the first section with no header.
   final String? group;
 
+  /// One line that says what the widget shows. The phone library lists it under the name.
+  final String? subtitle;
+
+  /// True keeps the full size in the one-column phone layout, for a full form that stacks its parts.
+  final bool fullOnPhones;
+
   final Widget Function(WidgetSize size) builder;
 
   const HomepageWidgetInfo({
@@ -27,6 +33,8 @@ class HomepageWidgetInfo {
     required this.sizes,
     required this.builder,
     this.group,
+    this.subtitle,
+    this.fullOnPhones = false,
   }) : assert(sizes.length > 0);
 
   WidgetSize sizeOf(HomepageWidgetConfig config) {

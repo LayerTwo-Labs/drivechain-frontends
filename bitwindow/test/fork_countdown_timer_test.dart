@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+import 'test_utils.dart';
+
 class _Fork extends ForkProvider {
   int reads = 0;
   bool _show = false;
@@ -61,5 +63,33 @@ void main() {
 
     expect(find.text('00:00:29'), findsOneWidget);
     expect(fork.reads, reads);
+  });
+
+  testWidgets('the strip fits a 390 px phone', (tester) async {
+    await loadBundledFonts();
+    final fork = _Fork()
+      ..showCountdown = true
+      ..networkName = 'Regtest'
+      ..forkHeight = 400
+      ..currentHeaders = 102
+      ..forkTargetDate = DateTime.now().add(const Duration(days: 2, hours: 1));
+    GetIt.I.registerSingleton<ForkProvider>(fork);
+    addTearDown(GetIt.I.reset);
+
+    await tester.pumpWidget(
+      SailTheme(
+        data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+        child: const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(width: 390, child: ForkCountdownTimer()),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getRect(find.text('BLOCK ~400')).right, lessThanOrEqualTo(390));
   });
 }

@@ -683,6 +683,14 @@ class MeltButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    if (SailStyleValues.phoneLayout(context)) {
+      return _PhoneActionCard(
+        icon: SailSVGAsset.iconMelt,
+        title: 'Melt',
+        line: 'Click here to Melt ALL of your transparent Coins',
+        onPressed: onPressed,
+      );
+    }
 
     return SailTappable(
       onTap: onPressed,
@@ -741,6 +749,14 @@ class CastButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    if (SailStyleValues.phoneLayout(context)) {
+      return _PhoneActionCard(
+        icon: SailSVGAsset.iconCast,
+        title: 'Cast',
+        line: 'Click here to Cast 95-100% of your z-value as 4 new Coins',
+        onPressed: onPressed,
+      );
+    }
 
     return SailTappable(
       onTap: onPressed,
@@ -774,6 +790,49 @@ class CastButton extends StatelessWidget {
               'Click here to Cast 95-100% of your z-value as 4 new Coins',
               color: theme.colors.textSecondary,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The phone form of the Melt and Cast buttons: a plain card with the title at the left.
+class _PhoneActionCard extends StatelessWidget {
+  final SailSVGAsset icon;
+  final String title;
+  final String line;
+  final Future<void> Function() onPressed;
+
+  const _PhoneActionCard({required this.icon, required this.title, required this.line, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return SailTappable(
+      onTap: onPressed,
+      borderRadius: theme.chrome.radiusLarge,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(SailStyleValues.padding16),
+        decoration: BoxDecoration(
+          borderRadius: theme.chrome.radiusLarge,
+          color: theme.chrome.panel(theme.colors).color,
+          border: Border.all(color: theme.colors.border),
+        ),
+        child: SailColumn(
+          spacing: SailStyleValues.padding04,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.icon(icon, color: theme.colors.text, height: 18),
+                SailText.primary16(title, bold: true),
+              ],
+            ),
+            SailText.secondary12(line),
           ],
         ),
       ),

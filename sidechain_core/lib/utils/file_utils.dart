@@ -56,6 +56,7 @@ Future<void> openDir(Directory dir) async {
     OS.linux => 'xdg-open',
     OS.macos => 'open',
     OS.windows => 'explorer',
+    OS.android || OS.ios => throw UnsupportedError('a phone has no file manager command'),
   };
 
   await Process.run(command, [dir.path]);
@@ -67,6 +68,7 @@ Future<void> openDir(Directory dir) async {
   OS.macos => ('open', ['-R', path]),
   OS.windows => ('explorer', ['/select,$path']),
   OS.linux => ('xdg-open', [File(path).parent.path]),
+  OS.android || OS.ios => throw UnsupportedError('a phone has no file manager command'),
 };
 
 Future<void> openFile(File file) async {
@@ -81,9 +83,17 @@ Future<void> openFile(File file) async {
 enum OS {
   linux,
   macos,
-  windows;
+  windows,
+  android,
+  ios;
 
   static OS get current {
+    if (Platform.isAndroid) {
+      return OS.android;
+    }
+    if (Platform.isIOS) {
+      return OS.ios;
+    }
     if (Platform.isLinux) {
       return OS.linux;
     }
@@ -95,6 +105,9 @@ enum OS {
     }
     throw 'unsupported operating system: ${Platform.operatingSystem}';
   }
+
+  /// The OS whose data folder layout this OS uses. A phone uses the Linux layout under the app home.
+  OS get dataLayout => this == OS.android || this == OS.ios ? OS.linux : this;
 }
 
 OS getOS() {
@@ -107,6 +120,12 @@ OS getOS() {
   if (Platform.isLinux) {
     return OS.linux;
   }
+  if (Platform.isAndroid) {
+    return OS.android;
+  }
+  if (Platform.isIOS) {
+    return OS.ios;
+  }
   throw Exception('unsupported platform');
 }
 
@@ -114,5 +133,5 @@ OS getOS() {
 String fileManagerName() => switch (getOS()) {
   OS.macos => 'Finder',
   OS.windows => 'File Explorer',
-  OS.linux => 'File Manager',
+  OS.linux || OS.android || OS.ios => 'File Manager',
 };

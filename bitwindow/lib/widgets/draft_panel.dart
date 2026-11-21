@@ -298,12 +298,15 @@ class _DraftPanelState extends State<DraftPanel> {
       return _oneKeyLayout(context, draft);
     }
 
+    final phone = SailStyleValues.phoneLayout(context);
     return SingleChildScrollView(
       child: SailColumn(
-        spacing: SailStyleValues.padding16,
+        spacing: phone ? SailStyleValues.padding12 : SailStyleValues.padding16,
+        crossAxisAlignment: phone ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
         children: [
           _flowCard(context, draft),
           _keysCard(context, draft),
+          if (phone) _footer(context, draft),
           SailSpacing(SailStyleValues.padding64),
         ],
       ),
@@ -401,6 +404,9 @@ class _DraftPanelState extends State<DraftPanel> {
   Widget _broadcastRow(BuildContext context, PsbtDraft draft) {
     final theme = context.sailTheme;
     final network = GetIt.I.get<BitcoinConfProvider>().network;
+    if (SailStyleValues.phoneLayout(context)) {
+      return _PhoneBroadcastRow(txid: draft.txid);
+    }
     return SailRow(
       spacing: SailStyleValues.padding08,
       children: [
@@ -579,9 +585,9 @@ class _DraftPanelState extends State<DraftPanel> {
                 GroupedAddress(address),
               ],
               if (isChange)
-                FlowChip(label: 'change · back to $_walletName', color: theme.colors.success)
+                _StatusLabel('change · back to $_walletName', theme.colors.success)
               else
-                FlowChip(label: 'payment', color: theme.colors.orange),
+                _StatusLabel('payment', theme.colors.orange),
             ],
           ),
         ),
@@ -621,19 +627,27 @@ class _DraftPanelState extends State<DraftPanel> {
       title: 'Keys',
       subtitle: '$_walletName needs ${multisig.m} of its ${multisig.n} keys.',
       error: _error ?? _drafts.modelError,
-      widgetHeaderEnd: FlowChip(
-        label: '$signatures of $threshold collected',
-        color: (status?.finalizable ?? false) ? theme.colors.success : theme.colors.orange,
+      widgetHeaderEnd: _StatusLabel(
+        '$signatures of $threshold collected',
+        (status?.finalizable ?? false) ? theme.colors.success : theme.colors.orange,
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding16,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _keysHeader(context),
-          for (var i = 0; i < multisig.cosigners.length; i++) _keyRow(context, i, multisig.cosigners[i]),
-          _footer(context, draft),
-        ],
-      ),
+      child: SailStyleValues.phoneLayout(context)
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _PhoneKeysHeader(),
+                for (var i = 0; i < multisig.cosigners.length; i++) _phoneKeyRow(i, multisig.cosigners[i]),
+              ],
+            )
+          : SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _keysHeader(context),
+                for (var i = 0; i < multisig.cosigners.length; i++) _keyRow(context, i, multisig.cosigners[i]),
+                _footer(context, draft),
+              ],
+            ),
     );
   }
 
@@ -715,6 +729,20 @@ class _DraftPanelState extends State<DraftPanel> {
     );
   }
 
+  _PhoneKeyRow _phoneKeyRow(int i, wmpb.MultisigCosignerInfo c) {
+    final status = _status;
+    final signed = status != null && i < status.cosignerSigned.length && status.cosignerSigned[i];
+    final canSign = !signed && (c.held || c.hardwareDeviceType.isNotEmpty) && _draft?.txid.isEmpty == true;
+    final busyKey = c.held ? 'cosigner-$i' : 'device-$i';
+    return _PhoneKeyRow(
+      index: i,
+      signed: signed,
+      onSign: canSign ? () async => c.held ? _signCosigner(i) : _signWithDevice(i) : null,
+      busy: _isBusy(busyKey),
+      blocked: _blocked(busyKey),
+    );
+  }
+
   String _heldBy(wmpb.MultisigCosignerInfo c) {
     if (c.held) {
       return 'This computer';
@@ -748,6 +776,12 @@ class _DraftPanelState extends State<DraftPanel> {
     final broadcast = draft.txid.isNotEmpty;
     final finalizable = _status?.finalizable ?? false;
 
+    final phone = SailStyleValues.phoneLayout(context);
+
+    if (broadcast && phone) {
+      return _PhoneBroadcastRow(txid: draft.txid);
+    }
+
     if (broadcast) {
       final network = GetIt.I.get<BitcoinConfProvider>().network;
       return SailRow(
@@ -768,38 +802,50 @@ class _DraftPanelState extends State<DraftPanel> {
     // The provider-level lock survives a panel remount from a tab switch;
     // the local busy key alone does not.
     final pending = _drafts.isBroadcastPending(draft.id);
+    final copy = SailButton(
+      label: 'Copy PSBT',
+      variant: ButtonVariant.ghost,
+      onPressed: () async => _copyPsbt(),
+    );
+    final import = SailButton(
+      label: 'Import a signature',
+      variant: ButtonVariant.secondary,
+      loading: _isBusy('import'),
+      disabled: _blocked('import') || pending,
+      onPressed: () async => _importSignedPsbt(),
+    );
+    final broadcastButton = SailButton(
+      label: 'Broadcast',
+      loadingLabel: 'Broadcasting',
+      disabled: !finalizable || _blocked('broadcast') || pending,
+      loading: _isBusy('broadcast') || pending,
+      onPressed: () async => _broadcast(),
+    );
+    final discard = SailButton(
+      label: 'Discard',
+      variant: ButtonVariant.outline,
+      disabled: _busyKey != null || pending,
+      onPressed: () async => confirmDeleteDraft(context, draft, _decoded),
+    );
+
+    if (phone) {
+      return SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          broadcastButton,
+          import,
+          Center(child: copy),
+          discard,
+        ],
+      );
+    }
 
     return Wrap(
       spacing: SailStyleValues.padding08,
       runSpacing: SailStyleValues.padding08,
       alignment: WrapAlignment.end,
-      children: [
-        SailButton(
-          label: 'Copy PSBT',
-          variant: ButtonVariant.ghost,
-          onPressed: () async => _copyPsbt(),
-        ),
-        SailButton(
-          label: 'Import a signature',
-          variant: ButtonVariant.secondary,
-          loading: _isBusy('import'),
-          disabled: _blocked('import') || pending,
-          onPressed: () async => _importSignedPsbt(),
-        ),
-        SailButton(
-          label: 'Broadcast',
-          loadingLabel: 'Broadcasting',
-          disabled: !finalizable || _blocked('broadcast') || pending,
-          loading: _isBusy('broadcast') || pending,
-          onPressed: () async => _broadcast(),
-        ),
-        SailButton(
-          label: 'Discard',
-          variant: ButtonVariant.outline,
-          disabled: _busyKey != null || pending,
-          onPressed: () async => confirmDeleteDraft(context, draft, _decoded),
-        ),
-      ],
+      children: [copy, import, broadcastButton, discard],
     );
   }
 
@@ -823,6 +869,129 @@ class _DraftPanelState extends State<DraftPanel> {
       return '${elapsed.inMinutes} min ago';
     }
     return formatDate(at, long: false);
+  }
+}
+
+/// A status label: a chip on a desktop, plain colored text on a phone.
+class _StatusLabel extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _StatusLabel(this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailText.secondary12(label, color: color);
+    }
+    return FlowChip(label: label, color: color);
+  }
+}
+
+class _PhoneBroadcastRow extends StatelessWidget {
+  final String txid;
+
+  const _PhoneBroadcastRow({required this.txid});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+      child: SailColumn(
+        spacing: SailStyleValues.padding04,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: SailText.secondary12('Broadcast', color: theme.colors.success)),
+              SailButton(
+                label: 'View transaction',
+                variant: ButtonVariant.ghost,
+                small: true,
+                onPressed: () async => openUrl(Uri.parse(mempoolTxUrl(txid, network))),
+              ),
+            ],
+          ),
+          SailText.secondary12(txid, monospace: true),
+        ],
+      ),
+    );
+  }
+}
+
+const _phoneKeyFlex = 9;
+const _phoneStatusFlex = 5;
+
+class _PhoneKeysHeader extends StatelessWidget {
+  const _PhoneKeysHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+      child: Row(
+        children: [
+          Expanded(
+            flex: _phoneKeyFlex,
+            child: SailText.secondary12('KEY', color: theme.colors.textTertiary),
+          ),
+          Expanded(
+            flex: _phoneStatusFlex,
+            child: SailText.secondary12('STATUS', color: theme.colors.textTertiary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One 40 px key row on a phone. [onSign] is null when this phone cannot sign with the key.
+class _PhoneKeyRow extends StatelessWidget {
+  final int index;
+  final bool signed;
+  final Future<void> Function()? onSign;
+  final bool busy;
+  final bool blocked;
+
+  const _PhoneKeyRow({
+    required this.index,
+    required this.signed,
+    required this.onSign,
+    required this.busy,
+    required this.blocked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: theme.colors.divider)),
+      ),
+      child: Row(
+        children: [
+          Expanded(flex: _phoneKeyFlex, child: SailText.primary13('Key ${index + 1}', bold: true)),
+          Expanded(
+            flex: _phoneStatusFlex,
+            child: Row(
+              children: [
+                Expanded(
+                  child: signed
+                      ? SailText.secondary12('Signed', color: theme.colors.success)
+                      : SailText.secondary12('Awaiting signature', color: theme.colors.orange),
+                ),
+                if (onSign != null)
+                  SailButton(label: 'Sign', small: true, loading: busy, disabled: blocked, onPressed: onSign!),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

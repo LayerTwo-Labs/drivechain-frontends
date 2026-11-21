@@ -12,6 +12,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart' show Intl;
 import 'package:protobuf/well_known_types/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -107,11 +108,34 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
 /// Height that fits four whole story rows per column.
 const double _largeWidgetHeight = 387;
 
+/// Height that fits four whole story rows in a stacked phone card.
+const double _stackedStoriesHeight = 232;
+
 class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
   const CoinNewsLargeView({super.key});
 
   @override
   Widget build(BuildContext context, CoinNewsLargeViewModel viewModel) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailColumn(
+        spacing: SailStyleValues.padding16,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (topic, onChanged) in [
+            (viewModel.leftTopic, viewModel.setLeftTopic),
+            (viewModel.rightTopic, viewModel.setRightTopic),
+          ])
+            _LargeColumn(
+              topic: topic,
+              onTopicChanged: onChanged,
+              entries: viewModel.entriesFor(topic),
+              outdatedCount: viewModel.outdatedCountFor(topic),
+              viewModel: viewModel,
+              stacked: true,
+            ),
+        ],
+      );
+    }
     return SizedBox(
       height: _largeWidgetHeight,
       child: SailRow(
@@ -149,12 +173,16 @@ class _LargeColumn extends StatelessWidget {
   final int outdatedCount;
   final CoinNewsLargeViewModel viewModel;
 
+  /// True sizes the card to its stories, up to four rows, for the phone stack.
+  final bool stacked;
+
   const _LargeColumn({
     required this.topic,
     required this.onTopicChanged,
     required this.entries,
     required this.outdatedCount,
     required this.viewModel,
+    this.stacked = false,
   });
 
   @override
@@ -163,6 +191,7 @@ class _LargeColumn extends StatelessWidget {
       child: SailColumn(
         spacing: SailStyleValues.padding12,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: stacked ? MainAxisSize.min : MainAxisSize.max,
         children: [
           SailRow(
             children: [
@@ -180,7 +209,13 @@ class _LargeColumn extends StatelessWidget {
               ),
             ],
           ),
-          Expanded(child: _body(context)),
+          if (stacked)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: _stackedStoriesHeight),
+              child: _body(context),
+            )
+          else
+            Expanded(child: _body(context)),
           if (outdatedCount > 0 || viewModel.showOutdated) _outdatedLink(context),
         ],
       ),
@@ -216,6 +251,7 @@ class _LargeColumn extends StatelessWidget {
       );
     }
     return ListView.builder(
+      shrinkWrap: stacked,
       padding: EdgeInsets.zero,
       itemCount: entries.length,
       itemBuilder: (context, i) => _LargeStoryRow(entry: entries[i], outdated: viewModel.isOutdated(entries[i])),
@@ -849,89 +885,117 @@ class CoinNewsTable extends StatelessWidget {
     this.selectedRowId,
   });
 
+  static const _phoneDateWidth = 72.0;
+  static const _phoneReadTimeWidth = 88.0;
+
   @override
   Widget build(BuildContext context) {
     final formatter = GetIt.I<FormatterProvider>();
+    final phone = SailStyleValues.phoneLayout(context) && !condensed;
 
     return SailSkeletonizer(
       description: 'Waiting for backend to boot and for it to load coin news..',
       enabled: loading,
       duration: const Duration(seconds: 3),
-      child: ListenableBuilder(
-        listenable: formatter,
-        builder: (context, child) => SailTable(
-          shrinkWrap: shrinkWrap,
-          selectedRowId: selectedRowId,
-          getRowId: (index) => index.toString(),
-          headerBuilder: (context) => [
-            if (condensed) ...[
-              const SailTableHeaderCell(name: 'Date'),
-              const SailTableHeaderCell(name: 'Fee'),
-              const SailTableHeaderCell(name: 'Title'),
-            ] else ...[
-              const SailTableHeaderCell(name: 'Date'),
-              const SailTableHeaderCell(name: 'Topic'),
-              const SailTableHeaderCell(name: 'Title'),
-              const SailTableHeaderCell(name: 'Read time'),
-            ],
-          ],
-          rowBuilder: (context, row, selected) {
-            final entry = entries[row];
-            final topicName = GetIt.I.get<NewsProvider>().topicName(entry.topic);
-
-            return [
-              if (condensed) ...[
-                SailTableCell(value: formatDate(entry.createTime.toDateTime())),
-                SailTableCell(value: formatter.formatSats(entry.feeSats.toInt())),
-                SailTableCell(value: entry.headline),
-              ] else ...[
-                SailTableCell(value: formatDate(entry.createTime.toDateTime())),
-                SailTableCell(value: topicName ?? ''),
-                SailTableCell(value: entry.headline),
-                SailTableCell(value: expectedReadTime(entry.content)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final phoneTitleWidth = max(
+            defaultMinColumnWidth,
+            constraints.maxWidth - _phoneDateWidth - _phoneReadTimeWidth,
+          );
+          return ListenableBuilder(
+            listenable: formatter,
+            builder: (context, child) => SailTable(
+              shrinkWrap: shrinkWrap,
+              selectedRowId: selectedRowId,
+              getRowId: (index) => index.toString(),
+              phoneColumns: condensed ? null : const [0, 2, 3],
+              headerBuilder: (context) => [
+                if (condensed) ...[
+                  const SailTableHeaderCell(name: 'Date'),
+                  const SailTableHeaderCell(name: 'Fee'),
+                  const SailTableHeaderCell(name: 'Title'),
+                ] else ...[
+                  const SailTableHeaderCell(name: 'Date'),
+                  const SailTableHeaderCell(name: 'Topic'),
+                  const SailTableHeaderCell(name: 'Title'),
+                  const SailTableHeaderCell(name: 'Read time'),
+                ],
               ],
-            ];
-          },
-          rowCount: entries.length,
-          emptyPlaceholder: 'No news articles yet',
-          drawGrid: true,
-          onSort: (columnIndex, ascending) {
-            final columns = condensed ? ['date', 'fee', 'title'] : ['date', 'topic', 'title', 'readtime'];
-            onSort(columns[columnIndex]);
-          },
-          onSelectedRow: (rowId) {
-            if (rowId == null || onArticleSelected == null) {
-              return;
-            }
-            final index = int.tryParse(rowId);
-            if (index != null && index < entries.length) {
-              onArticleSelected!(entries[index]);
-            }
-          },
-          contextMenuItems: (rowId) {
-            final index = int.tryParse(rowId);
-            final news = index != null && index < entries.length ? entries[index] : null;
-            return [
-              SailMenuItem(
-                onSelected: () {
-                  if (news != null && onArticleSelected != null) {
-                    onArticleSelected!(news);
-                  }
-                },
-                child: SailText.primary12('Show Details'),
-              ),
-              // The indexer does not always report the on-chain position.
-              if (news != null && news.txid.isNotEmpty)
-                SailMenuItem(
-                  onSelected: () async {
-                    final network = GetIt.I.get<BitcoinConfProvider>().network;
-                    await openUrl(Uri.parse(mempoolTxUrl(news.txid, network)));
-                  },
-                  child: SailText.primary12('View on chain'),
-                ),
-            ];
-          },
-        ),
+              rowBuilder: (context, row, selected) {
+                final entry = entries[row];
+                final topicName = GetIt.I.get<NewsProvider>().topicName(entry.topic);
+
+                return [
+                  if (condensed) ...[
+                    SailTableCell(value: formatDate(entry.createTime.toDateTime())),
+                    SailTableCell(value: formatter.formatSats(entry.feeSats.toInt())),
+                    SailTableCell(value: entry.headline),
+                  ] else ...[
+                    SailTableCell(
+                      value: phone
+                          ? cachedDateFormat(
+                              'MMM d',
+                              Intl.getCurrentLocale(),
+                            ).format(entry.createTime.toDateTime().toLocal())
+                          : formatDate(entry.createTime.toDateTime()),
+                      width: phone ? _phoneDateWidth : null,
+                    ),
+                    SailTableCell(value: topicName ?? ''),
+                    SailTableCell(
+                      value: entry.headline,
+                      width: phone ? phoneTitleWidth : null,
+                      child: phone ? SailText.primary13(entry.headline) : null,
+                    ),
+                    SailTableCell(
+                      value: expectedReadTime(entry.content),
+                      width: phone ? _phoneReadTimeWidth : null,
+                    ),
+                  ],
+                ];
+              },
+              rowCount: entries.length,
+              emptyPlaceholder: 'No news articles yet',
+              drawGrid: true,
+              onSort: (columnIndex, ascending) {
+                final columns = condensed ? ['date', 'fee', 'title'] : ['date', 'topic', 'title', 'readtime'];
+                onSort(columns[columnIndex]);
+              },
+              onSelectedRow: (rowId) {
+                if (rowId == null || onArticleSelected == null) {
+                  return;
+                }
+                final index = int.tryParse(rowId);
+                if (index != null && index < entries.length) {
+                  onArticleSelected!(entries[index]);
+                }
+              },
+              contextMenuItems: (rowId) {
+                final index = int.tryParse(rowId);
+                final news = index != null && index < entries.length ? entries[index] : null;
+                return [
+                  SailMenuItem(
+                    onSelected: () {
+                      if (news != null && onArticleSelected != null) {
+                        onArticleSelected!(news);
+                      }
+                    },
+                    child: SailText.primary12('Show Details'),
+                  ),
+                  // The indexer does not always report the on-chain position.
+                  if (news != null && news.txid.isNotEmpty)
+                    SailMenuItem(
+                      onSelected: () async {
+                        final network = GetIt.I.get<BitcoinConfProvider>().network;
+                        await openUrl(Uri.parse(mempoolTxUrl(news.txid, network)));
+                      },
+                      child: SailText.primary12('View on chain'),
+                    ),
+                ];
+              },
+            ),
+          );
+        },
       ),
     );
   }

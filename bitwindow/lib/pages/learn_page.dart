@@ -132,6 +132,10 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
       return const SizedBox.shrink();
     }
 
+    if (SailStyleValues.phoneLayout(context)) {
+      return _ArticleGroupList(group: widget.group);
+    }
+
     final showArrows = widget.group.articles.length > 3;
     final scrollDistance = MediaQuery.of(context).size.width >= 768 ? 800.0 : 400.0;
     final theme = SailTheme.of(context);
@@ -250,6 +254,80 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ArticleGroupList extends StatelessWidget {
+  final ArticleGroup group;
+
+  const _ArticleGroupList({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary18(group.title, bold: true),
+        if (group.subtitle.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          SailText.secondary13(group.subtitle),
+        ],
+        const SizedBox(height: SailStyleValues.padding12),
+        SailStatList(
+          children: [
+            for (final article in group.articles) _ArticleRow(groupTitle: group.title, article: article),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ArticleRow extends StatelessWidget {
+  final String groupTitle;
+  final Article article;
+
+  const _ArticleRow({required this.groupTitle, required this.article});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final background = article.background;
+    return SailTappable(
+      onTap: () async => showArticleDetails(context, article, groupTitle),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: theme.chrome.radius,
+              child: SizedBox.square(
+                dimension: 48,
+                child: CoverImage(
+                  background != null
+                      ? AssetImage(background)
+                      : AssetImage(SailPNGAsset.articleBeginner.toAssetPath(), package: 'sail_ui'),
+                ),
+              ),
+            ),
+            const SizedBox(width: SailStyleValues.padding12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SailText.primary15(article.title),
+                  const SizedBox(height: 2),
+                  SailText.secondary12('Read time: ${expectedReadTime(article.markdown)}'),
+                ],
+              ),
+            ),
+            const SizedBox(width: SailStyleValues.padding08),
+            SailSVG.fromAsset(SailSVGAsset.chevronRight, width: 12, color: theme.colors.textTertiary),
+          ],
+        ),
       ),
     );
   }

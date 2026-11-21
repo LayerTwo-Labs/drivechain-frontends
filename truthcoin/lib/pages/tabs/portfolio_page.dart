@@ -63,6 +63,41 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final phone = SailStyleValues.phoneLayout(context);
+    final subtitle = SailText.secondary13(
+      model.addresses.isEmpty
+          ? 'No wallet address yet'
+          : '${model.headlineAddress} · ${model.addresses.length} addresses',
+    );
+    final refresh = SailButton(
+      plainLabel: true,
+      label: 'Refresh',
+      variant: ButtonVariant.secondary,
+      small: true,
+      loading: model.isLoading,
+      onPressed: () async => model.load(),
+    );
+    final markets = SailButton(
+      plainLabel: true,
+      label: 'Markets',
+      small: true,
+      onPressed: () async => model.openMarkets(context),
+    );
+
+    if (phone) {
+      return SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailColumn(
+            spacing: SailStyleValues.padding04,
+            children: [SailText.primary20('Portfolio', bold: true), subtitle],
+          ),
+          SailRow(spacing: SailStyleValues.padding08, children: [refresh, markets]),
+        ],
+      );
+    }
+
     return Wrap(
       spacing: SailStyleValues.padding12,
       runSpacing: SailStyleValues.padding08,
@@ -72,30 +107,11 @@ class _Header extends StatelessWidget {
           width: 320,
           child: SailColumn(
             spacing: SailStyleValues.padding04,
-            children: [
-              SailText.primary24('Portfolio', bold: true),
-              SailText.secondary13(
-                model.addresses.isEmpty
-                    ? 'No wallet address yet'
-                    : '${model.headlineAddress} · ${model.addresses.length} addresses',
-              ),
-            ],
+            children: [SailText.primary24('Portfolio', bold: true), subtitle],
           ),
         ),
-        SailButton(
-          plainLabel: true,
-          label: 'Refresh',
-          variant: ButtonVariant.secondary,
-          small: true,
-          loading: model.isLoading,
-          onPressed: () async => model.load(),
-        ),
-        SailButton(
-          plainLabel: true,
-          label: 'Markets',
-          small: true,
-          onPressed: () async => model.openMarkets(context),
-        ),
+        refresh,
+        markets,
       ],
     );
   }

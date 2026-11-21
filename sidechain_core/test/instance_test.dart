@@ -22,10 +22,7 @@ void main() {
         macosSupportPath({'HOME': '/Users/x', bitwindowHomeKey: '/tmp/a'}, 'bitwindow'),
         '/tmp/a/Library/Application Support/bitwindow',
       );
-      expect(
-        macosSupportPath({'HOME': '/Users/x'}, 'bitwindow'),
-        '/Users/x/Library/Application Support/bitwindow',
-      );
+      expect(macosSupportPath({'HOME': '/Users/x'}, 'bitwindow'), '/Users/x/Library/Application Support/bitwindow');
     });
   });
 
@@ -57,6 +54,17 @@ void main() {
         bitwindowHomeKey: '/tmp/a',
         portOffsetKey: '1000',
       });
+    });
+
+    test('passes the regtest servers on', () {
+      expect(
+        instanceEnvironment({
+          regtestEsploraUrlKey: 'http://10.0.2.2:25560',
+          regtestEnforcerUrlKey: 'http://10.0.2.2:25550',
+          'OTHER': 'x',
+        }),
+        {regtestEsploraUrlKey: 'http://10.0.2.2:25560', regtestEnforcerUrlKey: 'http://10.0.2.2:25550'},
+      );
     });
   });
 
@@ -90,5 +98,14 @@ void main() {
         expect(() => instancePort(30301, {portOffsetKey: raw}), throwsFormatException, reason: raw);
       }
     });
+  });
+
+  test('a home set by the app fills an empty environment and reaches a child process', () {
+    setBitwindowHome('/app/Library/Application Support/BitWindowHome');
+
+    expect(bitwindowHome(), '/app/Library/Application Support/BitWindowHome');
+    expect(instanceEnvironment()[bitwindowHomeKey], '/app/Library/Application Support/BitWindowHome');
+    expect(bitwindowHome({}), '/app/Library/Application Support/BitWindowHome');
+    expect(bitwindowHome({bitwindowHomeKey: '/env'}), '/env', reason: 'the environment wins');
   });
 }

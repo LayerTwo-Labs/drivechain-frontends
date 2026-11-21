@@ -81,6 +81,41 @@ class NetworkStatsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailStatList(
+        panel: false,
+        children: [
+          SailStatRow(
+            title: 'Peers',
+            subtitle: '${stats.connectionsIn} in / ${stats.connectionsOut} out',
+            value: stats.peerCount.toString(),
+          ),
+          SailStatRow(title: 'Block Height', subtitle: '', value: stats.blockHeight.toString()),
+          SailStatRow(
+            title: 'Download',
+            subtitle: _formatBytes(stats.totalBytesReceived.toInt()),
+            value: _formatBandwidth(currentRxRate),
+          ),
+          SailStatRow(
+            title: 'Upload',
+            subtitle: _formatBytes(stats.totalBytesSent.toInt()),
+            value: _formatBandwidth(currentTxRate),
+          ),
+          if (stats.hasBitcoindBandwidth())
+            SailStatRow(
+              title: 'bitcoind',
+              subtitle: 'PID ${stats.bitcoindBandwidth.pid}',
+              value: '${stats.bitcoindBandwidth.connectionCount} conn',
+            ),
+          if (stats.hasBitcoindBandwidth() && stats.hasEnforcerBandwidth())
+            SailStatRow(
+              title: 'enforcer',
+              subtitle: 'PID ${stats.enforcerBandwidth.pid}',
+              value: '${stats.enforcerBandwidth.connectionCount} conn',
+            ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

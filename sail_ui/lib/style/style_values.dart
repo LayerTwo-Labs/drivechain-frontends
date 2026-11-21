@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:sidechain_core/utils/desktop_window.dart';
 
 abstract class SailStyleValues {
   /// Window width under which the top nav and the status bar go compact.
   static const double compactBarsWidth = 1200;
 
   static bool compactBars(BuildContext context) => MediaQuery.sizeOf(context).width < compactBarsWidth;
+
+  /// Forces the phone or the desktop layout in a test.
+  @visibleForTesting
+  static bool? phoneLayoutOverride;
+
+  /// True where the app shows its phone layout: a side nav in place of the top tabs.
+  static bool phoneLayout(BuildContext context) => phoneLayoutOverride ?? isMobile;
 
   // ---------- PADDINGS AND SPACINGS ----------
   static BorderRadius borderRadiusLarge = BorderRadius.circular(12);
@@ -40,6 +48,10 @@ abstract class SailStyleValues {
   );
   static const TextStyle twenty = TextStyle(
     fontSize: 20,
+    fontWeight: regularWeight,
+  );
+  static const TextStyle eighteen = TextStyle(
+    fontSize: 18,
     fontWeight: regularWeight,
   );
   static const TextStyle sixteen = TextStyle(

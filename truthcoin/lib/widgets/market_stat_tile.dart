@@ -31,7 +31,7 @@ class MarketStatTile extends StatelessWidget {
   }
 }
 
-/// A row of stat tiles that folds into more rows on a narrow window.
+/// A row of stat tiles that folds into more rows on a narrow window. A phone shows one list panel.
 class MarketStatTileRow extends StatelessWidget {
   final List<MarketStatTile> tiles;
 
@@ -41,6 +41,15 @@ class MarketStatTileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SailStyleValues.phoneLayout(context)) {
+      return SailStatList(
+        children: [
+          for (final tile in tiles)
+            SailStatRow(title: tile.label, subtitle: tile.caption, value: tile.value, valueColor: tile.valueColor),
+        ],
+      );
+    }
+
     const gap = SailStyleValues.padding16;
 
     return LayoutBuilder(
