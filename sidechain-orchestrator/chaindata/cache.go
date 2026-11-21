@@ -32,7 +32,7 @@ var policies = map[string]policy{
 	"listwallets":       {events: EventWrite},
 	"getpeerinfo":       {ttl: 5 * time.Second},
 	"getnettotals":      {ttl: 5 * time.Second},
-	"getnetworkinfo":    {ttl: time.Minute},
+	"getnetworkinfo":    {ttl: 5 * time.Second},
 }
 
 // readOnly reports whether a Core method leaves the wallets as they are.
