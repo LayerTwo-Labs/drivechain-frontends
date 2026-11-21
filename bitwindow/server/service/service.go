@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/rs/zerolog"
@@ -73,26 +74,47 @@ func (s *Service[T]) IsConnected() bool {
 	return s.connected.Load()
 }
 
+// followRetry is the first wait before a new dial of a service that is up but
+// did not answer. It doubles to followRetryMax.
+var (
+	followRetry    = 25 * time.Millisecond
+	followRetryMax = time.Second
+)
+
 // Follow sets the connection state from an outside liveness source until ctx
-// ends. A change to up dials the service. A change to down drops it.
+// ends. A change to up dials the service, again and again until it answers or
+// goes down. A change to down drops it.
 func (s *Service[T]) Follow(ctx context.Context, up <-chan bool) {
 	go func() {
+		isUp := false
+		wait := followRetry
+		retry := time.NewTimer(time.Hour)
+		retry.Stop()
+		defer retry.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case v := <-up:
+				isUp = v
+				wait = followRetry
 				if !v {
+					retry.Stop()
 					s.setConnected(ctx, false)
 					continue
 				}
-				if s.connected.Load() {
+			case <-retry.C:
+				if !isUp {
 					continue
 				}
-				// A failed dial leaves the service down, and the next Get dials again.
-				if _, err := s.Connect(ctx); err != nil {
-					zerolog.Ctx(ctx).Debug().Err(err).Msgf("dial %q after it came up", s.name)
-				}
+			}
+			if s.connected.Load() {
+				continue
+			}
+			if _, err := s.Connect(ctx); err != nil {
+				zerolog.Ctx(ctx).Debug().Err(err).Msgf("dial %q after it came up", s.name)
+				retry.Reset(wait)
+				wait = min(2*wait, followRetryMax)
 			}
 		}
 	}()
