@@ -141,6 +141,14 @@ func (p *CoreBackend) takeStale(walletName string) bool {
 	return true
 }
 
+// CoreUp drops the startup error that Ensure keeps, because Core now answers.
+func (p *CoreBackend) CoreUp() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.loadingUntil = time.Time{}
+	p.loadingErr = nil
+}
+
 // ResetNetworkState drops the wallet-name cache: a different network means a
 // different bitcoind datadir, where those wallets do not exist.
 func (p *CoreBackend) ResetNetworkState() {
