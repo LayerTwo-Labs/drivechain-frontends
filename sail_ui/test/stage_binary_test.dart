@@ -114,7 +114,9 @@ void main() {
       final bundle = Directory('${srcDir.path}/bin')..createSync();
       final assetName = embeddedAssetName('hwi-daemon', isMacOS: Platform.isMacOS, arch: currentArch());
       final exe = Platform.isWindows ? '.exe' : '';
-      File('${bundle.path}/$assetName$exe').writeAsBytesSync([4, 5, 6]);
+      File('${bundle.path}/$assetName$exe')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync([4, 5, 6]);
       final out = Directory('${dir.path}/out');
 
       await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
@@ -138,7 +140,9 @@ void main() {
         asset = File(
           '${bundle.path}/${embeddedAssetName('hwi-daemon', isMacOS: Platform.isMacOS, arch: currentArch())}$exe',
         );
-        asset.writeAsBytesSync([4, 5, 6]);
+        asset
+          ..createSync(recursive: true)
+          ..writeAsBytesSync([4, 5, 6]);
         out = Directory('${dir.path}/out');
         staged = File('${out.path}/hwi-daemon$exe');
         await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);

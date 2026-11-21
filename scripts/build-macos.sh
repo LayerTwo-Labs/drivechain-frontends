@@ -36,10 +36,9 @@ if test -n "$notarization_identity"; then
 
     # Only try to sign binaries if the directory exists and has files
     if [ -d "$assets_bin_dir" ] && [ "$(ls -A $assets_bin_dir 2>/dev/null)" ]; then
-        for asset in "$assets_bin_dir"/* ; do 
-            # Skip if no files match the pattern
-            [ -e "$asset" ] || continue
-            echo Signing binary asset $(basename "$asset")
+        # The embedded daemons ship in one folder per arch.
+        while IFS= read -r -d '' asset; do
+            echo Signing binary asset "${asset#"$assets_bin_dir"/}"
             # hwi unpacks a Python runtime to a temp dir and loads it on start,
             # which library validation refuses under the hardened runtime.
             asset_entitlements=""
@@ -48,7 +47,7 @@ if test -n "$notarization_identity"; then
             esac
             codesign --verbose --deep --force --options runtime $asset_entitlements --sign \
                 "$notarization_identity" "$asset"
-        done
+        done < <(find "$assets_bin_dir" -type f -print0)
     else
         echo "No binary assets to sign in $assets_bin_dir (directory does not exist or is empty)"
     fi

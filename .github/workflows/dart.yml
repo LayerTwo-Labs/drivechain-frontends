@@ -116,10 +116,9 @@ jobs:
           ../scripts/sync-path-dep-versions.sh .
           flutter pub get --enforce-lockfile
 
+      # bitwindow lists the per-arch folders in assets/bin as assets.
       - name: Create necessary directories
-        run: |
-          rm -rf assets/bin
-          mkdir -p assets/bin
+        run: mkdir -p assets/bin
 
       - name: Verify formatting
         # prettier-ignore
