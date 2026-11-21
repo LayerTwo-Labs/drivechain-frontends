@@ -54,6 +54,10 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   /// The last balance frame of each streamed connection, for any wallet.
   final Map<RPCConnection, wmpb.WatchBalanceResponse> _frames = {};
 
+  /// The transactions that a send made in the active wallet, from the last balance
+  /// frame of [mainConnection] that carried any.
+  final newestTransactions = ValueNotifier<List<wmpb.TransactionEntry>?>(null);
+
   /// True while [rpc] gets its balance from a stream and not from the poll.
   bool streams(RPCConnection rpc) => (_watches[rpc]?.isHealthy ?? false) && _frames.containsKey(rpc);
 
@@ -152,6 +156,10 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
     _frames[rpc] = frame;
+    final activeId = _walletReader?.activeWalletId;
+    if (rpc == mainConnection && frame.transactions.isNotEmpty && (activeId == null || frame.walletId == activeId)) {
+      newestTransactions.value = frame.transactions;
+    }
     if (_applyFrame(rpc)) {
       error = null;
       notifyListeners();
@@ -216,6 +224,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   void clear() {
+    newestTransactions.value = null;
     for (final rpc in connections) {
       _balances[rpc] = (0.0, 0.0);
     }
@@ -301,6 +310,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   @override
   void dispose() {
     _fetchTimer?.cancel();
+    newestTransactions.dispose();
     for (final watch in _watches.values) {
       unawaited(watch.dispose());
     }

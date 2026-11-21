@@ -1,7 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -10,6 +13,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
@@ -21,14 +25,27 @@ import (
 
 type balanceBackend struct {
 	wallet.Backend
-	mu  sync.Mutex
-	btc map[string]float64
+	mu    sync.Mutex
+	btc   map[string]float64
+	txs   map[string]wallet.WalletTx
+	reads []string
 }
 
 func (b *balanceBackend) Balance(ctx context.Context, walletID string) (float64, float64, float64, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.btc[walletID], 0, 0, nil
+}
+
+func (b *balanceBackend) GetWalletTransaction(_ context.Context, _, txid string) (*wallet.WalletTx, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.reads = append(b.reads, txid)
+	tx, ok := b.txs[txid]
+	if !ok {
+		return nil, fmt.Errorf("gettransaction RPC error -5: Invalid or non-wallet transaction id")
+	}
+	return &tx, nil
 }
 
 func (b *balanceBackend) set(walletID string, btc float64) {
@@ -93,6 +110,7 @@ func newBalanceHandler(t *testing.T, backend *balanceBackend) (*WalletHandler, *
 	t.Helper()
 	svc := wallet.NewService(t.TempDir(), zerolog.Nop())
 	require.NoError(t, svc.Init())
+	svc.SetNetwork("regtest")
 	t.Cleanup(svc.Close)
 	engine := chaindata.New(chaindata.Config{Log: zerolog.Nop()})
 	h := NewWalletHandler(svc)
@@ -142,4 +160,72 @@ func TestWatchBalanceWaitsForAWallet(t *testing.T) {
 	require.NoError(t, err)
 	msg = next()
 	require.Equal(t, w.ID, msg.WalletId)
+}
+
+func TestFreshEntriesReadEachNewTxAtMostTwice(t *testing.T) {
+	backend := &balanceBackend{btc: map[string]float64{}, txs: map[string]wallet.WalletTx{
+		"own": {TxID: "own", Hex: oneOutputTxHex(t), Details: []wallet.WalletTransaction{
+			{Category: "send", Amount: -0.1, Vout: 0},
+			{Category: "receive", Amount: 0.1, Vout: 0},
+		}},
+	}}
+	h, svc, _ := newBalanceHandler(t, backend)
+	w, err := svc.GenerateWallet("First", "", "", nil)
+	require.NoError(t, err)
+	fresh := &freshTxids{tried: map[string]freshTx{"own": {lastEvent: ^uint64(0)}, "other": {lastEvent: ^uint64(0)}}}
+
+	entries, err := h.freshEntries(t.Context(), w.ID, fresh)
+	require.NoError(t, err)
+	require.Len(t, entries, 2, "one entry per wallet output")
+	require.Equal(t, "own", entries[0].Txid)
+
+	entries, err = h.freshEntries(t.Context(), w.ID, fresh)
+	require.NoError(t, err)
+	require.Empty(t, entries, "no wallet event came, so nothing reads again")
+
+	fresh.events++
+	_, err = h.freshEntries(t.Context(), w.ID, fresh)
+	require.NoError(t, err)
+	fresh.events++
+	_, err = h.freshEntries(t.Context(), w.ID, fresh)
+	require.NoError(t, err)
+	require.ElementsMatch(t, []string{"own", "other", "other"}, backend.reads, "a found tx reads one time, another tx two times")
+}
+
+func TestFreshEntriesSkipAnElectrumWallet(t *testing.T) {
+	backend := &balanceBackend{btc: map[string]float64{}, txs: map[string]wallet.WalletTx{}}
+	h, svc, _ := newBalanceHandler(t, backend)
+	w, err := svc.GenerateWallet("Light", "", "", nil)
+	require.NoError(t, err)
+	w.WalletType = wallet.WalletTypeElectrum
+	require.NoError(t, svc.UpdateWallet(*w))
+	fresh := &freshTxids{tried: map[string]freshTx{"core-send": {lastEvent: ^uint64(0)}}}
+
+	entries, err := h.freshEntries(t.Context(), w.ID, fresh)
+	require.NoError(t, err, "a Core send must not end the stream of an electrum wallet")
+	require.Empty(t, entries)
+	require.Empty(t, backend.reads, "no lookup of a Core txid in an electrum wallet")
+}
+
+func oneOutputTxHex(t *testing.T) string {
+	t.Helper()
+	tx := wire.NewMsgTx(2)
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 1}, nil, nil))
+	tx.AddTxOut(wire.NewTxOut(1000, []byte{0x00, 0x14}))
+	var buf bytes.Buffer
+	require.NoError(t, tx.Serialize(&buf))
+	return hex.EncodeToString(buf.Bytes())
+}
+
+func TestFreshTxidsSendTheBalanceFirst(t *testing.T) {
+	woke := 0
+	fresh := &freshTxids{tried: map[string]freshTx{}, wake: func() { woke++ }}
+	fresh.armTurn()
+	require.False(t, fresh.consumeTurn(), "nothing to read")
+
+	fresh.tried["own"] = freshTx{lastEvent: ^uint64(0)}
+	fresh.armTurn()
+	require.Equal(t, 1, woke, "the next read comes at once")
+	require.True(t, fresh.consumeTurn())
+	require.False(t, fresh.consumeTurn(), "one turn per arm")
 }

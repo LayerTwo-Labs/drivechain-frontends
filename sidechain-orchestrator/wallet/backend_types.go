@@ -102,6 +102,24 @@ type WalletTx struct {
 	Hex           string  `json:"hex"`
 	// Blockhash names the block that holds the tx. It is empty in the mempool.
 	Blockhash string `json:"blockhash"`
+	// Details holds one entry per wallet input or output. Only Core sets it.
+	Details          []WalletTransaction `json:"details"`
+	MempoolConflicts []string            `json:"mempoolconflicts"`
+}
+
+// Rows gives the transaction as the rows listtransactions gives for it.
+func (t WalletTx) Rows() []WalletTransaction {
+	rows := make([]WalletTransaction, 0, len(t.Details))
+	for _, d := range t.Details {
+		d.TxID = t.TxID
+		d.Confirmations = int(t.Confirmations)
+		d.BlockTime = t.BlockTime
+		d.Time = t.Time
+		d.TimeReceived = t.TimeReceived
+		d.MempoolConflicts = t.MempoolConflicts
+		rows = append(rows, d)
+	}
+	return rows
 }
 
 // RawTransaction is a fully decoded transaction with chain context

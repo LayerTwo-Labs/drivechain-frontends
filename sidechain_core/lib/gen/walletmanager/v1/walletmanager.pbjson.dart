@@ -3058,6 +3058,7 @@ const WatchBalanceResponse$json = {
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
     {'1': 'balance', '3': 2, '4': 1, '5': 11, '6': '.walletmanager.v1.GetBalanceResponse', '10': 'balance'},
     {'1': 'heartbeat', '3': 3, '4': 1, '5': 8, '10': 'heartbeat'},
+    {'1': 'transactions', '3': 4, '4': 3, '5': 11, '6': '.walletmanager.v1.TransactionEntry', '10': 'transactions'},
   ],
 };
 
@@ -3065,7 +3066,8 @@ const WatchBalanceResponse$json = {
 final $typed_data.Uint8List watchBalanceResponseDescriptor =
     $convert.base64Decode('ChRXYXRjaEJhbGFuY2VSZXNwb25zZRIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEj4KB2'
         'JhbGFuY2UYAiABKAsyJC53YWxsZXRtYW5hZ2VyLnYxLkdldEJhbGFuY2VSZXNwb25zZVIHYmFs'
-        'YW5jZRIcCgloZWFydGJlYXQYAyABKAhSCWhlYXJ0YmVhdA==');
+        'YW5jZRIcCgloZWFydGJlYXQYAyABKAhSCWhlYXJ0YmVhdBJGCgx0cmFuc2FjdGlvbnMYBCADKA'
+        'syIi53YWxsZXRtYW5hZ2VyLnYxLlRyYW5zYWN0aW9uRW50cnlSDHRyYW5zYWN0aW9ucw==');
 
 @$core.Deprecated('Use createDepositRequestDescriptor instead')
 const CreateDepositRequest$json = {

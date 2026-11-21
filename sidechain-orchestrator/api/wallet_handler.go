@@ -1175,6 +1175,17 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *pb.ListTransa
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
+	pbTxs, err := h.transactionEntries(ctx, walletID, txs)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ListTransactionsResponse{
+		Transactions: pbTxs,
+	}, nil
+}
+
+// transactionEntries turns wallet rows into the entries ListTransactions gives.
+func (h *WalletHandler) transactionEntries(ctx context.Context, walletID string, txs []wallet.WalletTransaction) ([]*pb.TransactionEntry, error) {
 	pbTxs := lo.Map(txs, func(tx wallet.WalletTransaction, _ int) *pb.TransactionEntry {
 		return &pb.TransactionEntry{
 			Txid:           tx.TxID,
@@ -1216,9 +1227,7 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *pb.ListTransa
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return &pb.ListTransactionsResponse{
-		Transactions: pbTxs,
-	}, nil
+	return pbTxs, nil
 }
 
 // bidLabels names the BMM request each unconfirmed transaction carries. A

@@ -13911,11 +13911,13 @@ class WatchBalanceResponse extends $pb.GeneratedMessage {
     $core.String? walletId,
     GetBalanceResponse? balance,
     $core.bool? heartbeat,
+    $core.Iterable<TransactionEntry>? transactions,
   }) {
     final result = WatchBalanceResponse._();
     if (walletId != null) result.walletId = walletId;
     if (balance != null) result.balance = balance;
     if (heartbeat != null) result.heartbeat = heartbeat;
+    if (transactions != null) result.transactions.addAll(transactions);
     return result;
   }
 
@@ -13934,6 +13936,7 @@ class WatchBalanceResponse extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'walletId')
     ..aOM<GetBalanceResponse>(2, _omitFieldNames ? '' : 'balance', subBuilder: GetBalanceResponse.$_createMessage)
     ..aOB(3, _omitFieldNames ? '' : 'heartbeat')
+    ..pPM<TransactionEntry>(4, _omitFieldNames ? '' : 'transactions', subBuilder: TransactionEntry.$_createMessage)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -13986,6 +13989,11 @@ class WatchBalanceResponse extends $pb.GeneratedMessage {
   $core.bool hasHeartbeat() => $_has(2);
   @$pb.TagNumber(3)
   void clearHeartbeat() => $_clearField(3);
+
+  /// The transactions of the wallet that a send made since the last frame, as
+  /// ListTransactions gives them. Unset with no local Bitcoin Core.
+  @$pb.TagNumber(4)
+  $pb.PbList<TransactionEntry> get transactions => $_getList(3);
 }
 
 class CreateDepositRequest extends $pb.GeneratedMessage {
