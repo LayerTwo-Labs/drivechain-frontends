@@ -44,6 +44,11 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
 
   StreamSupervisor<WatchRecentTransactionsResponse>? _recentWatch;
 
+  /// Fires when [recentTransactions] changes. That change does not notify the
+  /// listeners of the provider, so a new mempool tx rebuilds only what shows it.
+  Listenable get recentChanged => _recentChanged;
+  final _recentChanged = _Signal();
+
   /// The newest streamed list. A clear drops it, so the poll reads until the
   /// next frame.
   List<RecentTransaction>? _streamedRecent;
@@ -103,7 +108,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
     if (recentTransactions.updateWith(frame.transactions)) {
-      notifyListeners();
+      _recentChanged.notify();
     }
   }
 
@@ -172,7 +177,8 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       final newPeerCount = await nReq;
 
       // A frame that came during the read is newer.
-      var hasChanges = _recentFrames == frames && recentTransactions.updateWith(newTXs);
+      final recentChanged = _recentFrames == frames && recentTransactions.updateWith(newTXs);
+      var hasChanges = false;
       if (newPeerCount != peerCount) {
         peerCount = newPeerCount;
         hasChanges = true;
@@ -206,6 +212,9 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       }
       if (hasChanges) {
         notifyListeners();
+      }
+      if (recentChanged) {
+        _recentChanged.notify();
       }
       // The three calls run at the same time, so the list holds them in
       // completion order. One sort keeps the text the same on every tick.
@@ -268,6 +277,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     errors.clear();
     _loggedError = null;
     notifyListeners();
+    _recentChanged.notify();
   }
 
   Future<void> loadMoreBlocks() async {
@@ -308,8 +318,13 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     _syncRecentWatch(false);
     mainchain.removeListener(fetch);
     syncProvider.removeListener(_onSyncChanged);
+    _recentChanged.dispose();
     super.dispose();
   }
+}
+
+class _Signal extends ChangeNotifier {
+  void notify() => notifyListeners();
 }
 
 extension on List {

@@ -158,8 +158,11 @@ class TransactionsView extends StatelessWidget {
                 error: model.hasErrorForKey('blockchain') ? model.error('blockchain').toString() : null,
                 child: SizedBox(
                   height: 300,
-                  child: LatestTransactionTable(
-                    entries: model.recentTransactions,
+                  child: ListenableBuilder(
+                    listenable: model.blockchainProvider.recentChanged,
+                    builder: (context, _) => LatestTransactionTable(
+                      entries: model.recentTransactions,
+                    ),
                   ),
                 ),
               ),
