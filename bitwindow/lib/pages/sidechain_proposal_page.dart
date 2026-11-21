@@ -37,6 +37,7 @@ class SidechainProposalView extends StatelessWidget {
             padding: const EdgeInsets.all(SailStyleValues.padding16),
             child: Form(
               key: model.formKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -149,17 +150,6 @@ class SidechainProposalViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  // FormState.validate() calls setState() on the Form, so a build that reads
-  // this getter would mark the Form dirty mid-build. Run the validators here
-  // instead, and leave validate() to the submit path.
-  bool get isFormValid {
-    return validateSlot(slotController.text) == null &&
-        validateTitle(titleController.text) == null &&
-        validateVersion(versionController.text) == null &&
-        validateHash(tarballHashController.text, 256) == null &&
-        validateHash(commitHashController.text, 160) == null;
-  }
-
   String? validateSlot(String? value) {
     if (value == null || value.isEmpty) {
       return 'Slot number is required';
@@ -211,7 +201,6 @@ class SidechainProposalViewModel extends BaseViewModel {
   }
 
   Future<void> proposeSidechain(BuildContext context) async {
-    // Outside build, so this one may touch the Form: it renders the messages.
     if (!(formKey.currentState?.validate() ?? false)) {
       return;
     }
@@ -302,7 +291,6 @@ class _RequiredSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 1,
                 child: SailTextFormField(
                   label: 'Slot #',
                   controller: model.slotController,
@@ -315,7 +303,6 @@ class _RequiredSection extends StatelessWidget {
               ),
               const SizedBox(width: SailStyleValues.padding16),
               Expanded(
-                flex: 3,
                 child: SailTextFormField(
                   label: 'Title',
                   hintText: 'Sidechain title',
@@ -384,7 +371,6 @@ class _OptionalSection extends StatelessWidget {
             child: SailButton(
               label: 'Propose Sidechain',
               loading: model.isProposing,
-              disabled: !model.isFormValid,
               onPressed: () async => model.proposeSidechain(context),
             ),
           ),
