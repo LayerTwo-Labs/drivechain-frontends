@@ -59,13 +59,31 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
     return provider.isFull;
   }
 
+  /// The mode and service support, in the shape of the backend answer.
+  wmpb.GetNodeModeResponse get state => wmpb.GetNodeModeResponse(
+    mode: mode,
+    lightModeAvailable: lightModeAvailable,
+    remoteEnforcerAvailable: remoteEnforcerAvailable,
+    remoteEnforcerNetworks: remoteEnforcerNetworks,
+  );
+
+  /// Shows the mode of the last session until a read reaches the backend.
+  /// [loaded] stays false.
+  void restore(wmpb.GetNodeModeResponse saved) {
+    _applyState(saved);
+  }
+
+  void _applyState(wmpb.GetNodeModeResponse resp) {
+    mode = resp.mode;
+    lightModeAvailable = resp.lightModeAvailable;
+    remoteEnforcerAvailable = resp.remoteEnforcerAvailable;
+    remoteEnforcerNetworks = List.unmodifiable(resp.remoteEnforcerNetworks);
+  }
+
   Future<void> load() async {
     try {
       final resp = await _client.getNodeMode();
-      mode = resp.mode;
-      lightModeAvailable = resp.lightModeAvailable;
-      remoteEnforcerAvailable = resp.remoteEnforcerAvailable;
-      remoteEnforcerNetworks = List.unmodifiable(resp.remoteEnforcerNetworks);
+      _applyState(resp);
       loaded = true;
       notifyListeners();
     } catch (e) {

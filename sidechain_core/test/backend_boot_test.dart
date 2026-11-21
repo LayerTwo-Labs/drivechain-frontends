@@ -81,6 +81,19 @@ void main() {
     expect(NodeModeProvider.runsLocalBackends, isFalse);
   });
 
+  test('a restored mode shows before the read and does not count as loaded', () async {
+    final mode = GetIt.I.get<NodeModeProvider>()
+      ..restore(wmpb.GetNodeModeResponse(mode: wmpb.NodeMode.NODE_MODE_FULL, remoteEnforcerNetworks: ['Signet']));
+    expect(NodeModeProvider.runsLocalBackends, isTrue);
+    expect(mode.loaded, isFalse);
+    expect(mode.state.remoteEnforcerNetworks, ['Signet']);
+
+    orchestrator.wallet.mode = wmpb.NodeMode.NODE_MODE_LIGHT;
+    await readBackendBoot(orchestratorReady: true);
+    expect(mode.loaded, isTrue);
+    expect(NodeModeProvider.runsLocalBackends, isFalse);
+  });
+
   test('a full-mode read turns the local backends on', () async {
     orchestrator.wallet.mode = wmpb.NodeMode.NODE_MODE_FULL;
     await readBackendBoot(orchestratorReady: true);
