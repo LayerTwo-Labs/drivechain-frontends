@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -109,10 +110,13 @@ func (o *Orchestrator) coreCacheTTL(ttl time.Duration) time.Duration {
 
 // SidechainRunning reports whether a layer-2 sidechain process runs.
 func (o *Orchestrator) SidechainRunning() bool {
-	for name, cfg := range o.Configs() {
-		if cfg.ChainLayer == 2 && o.process.IsRunning(name) {
-			return true
+	names := make([]string, 0, 16)
+	o.mu.RLock()
+	for name, cfg := range o.configs {
+		if cfg.ChainLayer == 2 {
+			names = append(names, name)
 		}
 	}
-	return false
+	o.mu.RUnlock()
+	return slices.ContainsFunc(names, o.process.IsRunning)
 }
