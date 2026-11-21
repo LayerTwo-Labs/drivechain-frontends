@@ -88,6 +88,8 @@ flutter:
 
   assets:
     - assets/bin/
+    - assets/bin/macos-arm64/
+    - assets/bin/macos-x86_64/
     - assets/articles/
     - assets/articles/beginner/
     - assets/articles/images/

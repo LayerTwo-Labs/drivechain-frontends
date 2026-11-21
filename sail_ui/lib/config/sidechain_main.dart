@@ -246,15 +246,15 @@ List<Binary> _initialBinaries(BinaryType sidechainType, List<Binary> additional,
   return binaries;
 }
 
-/// Embedded binaries that ship as separate per-arch copies on macOS (suffixed
-/// `-arm64` / `-x86_64`); the host-arch one is selected at launch.
+/// Embedded binaries that ship in one folder per arch on macOS
+/// (`macos-arm64` / `macos-x86_64`); the host-arch one is selected at launch.
 const _perArchDaemons = {'bitwindowd', 'drivechaind', 'drivechain-cli', 'hwi-daemon'};
 
-/// The asset filename to load from the bundle for [canonical]. On macOS the
-/// embedded daemons ship per-arch, so the host [arch] is appended; everywhere
-/// else there is a single binary under the canonical name.
+/// The asset path to load from the bundle for [canonical]. On macOS the
+/// embedded daemons ship per-arch, so the host [arch] folder is prepended;
+/// everywhere else there is a single binary under the canonical name.
 String embeddedAssetName(String canonical, {required bool isMacOS, required String arch}) =>
-    isMacOS && _perArchDaemons.contains(canonical) ? '$canonical-$arch' : canonical;
+    isMacOS && _perArchDaemons.contains(canonical) ? 'macos-$arch/$canonical' : canonical;
 
 Future<void> copyBinariesFromAssets(Logger log, Directory appDir, {OnStaged? onStaged}) =>
     stageEmbeddedBinaries(log, embeddedBinDir(), binDir(appDir.path), onStaged: onStaged);

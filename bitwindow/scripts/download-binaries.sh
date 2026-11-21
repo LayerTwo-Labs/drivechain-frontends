@@ -17,7 +17,7 @@ if [[ "$os" == "windows" ]]; then
     exe=".exe"
 fi
 
-# CI builds both macOS arches (suffixed -arm64 / -x86_64); dev builds host only.
+# CI builds both macOS arches; dev builds host only.
 # BITWINDOW_HOST_ARCH_ONLY forces the dev behaviour for a CI job that runs the
 # app instead of releasing it.
 if [[ "$os" == "darwin" ]]; then
@@ -69,27 +69,26 @@ build_hwi_daemon() {
     "$src/build.sh" "$out" ${arch:+"$arch"}
 }
 
+# A debug run finds a flat daemon in assets/bin before the bundle, so delete the old flat files.
+if [[ "$os" == "darwin" ]]; then
+    for daemon in bitwindowd drivechaind drivechain-cli hwi-daemon; do
+        rm -f "$assets_dir/$daemon" "$assets_dir/$daemon-arm64" "$assets_dir/$daemon-x86_64"
+    done
+fi
+
 for target in "${targets[@]}"; do
     goarch="${target%%:*}"
     token="${target##*:}"
-    sfx=""
-    [[ -n "$token" ]] && sfx="-$token"
+    out_dir="$assets_dir"
+    # One folder per macOS arch keeps the canonical names, so each daemon finds the next by name.
+    [[ -n "$token" ]] && out_dir="$assets_dir/macos-$token"
+    mkdir -p "$out_dir"
 
-    echo "Building embedded daemons (GOARCH=${goarch:-host}) -> *${sfx}${exe}"
-    build_bitwindowd "$goarch" "$assets_dir/bitwindowd${sfx}${exe}"
-    build_orch_tool  "$goarch" drivechaind   "$assets_dir/drivechaind${sfx}${exe}"
-    build_orch_tool  "$goarch" drivechain-cli "$assets_dir/drivechain-cli${sfx}${exe}"
-    build_hwi_daemon "$token" "$assets_dir/hwi-daemon${sfx}${exe}"
+    echo "Building embedded daemons (GOARCH=${goarch:-host}) -> $out_dir"
+    build_bitwindowd "$goarch" "$out_dir/bitwindowd${exe}"
+    build_orch_tool  "$goarch" drivechaind   "$out_dir/drivechaind${exe}"
+    build_orch_tool  "$goarch" drivechain-cli "$out_dir/drivechain-cli${exe}"
+    build_hwi_daemon "$token" "$out_dir/hwi-daemon${exe}"
 done
-
-# `just run` execs the daemons by their plain names, so stage host-arch copies.
-if [[ "$os" == "darwin" && "${STAGE_PLAIN_BINARIES:-}" == "1" ]]; then
-    host_token="$(uname -m)"
-    for daemon in bitwindowd drivechaind drivechain-cli hwi-daemon; do
-        # macOS kills an in-place overwrite of a signed Mach-O, so rename instead.
-        cp -f "$assets_dir/${daemon}-${host_token}" "$assets_dir/${daemon}.tmp"
-        mv -f "$assets_dir/${daemon}.tmp" "$assets_dir/${daemon}"
-    done
-fi
 
 echo "embedded daemons built into $assets_dir"
