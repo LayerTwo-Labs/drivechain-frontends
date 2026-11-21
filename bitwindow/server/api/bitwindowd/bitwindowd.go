@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/big"
 	"runtime"
 	"slices"
 	"strings"
@@ -108,6 +109,7 @@ type tipStatsEntry struct {
 	tip          string
 	difficulty   float64
 	avgBlockTime float64
+	hashrate     float64
 }
 
 type recentTxsEntry struct {
@@ -1134,7 +1136,7 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.G
 	}
 
 	return &pb.GetNetworkStatsResponse{
-		NetworkHashrate:    0, // Requires getmininginfo (mining-specific)
+		NetworkHashrate:    tipStats.hashrate,
 		Difficulty:         tipStats.difficulty,
 		PeerCount:          networkInfo.Msg.Connections,
 		TotalBytesReceived: netTotals.Msg.TotalBytesRecv,
@@ -1181,8 +1183,8 @@ func (s *Server) processBandwidth(
 	}, nil
 }
 
-// tipStats returns the difficulty of the tip and the average block time of
-// the last 144 blocks, read one time per tip.
+// tipStats returns the difficulty of the tip, and the average block time and
+// the hashrate of the last 144 blocks, read one time per tip.
 func (s *Server) tipStats(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, height uint32, hash string) (*tipStatsEntry, error) {
 	s.tipStatsMu.Lock()
 	defer s.tipStatsMu.Unlock()
@@ -1230,11 +1232,30 @@ func (s *Server) tipStats(ctx context.Context, bitcoind corerpc.BitcoinServiceCl
 		}
 		if timeDiff := tip.Msg.Time.Seconds - first.Msg.Time.Seconds; timeDiff > 0 {
 			stats.avgBlockTime = float64(timeDiff) / float64(lookback)
+			stats.hashrate, err = hashrate(first.Msg.Chainwork, tip.Msg.Chainwork, timeDiff)
+			if err != nil {
+				return nil, fmt.Errorf("calculate hashrate: %w", err)
+			}
 		}
 	}
 
 	s.tipStatsCache = stats
 	return stats, nil
+}
+
+// hashrate returns the hashes per second between two blocks, as Core's
+// getnetworkhashps calculates it from the chainwork.
+func hashrate(firstChainwork, tipChainwork string, seconds int64) (float64, error) {
+	first, ok := new(big.Int).SetString(firstChainwork, 16)
+	if !ok {
+		return 0, fmt.Errorf("invalid chainwork %q", firstChainwork)
+	}
+	tip, ok := new(big.Int).SetString(tipChainwork, 16)
+	if !ok {
+		return 0, fmt.Errorf("invalid chainwork %q", tipChainwork)
+	}
+	work, _ := new(big.Float).SetInt(tip.Sub(tip, first)).Float64()
+	return work / float64(seconds), nil
 }
 
 func (s *Server) checkElectrumUTXO(ctx context.Context, walletID string, txid string, vout uint32) (bool, error) {

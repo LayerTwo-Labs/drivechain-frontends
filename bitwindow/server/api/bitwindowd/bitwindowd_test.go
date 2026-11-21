@@ -2258,7 +2258,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 		assert.Nil(t, resp.EnforcerBandwidth)
 	})
 
-	t.Run("a young chain measures the average block time from block 1", func(t *testing.T) {
+	t.Run("a young chain measures the block time and hashrate from block 1", func(t *testing.T) {
 		t.Parallel()
 
 		now := time.Now()
@@ -2268,6 +2268,12 @@ func TestService_GetNetworkStats(t *testing.T) {
 			"latesthash": now,
 		}
 		hashes := map[uint32]string{0: "genesis", 1: "block1"}
+		// 42000 hashes of work in the 6000 seconds from block 1 to the tip.
+		chainworks := map[string]string{
+			"genesis":    "0000000000000000000000000000000000000000000000000000000000000002",
+			"block1":     "00000000000000000000000000000000000000000000000000000000000000ca",
+			"latesthash": "000000000000000000000000000000000000000000000000000000000000a4da",
+		}
 
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
@@ -2287,8 +2293,9 @@ func TestService_GetNetworkStats(t *testing.T) {
 			GetBlock(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, req *connectv1.Request[corepb.GetBlockRequest]) (*connectv1.Response[corepb.GetBlockResponse], error) {
 				return connectv1.NewResponse(&corepb.GetBlockResponse{
-					Hash: req.Msg.Hash,
-					Time: timestamppb.New(blockTimes[req.Msg.Hash]),
+					Hash:      req.Msg.Hash,
+					Time:      timestamppb.New(blockTimes[req.Msg.Hash]),
+					Chainwork: chainworks[req.Msg.Hash],
 				}), nil
 			}).AnyTimes()
 		mockBitcoind.EXPECT().
@@ -2306,6 +2313,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 		resp, err := cli.GetNetworkStats(t.Context(), &emptypb.Empty{})
 		require.NoError(t, err)
 		assert.InDelta(t, 60.0, resp.AvgBlockTime, 0.01)
+		assert.InDelta(t, 7.0, resp.NetworkHashrate, 0.01)
 	})
 
 	for _, tc := range []struct {
