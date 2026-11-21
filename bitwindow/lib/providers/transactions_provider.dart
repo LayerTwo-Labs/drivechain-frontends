@@ -245,7 +245,14 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
           },
           (v) => walletTransactions = v,
           equals: const DeepCollectionEquality().equals,
-        ),
+        ).then((changed) {
+          // A new transaction must not wait for the UTXO and address reads.
+          if (changed && initialized && error == null && _walletReader.activeWalletId == walletId) {
+            notifyListeners();
+            return false;
+          }
+          return changed;
+        }),
         update<List<UnspentOutput>>(
           utxos,
           () async {
