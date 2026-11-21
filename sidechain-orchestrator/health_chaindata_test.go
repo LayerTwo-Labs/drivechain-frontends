@@ -82,3 +82,18 @@ func TestCoreCacheTTLDropsWhileTheEngineRuns(t *testing.T) {
 	o.chainData.Start(t.Context())
 	require.Zero(t, o.coreCacheTTL(time.Second), "a new block reaches GetSyncStatus with no TTL delay")
 }
+
+func TestSidechainRunningCopiesNoConfigs(t *testing.T) {
+	var configs []BinaryConfig
+	for _, name := range []string{"bitcoind", "enforcer", "thunder", "bitnames", "bitassets", "zside", "truthcoin", "photon", "coinshift"} {
+		layer := 2
+		if name == "bitcoind" || name == "enforcer" {
+			layer = 1
+		}
+		configs = append(configs, BinaryConfig{Name: name, BinaryName: name, ChainLayer: layer})
+	}
+	o := New(t.TempDir(), "regtest", t.TempDir(), configs, zerolog.Nop())
+
+	require.False(t, o.SidechainRunning())
+	require.Zero(t, testing.AllocsPerRun(100, func() { o.SidechainRunning() }))
+}
