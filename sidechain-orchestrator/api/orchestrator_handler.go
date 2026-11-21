@@ -35,7 +35,7 @@ type Handler struct {
 	// sidechainBalances answer one chain's balance whatever wallet mode runs.
 	// Light mode starts no sidechain node, so nothing may dial one here.
 	sidechainBalances map[string]SidechainBalanceFunc
-	syncSource        SyncStatusSource
+	syncFeed          *feed[*pb.GetSyncStatusResponse]
 
 	feedsMu sync.Mutex
 	feeds   map[bool]*binariesFeed
@@ -60,12 +60,15 @@ func (h *Handler) binariesFeed(forceBackend bool) *binariesFeed {
 type SidechainBalanceFunc func(ctx context.Context) (total, available int64, err error)
 
 func NewHandler(orch *orchestrator.Orchestrator) *Handler {
+	h := &Handler{orch: orch}
 	poll := pollSyncStatus{orch: orch, interval: syncStatusPollInterval}
 	if orch == nil || orch.ChainData() == nil {
-		return &Handler{orch: orch, syncSource: poll}
+		h.SetSyncStatusSource(poll)
+		return h
 	}
 	poll.interval = engineSyncStatusPollInterval
-	return &Handler{orch: orch, syncSource: engineSyncStatus{pollSyncStatus: poll, engine: orch.ChainData(), sidechainRunning: orch.SidechainRunning}}
+	h.SetSyncStatusSource(engineSyncStatus{pollSyncStatus: poll, engine: orch.ChainData(), sidechainRunning: orch.SidechainRunning})
+	return h
 }
 
 // SetSidechainBalance names the reader that answers one chain's balance. It is

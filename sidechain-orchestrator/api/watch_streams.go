@@ -29,7 +29,18 @@ type SyncStatusSource interface {
 
 // SetSyncStatusSource replaces the source of WatchSyncStatus.
 func (h *Handler) SetSyncStatusSource(src SyncStatusSource) {
-	h.syncSource = src
+	// The source polls by itself, so the feed needs no recheck.
+	h.syncFeed = &feed[*pb.GetSyncStatusResponse]{
+		read: func(ctx context.Context) (*pb.GetSyncStatusResponse, error) {
+			s, err := src.SyncStatus(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return h.syncStatusToProto(s), nil
+		},
+		same:    func(a, b *pb.GetSyncStatusResponse) bool { return proto.Equal(a, b) },
+		changed: src.SubscribeSyncStatus,
+	}
 }
 
 // pollSyncStatus reads GetSyncStatus on a fixed tick.
@@ -134,15 +145,8 @@ func (e engineSyncStatus) SubscribeSyncStatus(ctx context.Context) <-chan struct
 }
 
 func (h *Handler) WatchSyncStatus(ctx context.Context, req *pb.WatchSyncStatusRequest, stream rpc.OrchestratorServiceWatchSyncStatusServerStream) error {
-	changed := h.syncSource.SubscribeSyncStatus(ctx)
-	read := func() (*pb.GetSyncStatusResponse, error) {
-		s, err := h.syncSource.SyncStatus(ctx)
-		if err != nil {
-			return nil, err
-		}
-		return h.syncStatusToProto(s), nil
-	}
-	return watch.Changes(ctx, changed, binariesRecheckInterval, WatchHeartbeatInterval, read, func(a, b *pb.GetSyncStatusResponse) bool { return proto.Equal(a, b) },
+	f := h.syncFeed
+	return watch.Changes(ctx, f.subscribe(ctx), WatchHeartbeatInterval, WatchHeartbeatInterval, f.latest, f.same,
 		func(status *pb.GetSyncStatusResponse) error {
 			return stream.Send(&pb.WatchSyncStatusResponse{Status: status})
 		},
