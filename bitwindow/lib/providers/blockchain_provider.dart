@@ -52,6 +52,14 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   /// The mainchain sync fields that listeners read through [syncProvider].
   (bool?, double?, Timestamp?) _mainchainSync = (null, null, null);
 
+  /// The mainchain tip that [blocks] were read at. The list changes only with the tip.
+  (double, Timestamp?)? _blocksTip;
+
+  (double, Timestamp?)? get _mainchainTip {
+    final info = syncProvider.mainchainSyncInfo;
+    return info == null ? null : (info.progressCurrent, info.lastBlockAt);
+  }
+
   void _onSyncChanged() {
     final info = syncProvider.mainchainSyncInfo;
     final next = (info?.isSynced, info?.progressCurrent, info?.lastBlockAt);
@@ -87,8 +95,16 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
 
     try {
       errors = [];
+      final tip = _mainchainTip;
+      final readBlocks = blocks.isEmpty || tip == null || tip != _blocksTip;
+      var blocksFailed = false;
       final tReq = bitwindowd.bitwindowd.listRecentTransactions().onError(_return(recentTransactions));
-      final bReq = bitwindowd.bitwindowd.listBlocks().onError(_return((blocks, false)));
+      final bReq = readBlocks
+          ? bitwindowd.bitwindowd.listBlocks().onError((e, st) {
+              blocksFailed = true;
+              return _return((blocks, false))(e, st);
+            })
+          : null;
       // A shown peer list polls getpeerinfo, so the count reads no more.
       final peerList = GetIt.I.get<PeersProvider>();
       final nReq = peerList.polling
@@ -100,33 +116,39 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
 
       final newTXs = await tReq;
       final newPeerCount = await nReq;
-      final (newBlocks, hasMore) = await bReq;
-      final connects = hasMore && newBlocks.isNotEmpty && blocks.any((b) => b.hash == newBlocks.last.previousBlockHash);
-      final olderBlocks = [
-        if (connects)
-          for (final b in blocks.where((b) => b.height < newBlocks.last.height))
-            b.deepCopy()
-              ..confirmations = newBlocks.first.height - b.height + 1
-              ..nextBlockHash = b.hash == newBlocks.last.previousBlockHash ? newBlocks.last.hash : b.nextBlockHash,
-      ];
-      final mergedBlocks = [...newBlocks, ...olderBlocks];
 
       var hasChanges = recentTransactions.updateWith(newTXs);
       if (newPeerCount != peerCount) {
         peerCount = newPeerCount;
         hasChanges = true;
       }
-      hasChanges =
-          hasChanges |
-          blocks.updateWith(
-            mergedBlocks,
-            afterUpdate: () {
-              if (olderBlocks.isEmpty) {
-                hasMoreBlocks = hasMore;
-              }
-              loadedBlockHeights = mergedBlocks.map((b) => b.height).toSet();
-            },
-          );
+      if (bReq != null) {
+        final (newBlocks, hasMore) = await bReq;
+        if (!blocksFailed) {
+          _blocksTip = tip;
+        }
+        final connects =
+            hasMore && newBlocks.isNotEmpty && blocks.any((b) => b.hash == newBlocks.last.previousBlockHash);
+        final olderBlocks = [
+          if (connects)
+            for (final b in blocks.where((b) => b.height < newBlocks.last.height))
+              b.deepCopy()
+                ..confirmations = newBlocks.first.height - b.height + 1
+                ..nextBlockHash = b.hash == newBlocks.last.previousBlockHash ? newBlocks.last.hash : b.nextBlockHash,
+        ];
+        final mergedBlocks = [...newBlocks, ...olderBlocks];
+        hasChanges =
+            hasChanges |
+            blocks.updateWith(
+              mergedBlocks,
+              afterUpdate: () {
+                if (olderBlocks.isEmpty) {
+                  hasMoreBlocks = hasMore;
+                }
+                loadedBlockHeights = mergedBlocks.map((b) => b.height).toSet();
+              },
+            );
+      }
       if (hasChanges) {
         notifyListeners();
       }
@@ -180,6 +202,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   /// Wipe cached state on network swap so the UI stops showing the previous
   /// network's data while the next fetch repopulates from new bitwindowd.
   void clear() {
+    _blocksTip = null;
     peerCount = 0;
     blocks = [];
     recentTransactions = [];
