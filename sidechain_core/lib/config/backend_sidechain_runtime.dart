@@ -99,9 +99,9 @@ Future<void> bootBackendManagedSidechain({
         binaryProvider.addStartupLogForBinary(appRpc.binaryType, 'Waiting for drivechaind...');
       }
       binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_DRIVECHAIND, 'Waiting for drivechaind...');
-      final ready = await _waitForBackendReady(orchestrator);
+      final ready = await waitForBackendReady(() => orchestrator.listBinaries());
       if (!ready) {
-        throw StateError('drivechaind did not become ready after 15s');
+        throw StateError('drivechaind did not become ready after ${backendReadyTimeout.inSeconds}s');
       }
 
       log.i('bootBackendManagedSidechain: drivechaind is ready');
@@ -143,15 +143,31 @@ Future<bool> _backendIsReady(OrchestratorRPC orchestrator) async {
   }
 }
 
-Future<bool> _waitForBackendReady(OrchestratorRPC orchestrator) async {
-  for (var i = 0; i < 30; i++) {
-    if (await _backendIsReady(orchestrator)) {
-      return true;
-    }
-    await Future.delayed(const Duration(milliseconds: 500));
-  }
+/// How long a sidechain app waits for the drivechaind that it started.
+const backendReadyTimeout = Duration(seconds: 15);
 
-  return false;
+/// The time between two drivechaind readiness probes.
+const backendReadyPoll = Duration(milliseconds: 25);
+
+/// Calls [probe] until it returns without an error. Returns false when
+/// [timeout] ends first.
+Future<bool> waitForBackendReady(
+  Future<void> Function() probe, {
+  Duration every = backendReadyPoll,
+  Duration timeout = backendReadyTimeout,
+}) async {
+  final elapsed = Stopwatch()..start();
+  for (var waited = Duration.zero; ; waited += every) {
+    try {
+      await probe();
+      return true;
+    } catch (_) {
+      if (waited >= timeout || elapsed.elapsed >= timeout) {
+        return false;
+      }
+      await Future.delayed(every);
+    }
+  }
 }
 
 void _streamBinaryLogs(
