@@ -265,26 +265,42 @@ Directory embeddedBinDir() {
   final flutterAssets = Platform.isMacOS
       ? path.join(exeDir, '..', 'Frameworks', 'App.framework', 'Resources', 'flutter_assets')
       : path.join(exeDir, 'data', 'flutter_assets');
-  return Directory(path.join(flutterAssets, 'assets', 'bin'));
+  return Directory(path.normalize(path.join(flutterAssets, 'assets', 'bin')));
 }
 
 /// Called with the canonical name and the file of each binary that a stage wrote.
 typedef OnStaged = void Function(String canonical, File file);
 
-/// Copies the embedded binaries from [sourceDir] to [fileDir]. A binary that
-/// is already staged from the same bundle file stays.
-Future<void> stageEmbeddedBinaries(Logger log, Directory sourceDir, Directory fileDir, {OnStaged? onStaged}) async {
+/// Stages the embedded binaries from [sourceDir] in [fileDir]. With [link]
+/// (the default on macOS), each one is a symlink to the bundle file, else a
+/// copy. A binary that is already staged from the same bundle file stays.
+Future<void> stageEmbeddedBinaries(
+  Logger log,
+  Directory sourceDir,
+  Directory fileDir, {
+  OnStaged? onStaged,
+  bool? link,
+}) async {
   await fileDir.create(recursive: true);
   await removeAsideBinaries(fileDir);
+  final useLink = link ?? Platform.isMacOS;
 
   for (final binary in allBinaries) {
-    await _copyEmbeddedBinary(log, sourceDir, fileDir, binary.binary, label: binary.name, onStaged: onStaged);
+    await _copyEmbeddedBinary(
+      log,
+      sourceDir,
+      fileDir,
+      binary.binary,
+      label: binary.name,
+      onStaged: onStaged,
+      link: useLink,
+    );
   }
   // drivechain-cli is a CLI (not a launchable Binary in allBinaries), but the
   // console execs it from bin/, so it has to be staged here too.
-  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'drivechain-cli', onStaged: onStaged);
+  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'drivechain-cli', onStaged: onStaged, link: useLink);
   // hwi-daemon is the bundled hardware-wallet process.
-  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'hwi-daemon', onStaged: onStaged);
+  await _copyEmbeddedBinary(log, sourceDir, fileDir, 'hwi-daemon', onStaged: onStaged, link: useLink);
 
   log.d('Finished copying all available binaries to assets/bin');
 }
@@ -352,6 +368,25 @@ Future<void> stageBinary(File dest, File source, {bool? moveAside}) async {
   }
 }
 
+/// Points [dest] at [source] with a symlink, through a temp link and a rename.
+Future<void> linkBinary(File dest, File source) async {
+  final token = Random.secure().nextInt(1 << 32).toRadixString(16);
+  final staged = Link('${dest.path}.$pid-$token.new');
+  await staged.create(source.absolute.path);
+  try {
+    await staged.rename(dest.path);
+  } catch (_) {
+    await staged.delete();
+    rethrow;
+  }
+}
+
+/// True when [file] is a symlink to [source].
+Future<bool> _isLinkedTo(File file, File source) async {
+  final link = Link(file.path);
+  return await link.exists() && await link.target() == source.absolute.path;
+}
+
 const _stampSuffix = '.stamp';
 
 /// True when [file] holds the bundle file that [stamp] names as [want].
@@ -369,6 +404,7 @@ Future<void> _copyEmbeddedBinary(
   String canonical, {
   String? label,
   OnStaged? onStaged,
+  required bool link,
 }) async {
   final name = label ?? canonical;
   final exe = Platform.isWindows && !canonical.endsWith('.exe') ? '.exe' : '';
@@ -386,15 +422,20 @@ Future<void> _copyEmbeddedBinary(
     final stamp = File('${file.path}$_stampSuffix');
     final sourceStat = await source.stat();
     final want = '${sourceStat.size}:${sourceStat.modified.microsecondsSinceEpoch}';
-    if (await _isStaged(file, stamp, sourceStat.size, want)) {
+    if (await _isStaged(file, stamp, sourceStat.size, want) && (!link || await _isLinkedTo(file, source))) {
       return;
     }
 
-    await stageBinary(file, source);
+    // A link runs the daemon from the signed bundle, so an app update writes no copy.
+    if (link) {
+      await linkBinary(file, source);
+    } else {
+      await stageBinary(file, source);
+    }
     onStaged?.call(canonical, file);
     await stamp.writeAsString(want, flush: true);
 
-    log.d('Wrote binary $name from $assetName to ${file.path}');
+    log.d('Staged binary $name from $assetName at ${file.path}');
   } catch (e) {
     log.w('Failed to copy binary $name: $e');
   }

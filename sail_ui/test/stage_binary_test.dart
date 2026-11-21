@@ -109,6 +109,41 @@ void main() {
     });
   });
 
+  group('linkBinary', () {
+    test('points the destination at the source', () async {
+      final dest = File('${dir.path}/bitwindowd');
+      final src = await source([1, 2, 3]);
+
+      await linkBinary(dest, src);
+
+      expect(await Link(dest.path).target(), src.path);
+      expect(await dest.readAsBytes(), [1, 2, 3]);
+    });
+
+    test('replaces an existing copy, and an open handle keeps the old bytes', () async {
+      final dest = File('${dir.path}/drivechaind');
+      await dest.writeAsBytes([9, 9, 9]);
+      final running = await dest.open();
+      addTearDown(running.close);
+
+      await linkBinary(dest, await source([1, 2, 3]));
+
+      expect(await dest.readAsBytes(), [1, 2, 3]);
+      expect(await running.read(3), [9, 9, 9], reason: 'the link changed the inode of a running binary');
+      expect(tempFiles(dir), isEmpty);
+    });
+
+    test('leaves no temp link behind after a failed rename', () async {
+      final dest = Directory('${dir.path}/hwi-daemon');
+      await dest.create();
+      await File('${dest.path}/blocker').writeAsString('x');
+
+      await expectLater(linkBinary(File(dest.path), await source([1])), throwsA(isA<FileSystemException>()));
+
+      expect(dir.listSync().map((e) => e.path), [dest.path]);
+    });
+  }, skip: Platform.isWindows);
+
   group('stageEmbeddedBinaries', () {
     test('copies the host-arch daemon from the bundle to its canonical name', () async {
       final bundle = Directory('${srcDir.path}/bin')..createSync();
@@ -119,7 +154,7 @@ void main() {
         ..writeAsBytesSync([4, 5, 6]);
       final out = Directory('${dir.path}/out');
 
-      await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+      await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, link: false);
 
       expect(File('${out.path}/hwi-daemon$exe').readAsBytesSync(), [4, 5, 6]);
       expect(out.listSync().map((e) => e.path).toSet(), {
@@ -145,14 +180,20 @@ void main() {
           ..writeAsBytesSync([4, 5, 6]);
         out = Directory('${dir.path}/out');
         staged = File('${out.path}/hwi-daemon$exe');
-        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, link: false);
         // Same size as the bundle file, so only a copy can bring back [4, 5, 6].
         staged.writeAsBytesSync([7, 7, 7]);
       });
 
       test('writes nothing when the bundle file did not change', () async {
         final reported = <String>[];
-        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, onStaged: (name, _) => reported.add(name));
+        await stageEmbeddedBinaries(
+          Logger(level: Level.off),
+          bundle,
+          out,
+          onStaged: (name, _) => reported.add(name),
+          link: false,
+        );
 
         expect(staged.readAsBytesSync(), [7, 7, 7]);
         expect(reported, isEmpty);
@@ -167,6 +208,7 @@ void main() {
           bundle,
           out,
           onStaged: (name, file) => reported.add((name, file.path)),
+          link: false,
         );
 
         expect(reported, [('hwi-daemon', staged.path)]);
@@ -175,7 +217,7 @@ void main() {
       test('copies a bundle file with a new modification time', () async {
         asset.setLastModifiedSync(asset.lastModifiedSync().add(const Duration(seconds: 5)));
 
-        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, link: false);
 
         expect(staged.readAsBytesSync(), [4, 5, 6]);
       });
@@ -185,7 +227,7 @@ void main() {
         asset.writeAsBytesSync([4, 5, 6, 7]);
         asset.setLastModifiedSync(modified);
 
-        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, link: false);
 
         expect(staged.readAsBytesSync(), [4, 5, 6, 7]);
       });
@@ -193,7 +235,7 @@ void main() {
       test('copies when the stamp is missing', () async {
         File('${staged.path}.stamp').deleteSync();
 
-        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, link: false);
 
         expect(staged.readAsBytesSync(), [4, 5, 6]);
       });
@@ -201,10 +243,97 @@ void main() {
       test('copies when the staged binary is missing', () async {
         staged.deleteSync();
 
-        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out);
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, link: false);
 
         expect(staged.readAsBytesSync(), [4, 5, 6]);
       });
     });
+
+    group('with links', () {
+      late Directory bundle;
+      late File asset;
+      late File staged;
+      late Directory out;
+
+      Future<List<String>> stage() async {
+        final reported = <String>[];
+        await stageEmbeddedBinaries(
+          Logger(level: Level.off),
+          bundle,
+          out,
+          onStaged: (name, _) => reported.add(name),
+          link: true,
+        );
+        return reported;
+      }
+
+      setUp(() async {
+        bundle = Directory('${srcDir.path}/bin')..createSync();
+        asset =
+            File('${bundle.path}/${embeddedAssetName('hwi-daemon', isMacOS: Platform.isMacOS, arch: currentArch())}')
+              ..createSync(recursive: true)
+              ..writeAsBytesSync([4, 5, 6]);
+        out = Directory('${dir.path}/out');
+        staged = File('${out.path}/hwi-daemon');
+      });
+
+      test('links the canonical name to the bundle file and copies no bytes', () async {
+        expect(await stage(), ['hwi-daemon']);
+
+        expect(await Link(staged.path).target(), asset.path);
+        expect(out.listSync(followLinks: false).whereType<File>().map((f) => f.path), ['${staged.path}.stamp']);
+      });
+
+      test('a second start changes nothing', () async {
+        await stage();
+
+        expect(await stage(), isEmpty);
+      });
+
+      test('reports the binary again after an app update', () async {
+        await stage();
+        asset.setLastModifiedSync(asset.lastModifiedSync().add(const Duration(seconds: 5)));
+
+        expect(await stage(), ['hwi-daemon']);
+      });
+
+      test('replaces a copy that an older app version wrote', () async {
+        await stageEmbeddedBinaries(Logger(level: Level.off), bundle, out, link: false);
+
+        expect(await stage(), ['hwi-daemon']);
+
+        expect(await Link(staged.path).target(), asset.path);
+      });
+
+      test('links to a second app copy whose files match the stamp', () async {
+        await stage();
+        final copy = Directory('${srcDir.path}/copy')..createSync();
+        final copyAsset = File(
+          '${copy.path}/bin/${embeddedAssetName('hwi-daemon', isMacOS: Platform.isMacOS, arch: currentArch())}',
+        )..createSync(recursive: true);
+        copyAsset
+          ..writeAsBytesSync([4, 5, 6])
+          ..setLastModifiedSync(asset.lastModifiedSync());
+        bundle = Directory('${copy.path}/bin');
+
+        expect(await stage(), ['hwi-daemon']);
+
+        expect(await Link(staged.path).target(), copyAsset.path);
+      });
+
+      test('links again when the app moved', () async {
+        await stage();
+        final moved = Directory('${srcDir.path}/moved')..createSync();
+        bundle = bundle.renameSync('${moved.path}/bin');
+        asset = File(
+          '${bundle.path}/${embeddedAssetName('hwi-daemon', isMacOS: Platform.isMacOS, arch: currentArch())}',
+        );
+
+        expect(await stage(), ['hwi-daemon']);
+
+        expect(await Link(staged.path).target(), asset.path);
+        expect(staged.readAsBytesSync(), [4, 5, 6]);
+      });
+    }, skip: Platform.isWindows);
   });
 }
