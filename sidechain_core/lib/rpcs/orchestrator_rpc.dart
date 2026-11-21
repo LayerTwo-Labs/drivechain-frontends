@@ -5,6 +5,7 @@ import 'package:sidechain_core/auth/local_auth.dart';
 import 'package:sidechain_core/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
+import 'package:sidechain_core/gen/mempool/v1/mempool.connect.client.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.connect.client.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sidechain_core/rpcs/orchestrator_bmm_rpc.dart';
@@ -45,6 +46,9 @@ class OrchestratorRPC {
   /// btc-buf BitcoinService — single canonical bitcoind proxy for all
   /// callers. Routes peers / mempool / fee / blocks / PSBT helpers.
   late final BitcoinServiceClient bitcoind;
+
+  /// The mainchain mempool, read from the memory of drivechaind.
+  late final MempoolServiceClient mempool;
   final String _host;
   final int _port;
 
@@ -75,6 +79,7 @@ class OrchestratorRPC {
     multisigLounge = OrchestratorMultisigLoungeRPC.fromTransport(unaryTransport);
     stratum = OrchestratorStratumRPC.fromTransport(unaryTransport);
     bitcoind = BitcoinServiceClient(unaryTransport);
+    mempool = MempoolServiceClient(unaryTransport);
   }
 
   String get _baseUrl => 'http://$_host:$_port';
