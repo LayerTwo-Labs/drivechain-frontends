@@ -1050,9 +1050,10 @@ walkBlocks:
 			break
 		}
 
+		// The transactions of getblock carry the fee, so a node with no txindex lists them too.
 		blockRes, err := bitcoind.GetBlock(ctx, connectv1.NewRequest(&corepb.GetBlockRequest{
 			Hash:      currentHash,
-			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
 		}))
 		if err != nil {
 			return nil, fmt.Errorf("bitcoind: get block: %w", err)
@@ -1060,30 +1061,20 @@ walkBlocks:
 		if i == 0 {
 			tipHeight = blockRes.Msg.Height
 		}
-		for idx, txid := range blockRes.Msg.Txids {
-			// Skip coinbase before we pay for GetRawTransaction.
+		for idx, tx := range blockRes.Msg.Transactions {
 			if idx == 0 {
 				continue
 			}
 
-			// btc-buf drops the prevout amounts of getblock, so only this call has the fee.
-			txRes, err := bitcoind.GetRawTransaction(ctx, connectv1.NewRequest(&corepb.GetRawTransactionRequest{
-				Txid:      txid,
-				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
-			}))
+			fee, err := btcutil.NewAmount(tx.Fee)
 			if err != nil {
-				return nil, fmt.Errorf("bitcoind: get transaction %s: %w", txid, err)
-			}
-
-			fee, err := btcutil.NewAmount(txRes.Msg.Fee)
-			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("fee of %s: %w", tx.Txid, err)
 			}
 
 			txs = append(txs, &pb.RecentTransaction{
-				VirtualSize:      uint32(txRes.Msg.Vsize),
+				VirtualSize:      uint32(tx.Vsize),
 				Time:             blockRes.Msg.Time,
-				Txid:             txid,
+				Txid:             tx.Txid,
 				FeeSats:          uint64(fee),
 				ConfirmedInBlock: &blockRes.Msg.Height,
 			})
