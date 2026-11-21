@@ -47,6 +47,24 @@ extension type MempoolServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// WatchStats sends the GetStats result, then the result again on each change.
+  Stream<mempoolv1mempool.WatchStatsResponse> watchStats(
+    mempoolv1mempool.GetStatsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.MempoolService.watchStats,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// WatchTransactions sends the full mempool, then each change. A new full
   /// mempool replaces the old one.
   Stream<mempoolv1mempool.WatchTransactionsResponse> watchTransactions(

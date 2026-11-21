@@ -146,6 +146,14 @@ abstract final class BitwindowdService {
     bitwindowdv1bitwindowd.ListRecentTransactionsResponse.new,
   );
 
+  /// Sends the ListRecentTransactions list, then the list again on each change.
+  static const watchRecentTransactions = connect.Spec(
+    '/$name/WatchRecentTransactions',
+    connect.StreamType.server,
+    bitwindowdv1bitwindowd.ListRecentTransactionsRequest.new,
+    bitwindowdv1bitwindowd.WatchRecentTransactionsResponse.new,
+  );
+
   /// Lists blocks with pagination support
   static const listBlocks = connect.Spec(
     '/$name/ListBlocks',

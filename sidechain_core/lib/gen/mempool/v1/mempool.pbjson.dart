@@ -113,6 +113,20 @@ final $typed_data.Uint8List getStatsResponseDescriptor =
         'dGUYBCABKAFSDW1lZGlhbkZlZVJhdGUSLwoHYnVja2V0cxgFIAMoCzIVLm1lbXBvb2wudjEuRm'
         'VlQnVja2V0UgdidWNrZXRz');
 
+@$core.Deprecated('Use watchStatsResponseDescriptor instead')
+const WatchStatsResponse$json = {
+  '1': 'WatchStatsResponse',
+  '2': [
+    {'1': 'stats', '3': 1, '4': 1, '5': 11, '6': '.mempool.v1.GetStatsResponse', '10': 'stats'},
+    {'1': 'heartbeat', '3': 2, '4': 1, '5': 8, '10': 'heartbeat'},
+  ],
+};
+
+/// Descriptor for `WatchStatsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List watchStatsResponseDescriptor =
+    $convert.base64Decode('ChJXYXRjaFN0YXRzUmVzcG9uc2USMgoFc3RhdHMYASABKAsyHC5tZW1wb29sLnYxLkdldFN0YX'
+        'RzUmVzcG9uc2VSBXN0YXRzEhwKCWhlYXJ0YmVhdBgCIAEoCFIJaGVhcnRiZWF0');
+
 @$core.Deprecated('Use watchTransactionsRequestDescriptor instead')
 const WatchTransactionsRequest$json = {
   '1': 'WatchTransactionsRequest',
@@ -194,6 +208,7 @@ const $core.Map<$core.String, $core.dynamic> MempoolServiceBase$json = {
   '2': [
     {'1': 'ListTransactions', '2': '.mempool.v1.ListTransactionsRequest', '3': '.mempool.v1.ListTransactionsResponse'},
     {'1': 'GetStats', '2': '.mempool.v1.GetStatsRequest', '3': '.mempool.v1.GetStatsResponse'},
+    {'1': 'WatchStats', '2': '.mempool.v1.GetStatsRequest', '3': '.mempool.v1.WatchStatsResponse', '6': true},
     {
       '1': 'WatchTransactions',
       '2': '.mempool.v1.WatchTransactionsRequest',
@@ -212,6 +227,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MempoolSer
   '.mempool.v1.GetStatsRequest': GetStatsRequest$json,
   '.mempool.v1.GetStatsResponse': GetStatsResponse$json,
   '.mempool.v1.FeeBucket': FeeBucket$json,
+  '.mempool.v1.WatchStatsResponse': WatchStatsResponse$json,
   '.mempool.v1.WatchTransactionsRequest': WatchTransactionsRequest$json,
   '.mempool.v1.WatchTransactionsResponse': WatchTransactionsResponse$json,
   '.mempool.v1.Snapshot': Snapshot$json,
@@ -224,6 +240,7 @@ final $typed_data.Uint8List mempoolServiceDescriptor =
     $convert.base64Decode('Cg5NZW1wb29sU2VydmljZRJdChBMaXN0VHJhbnNhY3Rpb25zEiMubWVtcG9vbC52MS5MaXN0VH'
         'JhbnNhY3Rpb25zUmVxdWVzdBokLm1lbXBvb2wudjEuTGlzdFRyYW5zYWN0aW9uc1Jlc3BvbnNl'
         'EkUKCEdldFN0YXRzEhsubWVtcG9vbC52MS5HZXRTdGF0c1JlcXVlc3QaHC5tZW1wb29sLnYxLk'
-        'dldFN0YXRzUmVzcG9uc2USYgoRV2F0Y2hUcmFuc2FjdGlvbnMSJC5tZW1wb29sLnYxLldhdGNo'
-        'VHJhbnNhY3Rpb25zUmVxdWVzdBolLm1lbXBvb2wudjEuV2F0Y2hUcmFuc2FjdGlvbnNSZXNwb2'
-        '5zZTAB');
+        'dldFN0YXRzUmVzcG9uc2USSwoKV2F0Y2hTdGF0cxIbLm1lbXBvb2wudjEuR2V0U3RhdHNSZXF1'
+        'ZXN0Gh4ubWVtcG9vbC52MS5XYXRjaFN0YXRzUmVzcG9uc2UwARJiChFXYXRjaFRyYW5zYWN0aW'
+        '9ucxIkLm1lbXBvb2wudjEuV2F0Y2hUcmFuc2FjdGlvbnNSZXF1ZXN0GiUubWVtcG9vbC52MS5X'
+        'YXRjaFRyYW5zYWN0aW9uc1Jlc3BvbnNlMAE=');

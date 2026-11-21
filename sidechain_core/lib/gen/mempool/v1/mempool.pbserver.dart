@@ -24,6 +24,7 @@ abstract class MempoolServiceBase extends $pb.GeneratedService {
   $async.Future<$1.ListTransactionsResponse> listTransactions(
       $pb.ServerContext ctx, $1.ListTransactionsRequest request);
   $async.Future<$1.GetStatsResponse> getStats($pb.ServerContext ctx, $1.GetStatsRequest request);
+  $async.Future<$1.WatchStatsResponse> watchStats($pb.ServerContext ctx, $1.GetStatsRequest request);
   $async.Future<$1.WatchTransactionsResponse> watchTransactions(
       $pb.ServerContext ctx, $1.WatchTransactionsRequest request);
 
@@ -32,6 +33,8 @@ abstract class MempoolServiceBase extends $pb.GeneratedService {
       case 'ListTransactions':
         return $1.ListTransactionsRequest();
       case 'GetStats':
+        return $1.GetStatsRequest();
+      case 'WatchStats':
         return $1.GetStatsRequest();
       case 'WatchTransactions':
         return $1.WatchTransactionsRequest();
@@ -47,6 +50,8 @@ abstract class MempoolServiceBase extends $pb.GeneratedService {
         return listTransactions(ctx, request as $1.ListTransactionsRequest);
       case 'GetStats':
         return getStats(ctx, request as $1.GetStatsRequest);
+      case 'WatchStats':
+        return watchStats(ctx, request as $1.GetStatsRequest);
       case 'WatchTransactions':
         return watchTransactions(ctx, request as $1.WatchTransactionsRequest);
       default:

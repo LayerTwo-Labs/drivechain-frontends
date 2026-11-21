@@ -503,6 +503,76 @@ class GetStatsResponse extends $pb.GeneratedMessage {
   $pb.PbList<FeeBucket> get buckets => $_getList(4);
 }
 
+class WatchStatsResponse extends $pb.GeneratedMessage {
+  factory WatchStatsResponse({
+    GetStatsResponse? stats,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchStatsResponse._();
+    if (stats != null) result.stats = stats;
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchStatsResponse._();
+
+  factory WatchStatsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchStatsResponse()..mergeFromBuffer(data, registry);
+  factory WatchStatsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchStatsResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchStatsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'mempool.v1'),
+      createEmptyInstance: WatchStatsResponse.$_createMessage)
+    ..aOM<GetStatsResponse>(1, _omitFieldNames ? '' : 'stats', subBuilder: GetStatsResponse.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchStatsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchStatsResponse copyWith(void Function(WatchStatsResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchStatsResponse)) as WatchStatsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchStatsResponse() / WatchStatsResponse.new instead')
+  static WatchStatsResponse create() => WatchStatsResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchStatsResponse._();
+  @$core.override
+  WatchStatsResponse createEmptyInstance() => WatchStatsResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchStatsResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchStatsResponse>(WatchStatsResponse.$_createMessage);
+  static WatchStatsResponse? _defaultInstance;
+
+  /// Unset in a heartbeat frame.
+  @$pb.TagNumber(1)
+  GetStatsResponse get stats => $_getN(0);
+  @$pb.TagNumber(1)
+  set stats(GetStatsResponse value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStats() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStats() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GetStatsResponse ensureStats() => $_ensure(0);
+
+  /// True for an idle keepalive frame that carries no stats.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 class WatchTransactionsRequest extends $pb.GeneratedMessage {
   factory WatchTransactionsRequest() => WatchTransactionsRequest._();
 
@@ -886,6 +956,10 @@ class MempoolServiceApi {
   /// GetStats gives the size of the mempool and its fee rate buckets.
   $async.Future<GetStatsResponse> getStats($pb.ClientContext? ctx, GetStatsRequest request) =>
       _client.invoke<GetStatsResponse>(ctx, 'MempoolService', 'GetStats', request, GetStatsResponse());
+
+  /// WatchStats sends the GetStats result, then the result again on each change.
+  $async.Future<WatchStatsResponse> watchStats($pb.ClientContext? ctx, GetStatsRequest request) =>
+      _client.invoke<WatchStatsResponse>(ctx, 'MempoolService', 'WatchStats', request, WatchStatsResponse());
 
   /// WatchTransactions sends the full mempool, then each change. A new full
   /// mempool replaces the old one.

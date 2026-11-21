@@ -412,6 +412,7 @@ abstract class BitwindowAPI {
   Future<GetFireplaceStatsResponse> getFireplaceStats();
 
   Future<List<RecentTransaction>> listRecentTransactions();
+  Stream<WatchRecentTransactionsResponse> watchRecentTransactions();
   Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50});
 
   Future<GetNetworkStatsResponse> getNetworkStats();
@@ -542,10 +543,16 @@ class _BitwindowAPILive implements BitwindowAPI {
     return response;
   }
 
+  static final _recentCount = Int64(20);
+
+  @override
+  Stream<WatchRecentTransactionsResponse> watchRecentTransactions() =>
+      _client.watchRecentTransactions(ListRecentTransactionsRequest()..count = _recentCount);
+
   @override
   Future<List<RecentTransaction>> listRecentTransactions() async {
     try {
-      final response = await _client.listRecentTransactions(ListRecentTransactionsRequest()..count = Int64(20));
+      final response = await _client.listRecentTransactions(ListRecentTransactionsRequest()..count = _recentCount);
       return response.transactions;
     } catch (e) {
       final error = 'could not list unconfirmed transactions: ${extractConnectException(e)}';

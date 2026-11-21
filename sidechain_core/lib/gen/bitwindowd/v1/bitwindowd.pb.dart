@@ -2961,6 +2961,69 @@ class ListRecentTransactionsResponse extends $pb.GeneratedMessage {
   $pb.PbList<RecentTransaction> get transactions => $_getList(0);
 }
 
+class WatchRecentTransactionsResponse extends $pb.GeneratedMessage {
+  factory WatchRecentTransactionsResponse({
+    $core.Iterable<RecentTransaction>? transactions,
+    $core.bool? heartbeat,
+  }) {
+    final result = WatchRecentTransactionsResponse._();
+    if (transactions != null) result.transactions.addAll(transactions);
+    if (heartbeat != null) result.heartbeat = heartbeat;
+    return result;
+  }
+
+  WatchRecentTransactionsResponse._();
+
+  factory WatchRecentTransactionsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchRecentTransactionsResponse()..mergeFromBuffer(data, registry);
+  factory WatchRecentTransactionsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      WatchRecentTransactionsResponse()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchRecentTransactionsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'),
+      createEmptyInstance: WatchRecentTransactionsResponse.$_createMessage)
+    ..pPM<RecentTransaction>(1, _omitFieldNames ? '' : 'transactions', subBuilder: RecentTransaction.$_createMessage)
+    ..aOB(2, _omitFieldNames ? '' : 'heartbeat')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchRecentTransactionsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WatchRecentTransactionsResponse copyWith(void Function(WatchRecentTransactionsResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchRecentTransactionsResponse))
+          as WatchRecentTransactionsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use WatchRecentTransactionsResponse() / WatchRecentTransactionsResponse.new instead')
+  static WatchRecentTransactionsResponse create() => WatchRecentTransactionsResponse._();
+  static $pb.GeneratedMessage $_createMessage() => WatchRecentTransactionsResponse._();
+  @$core.override
+  WatchRecentTransactionsResponse createEmptyInstance() => WatchRecentTransactionsResponse._();
+  @$core.pragma('dart2js:noInline')
+  static WatchRecentTransactionsResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchRecentTransactionsResponse>(
+          WatchRecentTransactionsResponse.$_createMessage);
+  static WatchRecentTransactionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<RecentTransaction> get transactions => $_getList(0);
+
+  /// True for an idle keepalive frame that carries no list.
+  @$pb.TagNumber(2)
+  $core.bool get heartbeat => $_getBF(1);
+  @$pb.TagNumber(2)
+  set heartbeat($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHeartbeat() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeartbeat() => $_clearField(2);
+}
+
 class RecentTransaction extends $pb.GeneratedMessage {
   factory RecentTransaction({
     $core.int? virtualSize,
@@ -3971,6 +4034,12 @@ class BitwindowdServiceApi {
           $pb.ClientContext? ctx, ListRecentTransactionsRequest request) =>
       _client.invoke<ListRecentTransactionsResponse>(
           ctx, 'BitwindowdService', 'ListRecentTransactions', request, ListRecentTransactionsResponse());
+
+  /// Sends the ListRecentTransactions list, then the list again on each change.
+  $async.Future<WatchRecentTransactionsResponse> watchRecentTransactions(
+          $pb.ClientContext? ctx, ListRecentTransactionsRequest request) =>
+      _client.invoke<WatchRecentTransactionsResponse>(
+          ctx, 'BitwindowdService', 'WatchRecentTransactions', request, WatchRecentTransactionsResponse());
 
   /// Lists blocks with pagination support
   $async.Future<ListBlocksResponse> listBlocks($pb.ClientContext? ctx, ListBlocksRequest request) =>
