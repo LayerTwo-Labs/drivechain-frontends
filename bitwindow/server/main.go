@@ -280,6 +280,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		EnforcerJSONRPCAddr: conf.EnforcerJSONRPCAddr,
 		BitwindowDir:        bitwindowDir,
 		Lease:               clients,
+		Keep:                keepHandler(conf.OrchestratorAddr, bitwindowDir, clients),
 	}
 
 	// api.New builds the long-lived service connectors, then constructs the

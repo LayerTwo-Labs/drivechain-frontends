@@ -323,6 +323,9 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		validatorrpc.RegisterMiningServiceHandler(rpcServer, enforcerSvc)
 	}
 	rt.mux.Handle("/enforcer/jsonrpc", localauth.Middleware(s.svcs.BitwindowDir, enforcerproxy.JSONRPC(s.svcs.EnforcerJSONRPCAddr)))
+	if s.svcs.Keep != nil {
+		rt.mux.Handle("/daemon/keep", localauth.Middleware(s.svcs.BitwindowDir, s.svcs.Keep))
+	}
 
 	connecthttp.Mount(rt.mux, rpcServer, connecthttp.WithReadMaxBytes(0))
 	var services []string

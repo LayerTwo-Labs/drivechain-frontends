@@ -79,6 +79,9 @@ type Services struct {
 	// Lease tracks live client connections. Tests leave it nil.
 	Lease *lease.Lease
 
+	// Keep lets a relaunched app keep the running daemons. Tests leave it nil.
+	Keep http.Handler
+
 	// Test overrides: when set, buildRuntime uses these instead of opening
 	// fresh from disk. Production callers leave these zero.
 	Database    *sql.DB

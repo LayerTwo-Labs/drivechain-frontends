@@ -4,7 +4,10 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"strconv"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
@@ -12,6 +15,7 @@ import (
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/selfbuild"
 )
 
@@ -46,6 +50,65 @@ func (f *fakeDrivechaind) serve(t *testing.T) string {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return srv.URL
+}
+
+const appPID = 4242
+
+func keep(t *testing.T, handler http.Handler, path string) int {
+	q := "?owner=" + strconv.Itoa(appPID) + "&path=" + path
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/daemon/keep"+q, nil))
+	return rec.Code
+}
+
+func newLease(t *testing.T) *lease.Lease {
+	clients := lease.New(1, time.Hour, func() {})
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+	go clients.Run(ctx)
+	return clients
+}
+
+func TestKeepTakesBothDaemonsOfThisBuild(t *testing.T) {
+	self, err := selfbuild.Path()
+	require.NoError(t, err)
+	orch := &fakeDrivechaind{runs: drivechaindBeside(self)}
+
+	code := keep(t, keepHandler(orch.serve(t), "", newLease(t)), self)
+
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, []int32{appPID}, orch.ownerPIDs)
+}
+
+func TestKeepRefusesAnotherBitwindowdBuild(t *testing.T) {
+	other := filepath.Join(t.TempDir(), "bitwindowd")
+	orch := &fakeDrivechaind{runs: drivechaindBeside(other)}
+
+	code := keep(t, keepHandler(orch.serve(t), "", newLease(t)), other)
+
+	require.Equal(t, http.StatusConflict, code)
+	require.Empty(t, orch.ownerPIDs)
+}
+
+func TestKeepRefusesAnotherDrivechaindBuild(t *testing.T) {
+	self, err := selfbuild.Path()
+	require.NoError(t, err)
+	orch := &fakeDrivechaind{runs: filepath.Join(t.TempDir(), "drivechaind")}
+
+	code := keep(t, keepHandler(orch.serve(t), "", newLease(t)), self)
+
+	require.Equal(t, http.StatusConflict, code)
+	require.Empty(t, orch.ownerPIDs)
+}
+
+func TestKeepRefusesADrivechaindThatExits(t *testing.T) {
+	self, err := selfbuild.Path()
+	require.NoError(t, err)
+	orch := &fakeDrivechaind{runs: drivechaindBeside(self), exiting: true}
+
+	code := keep(t, keepHandler(orch.serve(t), "", newLease(t)), self)
+
+	require.Equal(t, http.StatusConflict, code)
 }
 
 // A drivechaind of the same build stays, and only takes the new owner.
