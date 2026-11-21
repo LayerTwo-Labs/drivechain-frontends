@@ -299,3 +299,21 @@ func TestDecodeTransactionReadsATxidWithNoTxindex(t *testing.T) {
 		require.ErrorContains(t, err, "not in the wallet or the mempool, and the node keeps no txindex")
 	})
 }
+
+// Core with no txindex reads a confirmed deposit from the block the wallet names.
+func TestDepositConfirmationsReadsABlockWithNoTxindex(t *testing.T) {
+	txid := strings.Repeat("cd", 32)
+	confirmed := paymentWithChange()
+	confirmed.TxID = txid
+	confirmed.Blockhash = "block"
+	confirmed.Confirmations = 6
+	h, walletID := newDecodeHandler(t, &decodeBackend{detailsProvider: detailsProvider{
+		rawTxErr: wallet.ErrTxUnreadable,
+		walletTx: &wallet.WalletTx{TxID: txid, Confirmations: 6, Blockhash: "block", Hex: "00"},
+		blockTx:  confirmed,
+	}})
+
+	got := h.depositConfirmations(context.Background(), wallet.SidechainDeposit{Txid: txid, WalletID: walletID})
+
+	require.EqualValues(t, 6, got)
+}
