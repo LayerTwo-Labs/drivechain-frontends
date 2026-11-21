@@ -1137,23 +1137,6 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.G
 		return nil, fmt.Errorf("get net totals: %w", err)
 	}
 
-	// Get peer info
-	peerInfo, err := bitcoind.GetPeerInfo(ctx, connectv1.NewRequest(&corepb.GetPeerInfoRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("get peer info: %w", err)
-	}
-
-	// Count connections by direction
-	connectionsIn := int32(0)
-	connectionsOut := int32(0)
-	for _, peer := range peerInfo.Msg.Peers {
-		if peer.Inbound {
-			connectionsIn++
-		} else {
-			connectionsOut++
-		}
-	}
-
 	orchestrator := dial.Orchestrator(s.config.OrchestratorAddr, s.config.BitwindowDir())
 	bitcoindBandwidth, err := s.processBandwidth(ctx, orchestrator, "bitcoind", "bitcoind")
 	if err != nil {
@@ -1167,15 +1150,15 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *emptypb.Empty) (*pb.G
 	return &pb.GetNetworkStatsResponse{
 		NetworkHashrate:    0, // Requires getmininginfo (mining-specific)
 		Difficulty:         tipStats.difficulty,
-		PeerCount:          int32(len(peerInfo.Msg.Peers)),
+		PeerCount:          networkInfo.Msg.Connections,
 		TotalBytesReceived: netTotals.Msg.TotalBytesRecv,
 		TotalBytesSent:     netTotals.Msg.TotalBytesSent,
 		BlockHeight:        int64(blockchainInfo.Msg.Blocks),
 		AvgBlockTime:       tipStats.avgBlockTime,
 		NetworkVersion:     networkInfo.Msg.Version,
 		Subversion:         networkInfo.Msg.Subversion,
-		ConnectionsIn:      connectionsIn,
-		ConnectionsOut:     connectionsOut,
+		ConnectionsIn:      networkInfo.Msg.ConnectionsIn,
+		ConnectionsOut:     networkInfo.Msg.ConnectionsOut,
 		BitcoindBandwidth:  bitcoindBandwidth,
 		EnforcerBandwidth:  enforcerBandwidth,
 	}, nil

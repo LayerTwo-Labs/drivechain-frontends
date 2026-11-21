@@ -2217,8 +2217,11 @@ func TestService_GetNetworkStats(t *testing.T) {
 			GetNetworkInfo(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetNetworkInfoResponse]{
 				Msg: &corepb.GetNetworkInfoResponse{
-					Version:    250000,
-					Subversion: "/Satoshi:25.0.0/",
+					Version:        250000,
+					Subversion:     "/Satoshi:25.0.0/",
+					Connections:    3,
+					ConnectionsIn:  1,
+					ConnectionsOut: 2,
 				},
 			}, nil).Times(2)
 
@@ -2232,18 +2235,8 @@ func TestService_GetNetworkStats(t *testing.T) {
 				},
 			}, nil).Times(2)
 
-		// Mock GetPeerInfo
-		mockBitcoind.EXPECT().
-			GetPeerInfo(gomock.Any(), gomock.Any()).
-			Return(&connectv1.Response[corepb.GetPeerInfoResponse]{
-				Msg: &corepb.GetPeerInfoResponse{
-					Peers: []*corepb.Peer{
-						{Inbound: true},
-						{Inbound: false},
-						{Inbound: false},
-					},
-				},
-			}, nil).Times(2)
+		// The peer counts come from getnetworkinfo, so the stats read no peer list.
+		mockBitcoind.EXPECT().GetPeerInfo(gomock.Any(), gomock.Any()).Times(0)
 
 		ownPid := int32(os.Getpid())
 		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, db,
@@ -2311,9 +2304,6 @@ func TestService_GetNetworkStats(t *testing.T) {
 		mockBitcoind.EXPECT().
 			GetNetTotals(gomock.Any(), gomock.Any()).
 			Return(&connectv1.Response[corepb.GetNetTotalsResponse]{Msg: &corepb.GetNetTotalsResponse{}}, nil).AnyTimes()
-		mockBitcoind.EXPECT().
-			GetPeerInfo(gomock.Any(), gomock.Any()).
-			Return(&connectv1.Response[corepb.GetPeerInfoResponse]{Msg: &corepb.GetPeerInfoResponse{}}, nil).AnyTimes()
 
 		cli := v1connect.NewBitwindowdServiceClient(apitests.RPC(t, database.Test(t),
 			apitests.WithBitcoind(mockBitcoind),
