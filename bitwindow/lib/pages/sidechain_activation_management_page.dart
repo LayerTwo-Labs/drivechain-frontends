@@ -208,13 +208,16 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
     });
   }
 
+  String chaintipTxid(String rowId) =>
+      widget.blocks.firstWhere((s) => '${s?.info.slot}' == rowId, orElse: () => null)?.info.chaintipTxid ?? '';
+
   @override
   Widget build(BuildContext context) {
     final blocks = [...widget.blocks]
       ..sort((a, b) => sortAscending ? sortValue(a).compareTo(sortValue(b)) : sortValue(b).compareTo(sortValue(a)));
 
     return SailTable(
-      getRowId: (index) => blocks[index]?.info.chaintipTxid ?? '',
+      getRowId: (index) => '${blocks[index]?.info.slot}',
       headerBuilder: (context) => [
         const SailTableHeaderCell(name: '#'),
         const SailTableHeaderCell(name: 'Active'),
@@ -237,11 +240,11 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
       sortColumnIndex: columns.indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) => onSort(columns[columnIndex]),
-      onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
+      onDoubleTap: (rowId) => showTransactionDetails(context, chaintipTxid(rowId)),
       contextMenuItems: (rowId) {
         return [
           SailMenuItem(
-            onSelected: () => showTransactionDetails(context, rowId),
+            onSelected: () => showTransactionDetails(context, chaintipTxid(rowId)),
             child: SailText.primary12('Show Chaintip Transaction'),
           ),
         ];
