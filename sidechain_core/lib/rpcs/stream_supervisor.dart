@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:sidechain_core/auth/local_auth.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
 
 /// The cadence at which the orchestrator's server-streaming Watch* handlers
@@ -80,6 +81,7 @@ class StreamSupervisor<T> {
   Timer? _watchdog;
   DateTime? _lastFrameAt;
   int _attempt = 0;
+  bool _retriedToken = false;
   bool _started = false;
   bool _disposed = false;
 
@@ -211,7 +213,13 @@ class StreamSupervisor<T> {
       }
     }
 
-    final delay = _backoffFor(_attempt);
+    // A daemon that started rotates the cookie, so read it again and subscribe at once.
+    final rotated = error != null && LocalAuth.isTokenRejected(error) && !_retriedToken;
+    _retriedToken = rotated;
+    if (rotated) {
+      LocalAuth.reset();
+    }
+    final delay = rotated ? Duration.zero : _backoffFor(_attempt);
     _attempt++;
     _reconnectTimer = Timer(delay, _connect);
   }
