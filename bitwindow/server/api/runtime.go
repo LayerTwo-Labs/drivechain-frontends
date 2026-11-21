@@ -63,6 +63,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	mempoolpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1"
 	orchctlpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
@@ -240,15 +241,11 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, s.Enforcer, rt.db, conf, chainParams, rt.m4Engine, rt.walletEngine.NodeMode(), coinnewsLogger, rawCall)
 
 	rt.deniabilityEngine = engines.NewDeniability(s.Bitcoind, rt.db, rt.walletEngine)
-	rt.mempoolWatcher = engines.NewMempoolWatcher(rt.db, rawCall, func(ctx context.Context) (<-chan engines.SequenceMsg, func(), error) {
-		addr, err := zmqAddress(ctx, s.Bitcoind, "pubsequence")
-		if err != nil {
-			return nil, nil, err
-		}
-		return engines.NewZmqEngine(addr).SubscribeSequence(ctx)
+	mempool := dial.Mempool(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
+	rt.mempoolWatcher = engines.NewMempoolWatcher(rt.db, rawCall, func(ctx context.Context) (engines.MempoolStream, error) {
+		return mempool.WatchTransactions(ctx, &mempoolpb.WatchTransactionsRequest{})
 	}, rt.walletEngine.NodeMode())
 
-	mempool := dial.Mempool(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
 	rpcServer := connect.NewServer(logInterceptor(), recoverInterceptor(), localauth.ServerInterceptor(s.svcs.BitwindowDir), errorInterceptor())
 
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
