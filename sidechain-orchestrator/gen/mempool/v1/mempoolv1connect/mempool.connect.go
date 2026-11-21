@@ -29,6 +29,8 @@ const (
 	MempoolServiceListTransactionsProcedure = "/mempool.v1.MempoolService/ListTransactions"
 	// MempoolServiceGetStatsProcedure is the procedure name of the MempoolService's GetStats RPC.
 	MempoolServiceGetStatsProcedure = "/mempool.v1.MempoolService/GetStats"
+	// MempoolServiceWatchStatsProcedure is the procedure name of the MempoolService's WatchStats RPC.
+	MempoolServiceWatchStatsProcedure = "/mempool.v1.MempoolService/WatchStats"
 	// MempoolServiceWatchTransactionsProcedure is the procedure name of the MempoolService's
 	// WatchTransactions RPC.
 	MempoolServiceWatchTransactionsProcedure = "/mempool.v1.MempoolService/WatchTransactions"
@@ -49,6 +51,13 @@ var (
 			Procedure:  MempoolServiceGetStatsProcedure,
 		}
 	})
+	mempoolServiceWatchStatsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_mempool_v1_mempool_proto.Services().ByName("MempoolService").Methods().ByName("WatchStats"),
+			Procedure:  MempoolServiceWatchStatsProcedure,
+		}
+	})
 	mempoolServiceWatchTransactionsSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeServer,
@@ -64,6 +73,8 @@ type MempoolServiceClient interface {
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	// GetStats gives the size of the mempool and its fee rate buckets.
 	GetStats(context.Context, *v1.GetStatsRequest) (*v1.GetStatsResponse, error)
+	// WatchStats sends the GetStats result, then the result again on each change.
+	WatchStats(context.Context, *v1.GetStatsRequest) (MempoolServiceWatchStatsClientStream, error)
 	// WatchTransactions sends the full mempool, then each change. A new full
 	// mempool replaces the old one.
 	WatchTransactions(context.Context, *v1.WatchTransactionsRequest) (MempoolServiceWatchTransactionsClientStream, error)
@@ -73,6 +84,27 @@ type MempoolServiceClient interface {
 // service clients may share a single connect.Client.
 func NewMempoolServiceClient(client *connect.Client) MempoolServiceClient {
 	return &mempoolServiceClient{client: client}
+}
+
+// MempoolServiceWatchStatsClientStream is the client stream for the MempoolService's WatchStats
+// RPC.
+type MempoolServiceWatchStatsClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s MempoolServiceWatchStatsClientStream) Receive() (*v1.WatchStatsResponse, error) {
+	var res v1.WatchStatsResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s MempoolServiceWatchStatsClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // MempoolServiceWatchTransactionsClientStream is the client stream for the MempoolService's
@@ -102,6 +134,8 @@ type MempoolServiceHandler interface {
 	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
 	// GetStats gives the size of the mempool and its fee rate buckets.
 	GetStats(context.Context, *v1.GetStatsRequest) (*v1.GetStatsResponse, error)
+	// WatchStats sends the GetStats result, then the result again on each change.
+	WatchStats(context.Context, *v1.GetStatsRequest, MempoolServiceWatchStatsServerStream) error
 	// WatchTransactions sends the full mempool, then each change. A new full
 	// mempool replaces the old one.
 	WatchTransactions(context.Context, *v1.WatchTransactionsRequest, MempoolServiceWatchTransactionsServerStream) error
@@ -114,8 +148,25 @@ func RegisterMempoolServiceHandler(server *connect.Server, svc MempoolServiceHan
 	server.Register(
 		connect.Method{Spec: mempoolServiceListTransactionsSpec(), Handler: adapter.listTransactions},
 		connect.Method{Spec: mempoolServiceGetStatsSpec(), Handler: adapter.getStats},
+		connect.Method{Spec: mempoolServiceWatchStatsSpec(), Handler: adapter.watchStats},
 		connect.Method{Spec: mempoolServiceWatchTransactionsSpec(), Handler: adapter.watchTransactions},
 	)
+}
+
+// MempoolServiceWatchStatsServerStream is the server stream for the MempoolService's WatchStats
+// RPC.
+type MempoolServiceWatchStatsServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s MempoolServiceWatchStatsServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s MempoolServiceWatchStatsServerStream) Send(res *v1.WatchStatsResponse) error {
+	return s.stream.Send(res)
 }
 
 // MempoolServiceWatchTransactionsServerStream is the server stream for the MempoolService's
@@ -145,6 +196,10 @@ func (UnimplementedMempoolServiceHandler) GetStats(context.Context, *v1.GetStats
 	return nil, connect.NewError(connect.CodeUnimplemented, "mempool.v1.MempoolService.GetStats is not implemented")
 }
 
+func (UnimplementedMempoolServiceHandler) WatchStats(context.Context, *v1.GetStatsRequest, MempoolServiceWatchStatsServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "mempool.v1.MempoolService.WatchStats is not implemented")
+}
+
 func (UnimplementedMempoolServiceHandler) WatchTransactions(context.Context, *v1.WatchTransactionsRequest, MempoolServiceWatchTransactionsServerStream) error {
 	return connect.NewError(connect.CodeUnimplemented, "mempool.v1.MempoolService.WatchTransactions is not implemented")
 }
@@ -167,6 +222,14 @@ func (c *mempoolServiceClient) GetStats(ctx context.Context, req *v1.GetStatsReq
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *mempoolServiceClient) WatchStats(ctx context.Context, req *v1.GetStatsRequest) (MempoolServiceWatchStatsClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, mempoolServiceWatchStatsSpec(), req)
+	if err != nil {
+		return MempoolServiceWatchStatsClientStream{}, err
+	}
+	return MempoolServiceWatchStatsClientStream{stream: stream}, nil
 }
 
 func (c *mempoolServiceClient) WatchTransactions(ctx context.Context, req *v1.WatchTransactionsRequest) (MempoolServiceWatchTransactionsClientStream, error) {
@@ -201,6 +264,14 @@ func (h mempoolServiceHandler) getStats(ctx context.Context, _ connect.Spec, str
 		return err
 	}
 	return stream.Send(res)
+}
+
+func (h mempoolServiceHandler) watchStats(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetStatsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchStats(ctx, &req, MempoolServiceWatchStatsServerStream{stream: stream})
 }
 
 func (h mempoolServiceHandler) watchTransactions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {

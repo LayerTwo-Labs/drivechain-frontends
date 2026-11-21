@@ -715,6 +715,34 @@ func (m *Mempool) Watch(ctx context.Context) *MempoolFeed {
 	return f
 }
 
+// Changes wakes after each change of the copy, also a seed or a reset,
+// until ctx ends. One wake can stand for more changes.
+func (m *Mempool) Changes(ctx context.Context) <-chan struct{} {
+	out := make(chan struct{}, 1)
+	m.mu.Lock()
+	changed := m.changed
+	m.mu.Unlock()
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-changed:
+			}
+			// Take the next channel before the wake, so a reader after the
+			// wake sees each change that closed no watched channel.
+			m.mu.Lock()
+			changed = m.changed
+			m.mu.Unlock()
+			select {
+			case out <- struct{}{}:
+			default:
+			}
+		}
+	}()
+	return out
+}
+
 // MempoolFeed is the snapshots and changes of the mempool for one reader.
 type MempoolFeed struct {
 	mu      sync.Mutex
