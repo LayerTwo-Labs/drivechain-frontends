@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 /// True when bitwindowd already sends the orchestrator lines to its own stdout,
 /// which the process manager forwards to the console. The tail would print the
 /// file copy of the same lines a second time.
@@ -29,7 +31,8 @@ class SharedLogTail {
     required this.source,
     required this.onLine,
     this.interval = const Duration(milliseconds: 250),
-  });
+    bool? consoleShown,
+  }) : _consoleShown = consoleShown ?? _stdoutReachesAReader();
 
   final File file;
 
@@ -37,6 +40,14 @@ class SharedLogTail {
   final String source;
   final void Function(String line) onLine;
   final Duration interval;
+
+  /// False when stdout goes nowhere, as for an app that Finder starts. The
+  /// tail then does not run.
+  final bool _consoleShown;
+
+  // /dev/null reads as a terminal type with no terminal.
+  static bool _stdoutReachesAReader() =>
+      kDebugMode || stdout.hasTerminal || const {StdioType.pipe, StdioType.file}.contains(stdioType(stdout));
 
   late final String _prefix = '[$source]';
 
@@ -50,11 +61,17 @@ class SharedLogTail {
 
   /// Starts at the end of the file, so a restart prints this run only.
   Future<void> start() async {
+    if (!_consoleShown) {
+      return;
+    }
     _offset = await _lengthOrZero();
     _timer = Timer.periodic(interval, (_) => unawaited(readNow()));
   }
 
   Future<void> stop() async {
+    if (!_consoleShown) {
+      return;
+    }
     _timer?.cancel();
     _timer = null;
     await readNow();
