@@ -1129,7 +1129,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 					failBoot(enforcerMon, ch, "wait for enforcer", fmt.Errorf("%s", errMsg))
 					return
 				}
-				if err := waitForConnectedOrExit(ctx, enforcerMon, o.process.Get("enforcer")); err != nil {
+				if err := o.waitForConnectedOrExit(ctx, enforcerMon, o.process.Get("enforcer")); err != nil {
 					failBoot(enforcerMon, ch, "wait for enforcer", err)
 					return
 				}
@@ -1154,7 +1154,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 // target arguments, which the enforcer refuses.
 func (o *Orchestrator) awaitBootedEnforcer(ctx context.Context, config BinaryConfig, ch chan<- StartupProgress) {
 	mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(config), enforcerStartupPatterns)
-	if err := waitForConnectedOrExit(ctx, mon, o.process.Get("enforcer")); err != nil {
+	if err := o.waitForConnectedOrExit(ctx, mon, o.process.Get("enforcer")); err != nil {
 		failBoot(mon, ch, "wait for enforcer", err)
 		return
 	}
@@ -1674,7 +1674,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 	if o.process.IsRunning("bitcoind") {
 		o.log.Info().Str("binary", "bitcoind").Msg("process already in tracking map, waiting for connection")
 		ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
-		if err := waitForConnectedOrExit(ctx, coreMon, o.process.Get("bitcoind")); err != nil {
+		if err := o.waitForConnectedOrExit(ctx, coreMon, o.process.Get("bitcoind")); err != nil {
 			failBoot(coreMon, ch, "wait for bitcoind", err)
 			return false
 		}
@@ -1691,7 +1691,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 	o.stampFirstLogLine("bitcoind", coreProc)
 
 	ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
-	if err := waitForConnectedOrExit(ctx, coreMon, coreProc); err != nil {
+	if err := o.waitForConnectedOrExit(ctx, coreMon, coreProc); err != nil {
 		failBoot(coreMon, ch, "wait for bitcoind", err)
 		return false
 	}
@@ -1753,7 +1753,10 @@ func (o *Orchestrator) startOrAdoptCore(ctx context.Context, args []string) erro
 		o.adoptCore(cfg, pid, nil)
 		return nil
 	}
-	_, err := o.process.Start(ctx, cfg, args, nil)
+	_, err := o.process.StartWithOptions(ctx, cfg, args, nil, ProcessStartOptions{ExitWatched: true})
+	if err == nil {
+		err = o.awaitStart(ctx, o.monitor("bitcoind"), o.process.LatestRun("bitcoind"))
+	}
 	return o.adoptIfCoreOwnsDatadir(cfg, err)
 }
 
@@ -2074,7 +2077,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	// phantom error on the enforcer card. Mirrors the bitcoind-side guard.
 	if o.process.IsRunning("enforcer") {
 		o.log.Info().Str("binary", "enforcer").Msg("process already in tracking map, waiting for connection")
-		if err := waitForConnectedOrExit(ctx, enforcerMon, o.process.Get("enforcer")); err != nil {
+		if err := o.waitForConnectedOrExit(ctx, enforcerMon, o.process.Get("enforcer")); err != nil {
 			enforcerMon.SetInitializing(false)
 			return fmt.Errorf("wait for enforcer: %w", err)
 		}
@@ -2089,14 +2092,19 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	o.log.Info().Strs("argv", redactArgs(opts.EnforcerArgs)).Msg("starting enforcer with final argv")
 
 	o.bootStep("enforcer", "on disk")
-	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); errors.Is(err, ErrAlreadyRunning) {
+	if _, err := o.process.StartWithOptions(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv(), ProcessStartOptions{ExitWatched: true}); errors.Is(err, ErrAlreadyRunning) {
 		return nil
 	} else if err != nil {
 		enforcerMon.SetInitializing(false)
 		return fmt.Errorf("start enforcer: %w", err)
 	}
 	o.bootStep("enforcer", "spawned")
-	o.stampFirstLogLine("enforcer", o.process.Get("enforcer"))
+	proc := o.process.LatestRun("enforcer")
+	o.stampFirstLogLine("enforcer", proc)
+	if err := o.awaitStart(ctx, enforcerMon, proc); err != nil {
+		enforcerMon.SetInitializing(false)
+		return fmt.Errorf("start enforcer: %w", err)
+	}
 
 	o.log.Info().Msg("enforcer started")
 	return nil
@@ -2203,7 +2211,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	if o.process.IsRunning(config.Name) {
 		o.log.Info().Str("binary", config.Name).Msg("process already running, waiting for connection")
 		ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s...", config.DisplayName)}
-		err := waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name))
+		err := o.waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name))
 		switch {
 		case err == nil:
 			if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
@@ -2234,6 +2242,8 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		targetEnv[k] = v
 	}
 	procOpts := ProcessStartOptions{ForceBackend: opts.ForceBackend}
+	bootOpts := procOpts
+	bootOpts.ExitWatched = true
 
 	targetMon.StartRestartTimer(context.WithoutCancel(ctx),
 		func(restartCtx context.Context) error {
@@ -2257,15 +2267,18 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	for attempt := 0; ; attempt++ {
 		stage := "start " + config.Name
 		// Another caller that starts the same binary owns the start, so this one waits for it.
-		_, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, procOpts)
+		_, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, bootOpts)
+		// Our own run can exit before the wait, so it is read from LatestRun.
+		proc := o.process.Get(config.Name)
 		if err == nil {
+			proc = o.process.LatestRun(config.Name)
 			o.bootStep(config.Name, "spawned")
-			o.stampFirstLogLine(config.Name, o.process.Get(config.Name))
+			o.stampFirstLogLine(config.Name, proc)
 		}
 		if err == nil || errors.Is(err, ErrAlreadyRunning) {
 			ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s to accept connections...", config.DisplayName)}
 			stage = "wait for " + config.Name
-			err = waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name))
+			err = o.waitForConnectedOrExit(ctx, targetMon, proc)
 		}
 		if err == nil {
 			o.bootStep(config.Name, "answered")
@@ -2421,13 +2434,15 @@ func (o *Orchestrator) awaitBinaryOnDisk(
 
 // waitForConnectedOrExit blocks until the monitor reports connected, the
 // process exits, or ctx is canceled. Errors are returned raw so the caller
-// (failBoot) is the single owner of the "wait for X:" prefix — the
-// previous version pre-prefixed ctx.Err() and the caller re-prefixed,
-// producing surprised users staring at "wait for enforcer: wait for
-// enforcer: context canceled" in the daemon card.
-func waitForConnectedOrExit(ctx context.Context, mon *ConnectionMonitor, proc *ManagedProcess) error {
-	if proc == nil {
-		return mon.WaitForConnected(ctx)
+// (failBoot) is the single owner of the "wait for X:" prefix. A change of the
+// monitor wakes the wait, so it returns at the probe that connects.
+func (o *Orchestrator) waitForConnectedOrExit(ctx context.Context, mon *ConnectionMonitor, proc *ManagedProcess) error {
+	subCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	changed := o.binariesChanged.subscribe(subCtx)
+	var exited <-chan struct{}
+	if proc != nil {
+		exited = proc.ExitCh()
 	}
 
 	for {
@@ -2438,12 +2453,11 @@ func waitForConnectedOrExit(ctx context.Context, mon *ConnectionMonitor, proc *M
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-proc.ExitCh():
+		case <-changed:
+		case <-exited:
 			exitCode := proc.ExitCode()
-			// Prefer the rich crash reason (stderr buffer / last error log
-			// lines) over the bare cmd.Wait status. ExitDetails was
-			// populated by the process manager just before this channel
-			// closed, so it's available now.
+			// ExitDetails holds the stderr buffer or the last error lines,
+			// set before the exit channel closed.
 			if details := proc.ExitDetails(); details != "" {
 				return fmt.Errorf("%s exited with code %d: %s", mon.Name, exitCode, details)
 			}
@@ -2451,9 +2465,23 @@ func waitForConnectedOrExit(ctx context.Context, mon *ConnectionMonitor, proc *M
 				return fmt.Errorf("%s exited with code %d: %s", mon.Name, exitCode, exitErr)
 			}
 			return fmt.Errorf("%s exited with code %d", mon.Name, exitCode)
-		case <-time.After(100 * time.Millisecond):
 		}
 	}
+}
+
+// awaitStart returns when mon connects or the early exit window passes. An
+// exit inside the window is the error. A nil mon waits for the window.
+func (o *Orchestrator) awaitStart(ctx context.Context, mon *ConnectionMonitor, proc *ManagedProcess) error {
+	windowCtx, cancel := context.WithTimeout(ctx, earlyExitWindow)
+	defer cancel()
+	if mon == nil {
+		mon = NewConnectionMonitor(proc.Config.Name, nil, nil, o.log)
+	}
+	err := o.waitForConnectedOrExit(windowCtx, mon, proc)
+	if errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil {
+		return nil
+	}
+	return err
 }
 
 // forwardDownload forwards DownloadProgress events to the StartupProgress channel,

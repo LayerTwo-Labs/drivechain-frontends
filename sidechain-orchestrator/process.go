@@ -92,6 +92,9 @@ func (p *ManagedProcess) ExitDetails() string {
 
 const maxLogEntries = 5000
 
+// earlyExitWindow is how long a start watches for an exit before it counts the process as started.
+const earlyExitWindow = 500 * time.Millisecond
+
 // ErrLogBufferFull reports a subscriber that cannot accept another log entry.
 var ErrLogBufferFull = errors.New("log subscriber buffer is full")
 
@@ -320,6 +323,10 @@ type ProcessStartOptions struct {
 	// WorkDir overrides the child process working directory. Flutter GUI
 	// bundles expect to run beside their lib/data trees.
 	WorkDir string
+
+	// ExitWatched returns at spawn, with no early exit window. The caller
+	// reads an early exit from LatestRun.
+	ExitWatched bool
 }
 
 // Start launches a binary and returns its PID.
@@ -602,7 +609,11 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 		Int("pid", cmd.Process.Pid).
 		Msg("started process")
 
-	// Early exit detection: if the process exits within 500ms, return an error
+	if opts.ExitWatched {
+		return cmd.Process.Pid, nil
+	}
+
+	// Early exit detection: if the process exits within the window, return an error
 	select {
 	case <-proc.exitCh:
 		proc.mu.Lock()
@@ -629,8 +640,8 @@ func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryCon
 
 		return 0, fmt.Errorf("%s", errMsg)
 
-	case <-time.After(500 * time.Millisecond):
-		// Process is still running after 500ms, consider it started
+	case <-time.After(earlyExitWindow):
+		// Process is still running after the window, consider it started
 	}
 
 	return cmd.Process.Pid, nil
