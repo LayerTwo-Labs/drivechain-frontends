@@ -31,6 +31,7 @@ import (
 	orchapi "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	mempoolrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1/mempoolv1connect"
 	orchctlrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
@@ -59,6 +60,7 @@ type configg struct {
 	onShutdown func(ctx context.Context)
 	control    orchctlrpc.OrchestratorServiceHandler
 	dials      *atomic.Int32
+	mempool    mempoolrpc.MempoolServiceHandler
 }
 
 type ServerOpt func(opt *configg)
@@ -154,6 +156,11 @@ func WithOnShutdown(onShutdown func(ctx context.Context)) ServerOpt {
 	return func(opt *configg) { opt.onShutdown = onShutdown }
 }
 
+// WithMempool serves the drivechaind MempoolService with handler.
+func WithMempool(handler mempoolrpc.MempoolServiceHandler) ServerOpt {
+	return func(opt *configg) { opt.mempool = handler }
+}
+
 // WithOrchestratorControl serves the drivechaind OrchestratorService with handler.
 func WithOrchestratorControl(handler orchctlrpc.OrchestratorServiceHandler) ServerOpt {
 	return func(opt *configg) { opt.control = handler }
@@ -210,7 +217,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (*http.Client, st
 		conf.orchestrator = fixtureOrchestrator(t, walletDir)
 	}
 
-	orchestratorAddr := orchestratorServer(t, conf.control)
+	orchestratorAddr := orchestratorServer(t, conf.control, conf.mempool)
 	dialed := func() {
 		if conf.dials != nil {
 			conf.dials.Add(1)
@@ -423,15 +430,20 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 }
 
 // orchestratorServer returns the address of a drivechaind whose
-// OrchestratorService answers every call as unimplemented.
-func orchestratorServer(t *testing.T, control orchctlrpc.OrchestratorServiceHandler) string {
+// OrchestratorService and MempoolService answer every call as unimplemented,
+// unless a handler replaces them.
+func orchestratorServer(t *testing.T, control orchctlrpc.OrchestratorServiceHandler, mempool mempoolrpc.MempoolServiceHandler) string {
 	t.Helper()
 	if control == nil {
 		control = orchctlrpc.UnimplementedOrchestratorServiceHandler{}
 	}
+	if mempool == nil {
+		mempool = mempoolrpc.UnimplementedMempoolServiceHandler{}
+	}
 	mux := http.NewServeMux()
 	srv := connect.NewServer()
 	orchctlrpc.RegisterOrchestratorServiceHandler(srv, control)
+	mempoolrpc.RegisterMempoolServiceHandler(srv, mempool)
 	connecthttp.Mount(mux, srv, connecthttp.WithReadMaxBytes(0))
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)

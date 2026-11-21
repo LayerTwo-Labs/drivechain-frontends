@@ -41,6 +41,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/utils/bandwidth"
+	mempoolpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1"
+	mempoolrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1/mempoolv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	wmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -86,6 +88,7 @@ type Server struct {
 	bandwidthTracker *bandwidth.Tracker
 	recycle          func(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error
 	tipChanged       func(ctx context.Context) <-chan struct{}
+	mempool          mempoolrpc.MempoolServiceClient
 
 	config config.Config
 
@@ -952,29 +955,26 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *pb.ListRecentTra
 		return nil, fmt.Errorf("bitcoind: %w", err)
 	}
 
-	// First get mempool transactions
-	mempoolRes, err := bitcoind.GetRawMempool(ctx, connectv1.NewRequest(&corepb.GetRawMempoolRequest{
-		Verbose: true,
-	}))
+	count := int64(100)
+	if c.Count > 0 {
+		count = c.Count
+	}
+
+	if s.mempool == nil {
+		return nil, errors.New("no mempool source")
+	}
+	mempoolRes, err := s.mempool.ListTransactions(ctx, &mempoolpb.ListTransactionsRequest{Count: uint32(count)})
 	if err != nil {
-		return nil, fmt.Errorf("bitcoind: get mempool: %w", err)
+		return nil, fmt.Errorf("drivechaind: list mempool: %w", err)
 	}
 
 	var transactions []*pb.RecentTransaction
-
-	// Add mempool transactions
-	for txid, tx := range mempoolRes.Msg.Transactions {
-		fee, err := btcutil.NewAmount(tx.Fees.Base)
-		if err != nil {
-			return nil, fmt.Errorf("parse fee: %w", err)
-		}
-
+	for _, tx := range mempoolRes.Transactions {
 		transactions = append(transactions, &pb.RecentTransaction{
-			VirtualSize:      tx.VirtualSize,
-			Time:             tx.Time,
-			Txid:             txid,
-			FeeSats:          uint64(fee),
-			ConfirmedInBlock: nil,
+			VirtualSize: tx.Vsize,
+			Time:        tx.Time,
+			Txid:        tx.Txid,
+			FeeSats:     tx.FeeSats,
 		})
 	}
 	info, err := bitcoind.GetBlockchainInfo(ctx, connectv1.NewRequest(&corepb.GetBlockchainInfoRequest{}))
@@ -993,11 +993,6 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *pb.ListRecentTra
 		return &pb.ListRecentTransactionsResponse{
 			Transactions: transactions,
 		}, nil
-	}
-
-	count := int64(100)
-	if c.Count > 0 {
-		count = c.Count
 	}
 
 	confirmed, err := s.recentConfirmed(ctx, bitcoind, info.Msg.BestBlockHash, count)

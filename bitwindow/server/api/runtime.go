@@ -248,6 +248,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		return engines.NewZmqEngine(addr).SubscribeSequence(ctx)
 	}, rt.walletEngine.NodeMode())
 
+	mempool := dial.Mempool(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
 	rpcServer := connect.NewServer(logInterceptor(), recoverInterceptor(), localauth.ServerInterceptor(s.svcs.BitwindowDir), errorInterceptor())
 
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
@@ -257,6 +258,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config, networkID
 		pools := miningpools.New(ctx, conf.BitcoinCoreNetwork, networkID, conf.Datadir, s.svcs.MiningPoolFetch)
 		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, rt.mempoolWatcher, pools, conf, s.Recycle)
 		bwSvc.SetTipSource(rt.bitcoinEngine.SubscribeTip)
+		bwSvc.SetMempool(mempool)
 		bitwindowdv1connect.RegisterBitwindowdServiceHandler(rpcServer, bwSvc)
 	}
 	{

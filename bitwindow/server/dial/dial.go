@@ -21,6 +21,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	mempoolrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/mempool/v1/mempoolv1connect"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	walletmanagerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
@@ -52,6 +53,17 @@ func Bitcoind(ctx context.Context, orchestratorAddr, cookieDir string) (corerpc.
 // with the local-auth cookie in cookieDir.
 func Orchestrator(addr, cookieDir string) orchrpc.OrchestratorServiceClient {
 	return orchrpc.NewOrchestratorServiceClient(
+		connectv2.NewClient(
+			connecthttp.NewTransport(http.DefaultClient, addr, connecthttp.WithGRPC(), connecthttp.WithReadMaxBytes(0)),
+			localauth.ClientInterceptor(cookieDir),
+		),
+	)
+}
+
+// Mempool returns a MempoolService client for drivechaind at addr, with the
+// local-auth cookie in cookieDir.
+func Mempool(addr, cookieDir string) mempoolrpc.MempoolServiceClient {
+	return mempoolrpc.NewMempoolServiceClient(
 		connectv2.NewClient(
 			connecthttp.NewTransport(http.DefaultClient, addr, connecthttp.WithGRPC(), connecthttp.WithReadMaxBytes(0)),
 			localauth.ClientInterceptor(cookieDir),
