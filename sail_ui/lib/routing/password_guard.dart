@@ -16,7 +16,7 @@ class PasswordGuard extends AutoRouteGuard {
     final walletReader = GetIt.I.get<WalletReaderProvider>();
 
     // If wallet is already unlocked (has wallets loaded), allow through
-    if (walletReader.isWalletUnlocked) {
+    if (walletReader.isWalletUnlocked || walletReader.restoredOpenWallet) {
       resolver.next(true);
       return;
     }
