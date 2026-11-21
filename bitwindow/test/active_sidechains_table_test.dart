@@ -1,5 +1,7 @@
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -7,8 +9,11 @@ import 'package:sail_ui/sail_ui.dart';
 
 import 'test_utils.dart';
 
-SidechainOverview _sidechain(int slot, String title) =>
-    SidechainOverview(ListSidechainsResponse_Sidechain(slot: slot, title: title, chaintipTxid: 'tx$slot'), [], []);
+SidechainOverview _sidechain(int slot, String title, {String? chaintipTxid}) => SidechainOverview(
+  ListSidechainsResponse_Sidechain(slot: slot, title: title, chaintipTxid: chaintipTxid ?? 'tx$slot'),
+  [],
+  [],
+);
 
 void main() {
   setUp(() async {
@@ -74,5 +79,34 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: header);
     }
+  });
+
+  testWidgets('a tap selects one row when two sidechains have no chaintip', (tester) async {
+    await pumpTable(tester, [
+      _sidechain(21, 'Chain A', chaintipTxid: ''),
+      _sidechain(22, 'Chain B', chaintipTxid: ''),
+    ]);
+
+    await tester.tap(find.text('Chain A'));
+    await tester.pump(kDoubleTapTimeout);
+    await tester.pumpAndSettle();
+
+    final selected = tester
+        .widgetList(find.byWidgetPredicate((w) => w.runtimeType.toString() == '_TableRow'))
+        .where((row) => (row as dynamic).selected as bool)
+        .length;
+    expect(selected, 1);
+  });
+
+  testWidgets('a double tap opens the chaintip of that sidechain', (tester) async {
+    await pumpTable(tester, [_sidechain(9, 'Chain B'), _sidechain(2, 'Chain C')]);
+
+    await tester.tap(find.text('Chain B'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('Chain B'));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final dialog = tester.widget<TransactionDetailsDialog>(find.byType(TransactionDetailsDialog));
+    expect(dialog.txid, 'tx9');
   });
 }
