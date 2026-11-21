@@ -28,6 +28,25 @@ void main() {
     expect(orchestratorLogsToStdout({}), isFalse);
   });
 
+  test('reads nothing while no one sees the console', () async {
+    await file.writeAsString('');
+    for (final shown in [false, true]) {
+      printed = [];
+      final tail = SharedLogTail(
+        file: file,
+        source: 'orchestrator',
+        onLine: printed.add,
+        interval: const Duration(milliseconds: 10),
+        consoleShown: shown,
+      );
+      await tail.start();
+      await file.writeAsString('[orchestrator]  tick\n', mode: FileMode.append);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await tail.stop();
+      expect(printed, shown ? ['[orchestrator]  tick'] : isEmpty);
+    }
+  });
+
   test('prints the lines of the chosen source only', () async {
     await file.writeAsString('');
     final tail = tailOf(file);
