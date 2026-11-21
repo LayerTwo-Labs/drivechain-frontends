@@ -92,3 +92,39 @@ func TestConnectedChan(t *testing.T) {
 		}
 	})
 }
+
+func TestFollowDialsAgainUntilTheServiceAnswers(t *testing.T) {
+	var mu sync.Mutex
+	fails := 3
+	calls := 0
+	svc := service.New("thunder", func(context.Context) (string, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		calls++
+		if calls <= fails {
+			return "", errors.New("method not ready")
+		}
+		return "client", nil
+	})
+	up := make(chan bool, 1)
+	svc.Follow(t.Context(), up)
+	up <- true
+	require.Eventually(t, svc.IsConnected, 2*time.Second, time.Millisecond)
+
+	up <- false
+	require.Eventually(t, func() bool { return !svc.IsConnected() }, time.Second, time.Millisecond)
+	mu.Lock()
+	fails, calls = 1000, 0
+	mu.Unlock()
+	up <- true
+	time.Sleep(100 * time.Millisecond)
+	up <- false
+	time.Sleep(50 * time.Millisecond)
+	mu.Lock()
+	n := calls
+	mu.Unlock()
+	time.Sleep(300 * time.Millisecond)
+	mu.Lock()
+	defer mu.Unlock()
+	require.Equal(t, n, calls, "a down service got a dial")
+}
